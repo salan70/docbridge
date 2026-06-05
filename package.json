@@ -1,0 +1,19 @@
+{
+  "name": "speclink",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "speclink": "./src/cli/index.ts"
+  },
+  "scripts": {
+    "speclink": "bun run src/cli/index.ts",
+    "check": "bun run src/cli/index.ts check",
+    "check:example": "bun run src/cli/index.ts check --root examples/basic",
+    "test": "bun test",
+    "build": "bun build src/cli/index.ts --outdir dist --target bun"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
