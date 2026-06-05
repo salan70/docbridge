@@ -1,9 +1,15 @@
 # AGENTS.md
 
-このファイルは Codex がこのリポジトリで作業する際のガイダンスを提供します。
+This file provides guidance for Codex when working in this repository.
 
 ## Skills
 
-Codex 用 skill は `.agents/skills/` に配置します。
+Codex skills live in `.agents/skills/`.
 
-ユーザーが `grill-me`、`grill して`、`徹底的に詰めて`、または計画・設計の深掘りを明示した場合は、`.agents/skills/grill-me/SKILL.md` を使用します。
+When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or explicitly asks to deeply examine a plan or design, use `.agents/skills/grill-me/SKILL.md`.
+
+## Language Policy
+
+- Use Japanese for conversations with the user.
+- Write deliverables in English by default, including documentation, code comments, commit messages, PR titles, and PR descriptions.
+- Use Japanese only when the path or context explicitly identifies the content as Japanese, such as files under `docs/ja/`.
