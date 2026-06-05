@@ -174,6 +174,7 @@ Environment loader:
 
 - Japanese documentation: [docs/ja/README.md](docs/ja/README.md)
 - v0.1 decisions: [docs/decisions/v0.1.md](docs/decisions/v0.1.md)
+- Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
 
 ## Roadmap
 

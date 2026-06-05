@@ -174,6 +174,8 @@ Environment loader:
 
 - 英語 README: [../../README.md](../../README.md)
 - v0.1 決定事項: [../decisions/v0.1.md](../decisions/v0.1.md)
+- Commit message convention: [contributing/commits.md](contributing/commits.md)
+- English commit message convention: [../contributing/commits.md](../contributing/commits.md)
 
 ## Roadmap
 
