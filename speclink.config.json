@@ -1,0 +1,7 @@
+{
+  "$schema": "./schemas/speclink.schema.json",
+  "include": {
+    "code": ["src/**/*.ts"],
+    "docs": ["docs/specs/**/*.md"]
+  }
+}

@@ -62,13 +62,15 @@ Supported TypeScript declarations:
 
 - Top-level exported `function`
 - Top-level exported `class`
+- Top-level exported `abstract class`
 - Top-level exported `interface`
 - Top-level exported `type`
 - Top-level exported `const`
+- Top-level exported `enum`
 
 Supported Markdown elements:
 
-- Headings
+- ATX headings
 - HTML comments
 - `@code` annotations attached to the next heading
 
@@ -76,6 +78,8 @@ Default scan targets:
 
 - `src/**/*.ts`
 - `docs/**/*.md`
+
+Projects can override scan targets with `speclink.config.json`.
 
 ## CLI
 
@@ -106,22 +110,30 @@ just audit
 Audit diagnostics include:
 
 - `undocumented_symbol`
-- `orphan_doc`
 
 ## Diagnostics
 
 Errors:
 
+- `config_file_invalid`
+- `config_unknown_key`
+- `config_invalid_value`
+- `invalid_link_target`
 - `doc_file_not_found`
 - `doc_anchor_not_found`
 - `code_file_not_found`
-- `code_symbol_not_found`
+- `code_backlink_not_found`
+- `doc_backlink_not_found`
 - `duplicate_doc_anchor`
+- `duplicate_code_symbol`
+- `typescript_parse_error`
+- `file_read_error`
 
 Warnings:
 
-- `one_way_link`
-- `orphan_doc` when `--audit` is enabled
+- `duplicate_link`
+- `dangling_code_annotation`
+- `unsupported_declaration`
 - `undocumented_symbol` when `--audit` is enabled
 
 Exit code policy:
@@ -173,6 +185,7 @@ Environment loader:
 ## Documentation
 
 - Japanese documentation: [docs/ja/README.md](docs/ja/README.md)
+- v0.1 specifications: [docs/specs](docs/specs)
 - v0.1 decisions: [docs/decisions/v0.1.md](docs/decisions/v0.1.md)
 - Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
 

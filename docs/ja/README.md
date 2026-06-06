@@ -62,13 +62,15 @@ Login flow specification.
 
 - トップレベル export の `function`
 - トップレベル export の `class`
+- トップレベル export の `abstract class`
 - トップレベル export の `interface`
 - トップレベル export の `type`
 - トップレベル export の `const`
+- トップレベル export の `enum`
 
 対象にする Markdown 要素:
 
-- 見出し
+- ATX 見出し
 - HTML コメント
 - 次の見出しに紐づく `@code` アノテーション
 
@@ -76,6 +78,8 @@ Login flow specification.
 
 - `src/**/*.ts`
 - `docs/**/*.md`
+
+プロジェクトは `speclink.config.json` でスキャン対象を上書きできます。
 
 ## CLI
 
@@ -106,22 +110,30 @@ just audit
 監査診断には以下を含めます。
 
 - `undocumented_symbol`
-- `orphan_doc`
 
 ## Diagnostics
 
 Errors:
 
+- `config_file_invalid`
+- `config_unknown_key`
+- `config_invalid_value`
+- `invalid_link_target`
 - `doc_file_not_found`
 - `doc_anchor_not_found`
 - `code_file_not_found`
-- `code_symbol_not_found`
+- `code_backlink_not_found`
+- `doc_backlink_not_found`
 - `duplicate_doc_anchor`
+- `duplicate_code_symbol`
+- `typescript_parse_error`
+- `file_read_error`
 
 Warnings:
 
-- `one_way_link`
-- `--audit` 有効時の `orphan_doc`
+- `duplicate_link`
+- `dangling_code_annotation`
+- `unsupported_declaration`
 - `--audit` 有効時の `undocumented_symbol`
 
 終了コード:
@@ -173,6 +185,7 @@ Environment loader:
 ## 関連ドキュメント
 
 - 英語 README: [../../README.md](../../README.md)
+- v0.1 仕様: [../specs](../specs)
 - v0.1 決定事項: [../decisions/v0.1.md](../decisions/v0.1.md)
 - Commit message convention: [contributing/commits.md](contributing/commits.md)
 - English commit message convention: [../contributing/commits.md](../contributing/commits.md)
