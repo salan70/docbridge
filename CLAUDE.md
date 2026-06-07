@@ -66,7 +66,7 @@ invoked directly with `/<skill-name>`.
   understanding is reached. Use it with `/grill-me`, or when the user says
   `grill me`, `grill して`, `徹底的に詰めて`, or asks to deeply examine a plan
   or design.
-- `git-workflow` — branch naming, PR-based flow, rebase merge, branch
+- `git-workflow` — branch naming, PR-based flow, merge commits, branch
   protection, agent autonomy gates, and the semi-automated release procedure.
   Use it with `/git-workflow`, or when branching, committing, pushing, opening
   or merging a PR, or cutting a release.
@@ -106,7 +106,8 @@ Full rules and the release procedure live in the `git-workflow` skill
   for everyone, including administrators.
 - Branch from up-to-date `main` using `feat/`, `fix/`, `chore/`, or
   `release/vX.Y.Z`.
-- Merge with **Rebase and merge** only; `main` stays linear.
+- Merge with **Create a merge commit** only; PR boundaries stay visible in
+  `main` history.
 - CI (`just check`, `just test`, `just build`) must pass before merging.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR and
   pushing tags require explicit human approval.**
