@@ -104,8 +104,11 @@ Full rules and the release procedure live in the `git-workflow` skill
 
 - All changes land through a PR. Never push to `main` directly; GitHub blocks it
   for everyone, including administrators.
-- Branch from up-to-date `main` using `feat/`, `fix/`, `chore/`, or
-  `release/vX.Y.Z`.
+- Before creating a branch, sync local `main`: `git switch main && git pull
+  --ff-only`. Never branch from a stale `main`. Name branches `feat/`, `fix/`,
+  `chore/`, or `release/vX.Y.Z`.
+- After a PR merges, return to an updated `main` (`git switch main && git pull
+  --ff-only`) and delete the local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
 - CI (`just check`, `just test`, `just build`) must pass before merging.
