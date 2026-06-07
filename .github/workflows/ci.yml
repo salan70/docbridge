@@ -20,8 +20,8 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Enable Nix store cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Install dependencies
+        run: nix develop -c bun install --frozen-lockfile
 
       - name: just check
         run: nix develop -c just check
