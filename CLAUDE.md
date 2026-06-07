@@ -66,6 +66,14 @@ invoked directly with `/<skill-name>`.
   understanding is reached. Use it with `/grill-me`, or when the user says
   `grill me`, `grill して`, `徹底的に詰めて`, or asks to deeply examine a plan
   or design.
+- `git-workflow` — branch naming, PR-based flow, merge commits, branch
+  protection, agent autonomy gates, and the semi-automated release procedure.
+  Use it with `/git-workflow`, or when branching, committing, pushing, opening
+  or merging a PR, or cutting a release.
+- `review-response` — triage pull request review comments (from bots like Devin
+  or human reviewers), act or justify per comment, then reply to and resolve
+  every thread. Use it with `/review-response`, or when a PR has review feedback
+  to address.
 
 ## Language Policy
 
@@ -89,7 +97,22 @@ When reporting completion to the user, explicitly list:
 - Skills used, or `None`.
 - MCP servers/tools used, or `None`.
 
-## Commit Policy
+## Git Policy
+
+Full rules and the release procedure live in the `git-workflow` skill
+(`.claude/skills/git-workflow/`). Always-on invariants:
+
+- All changes land through a PR. Never push to `main` directly; GitHub blocks it
+  for everyone, including administrators.
+- Branch from up-to-date `main` using `feat/`, `fix/`, `chore/`, or
+  `release/vX.Y.Z`.
+- Merge with **Create a merge commit** only; PR boundaries stay visible in
+  `main` history.
+- CI (`just check`, `just test`, `just build`) must pass before merging.
+- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR and
+  pushing tags require explicit human approval.**
+
+### Commit messages
 
 - Follow [docs/contributing/commits.md](docs/contributing/commits.md).
 - Use English commit messages.
