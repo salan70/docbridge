@@ -1,0 +1,125 @@
+name: Release Publish
+
+# Runs when a `release/vX.Y.Z` pull request is merged into main: verifies CI is
+# green, extracts the matching CHANGELOG section, and creates the git tag plus a
+# GitHub Release in one step (no separate tag push, no PAT required).
+#
+# The merge of the release PR is the human approval gate. A workflow_dispatch
+# fallback exists for recovery if the automatic run does not fire.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish (X.Y.Z), uses current main HEAD
+        required: true
+
+permissions:
+  contents: write
+  checks: read
+
+jobs:
+  publish:
+    # Only on a merged release PR, or any manual dispatch.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       startsWith(github.head_ref, 'release/'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve target commit and version
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "sha=" >> "$GITHUB_OUTPUT"   # checkout default (main HEAD)
+            echo "version=${INPUT_VERSION#v}" >> "$GITHUB_OUTPUT"
+          else
+            # pull_request.closed: github.sha is the merge ref, not the commit
+            # on main. Tag the actual merge commit instead.
+            echo "sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+
+      - name: Determine version
+        id: version
+        env:
+          INPUT_VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="$(node -p "require('./package.json').version")"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Publishing v${version}"
+
+      - name: Require CI to have passed for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha="$(git rev-parse HEAD)"
+          # GitHub Actions reports via check runs, not the legacy status API.
+          # Poll briefly in case the CI run for this commit is still finishing.
+          conclusion=""
+          for _ in $(seq 1 10); do
+            conclusion=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/commits/${sha}/check-runs?check_name=ci" \
+              -q '.check_runs | sort_by(.completed_at // "") | last | .conclusion // ""')
+            echo "ci check conclusion: ${conclusion:-<pending>}"
+            if [ -n "$conclusion" ]; then
+              break
+            fi
+            sleep 15
+          done
+          if [ "$conclusion" != "success" ]; then
+            echo "::error::CI check 'ci' did not succeed for ${sha} (conclusion: ${conclusion:-none})." >&2
+            exit 1
+          fi
+
+      - name: Extract changelog section
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "CHANGELOG.md not found" >&2
+            exit 1
+          fi
+          # Match the heading by literal string (index), not a dynamic regex, so
+          # the dots in the semver version cannot act as regex wildcards.
+          awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 { flag = 1; next }
+            flag && (/^## \[/ || /^\[[^]]+\]: /) { flag = 0 }
+            flag { print }
+          ' CHANGELOG.md \
+            | sed -e '/./,$!d' \
+            | tac | sed -e '/./,$!d' | tac \
+            > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog section found for ${VERSION}" >&2
+            exit 1
+          fi
+          echo "Release notes for ${VERSION}:"
+          cat release-notes.md
+
+      - name: Create tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # gh release create also creates the git tag at --target, so no
+          # separate tag push (and thus no PAT) is needed.
+          gh release create "v${VERSION}" \
+            --target "$(git rev-parse HEAD)" \
+            --title "v${VERSION}" \
+            --notes-file release-notes.md

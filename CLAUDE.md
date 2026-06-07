@@ -112,8 +112,10 @@ Full rules and the release procedure live in the `git-workflow` skill
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
 - CI (`just check`, `just test`, `just build`) must pass before merging.
-- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR and
-  pushing tags require explicit human approval.**
+- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR
+  requires explicit human approval.** Release tagging and publishing are
+  automated by GitHub Actions when the release PR is merged, so the merge is the
+  release approval gate.
 
 ### Commit messages
 

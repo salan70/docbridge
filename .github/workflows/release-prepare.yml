@@ -1,0 +1,79 @@
+name: Release Prepare
+
+# Manually triggered from the GitHub Actions UI. Bumps the version, rolls the
+# CHANGELOG, and opens a `release/vX.Y.Z` pull request. Merging that PR is the
+# human approval gate; the Release Publish workflow then tags and publishes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        description: Semantic version bump for this release
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  GIT_USER_NAME: "github-actions[bot]"
+  GIT_USER_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "$GIT_USER_NAME"
+          git config user.email "$GIT_USER_EMAIL"
+
+      - name: Bump version in package.json
+        run: |
+          # npm ships on ubuntu-latest; --no-git-tag-version edits package.json
+          # without creating a commit or tag.
+          version="$(npm version "${{ github.event.inputs.bump }}" --no-git-tag-version)"
+          version="${version#v}"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          echo "Bumped to ${version}"
+
+      - name: Roll the CHANGELOG
+        env:
+          VERSION: ${{ env.VERSION }}
+          REPOSITORY: ${{ github.repository }}
+        run: node .github/scripts/roll-changelog.mjs
+
+      - name: Commit and open release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ env.VERSION }}
+        run: |
+          branch="release/v${VERSION}"
+          git switch -c "$branch"
+          git add package.json CHANGELOG.md
+          git commit -m "🔖 chore(release): v${VERSION}"
+          git push -u origin "$branch"
+
+          # Build the PR body: a short header plus this version's CHANGELOG section.
+          {
+            echo "Automated release preparation for v${VERSION}."
+            echo
+            echo "## Changelog"
+            echo
+            cat release-notes.md
+          } > pr-body.md
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "🔖 Release v${VERSION}" \
+            --body-file pr-body.md
