@@ -1,13 +1,26 @@
 #!/usr/bin/env bun
 
-export type CheckOptions = {
+import { statSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { formatDiagnostic, formatSummary } from "../core/diagnostics";
+import { check as runChecker } from "../core/resolver";
+
+export type CliCheckOptions = {
   root: string;
   json: boolean;
   audit: boolean;
 };
 
-function printHelp(): void {
-  console.log(`SpecLink
+export type CliIo = {
+  stdout: (text: string) => void;
+  stderr: (text: string) => void;
+};
+
+/** Raised for CLI invocation errors that must go to stderr with exit code 1. */
+class CliError extends Error {}
+
+const HELP = `SpecLink
 
 Usage:
   speclink check [--root <path>] [--json] [--audit]
@@ -19,11 +32,10 @@ Options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --audit        Include audit diagnostics such as undocumented_symbol.
-`);
-}
+`;
 
-export function parseCheckOptions(args: string[]): CheckOptions {
-  const options: CheckOptions = {
+export function parseCheckOptions(args: string[]): CliCheckOptions {
+  const options: CliCheckOptions = {
     root: ".",
     json: false,
     audit: false,
@@ -45,62 +57,82 @@ export function parseCheckOptions(args: string[]): CheckOptions {
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new Error("--root requires a path.");
+        throw new CliError("--root requires a path.");
       }
       options.root = root;
       index += 1;
       continue;
     }
 
-    throw new Error(`Unknown option: ${arg ?? ""}`);
+    throw new CliError(`Unknown option: ${arg ?? ""}`);
   }
 
   return options;
 }
 
-function runCheck(options: CheckOptions): number {
-  const result = {
-    diagnostics: [],
-    summary: {
-      errors: 0,
-      warnings: 0,
-    },
-  };
+function resolveProjectRoot(root: string): string {
+  const projectRoot = resolve(root);
 
-  if (options.json) {
-    console.log(JSON.stringify(result, null, 2));
-  } else {
-    console.log(`SpecLink check is not implemented yet.
-
-Planned scan root: ${options.root}
-Audit diagnostics: ${options.audit ? "enabled" : "disabled"}
-`);
+  let stats;
+  try {
+    stats = statSync(projectRoot);
+  } catch {
+    throw new CliError(`Root path does not exist: ${root}`);
   }
 
-  return 0;
+  if (!stats.isDirectory()) {
+    throw new CliError(`Root path is not a directory: ${root}`);
+  }
+
+  return projectRoot;
 }
 
-function main(args: string[]): number {
-  const [command, ...rest] = args;
+function runCheck(options: CliCheckOptions, io: CliIo): number {
+  const projectRoot = resolveProjectRoot(options.root);
+  const result = runChecker({ projectRoot, audit: options.audit });
 
-  if (command === undefined || command === "--help" || command === "-h") {
-    printHelp();
-    return 0;
+  if (options.json) {
+    io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+  } else {
+    const lines = result.diagnostics.map(formatDiagnostic);
+    const body = lines.length > 0 ? `${lines.join("\n")}\n\n` : "";
+    io.stdout(`${body}${formatSummary(result.summary)}\n`);
   }
 
-  if (command === "check") {
-    const options = parseCheckOptions(rest);
-    return runCheck(options);
-  }
+  return result.summary.errors > 0 ? 1 : 0;
+}
 
-  throw new Error(`Unknown command: ${command}`);
+/**
+ * Execute the CLI for the given argv (without the `bun` / script prefix) and
+ * return the process exit code. Output is written through the injected IO so the
+ * function is unit-testable without spawning a process.
+ */
+export function run(
+  argv: string[],
+  io: CliIo = {
+    stdout: (text) => process.stdout.write(text),
+    stderr: (text) => process.stderr.write(text),
+  },
+): number {
+  try {
+    const [command, ...rest] = argv;
+
+    if (command === undefined || command === "--help" || command === "-h") {
+      io.stdout(HELP);
+      return 0;
+    }
+
+    if (command === "check") {
+      return runCheck(parseCheckOptions(rest), io);
+    }
+
+    throw new CliError(`Unknown command: ${command}`);
+  } catch (error) {
+    io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
+  }
 }
 
 if (import.meta.main) {
-  try {
-    process.exitCode = main(Bun.argv.slice(2));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  }
+  process.exitCode = run(Bun.argv.slice(2));
 }
