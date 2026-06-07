@@ -43,15 +43,18 @@ Examples: `feat/version-flag`, `fix/anchor-resolution`, `chore/git-workflow`,
 
 ## Standard change flow
 
-1. Branch from an up-to-date `main` using the naming above.
-2. Implement test-first. For logic changes, use the `tdd` skill.
-3. Commit in focused, logical commits. The `pre-commit` hook runs `just check`
+1. Sync local `main` first: `git switch main && git pull --ff-only`. Never branch
+   from a stale `main`.
+2. Create the branch from `main` using the naming above.
+3. Implement test-first. For logic changes, use the `tdd` skill.
+4. Commit in focused, logical commits. The `pre-commit` hook runs `just check`
    and `just test`.
-4. Push the branch and open a PR using the repository PR template. Write the PR
+5. Push the branch and open a PR using the repository PR template. Write the PR
    title and body in English (see the Language Policy).
-5. Wait for CI to pass.
-6. Merge with **Create a merge commit** once CI is green.
-7. Delete the merged branch.
+6. Wait for CI to pass.
+7. Merge with **Create a merge commit** once CI is green.
+8. After merge, return to an updated `main` and remove the local branch:
+   `git switch main && git pull --ff-only && git branch -d <branch>`.
 
 ## AI agent autonomy gates
 
