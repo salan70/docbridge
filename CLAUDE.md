@@ -70,6 +70,10 @@ invoked directly with `/<skill-name>`.
   protection, agent autonomy gates, and the semi-automated release procedure.
   Use it with `/git-workflow`, or when branching, committing, pushing, opening
   or merging a PR, or cutting a release.
+- `review-response` — triage pull request review comments (from bots like Devin
+  or human reviewers), act or justify per comment, then reply to and resolve
+  every thread. Use it with `/review-response`, or when a PR has review feedback
+  to address.
 
 ## Language Policy
 

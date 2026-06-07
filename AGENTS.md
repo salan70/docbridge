@@ -45,6 +45,8 @@ When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or e
 
 When branching, committing, pushing, opening or merging a PR, or cutting a release, use `.agents/skills/git-workflow/SKILL.md`.
 
+When a PR has review comments to triage, reply to, and resolve, use `.agents/skills/review-response/SKILL.md`.
+
 When working under `.agents/`, also follow `.agents/AGENTS.md`.
 
 ## Language Policy
