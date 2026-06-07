@@ -3,8 +3,11 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
+import pkg from "../../package.json";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import { check as runChecker } from "../core/resolver";
+
+const VERSION = pkg.version;
 
 export type CliCheckOptions = {
   root: string;
@@ -32,6 +35,8 @@ Options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --audit        Include audit diagnostics such as undocumented_symbol.
+  --version, -v  Print the SpecLink version.
+  --help, -h     Print this help text.
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
@@ -121,6 +126,11 @@ export function run(
 
     if (command === undefined || command === "--help" || command === "-h") {
       io.stdout(HELP);
+      return 0;
+    }
+
+    if (command === "--version" || command === "-v") {
+      io.stdout(`${VERSION}\n`);
       return 0;
     }
 

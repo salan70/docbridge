@@ -24,6 +24,8 @@ speclink check [--root <path>] [--json] [--audit]
 
 `--audit` enables audit-only diagnostics. In v0.1, the only audit diagnostic is `undocumented_symbol`.
 
+`--version` (alias `-v`) prints the SpecLink version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
+
 Human-readable output prints one diagnostic per line:
 
 ```text
