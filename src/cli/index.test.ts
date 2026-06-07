@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import pkg from "../../package.json";
 import { parseCheckOptions, run } from "./index";
 
 type Captured = {
@@ -54,6 +55,33 @@ test("run prints help for --help and exits 0", () => {
 
   expect(code).toBe(0);
   expect(c.out).toContain("Usage:");
+});
+
+test("run help documents global and check options separately", () => {
+  const c = capture();
+  run(["--help"], c.io);
+
+  expect(c.out).toContain("speclink [--version] [--help]");
+  expect(c.out).toContain("Global options:");
+  expect(c.out).toContain("Check options:");
+});
+
+test("run prints the package version for --version and exits 0", () => {
+  const c = capture();
+  const code = run(["--version"], c.io);
+
+  expect(code).toBe(0);
+  expect(c.out).toBe(`${pkg.version}\n`);
+  expect(c.err).toBe("");
+});
+
+test("run prints the package version for -v and exits 0", () => {
+  const c = capture();
+  const code = run(["-v"], c.io);
+
+  expect(code).toBe(0);
+  expect(c.out).toBe(`${pkg.version}\n`);
+  expect(c.err).toBe("");
 });
 
 test("run reports an unknown command on stderr and exits 1", () => {
