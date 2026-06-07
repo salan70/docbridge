@@ -244,6 +244,59 @@ describe(scanTypeScript, () => {
     });
   });
 
+  describe("undocumented supported declarations", () => {
+    test("surfaces a supported exported declaration without @doc", () => {
+      const result = scan("export function login() {}\n");
+
+      expect(result.symbols).toEqual([]);
+      expect(result.links).toEqual([]);
+      expect(result.diagnostics).toEqual([]);
+      expect(result.undocumentedSymbols).toEqual([
+        {
+          kind: "code",
+          filePath: FILE,
+          symbolName: "login",
+          endpoint: `${FILE}#login`,
+          location: { filePath: FILE, line: 1, column: 1 },
+        },
+      ]);
+    });
+
+    test("does not surface unsupported declarations without @doc", () => {
+      const result = scan("export const a = 1, b = 2;\nexport namespace N {}\n");
+
+      expect(result.undocumentedSymbols).toEqual([]);
+    });
+
+    test("does not surface non-exported declarations", () => {
+      const result = scan("function login() {}\n");
+
+      expect(result.undocumentedSymbols).toEqual([]);
+    });
+
+    test("treats an endpoint as documented when any declaration has @doc", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
+      const result = scan(content);
+
+      expect(result.symbols).toHaveLength(1);
+      expect(result.undocumentedSymbols).toEqual([]);
+    });
+
+    test("reports each undocumented endpoint in a mixed file", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\nexport function logout() {}\n";
+      const result = scan(content);
+
+      expect(result.symbols.map((symbol) => symbol.symbolName)).toEqual([
+        "login",
+      ]);
+      expect(
+        result.undocumentedSymbols.map((symbol) => symbol.symbolName),
+      ).toEqual(["logout"]);
+    });
+  });
+
   test("matches the examples/basic login fixture: one symbol and one link", () => {
     const content =
       "/**\n * @doc docs/auth.md#login-spec\n */\nexport async function login() {\n  return { ok: true };\n}\n";

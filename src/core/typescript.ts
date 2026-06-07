@@ -11,6 +11,11 @@ import type {
 export type TypeScriptScanResult = {
   filePath: string;
   symbols: CodeSymbolEndpoint[];
+  /**
+   * Supported, top-level exported declarations whose `file#name` endpoint has no
+   * `@doc` annotation. Used by audit mode to emit `undocumented_symbol`.
+   */
+  undocumentedSymbols: CodeSymbolEndpoint[];
   links: DocLinkAnnotation[];
   diagnostics: SpecLinkDiagnostic[];
 };
@@ -44,6 +49,7 @@ export function scanTypeScript(
     return {
       filePath,
       symbols: [],
+      undocumentedSymbols: [],
       links: [],
       diagnostics: [parseErrorDiagnostic(filePath, sourceFile, first)],
     };
@@ -51,18 +57,14 @@ export function scanTypeScript(
 
   const diagnostics: SpecLinkDiagnostic[] = [];
   const symbols: CodeSymbolEndpoint[] = [];
+  const undocumentedSymbols: CodeSymbolEndpoint[] = [];
   const links: DocLinkAnnotation[] = [];
 
-  // Track endpoints that already exposed a @doc-annotated declaration so we can
-  // emit duplicate_code_symbol when a second one appears.
-  const endpointSeen = new Map<string, true>();
-  const duplicateReported = new Set<string>();
-
+  // Collect every supported, top-level exported declaration in source order.
+  // Unsupported declarations are diagnosed (when annotated) but not recorded.
+  const declarations: SupportedDeclaration[] = [];
   for (const statement of sourceFile.statements) {
     const docTags = collectDocTags(filePath, sourceFile, statement);
-    if (docTags.length === 0) {
-      continue;
-    }
 
     const supported = describeSupportedDeclaration(
       filePath,
@@ -72,36 +74,78 @@ export function scanTypeScript(
     );
 
     if (supported === null) {
-      diagnostics.push(
-        unsupportedDeclarationDiagnostic(filePath, docTags[0].location),
-      );
+      // Only annotated unsupported declarations are reported; bare ones are
+      // ignored entirely.
+      if (docTags.length > 0) {
+        diagnostics.push(
+          unsupportedDeclarationDiagnostic(filePath, docTags[0].location),
+        );
+      }
       continue;
     }
 
-    const endpoint = `${filePath}#${supported.symbolName}`;
+    declarations.push(supported);
+  }
+
+  // An endpoint is documented when any of its declarations carries @doc.
+  const documentedEndpoints = new Set<string>();
+  for (const declaration of declarations) {
+    if (declaration.docTags.length > 0) {
+      documentedEndpoints.add(`${filePath}#${declaration.symbolName}`);
+    }
+  }
+
+  // Track endpoints that already exposed a @doc-annotated declaration so we can
+  // emit duplicate_code_symbol when a second one appears.
+  const endpointSeen = new Set<string>();
+  const duplicateReported = new Set<string>();
+  const undocumentedSeen = new Set<string>();
+
+  for (const declaration of declarations) {
+    const endpoint = `${filePath}#${declaration.symbolName}`;
+
+    if (!documentedEndpoints.has(endpoint)) {
+      if (!undocumentedSeen.has(endpoint)) {
+        undocumentedSeen.add(endpoint);
+        undocumentedSymbols.push({
+          kind: "code",
+          filePath,
+          symbolName: declaration.symbolName,
+          endpoint,
+          location: declaration.location,
+        });
+      }
+      continue;
+    }
+
+    // Non-annotated declarations of a documented endpoint are subsumed by the
+    // annotated one and produce nothing.
+    if (declaration.docTags.length === 0) {
+      continue;
+    }
 
     if (endpointSeen.has(endpoint)) {
       if (!duplicateReported.has(endpoint)) {
         diagnostics.push(
-          duplicateCodeSymbolDiagnostic(endpoint, supported.location),
+          duplicateCodeSymbolDiagnostic(endpoint, declaration.location),
         );
         duplicateReported.add(endpoint);
       }
       // The endpoint is duplicated; do not emit a second symbol or its links.
       continue;
     }
-    endpointSeen.set(endpoint, true);
+    endpointSeen.add(endpoint);
 
     symbols.push({
       kind: "code",
       filePath,
-      symbolName: supported.symbolName,
+      symbolName: declaration.symbolName,
       endpoint,
-      location: supported.location,
+      location: declaration.location,
     });
 
     const linkTargetsSeen = new Set<string>();
-    for (const docTag of supported.docTags) {
+    for (const docTag of declaration.docTags) {
       const parsed = parseLinkTarget(docTag.rawTarget, {
         source: endpoint,
         sourceFilePath: filePath,
@@ -130,7 +174,7 @@ export function scanTypeScript(
     }
   }
 
-  return { filePath, symbols, links, diagnostics };
+  return { filePath, symbols, undocumentedSymbols, links, diagnostics };
 }
 
 function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
