@@ -54,7 +54,9 @@ Examples: `feat/version-flag`, `fix/anchor-resolution`, `chore/git-workflow`,
 For AI agents (Claude, Codex):
 
 - Autonomous: create branches, commit, push, and open PRs.
-- Requires explicit human approval: **merging a PR** and **pushing tags**.
+- Requires explicit human approval: **merging a PR**. Release tagging and
+  publishing are automated by GitHub Actions when the release PR is merged, so
+  the merge is the release approval gate.
 - Never push to `main` directly. GitHub blocks it; do not attempt to bypass it.
 
 ## Branch protection (reference)
@@ -72,23 +74,36 @@ For AI agents (Claude, Codex):
 - Apply to administrators with no bypass. To recover from a stuck state, an admin
   temporarily relaxes protection rather than force-pushing routinely.
 
-## Releases (semi-automated)
+## Releases (GitHub Actions)
 
 Versioning follows SemVer. During `0.x`, new features bump the minor version.
 
 Keep `CHANGELOG.md` current: in every PR that changes user-facing behavior, add
-entries under `## [Unreleased]`, following Keep a Changelog.
+entries under `## [Unreleased]`, following Keep a Changelog. The release
+workflows require a non-empty `## [Unreleased]` section and fail loudly without
+one.
+
+Releases are driven by two GitHub Actions workflows; no local tagging is needed.
 
 To cut release `vX.Y.Z`:
 
-1. Branch `release/vX.Y.Z` from an up-to-date `main`.
-2. Bump `version` in `package.json` to `X.Y.Z`.
-3. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - <date>`, add a
-   fresh empty `## [Unreleased]`, and update the link references at the bottom.
-4. Commit (`🔖 chore(release): vX.Y.Z`), push, and open a PR.
-5. After CI passes and a human approves, merge with **Create a merge commit**.
-6. With human approval, on `main` create an annotated tag and push it:
-   `git tag -a vX.Y.Z -m "vX.Y.Z"` then `git push origin vX.Y.Z`.
-7. The `Release` workflow extracts the matching `CHANGELOG.md` section and
-   publishes a GitHub Release. This project attaches no artifacts and publishes
-   nothing to npm.
+1. On GitHub, run **Actions → Release Prepare** and choose the bump
+   (`patch` / `minor` / `major`). It bumps `version` in `package.json`, rolls
+   `CHANGELOG.md` (moves `## [Unreleased]` into `## [X.Y.Z] - <date>`, leaves a
+   fresh empty `## [Unreleased]`, and refreshes the link references), pushes
+   `release/vX.Y.Z`, and opens the release PR.
+2. Wait for CI to pass on that PR.
+3. A human merges the PR with **Create a merge commit**. This merge is the
+   release approval gate.
+4. **Release Publish** then runs automatically on the merge: it re-checks CI for
+   the merge commit, extracts the matching `CHANGELOG.md` section, and creates
+   the `vX.Y.Z` tag plus a GitHub Release in one step (`gh release create`, no
+   separate tag push and no PAT). This project attaches no artifacts and
+   publishes nothing to npm.
+
+A `workflow_dispatch` fallback on **Release Publish** (input: version) exists for
+recovery if the automatic run does not fire.
+
+One-time repo setup: enable **Settings → Actions → General → Workflow
+permissions → Allow GitHub Actions to create and approve pull requests** so
+Release Prepare can open the PR.
