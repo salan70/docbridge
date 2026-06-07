@@ -57,6 +57,15 @@ test("run prints help for --help and exits 0", () => {
   expect(c.out).toContain("Usage:");
 });
 
+test("run help documents global and check options separately", () => {
+  const c = capture();
+  run(["--help"], c.io);
+
+  expect(c.out).toContain("speclink [--version] [--help]");
+  expect(c.out).toContain("Global options:");
+  expect(c.out).toContain("Check options:");
+});
+
 test("run prints the package version for --version and exits 0", () => {
   const c = capture();
   const code = run(["--version"], c.io);

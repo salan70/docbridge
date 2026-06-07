@@ -3,8 +3,12 @@
 SpecLink v0.1 provides the `check` command.
 
 ```sh
+speclink [--version] [--help]
 speclink check [--root <path>] [--json] [--audit]
 ```
+
+`--version` and `--help` are global flags handled before command dispatch. The
+remaining options are specific to the `check` command.
 
 `--root <path>` sets the project root. The path must exist and must be a directory. Missing or non-directory roots are CLI invocation errors.
 

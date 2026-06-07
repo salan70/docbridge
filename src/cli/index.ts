@@ -26,17 +26,20 @@ class CliError extends Error {}
 const HELP = `SpecLink
 
 Usage:
+  speclink [--version] [--help]
   speclink check [--root <path>] [--json] [--audit]
 
 Commands:
   check    Validate links between TypeScript and Markdown.
 
-Options:
+Global options:
+  --version, -v  Print the SpecLink version.
+  --help, -h     Print this help text.
+
+Check options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --audit        Include audit diagnostics such as undocumented_symbol.
-  --version, -v  Print the SpecLink version.
-  --help, -h     Print this help text.
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
