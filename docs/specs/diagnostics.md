@@ -66,6 +66,28 @@ Exit code policy:
 - exit `1` when any error exists
 - exit `0` when diagnostics contain only warnings or no diagnostics
 
+## LSP Diagnostics
+
+From v0.2, the Language Server (`speclink lsp`) publishes these same diagnostics
+through `textDocument/publishDiagnostics`. The diagnostic computation is
+unchanged. The diagnostic codes are identical; v0.2 adds no new codes.
+
+Each `SpecLinkDiagnostic` maps to the LSP `Diagnostic` shape:
+
+- `severity`: `error` maps to `1`, `warning` maps to `2`.
+- `range`: the annotation `targetRange` for link-target diagnostics; the element
+  range (`nameRange` or `headingTextRange`) for declaration and heading
+  diagnostics; the whole line as a fallback when no range is available.
+- `code`: the SpecLink diagnostic code string.
+- `message`: the diagnostic message.
+
+The server publishes diagnostics for open documents. Because the whole-project
+link graph is held in memory, open documents receive correct cross-file
+diagnostics. See [LSP](./lsp.md) for the server's document model.
+
+The exit code policy above applies to `speclink check` only; the Language Server
+reports through `publishDiagnostics` and does not exit per check.
+
 <!-- @code src/core/diagnostics.ts#sortDiagnostics -->
 ## Sorting Diagnostics
 

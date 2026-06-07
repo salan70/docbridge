@@ -185,8 +185,9 @@ Environment loader:
 ## Documentation
 
 - Japanese documentation: [docs/ja/README.md](docs/ja/README.md)
-- v0.1 specifications: [docs/specs](docs/specs)
+- Specifications: [docs/specs](docs/specs)
 - v0.1 decisions: [docs/decisions/v0.1.md](docs/decisions/v0.1.md)
+- v0.2 decisions: [docs/decisions/v0.2.md](docs/decisions/v0.2.md)
 - Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
 
 ## Roadmap
@@ -203,9 +204,13 @@ v0.1:
 
 v0.2:
 
+- Language Server (`speclink lsp`)
+- Diagnostics in the editor
 - Hover
 - Definition
 - References
+- Minimal VS Code client extension (verification; full editor integration stays
+  in v0.4)
 
 v0.3:
 
