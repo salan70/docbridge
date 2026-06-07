@@ -1,5 +1,8 @@
 import type { SpecLinkDiagnostic, Summary } from "./types";
 
+/**
+ * @doc docs/specs/diagnostics.md#sorting-diagnostics
+ */
 export function sortDiagnostics(
   diagnostics: SpecLinkDiagnostic[],
 ): SpecLinkDiagnostic[] {

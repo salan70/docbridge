@@ -106,6 +106,8 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
  * Execute the CLI for the given argv (without the `bun` / script prefix) and
  * return the process exit code. Output is written through the injected IO so the
  * function is unit-testable without spawning a process.
+ *
+ * @doc docs/specs/cli.md#check-command
  */
 export function run(
   argv: string[],

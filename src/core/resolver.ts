@@ -29,6 +29,8 @@ export type ResolveInput = {
  * does NOT re-include the upstream scanner diagnostics; the orchestrator merges
  * the two sets. The returned list is unsorted; the orchestrator sorts the
  * final, merged set.
+ *
+ * @doc docs/specs/link-resolution.md#resolving-links
  */
 export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
   const diagnostics: SpecLinkDiagnostic[] = [];

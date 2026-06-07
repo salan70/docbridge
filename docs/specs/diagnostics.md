@@ -65,3 +65,9 @@ Exit code policy:
 
 - exit `1` when any error exists
 - exit `0` when diagnostics contain only warnings or no diagnostics
+
+<!-- @code src/core/diagnostics.ts#sortDiagnostics -->
+## Sorting Diagnostics
+
+Diagnostics are sorted deterministically using the ordering above so output is
+stable across runs.

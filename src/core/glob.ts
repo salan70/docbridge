@@ -72,6 +72,8 @@ export function matchGlob(pattern: string, relativePath: string): boolean {
  * Ignore rules: skip `node_modules`, `.git`, any dot-prefixed segment, and
  * symlink files and directories. Code patterns (ending in `.ts`) drop
  * `.d.ts` files, which would otherwise match textually.
+ *
+ * @doc docs/specs/scanning.md#file-collection
  */
 export function collectFiles(projectRoot: string, patterns: string[]): string[] {
   const matched = new Set<string>();

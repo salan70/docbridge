@@ -33,6 +33,8 @@ const KNOWN_INCLUDE_KEYS = new Set(["code", "docs"]);
  * Load `speclink.config.json` from `projectRoot`, then validate it.
  *
  * When the file is absent, the default config is returned with no diagnostics.
+ *
+ * @doc docs/specs/configuration.md#loading-configuration
  */
 export function loadConfig(projectRoot: string): LoadConfigResult {
   let rawText: string | undefined;

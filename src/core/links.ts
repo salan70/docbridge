@@ -19,6 +19,9 @@ export type ParseLinkTargetResult =
 const invalidLinkTargetMessage =
   "Link target must be a project-root-relative file path and fragment in file#fragment form.";
 
+/**
+ * @doc docs/specs/link-resolution.md#parsing-link-targets
+ */
 export function parseLinkTarget(
   rawTarget: string,
   options: ParseLinkTargetOptions = {},

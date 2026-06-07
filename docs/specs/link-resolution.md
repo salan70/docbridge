@@ -47,3 +47,15 @@ If a Markdown `@code` target code file does not exist in the managed code set, S
 Duplicate `@doc` or `@code` annotations from the same source to the same target produce `duplicate_link`.
 
 If multiple `@doc`-annotated supported declarations in the same file expose the same code endpoint, SpecLink emits `duplicate_code_symbol`.
+
+<!-- @code src/core/links.ts#parseLinkTarget -->
+## Parsing Link Targets
+
+A single target parser validates `file#fragment` forms so every annotation
+consumer applies the same rules.
+
+<!-- @code src/core/resolver.ts#resolveLinks -->
+## Resolving Links
+
+Resolution combines scanner outputs into relationship diagnostics under the
+pair-based model described above.

@@ -31,6 +31,9 @@ type SupportedDeclaration = {
   docTags: DocTag[];
 };
 
+/**
+ * @doc docs/specs/scanning.md#typescript-scanning
+ */
 export function scanTypeScript(
   filePath: string,
   content: string,

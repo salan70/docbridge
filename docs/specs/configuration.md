@@ -44,3 +44,9 @@ v0.1 glob syntax supports only `*` and `**`.
 - `?`, `[]`, `{}`, negation, and brace expansion are unsupported.
 
 Invalid config files produce config diagnostics. If any config error exists, SpecLink does not scan project files.
+
+<!-- @code src/core/config.ts#loadConfig -->
+## Loading Configuration
+
+Configuration loading reads `speclink.config.json` from the project root and
+falls back to the default config when the file is absent.

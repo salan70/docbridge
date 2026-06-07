@@ -40,3 +40,9 @@ speclink.config.json error config_file_invalid - Failed to parse config file.
 ```
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
+
+<!-- @code src/cli/index.ts#run -->
+## Check Command
+
+The check command parses CLI options, runs the checker against the resolved
+project root, prints diagnostics, and returns the process exit code.

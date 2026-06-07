@@ -27,6 +27,8 @@ const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
  *
  * The function is pure: it derives all results from `filePath` and `content`
  * without touching the filesystem. `filePath` must be project-root-relative.
+ *
+ * @doc docs/specs/scanning.md#markdown-scanning
  */
 export function scanMarkdown(filePath: string, content: string): MarkdownScanResult {
   const anchors: DocAnchorEndpoint[] = [];
