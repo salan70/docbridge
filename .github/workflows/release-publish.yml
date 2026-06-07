@@ -70,9 +70,11 @@ jobs:
         run: |
           sha="$(git rev-parse HEAD)"
           # GitHub Actions reports via check runs, not the legacy status API.
-          # Poll briefly in case the CI run for this commit is still finishing.
+          # On a merge the CI run for the merge commit starts alongside this job,
+          # so poll long enough to outlast a cold Nix CI run plus runner queueing
+          # (40 x 15s = 10 min). The loop exits early once the check completes.
           conclusion=""
-          for _ in $(seq 1 10); do
+          for _ in $(seq 1 40); do
             conclusion=$(gh api \
               "repos/${GITHUB_REPOSITORY}/commits/${sha}/check-runs?check_name=ci" \
               -q '.check_runs | sort_by(.completed_at // "") | last | .conclusion // ""')
