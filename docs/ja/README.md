@@ -111,6 +111,23 @@ just audit
 
 - `undocumented_symbol`
 
+## エディタ対応(v0.2)
+
+SpecLink は、同じリンクグラフをエディタへ公開する Language Server を同梱します。
+
+```sh
+speclink lsp
+```
+
+`speclink lsp` は stdio 上で LSP を話し、リンクされた TypeScript と Markdown を
+またいで Diagnostics、Hover、Definition、References を提供します。オプションは
+受け取らず、プロジェクト root はエディタの `initialize` リクエストから決まります。
+`speclink check` は変更ありません。
+
+最小の VS Code クライアントは [../../editors/vscode](../../editors/vscode) にあり、
+Extension Development Host での起動手順はその README を参照してください。詳細な
+挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
+
 ## Diagnostics
 
 Errors:

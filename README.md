@@ -111,6 +111,23 @@ Audit diagnostics include:
 
 - `undocumented_symbol`
 
+## Editor support (v0.2)
+
+SpecLink ships a language server that exposes the same link graph to editors:
+
+```sh
+speclink lsp
+```
+
+`speclink lsp` speaks LSP over stdio and provides Diagnostics, Hover,
+Definition, and References across linked TypeScript and Markdown. It takes no
+options; the project root comes from the editor's `initialize` request.
+`speclink check` is unchanged.
+
+A minimal VS Code client lives in [editors/vscode](editors/vscode); see its
+README to run it under the Extension Development Host. Full behavior is
+specified in [docs/specs/lsp.md](docs/specs/lsp.md).
+
 ## Diagnostics
 
 Errors:
