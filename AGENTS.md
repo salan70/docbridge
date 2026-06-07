@@ -43,6 +43,8 @@ Codex skills live in `.agents/skills/`.
 
 When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or explicitly asks to deeply examine a plan or design, use `.agents/skills/grill-me/SKILL.md`.
 
+When branching, committing, pushing, opening or merging a PR, or cutting a release, use `.agents/skills/git-workflow/SKILL.md`.
+
 When working under `.agents/`, also follow `.agents/AGENTS.md`.
 
 ## Language Policy
@@ -65,7 +67,18 @@ When reporting completion to the user, explicitly list:
 - Skills used, or `None`.
 - MCP servers/tools used, or `None`.
 
-## Commit Policy
+## Git Policy
+
+Full rules and the release procedure live in the `git-workflow` skill
+(`.agents/skills/git-workflow/`). Always-on invariants:
+
+- All changes land through a PR. Never push to `main` directly; GitHub blocks it for everyone, including administrators.
+- Branch from up-to-date `main` using `feat/`, `fix/`, `chore/`, or `release/vX.Y.Z`.
+- Merge with **Rebase and merge** only; `main` stays linear.
+- CI (`just check`, `just test`, `just build`) must pass before merging.
+- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR and pushing tags require explicit human approval.**
+
+### Commit messages
 
 - Follow [docs/contributing/commits.md](docs/contributing/commits.md).
 - Use English commit messages.
