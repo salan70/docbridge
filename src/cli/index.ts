@@ -3,8 +3,11 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
+import pkg from "../../package.json";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import { check as runChecker } from "../core/resolver";
+
+const VERSION = pkg.version;
 
 export type CliCheckOptions = {
   root: string;
@@ -23,12 +26,17 @@ class CliError extends Error {}
 const HELP = `SpecLink
 
 Usage:
+  speclink [--version] [--help]
   speclink check [--root <path>] [--json] [--audit]
 
 Commands:
   check    Validate links between TypeScript and Markdown.
 
-Options:
+Global options:
+  --version, -v  Print the SpecLink version.
+  --help, -h     Print this help text.
+
+Check options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --audit        Include audit diagnostics such as undocumented_symbol.
@@ -121,6 +129,11 @@ export function run(
 
     if (command === undefined || command === "--help" || command === "-h") {
       io.stdout(HELP);
+      return 0;
+    }
+
+    if (command === "--version" || command === "-v") {
+      io.stdout(`${VERSION}\n`);
       return 0;
     }
 

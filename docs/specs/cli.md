@@ -3,8 +3,12 @@
 SpecLink v0.1 provides the `check` command.
 
 ```sh
+speclink [--version] [--help]
 speclink check [--root <path>] [--json] [--audit]
 ```
+
+`--version` and `--help` are global flags handled before command dispatch. The
+remaining options are specific to the `check` command.
 
 `--root <path>` sets the project root. The path must exist and must be a directory. Missing or non-directory roots are CLI invocation errors.
 
@@ -23,6 +27,8 @@ speclink check [--root <path>] [--json] [--audit]
 `summary` counts check diagnostics only. CLI invocation errors are not included.
 
 `--audit` enables audit-only diagnostics. In v0.1, the only audit diagnostic is `undocumented_symbol`.
+
+`--version` (alias `-v`) prints the SpecLink version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
 
 Human-readable output prints one diagnostic per line:
 
