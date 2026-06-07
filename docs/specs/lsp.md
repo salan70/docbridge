@@ -170,7 +170,7 @@ Each reference is a `Location` at the counterpart's element range.
 
 The server publishes the v0.1 diagnostics through
 `textDocument/publishDiagnostics`. The computation is unchanged; the mapping to
-LSP is defined in [Diagnostics](../specs/diagnostics.md). v0.2 adds no new
+LSP is defined in [Diagnostics](./diagnostics.md). v0.2 adds no new
 diagnostic codes.
 
 The server publishes diagnostics for open documents. Because the whole graph is
