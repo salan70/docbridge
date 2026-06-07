@@ -185,8 +185,9 @@ Environment loader:
 ## 関連ドキュメント
 
 - 英語 README: [../../README.md](../../README.md)
-- v0.1 仕様: [../specs](../specs)
+- 仕様: [../specs](../specs)
 - v0.1 決定事項: [../decisions/v0.1.md](../decisions/v0.1.md)
+- v0.2 決定事項: [../decisions/v0.2.md](../decisions/v0.2.md)
 - Commit message convention: [contributing/commits.md](contributing/commits.md)
 - English commit message convention: [../contributing/commits.md](../contributing/commits.md)
 
@@ -204,9 +205,12 @@ v0.1:
 
 v0.2:
 
+- Language Server (`speclink lsp`)
+- エディタ上の Diagnostics
 - Hover
 - Definition
 - References
+- VS Code 最小クライアント拡張(検証用。全面的なエディタ統合は v0.4)
 
 v0.3:
 
