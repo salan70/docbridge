@@ -25,6 +25,7 @@ Content-Length: <byte-length>\r\n
 character length. The reader handles bodies split across reads and multiple
 messages arriving in one read.
 
+<!-- @code src/lsp/server.ts#Server -->
 ## Lifecycle
 
 The server implements the standard LSP lifecycle:
@@ -128,6 +129,7 @@ completeness is reported by diagnostics, not by suppressing navigation.
 A target that does not resolve (missing file or missing anchor) is never
 navigable.
 
+<!-- @code src/lsp/hover.ts#hover -->
 ## Hover
 
 `textDocument/hover` returns Markdown content.
@@ -149,6 +151,7 @@ returns the linked Markdown **section** inline:
 When the position hits a heading that links to a code symbol, the server returns
 the linked code endpoint plus the declaration's signature line.
 
+<!-- @code src/lsp/navigation.ts#definition -->
 ## Definition
 
 `textDocument/definition` returns the linked counterpart location(s).
@@ -160,6 +163,7 @@ the linked code endpoint plus the declaration's signature line.
 The target `Location.range` uses the counterpart's `headingTextRange` or
 `nameRange`.
 
+<!-- @code src/lsp/navigation.ts#references -->
 ## References
 
 `textDocument/references` returns every counterpart linked to the element, using

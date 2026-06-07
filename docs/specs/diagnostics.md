@@ -66,6 +66,7 @@ Exit code policy:
 - exit `1` when any error exists
 - exit `0` when diagnostics contain only warnings or no diagnostics
 
+<!-- @code src/lsp/diagnostics.ts#toLspDiagnostic -->
 ## LSP Diagnostics
 
 From v0.2, the Language Server (`speclink lsp`) publishes these same diagnostics
