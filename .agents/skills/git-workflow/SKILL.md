@@ -47,7 +47,8 @@ Examples: `feat/version-flag`, `fix/anchor-resolution`, `chore/git-workflow`,
 2. Implement test-first. For logic changes, use the `tdd` skill.
 3. Commit in focused, logical commits. The `pre-commit` hook runs `just check`
    and `just test`.
-4. Push the branch and open a PR using the repository PR template.
+4. Push the branch and open a PR using the repository PR template. Write the PR
+   title and body in English (see the Language Policy).
 5. Wait for CI to pass.
 6. Merge with **Rebase and merge** once CI is green.
 7. Delete the merged branch.
