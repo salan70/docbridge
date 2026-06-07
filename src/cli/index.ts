@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-type CheckOptions = {
+export type CheckOptions = {
   root: string;
   json: boolean;
   audit: boolean;
@@ -22,7 +22,7 @@ Options:
 `);
 }
 
-function parseCheckOptions(args: string[]): CheckOptions {
+export function parseCheckOptions(args: string[]): CheckOptions {
   const options: CheckOptions = {
     root: ".",
     json: false,
@@ -96,9 +96,11 @@ function main(args: string[]): number {
   throw new Error(`Unknown command: ${command}`);
 }
 
-try {
-  process.exitCode = main(Bun.argv.slice(2));
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+if (import.meta.main) {
+  try {
+    process.exitCode = main(Bun.argv.slice(2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }

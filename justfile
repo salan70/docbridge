@@ -23,3 +23,6 @@ build:
 
 flake-check:
     nix flake check
+
+install-git-hooks:
+    git config core.hooksPath .githooks

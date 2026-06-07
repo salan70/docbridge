@@ -25,6 +25,18 @@ Use the repo-native commands in `justfile`:
 Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
 Compiler API for core implementation.
 
+## Local Guardrails
+
+Codex hooks live under `.codex/`. The `SessionStart` hook injects a short
+repository reminder, and the `Stop` hook runs `just check` and `just test` when
+the working tree has changes.
+
+Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
+when hook setup is missing; use `nix develop -c just install-git-hooks` if
+`just` is not on `PATH`. The command configures `core.hooksPath` for this
+repository. The `pre-commit` hook runs `just check` and `just test` as a
+mandatory guard.
+
 ## Skills
 
 Codex skills live in `.agents/skills/`.
