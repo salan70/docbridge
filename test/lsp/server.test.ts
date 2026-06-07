@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import { describe, expect, test } from "bun:test";
 
+import { Project } from "../../src/lsp/project";
 import { Server, type SendFn } from "../../src/lsp/server";
 
 const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/basic");
@@ -154,6 +155,37 @@ describe(Server, () => {
 
     const result = sent.find((m) => m.id === 7)?.result as Array<{ uri: string }>;
     expect(result.map((location) => location.uri)).toEqual([CODE_URI]);
+  });
+
+  test("read-only requests reuse the resolved state without re-resolving", () => {
+    let resolveCount = 0;
+    class CountingProject extends Project {
+      resolve(): ReturnType<Project["resolve"]> {
+        resolveCount += 1;
+        return super.resolve();
+      }
+    }
+    const sent: Outgoing[] = [];
+    const server = new Server((message) => sent.push(message as Outgoing), {
+      debounceMs: 0,
+      makeProject: (root) => new CountingProject(root),
+    });
+    init(server);
+    // The initial `initialized` flush resolves once.
+    expect(resolveCount).toBe(1);
+
+    server.handle({
+      method: "textDocument/hover",
+      id: 10,
+      params: { textDocument: { uri: CODE_URI }, position: { line: 3, character: 23 } },
+    });
+    server.handle({
+      method: "textDocument/definition",
+      id: 11,
+      params: { textDocument: { uri: DOC_URI }, position: { line: 1, character: 5 } },
+    });
+    // Neither read-only request changed content, so no re-resolution happens.
+    expect(resolveCount).toBe(1);
   });
 
   test("an unknown request gets a null result", () => {

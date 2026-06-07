@@ -44,7 +44,7 @@ const CAPABILITIES = {
 export class Server {
   private project: Project | null = null;
   private readonly openFiles = new Set<string>();
-  private dirty = false;
+  private dirty = true;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private shuttingDown = false;
 
@@ -114,6 +114,7 @@ export class Server {
     }
     this.openFiles.add(rel);
     this.project.setOverlay(rel, text);
+    this.dirty = true;
     this.flush();
   }
 
@@ -137,6 +138,7 @@ export class Server {
     }
     this.openFiles.delete(rel);
     this.project.clearOverlay(rel);
+    this.dirty = true;
     // Clear diagnostics for the closed document, then refresh the rest.
     this.publish(rel, []);
     this.flush();
@@ -220,7 +222,7 @@ export class Server {
   /** Re-resolve if needed and publish diagnostics for every open document. */
   private flush(): void {
     this.clearTimer();
-    if (this.project === null) {
+    if (this.project === null || !this.dirty) {
       return;
     }
     this.dirty = false;
