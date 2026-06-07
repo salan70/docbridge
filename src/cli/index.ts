@@ -18,7 +18,7 @@ Commands:
 Options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
-  --audit        Include audit diagnostics such as undocumented_symbol and orphan_doc.
+  --audit        Include audit diagnostics such as undocumented_symbol.
 `);
 }
 
