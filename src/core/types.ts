@@ -30,6 +30,21 @@ export type SourceLocation = {
   column: number;
 };
 
+/** A 1-based line/column position within a file, matching SourceLocation. */
+export type Position = {
+  line: number;
+  column: number;
+};
+
+/**
+ * A 1-based, end-exclusive text range within a single file. `end` points one
+ * column past the last covered character, mirroring the LSP range model.
+ */
+export type Range = {
+  start: Position;
+  end: Position;
+};
+
 export type SpecLinkDiagnostic = {
   severity: DiagnosticSeverity;
   code: DiagnosticCode;
@@ -37,6 +52,12 @@ export type SpecLinkDiagnostic = {
   source?: string;
   message: string;
   location?: SourceLocation;
+  /**
+   * Optional precise range for editor surfaces (LSP). `speclink check` ignores
+   * it. Set to the annotation target range for link-target diagnostics or the
+   * element range for declaration/heading diagnostics when available.
+   */
+  range?: Range;
 };
 
 export type Summary = {
@@ -57,6 +78,8 @@ export type CodeSymbolEndpoint = {
   symbolName: string;
   endpoint: string;
   location: SourceLocation;
+  /** Range of the declaration name identifier, used as a navigation trigger. */
+  nameRange?: Range;
 };
 
 export type DocAnchorEndpoint = {
@@ -66,6 +89,8 @@ export type DocAnchorEndpoint = {
   endpoint: string;
   headingText: string;
   location: SourceLocation;
+  /** Range of the heading text (excluding `#` and surrounding whitespace). */
+  headingTextRange?: Range;
 };
 
 export type LinkAnnotationDirection = "code-to-doc" | "doc-to-code";
@@ -75,6 +100,8 @@ export type LinkAnnotation = {
   source: string;
   target: string;
   location: SourceLocation;
+  /** Range of the annotation target string (the `file#fragment` text). */
+  targetRange?: Range;
 };
 
 export type DocLinkAnnotation = LinkAnnotation & {

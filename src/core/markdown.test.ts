@@ -11,7 +11,7 @@ test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
 
   expect(result.filePath).toBe("docs/auth.md");
   expect(result.diagnostics).toEqual([]);
-  expect(result.anchors).toEqual([
+  expect(result.anchors).toMatchObject([
     {
       kind: "doc",
       filePath: "docs/auth.md",
@@ -21,7 +21,7 @@ test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
       location: { filePath: "docs/auth.md", line: 2, column: 1 },
     },
   ]);
-  expect(result.links).toEqual([
+  expect(result.links).toMatchObject([
     {
       direction: "doc-to-code",
       source: "docs/auth.md#login-spec",
@@ -34,7 +34,7 @@ test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
 test("scanMarkdown records anchors with no annotations", () => {
   const result = scanMarkdown("docs/a.md", "# Title\n");
 
-  expect(result.anchors).toEqual([
+  expect(result.anchors).toMatchObject([
     {
       kind: "doc",
       filePath: "docs/a.md",
@@ -139,7 +139,7 @@ test("scanMarkdown ignores comments whose body does not start with @code", () =>
 test("scanMarkdown takes only the first token after @code as the target", () => {
   const content = ["<!-- @code src/a.ts#foo extra words here -->", "# Heading"].join("\n");
   const result = scanMarkdown("docs/a.md", content);
-  expect(result.links).toEqual([
+  expect(result.links).toMatchObject([
     {
       direction: "doc-to-code",
       source: "docs/a.md#heading",
@@ -164,7 +164,7 @@ test("scanMarkdown attaches multiple @code comments to one heading", () => {
   ].join("\n");
   const result = scanMarkdown("docs/a.md", content);
 
-  expect(result.links).toEqual([
+  expect(result.links).toMatchObject([
     {
       direction: "doc-to-code",
       source: "docs/a.md#heading",
@@ -188,7 +188,7 @@ test("scanMarkdown reports dangling annotation before normal text", () => {
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toEqual([]);
-  expect(result.diagnostics).toEqual([
+  expect(result.diagnostics).toMatchObject([
     {
       severity: "warning",
       code: "dangling_code_annotation",
@@ -224,7 +224,7 @@ test("scanMarkdown reports dangling annotation attached to an empty heading", ()
 
   expect(result.anchors).toEqual([]);
   expect(result.links).toEqual([]);
-  expect(result.diagnostics).toEqual([
+  expect(result.diagnostics).toMatchObject([
     {
       severity: "warning",
       code: "dangling_code_annotation",
@@ -242,7 +242,7 @@ test("scanMarkdown reports duplicate non-empty anchors in the same file", () => 
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.anchors).toHaveLength(2);
-  expect(result.diagnostics).toEqual([
+  expect(result.diagnostics).toMatchObject([
     {
       severity: "error",
       code: "duplicate_doc_anchor",
@@ -272,7 +272,7 @@ test("scanMarkdown reports duplicate links from the same heading to the same end
 
   expect(result.links).toHaveLength(2);
   const dup = result.diagnostics.filter((d) => d.code === "duplicate_link");
-  expect(dup).toEqual([
+  expect(dup).toMatchObject([
     {
       severity: "warning",
       code: "duplicate_link",
@@ -302,7 +302,7 @@ test("scanMarkdown emits invalid_link_target for malformed @code targets", () =>
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toEqual([]);
-  expect(result.diagnostics).toEqual([
+  expect(result.diagnostics).toMatchObject([
     {
       severity: "error",
       code: "invalid_link_target",
@@ -332,4 +332,36 @@ test("scanMarkdown emits invalid_link_target for a missing target", () => {
   const invalid = result.diagnostics.filter((d) => d.code === "invalid_link_target");
   expect(invalid).toHaveLength(1);
   expect(invalid[0]?.target).toBe("");
+});
+
+test("scanMarkdown records the heading text range excluding hashes and spaces", () => {
+  const result = scanMarkdown("docs/a.md", "##   Login Spec   ##\n");
+
+  // Two `#`, three spaces, then `Login Spec` begins at column 6.
+  expect(result.anchors[0]?.headingTextRange).toEqual({
+    start: { line: 1, column: 6 },
+    end: { line: 1, column: 6 + "Login Spec".length },
+  });
+});
+
+test("scanMarkdown records the heading text range for an indented heading", () => {
+  const result = scanMarkdown("docs/a.md", "  ## Title\n");
+
+  // Two leading spaces, two `#`, one space, then `Title` begins at column 6.
+  expect(result.anchors[0]?.headingTextRange).toEqual({
+    start: { line: 1, column: 6 },
+    end: { line: 1, column: 6 + "Title".length },
+  });
+});
+
+test("scanMarkdown records the @code target range on the comment line", () => {
+  const content = ["<!-- @code src/auth/login.ts#login -->", "## Login Spec", ""].join("\n");
+  const result = scanMarkdown("docs/auth.md", content);
+
+  // `<!-- @code ` is 11 chars; the target begins at column 12.
+  const target = "src/auth/login.ts#login";
+  expect(result.links[0]?.targetRange).toEqual({
+    start: { line: 1, column: 12 },
+    end: { line: 1, column: 12 + target.length },
+  });
 });

@@ -4,7 +4,7 @@ import { collectFiles, readManagedFile } from "./glob";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { parseLinkTarget } from "./links";
 import { scanTypeScript, type TypeScriptScanResult } from "./typescript";
-import type { CheckResult, SourceLocation, SpecLinkDiagnostic } from "./types";
+import type { CheckResult, LinkAnnotation, SpecLinkDiagnostic } from "./types";
 
 export type ResolveInput = {
   /** One per scanned `.ts` file, including files that hit a parse error. */
@@ -93,7 +93,7 @@ export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
             link.source,
             docEndpoint,
             `Doc file ${docFilePath} referenced by ${link.source} is not in the managed docs set.`,
-            link.location,
+            link,
           ),
         );
         continue;
@@ -106,7 +106,7 @@ export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
             link.source,
             docEndpoint,
             `Doc anchor ${docEndpoint} referenced by ${link.source} does not exist.`,
-            link.location,
+            link,
           ),
         );
         continue;
@@ -120,7 +120,7 @@ export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
             link.source,
             docEndpoint,
             `Doc anchor ${docEndpoint} has no matching @code backlink to ${link.source}.`,
-            link.location,
+            link,
           ),
         );
       }
@@ -149,7 +149,7 @@ export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
             link.source,
             codeEndpoint,
             `Code file ${codeFilePath} referenced by ${link.source} is not in the managed code set.`,
-            link.location,
+            link,
           ),
         );
         continue;
@@ -163,7 +163,7 @@ export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
             link.source,
             codeEndpoint,
             `Code endpoint ${codeEndpoint} has no matching @doc pair back to ${link.source}.`,
-            link.location,
+            link,
           ),
         );
       }
@@ -298,14 +298,18 @@ function relationshipDiagnostic(
   source: string,
   target: string,
   message: string,
-  location: SourceLocation,
+  link: LinkAnnotation,
 ): SpecLinkDiagnostic {
-  return {
+  const diagnostic: SpecLinkDiagnostic = {
     severity: "error",
     code,
     source,
     target,
     message,
-    location,
+    location: link.location,
   };
+  if (link.targetRange !== undefined) {
+    diagnostic.range = link.targetRange;
+  }
+  return diagnostic;
 }
