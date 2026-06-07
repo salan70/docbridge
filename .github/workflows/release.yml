@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract changelog section
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ ! -f CHANGELOG.md ]; then
+            echo "CHANGELOG.md not found" >&2
+            exit 1
+          fi
+          awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" { flag = 1; next }
+            flag && (/^## \[/ || /^\[[^]]+\]: /) { flag = 0 }
+            flag { print }
+          ' CHANGELOG.md \
+            | sed -e '/./,$!d' \
+            | tac | sed -e '/./,$!d' | tac \
+            > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog section found for ${version}" >&2
+            exit 1
+          fi
+          echo "Release notes for ${version}:"
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release-notes.md
