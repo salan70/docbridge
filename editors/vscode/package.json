@@ -13,6 +13,7 @@
   ],
   "activationEvents": [
     "onLanguage:typescript",
+    "onLanguage:typescriptreact",
     "onLanguage:markdown"
   ],
   "main": "./out/extension.js",
@@ -24,6 +25,10 @@
           "type": "string",
           "default": "bun",
           "description": "Path to the Bun executable used to launch `speclink lsp`."
+        },
+        "speclink.cliPath": {
+          "type": "string",
+          "description": "Optional absolute path to the SpecLink CLI entrypoint. Defaults to the server bundled with this extension."
         }
       }
     }

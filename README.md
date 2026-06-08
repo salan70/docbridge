@@ -124,9 +124,9 @@ Definition, and References across linked TypeScript and Markdown. It takes no
 options; the project root comes from the editor's `initialize` request.
 `speclink check` is unchanged.
 
-A minimal VS Code client lives in [editors/vscode](editors/vscode); see its
-README to run it under the Extension Development Host. Full behavior is
-specified in [docs/specs/lsp.md](docs/specs/lsp.md).
+A minimal VS Code-compatible client lives in [editors/vscode](editors/vscode);
+see its README to install it into Cursor or VS Code for local testing. Full
+behavior is specified in [docs/specs/lsp.md](docs/specs/lsp.md).
 
 ## Diagnostics
 
