@@ -18,6 +18,8 @@ cp -R "$EDITOR_DIR/node_modules" "$WORK/extension/node_modules"
 mkdir -p "$WORK/extension/server"
 cp "$ROOT/package.json" "$WORK/extension/server/package.json"
 cp -R "$ROOT/src" "$WORK/extension/server/src"
+mkdir -p "$WORK/extension/server/node_modules"
+cp -R "$EDITOR_DIR/node_modules/typescript" "$WORK/extension/server/node_modules/typescript"
 
 cat > "$WORK/[Content_Types].xml" <<'XML'
 <?xml version="1.0" encoding="utf-8"?>
@@ -25,6 +27,7 @@ cat > "$WORK/[Content_Types].xml" <<'XML'
   <Default Extension="json" ContentType="application/json"/>
   <Default Extension="js" ContentType="application/javascript"/>
   <Default Extension="md" ContentType="text/markdown"/>
+  <Default Extension="ts" ContentType="application/typescript"/>
   <Default Extension="vsixmanifest" ContentType="text/xml"/>
   <Default Extension="xml" ContentType="text/xml"/>
 </Types>

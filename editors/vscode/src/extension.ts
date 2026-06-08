@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import * as path from "node:path";
 
 import { window, workspace, type ExtensionContext } from "vscode";
@@ -15,6 +16,15 @@ function nonEmpty(value: string | undefined): string | undefined {
   return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
+function defaultCliPath(context: ExtensionContext): string {
+  const bundledCli = context.asAbsolutePath(path.join("server", "src", "cli", "index.ts"));
+  if (existsSync(bundledCli)) {
+    return bundledCli;
+  }
+
+  return context.asAbsolutePath(path.join("..", "..", "src", "cli", "index.ts"));
+}
+
 /**
  * Activate the SpecLink client: launch `speclink lsp` over stdio and bind it to
  * TypeScript and Markdown documents. The server is run through Bun from this
@@ -27,8 +37,7 @@ export function activate(context: ExtensionContext): void {
   const configuredBun = workspace.getConfiguration("speclink").get<string>("bunPath");
   const bun = nonEmpty(configuredBun) ?? process.env.SPECLINK_BUN_PATH ?? "bun";
   const configuredCli = workspace.getConfiguration("speclink").get<string>("cliPath");
-  const cli =
-    nonEmpty(configuredCli) ?? context.asAbsolutePath(path.join("server", "src", "cli", "index.ts"));
+  const cli = nonEmpty(configuredCli) ?? defaultCliPath(context);
   output.appendLine(`Starting SpecLink language server: ${bun} run ${cli} lsp`);
 
   const executable: Executable = {
