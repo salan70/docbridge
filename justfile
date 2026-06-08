@@ -21,6 +21,10 @@ test:
 build:
     bun build src/cli/index.ts --outdir dist --target bun
 
+# Exercise the language server (hover, definition, references, diagnostics) over stdio.
+verify-lsp:
+    bun run scripts/lsp-verify.ts
+
 flake-check:
     nix flake check
 
