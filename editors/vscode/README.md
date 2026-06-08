@@ -8,26 +8,26 @@ purpose is to verify the server in a real editor; full editor integration
 This package carries the only `vscode-languageclient` dependency in the
 repository. The server and `src/core/` do not depend on it.
 
-## Run it in Cursor or VS Code
+## Run it in VS Code or Cursor
 
-Cursor can run this client because it is a VS Code-compatible extension.
+Cursor uses the same client because it can run VS Code-compatible extensions.
 
 1. From the repository root, run:
 
    ```sh
-   just cursor-lsp
+   just vscode-lsp
    ```
 
    This installs editor client dependencies, compiles the extension, packages a
    local VSIX with the SpecLink language server bundled inside, installs it into
-   Cursor, and opens the repository. It also writes the local workspace setting
-   `speclink.bunPath` to the current Bun executable so Cursor can start the
+   VS Code, and opens the repository. It also writes the local workspace setting
+   `speclink.bunPath` to the current Bun executable so VS Code can start the
    language server even when the GUI environment has a different `PATH`.
 
-   For VS Code, run:
+   For Cursor, run:
 
    ```sh
-   just vscode-lsp
+   just cursor-lsp
    ```
 
 2. In Cursor or VS Code, open a project that uses SpecLink (for example the
