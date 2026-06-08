@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "install extension deps",
+      "type": "shell",
+      "command": "bun install",
+      "options": { "cwd": "${workspaceFolder}/editors/vscode" },
+      "problemMatcher": []
+    },
+    {
+      "label": "compile extension",
+      "type": "shell",
+      "command": "bun run compile",
+      "options": { "cwd": "${workspaceFolder}/editors/vscode" },
+      "dependsOn": ["install extension deps"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}

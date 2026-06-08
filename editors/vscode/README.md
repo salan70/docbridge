@@ -14,11 +14,15 @@ repository. The server and `src/core/` do not depend on it.
 
    ```sh
    cd editors/vscode
-   npm install
+   bun install
    ```
 
 2. Open `editors/vscode` in VS Code and press `F5`. This compiles the extension
-   (`npm run compile`) and launches an Extension Development Host.
+   (`bun run compile`) and launches an Extension Development Host.
+
+   Alternatively, open the repository root and press `F5`: the root
+   `.vscode/launch.json` runs the same Extension Development Host with the
+   workspace already pointed at the repository (which contains `examples/basic`).
 
 3. In the development host, open a project that uses SpecLink (for example the
    repository root, which contains `examples/basic`). The extension runs
