@@ -71,7 +71,7 @@ describe(scanTypeScript, () => {
           }) as unknown as CodeSymbolEndpoint["location"],
         };
 
-        expect(result.symbols).toEqual([expectedSymbol]);
+        expect(result.symbols).toMatchObject([expectedSymbol]);
 
         const expectedLink: DocLinkAnnotation = {
           direction: "code-to-doc",
@@ -82,7 +82,7 @@ describe(scanTypeScript, () => {
           }) as unknown as DocLinkAnnotation["location"],
         };
 
-        expect(result.links).toEqual([expectedLink]);
+        expect(result.links).toMatchObject([expectedLink]);
         expect(result.diagnostics).toEqual([]);
       },
     );
@@ -251,7 +251,7 @@ describe(scanTypeScript, () => {
       expect(result.symbols).toEqual([]);
       expect(result.links).toEqual([]);
       expect(result.diagnostics).toEqual([]);
-      expect(result.undocumentedSymbols).toEqual([
+      expect(result.undocumentedSymbols).toMatchObject([
         {
           kind: "code",
           filePath: FILE,
@@ -303,7 +303,7 @@ describe(scanTypeScript, () => {
     const result = scanTypeScript("src/auth/login.ts", content);
 
     expect(result.diagnostics).toEqual([]);
-    expect(result.symbols).toEqual([
+    expect(result.symbols).toMatchObject([
       {
         kind: "code",
         filePath: "src/auth/login.ts",
@@ -312,7 +312,7 @@ describe(scanTypeScript, () => {
         location: { filePath: "src/auth/login.ts", line: 4, column: 1 },
       },
     ]);
-    expect(result.links).toEqual([
+    expect(result.links).toMatchObject([
       {
         direction: "code-to-doc",
         source: "src/auth/login.ts#login",
@@ -320,5 +320,43 @@ describe(scanTypeScript, () => {
         location: { filePath: "src/auth/login.ts", line: 4, column: 1 },
       },
     ]);
+  });
+
+  describe("ranges", () => {
+    test("records the name identifier range, not the declaration start", () => {
+      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
+      const result = scan(content);
+
+      // `login` begins at column 17 on line 4 (`export function ` is 16 chars).
+      expect(result.symbols[0]?.nameRange).toEqual({
+        start: { line: 4, column: 17 },
+        end: { line: 4, column: 22 },
+      });
+    });
+
+    test("records the @doc target string range inside the JSDoc", () => {
+      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
+      const result = scan(content);
+
+      // ` * @doc ` is 8 chars; the target starts at column 9 on line 2.
+      const target = "docs/auth.md#login-spec";
+      expect(result.links[0]?.targetRange).toEqual({
+        start: { line: 2, column: 9 },
+        end: { line: 2, column: 9 + target.length },
+      });
+    });
+
+    test("attaches the target range to invalid_link_target diagnostics", () => {
+      const content = "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
+      const result = scan(content);
+
+      const diagnostic = result.diagnostics.find(
+        (entry) => entry.code === "invalid_link_target",
+      );
+      expect(diagnostic?.range).toEqual({
+        start: { line: 2, column: 9 },
+        end: { line: 2, column: 9 + "not-a-valid-target".length },
+      });
+    });
   });
 });

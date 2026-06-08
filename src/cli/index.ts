@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import pkg from "../../package.json";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import { check as runChecker } from "../core/resolver";
+import { runLspServer } from "../lsp/server";
 
 const VERSION = pkg.version;
 
@@ -28,9 +29,11 @@ const HELP = `SpecLink
 Usage:
   speclink [--version] [--help]
   speclink check [--root <path>] [--json] [--audit]
+  speclink lsp
 
 Commands:
   check    Validate links between TypeScript and Markdown.
+  lsp      Run the Language Server over stdio.
 
 Global options:
   --version, -v  Print the SpecLink version.
@@ -139,6 +142,14 @@ export function run(
 
     if (command === "check") {
       return runCheck(parseCheckOptions(rest), io);
+    }
+
+    if (command === "lsp") {
+      if (rest.length > 0) {
+        throw new CliError("lsp takes no options.");
+      }
+      runLspServer();
+      return 0;
     }
 
     throw new CliError(`Unknown command: ${command}`);

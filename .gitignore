@@ -3,3 +3,6 @@ dist/
 .direnv/
 .DS_Store
 *.log
+
+# Machine-specific editor settings (e.g. absolute bunPath); keep local.
+.vscode/settings.json

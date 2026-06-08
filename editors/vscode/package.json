@@ -1,0 +1,43 @@
+{
+  "name": "speclink-vscode",
+  "private": true,
+  "displayName": "SpecLink",
+  "description": "Minimal VS Code client that launches and exercises the SpecLink language server.",
+  "version": "0.2.0",
+  "publisher": "speclink",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "SpecLink",
+      "properties": {
+        "speclink.bunPath": {
+          "type": "string",
+          "default": "bun",
+          "description": "Path to the Bun executable used to launch `speclink lsp`."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.84.0",
+    "typescript": "^5.9.0"
+  }
+}

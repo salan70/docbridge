@@ -1,9 +1,10 @@
-import type { LinkTarget, SourceLocation, SpecLinkDiagnostic } from "./types";
+import type { LinkTarget, Range, SourceLocation, SpecLinkDiagnostic } from "./types";
 
 export type ParseLinkTargetOptions = {
   source?: string;
   sourceFilePath?: string;
   location?: SourceLocation;
+  targetRange?: Range;
 };
 
 export type ParseLinkTargetResult =
@@ -92,6 +93,10 @@ function invalidLinkTarget(
 
   if (options.location !== undefined) {
     diagnostic.location = options.location;
+  }
+
+  if (options.targetRange !== undefined) {
+    diagnostic.range = options.targetRange;
   }
 
   return {

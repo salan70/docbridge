@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `speclink lsp`: a Language Server over stdio that exposes the SpecLink link
+  graph to editors, with JSON-RPC `Content-Length` framing and the standard
+  `initialize` / `initialized` / `shutdown` / `exit` lifecycle.
+- `textDocument/publishDiagnostics`: the existing v0.1 diagnostics surfaced in
+  the editor, refreshed on document changes with a short debounce.
+- `textDocument/hover`: inline Markdown spec sections for linked code symbols,
+  and the declaration signature line for linked headings.
+- `textDocument/definition` and `textDocument/references` over the symmetric
+  counterpart relation, including one-to-many navigation.
+- Scanner range enrichment (`nameRange`, `headingTextRange`, `targetRange`) and
+  a whole-project model with buffer overlay backing the language server.
+- A minimal VS Code client extension under `editors/vscode/` to verify the
+  server in a real editor.
+
 ## [0.1.0] - 2026-06-07
 
 Initial release of the SpecLink CLI.

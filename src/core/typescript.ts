@@ -1,9 +1,10 @@
 import ts from "typescript";
 
-import { parseLinkTarget } from "./links";
+import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeSymbolEndpoint,
   DocLinkAnnotation,
+  Range,
   SourceLocation,
   SpecLinkDiagnostic,
 } from "./types";
@@ -23,11 +24,13 @@ export type TypeScriptScanResult = {
 type DocTag = {
   rawTarget: string;
   location: SourceLocation;
+  targetRange?: Range;
 };
 
 type SupportedDeclaration = {
   symbolName: string;
   location: SourceLocation;
+  nameRange?: Range;
   docTags: DocTag[];
 };
 
@@ -110,13 +113,15 @@ export function scanTypeScript(
     if (!documentedEndpoints.has(endpoint)) {
       if (!undocumentedSeen.has(endpoint)) {
         undocumentedSeen.add(endpoint);
-        undocumentedSymbols.push({
-          kind: "code",
-          filePath,
-          symbolName: declaration.symbolName,
-          endpoint,
-          location: declaration.location,
-        });
+        undocumentedSymbols.push(
+          makeCodeSymbol(
+            filePath,
+            declaration.symbolName,
+            endpoint,
+            declaration.location,
+            declaration.nameRange,
+          ),
+        );
       }
       continue;
     }
@@ -130,7 +135,11 @@ export function scanTypeScript(
     if (endpointSeen.has(endpoint)) {
       if (!duplicateReported.has(endpoint)) {
         diagnostics.push(
-          duplicateCodeSymbolDiagnostic(endpoint, declaration.location),
+          duplicateCodeSymbolDiagnostic(
+            endpoint,
+            declaration.location,
+            declaration.nameRange,
+          ),
         );
         duplicateReported.add(endpoint);
       }
@@ -139,21 +148,27 @@ export function scanTypeScript(
     }
     endpointSeen.add(endpoint);
 
-    symbols.push({
-      kind: "code",
-      filePath,
-      symbolName: declaration.symbolName,
-      endpoint,
-      location: declaration.location,
-    });
+    symbols.push(
+      makeCodeSymbol(
+        filePath,
+        declaration.symbolName,
+        endpoint,
+        declaration.location,
+        declaration.nameRange,
+      ),
+    );
 
     const linkTargetsSeen = new Set<string>();
     for (const docTag of declaration.docTags) {
-      const parsed = parseLinkTarget(docTag.rawTarget, {
+      const parseOptions: ParseLinkTargetOptions = {
         source: endpoint,
         sourceFilePath: filePath,
         location: docTag.location,
-      });
+      };
+      if (docTag.targetRange !== undefined) {
+        parseOptions.targetRange = docTag.targetRange;
+      }
+      const parsed = parseLinkTarget(docTag.rawTarget, parseOptions);
 
       if (!parsed.ok) {
         diagnostics.push(parsed.diagnostic);
@@ -162,18 +177,27 @@ export function scanTypeScript(
 
       if (linkTargetsSeen.has(docTag.rawTarget)) {
         diagnostics.push(
-          duplicateLinkDiagnostic(endpoint, docTag.rawTarget, docTag.location),
+          duplicateLinkDiagnostic(
+            endpoint,
+            docTag.rawTarget,
+            docTag.location,
+            docTag.targetRange,
+          ),
         );
         continue;
       }
       linkTargetsSeen.add(docTag.rawTarget);
 
-      links.push({
+      const link: DocLinkAnnotation = {
         direction: "code-to-doc",
         source: endpoint,
         target: docTag.rawTarget,
         location: docTag.location,
-      });
+      };
+      if (docTag.targetRange !== undefined) {
+        link.targetRange = docTag.targetRange;
+      }
+      links.push(link);
     }
   }
 
@@ -206,7 +230,12 @@ function collectDocTags(
     if (rawTarget === undefined) {
       continue;
     }
-    tags.push({ rawTarget, location });
+    const docTag: DocTag = { rawTarget, location };
+    const targetRange = targetRangeOf(sourceFile, tag, rawTarget);
+    if (targetRange !== undefined) {
+      docTag.targetRange = targetRange;
+    }
+    tags.push(docTag);
   }
   return tags;
 }
@@ -229,18 +258,25 @@ function describeSupportedDeclaration(
   statement: ts.Statement,
   docTags: DocTag[],
 ): SupportedDeclaration | null {
-  const symbolName = supportedSymbolName(statement);
-  if (symbolName === null) {
+  const nameNode = supportedNameNode(statement);
+  if (nameNode === null) {
     return null;
   }
-  return {
-    symbolName,
+  const declaration: SupportedDeclaration = {
+    symbolName: nameNode.text,
     location: locationOf(filePath, sourceFile, statement),
     docTags,
   };
+  declaration.nameRange = rangeOfNode(sourceFile, nameNode);
+  return declaration;
 }
 
-function supportedSymbolName(statement: ts.Statement): string | null {
+/**
+ * Return the name identifier of a supported, top-level exported declaration, or
+ * `null` when the statement is unsupported. The identifier node backs both the
+ * symbol name and its navigation `nameRange`.
+ */
+function supportedNameNode(statement: ts.Statement): ts.Identifier | null {
   const isExported = hasExportModifier(statement);
   const isDefault = hasDefaultModifier(statement);
 
@@ -248,26 +284,26 @@ function supportedSymbolName(statement: ts.Statement): string | null {
     if (!isExported || statement.name === undefined) {
       return null;
     }
-    return statement.name.text;
+    return statement.name;
   }
 
   if (ts.isClassDeclaration(statement)) {
     if (!isExported || statement.name === undefined) {
       return null;
     }
-    return statement.name.text;
+    return statement.name;
   }
 
   if (ts.isInterfaceDeclaration(statement)) {
-    return isExported && !isDefault ? statement.name.text : null;
+    return isExported && !isDefault ? statement.name : null;
   }
 
   if (ts.isTypeAliasDeclaration(statement)) {
-    return isExported && !isDefault ? statement.name.text : null;
+    return isExported && !isDefault ? statement.name : null;
   }
 
   if (ts.isEnumDeclaration(statement)) {
-    return isExported && !isDefault ? statement.name.text : null;
+    return isExported && !isDefault ? statement.name : null;
   }
 
   if (ts.isVariableStatement(statement)) {
@@ -279,7 +315,7 @@ function supportedSymbolName(statement: ts.Statement): string | null {
       return null;
     }
     const name = declarations[0].name;
-    return ts.isIdentifier(name) ? name.text : null;
+    return ts.isIdentifier(name) ? name : null;
   }
 
   return null;
@@ -309,6 +345,61 @@ function locationOf(
     node.getStart(sourceFile),
   );
   return { filePath, line: line + 1, column: character + 1 };
+}
+
+/** Build a 1-based, end-exclusive range from absolute UTF-16 offsets. */
+function rangeFromOffsets(
+  sourceFile: ts.SourceFile,
+  start: number,
+  end: number,
+): Range {
+  const startPos = sourceFile.getLineAndCharacterOfPosition(start);
+  const endPos = sourceFile.getLineAndCharacterOfPosition(end);
+  return {
+    start: { line: startPos.line + 1, column: startPos.character + 1 },
+    end: { line: endPos.line + 1, column: endPos.character + 1 },
+  };
+}
+
+function rangeOfNode(sourceFile: ts.SourceFile, node: ts.Node): Range {
+  return rangeFromOffsets(sourceFile, node.getStart(sourceFile), node.getEnd());
+}
+
+/**
+ * Locate the literal target string inside a JSDoc `@doc` tag. The target is a
+ * whitespace-free token, so the first occurrence at or after the tag's start is
+ * the annotation target. Returns `undefined` when it cannot be located.
+ */
+function targetRangeOf(
+  sourceFile: ts.SourceFile,
+  tag: ts.JSDocTag,
+  rawTarget: string,
+): Range | undefined {
+  const start = sourceFile.text.indexOf(rawTarget, tag.pos);
+  if (start === -1) {
+    return undefined;
+  }
+  return rangeFromOffsets(sourceFile, start, start + rawTarget.length);
+}
+
+function makeCodeSymbol(
+  filePath: string,
+  symbolName: string,
+  endpoint: string,
+  location: SourceLocation,
+  nameRange: Range | undefined,
+): CodeSymbolEndpoint {
+  const symbol: CodeSymbolEndpoint = {
+    kind: "code",
+    filePath,
+    symbolName,
+    endpoint,
+    location,
+  };
+  if (nameRange !== undefined) {
+    symbol.nameRange = nameRange;
+  }
+  return symbol;
 }
 
 function commentText(
@@ -380,22 +471,28 @@ function unsupportedDeclarationDiagnostic(
 function duplicateCodeSymbolDiagnostic(
   endpoint: string,
   location: SourceLocation,
+  range: Range | undefined,
 ): SpecLinkDiagnostic {
-  return {
+  const diagnostic: SpecLinkDiagnostic = {
     severity: "error",
     code: "duplicate_code_symbol",
     target: endpoint,
     message: `Multiple @doc-annotated declarations expose the same code endpoint ${endpoint}.`,
     location,
   };
+  if (range !== undefined) {
+    diagnostic.range = range;
+  }
+  return diagnostic;
 }
 
 function duplicateLinkDiagnostic(
   source: string,
   target: string,
   location: SourceLocation,
+  range: Range | undefined,
 ): SpecLinkDiagnostic {
-  return {
+  const diagnostic: SpecLinkDiagnostic = {
     severity: "warning",
     code: "duplicate_link",
     target,
@@ -403,4 +500,8 @@ function duplicateLinkDiagnostic(
     message: `Duplicate @doc link from ${source} to ${target}.`,
     location,
   };
+  if (range !== undefined) {
+    diagnostic.range = range;
+  }
+  return diagnostic;
 }

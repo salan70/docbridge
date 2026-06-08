@@ -25,6 +25,7 @@ Content-Length: <byte-length>\r\n
 character length. The reader handles bodies split across reads and multiple
 messages arriving in one read.
 
+<!-- @code src/lsp/server.ts#Server -->
 ## Lifecycle
 
 The server implements the standard LSP lifecycle:
@@ -48,6 +49,7 @@ Declared server capabilities:
 
 `publishDiagnostics` is a server-to-client push and needs no capability flag.
 
+<!-- @code src/lsp/project.ts#Project -->
 ## Document model
 
 The server uses a whole-project model.
@@ -77,6 +79,8 @@ Full synchronization (`TextDocumentSyncKind.Full`).
 After a change, the server re-resolves the project. A short debounce coalesces
 rapid edits before re-resolution.
 
+<!-- @code src/lsp/position.ts#toLspPosition -->
+<!-- @code src/lsp/paths.ts#uriToRelativePath -->
 ### Positions and paths
 
 - Position encoding is LSP-default UTF-16 code units. SpecLink positions are
@@ -104,6 +108,7 @@ Navigation uses `nameRange` and `headingTextRange`. Diagnostics use `targetRange
 or the element range. When a range cannot be derived, the whole line is used as a
 fallback.
 
+<!-- @code src/lsp/index-lookup.ts#PositionIndex -->
 ## Hit testing
 
 A position hits an element when it falls within that element's range:
@@ -114,6 +119,7 @@ A position hits an element when it falls within that element's range:
 Positions on whitespace, parameters, or other parts of a declaration line do not
 trigger navigation.
 
+<!-- @code src/core/graph.ts#LinkGraph -->
 ## Navigation and resolvable one-way links
 
 Navigation follows any declared annotation whose target resolves to an existing
@@ -123,6 +129,7 @@ completeness is reported by diagnostics, not by suppressing navigation.
 A target that does not resolve (missing file or missing anchor) is never
 navigable.
 
+<!-- @code src/lsp/hover.ts#hover -->
 ## Hover
 
 `textDocument/hover` returns Markdown content.
@@ -144,6 +151,7 @@ returns the linked Markdown **section** inline:
 When the position hits a heading that links to a code symbol, the server returns
 the linked code endpoint plus the declaration's signature line.
 
+<!-- @code src/lsp/navigation.ts#definition -->
 ## Definition
 
 `textDocument/definition` returns the linked counterpart location(s).
@@ -155,6 +163,7 @@ the linked code endpoint plus the declaration's signature line.
 The target `Location.range` uses the counterpart's `headingTextRange` or
 `nameRange`.
 
+<!-- @code src/lsp/navigation.ts#references -->
 ## References
 
 `textDocument/references` returns every counterpart linked to the element, using

@@ -1,7 +1,8 @@
-import { parseLinkTarget } from "./links";
+import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeLinkAnnotation,
   DocAnchorEndpoint,
+  Range,
   SourceLocation,
   SpecLinkDiagnostic,
 } from "./types";
@@ -16,9 +17,11 @@ export type MarkdownScanResult = {
 type PendingComment = {
   rawTarget: string;
   location: SourceLocation;
+  targetRange?: Range;
 };
 
-const atxHeadingPattern = /^(?<indent> {0,3})(?<hashes>#{1,6})(?:[ \t]+(?<rest>.*))?$/;
+const atxHeadingPattern =
+  /^(?<indent> {0,3})(?<hashes>#{1,6})(?:(?<gap>[ \t]+)(?<rest>.*))?$/;
 const fenceOpenPattern = /^ {0,3}(?:`{3,}|~{3,})/;
 const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
 
@@ -110,6 +113,7 @@ type HeadingMatch = {
   anchor: string;
   headingText: string;
   location: SourceLocation;
+  headingTextRange?: Range;
 };
 
 function matchHeading(
@@ -123,15 +127,29 @@ function matchHeading(
   }
 
   const indent = match.groups.indent ?? "";
+  const hashes = match.groups.hashes ?? "";
+  const gap = match.groups.gap ?? "";
   const rest = match.groups.rest ?? "";
   const headingText = stripClosingHashes(rest).trim();
   const anchor = toAnchor(headingText);
 
-  return {
+  const heading: HeadingMatch = {
     anchor,
     headingText,
     location: { filePath, line: lineNumber, column: indent.length + 1 },
   };
+
+  // The greedy `[ \t]+` gap consumes all leading whitespace, so the heading
+  // text begins right after it; `headingText` only strips trailing content.
+  if (headingText.length > 0) {
+    const textStart = indent.length + hashes.length + gap.length;
+    heading.headingTextRange = {
+      start: { line: lineNumber, column: textStart + 1 },
+      end: { line: lineNumber, column: textStart + headingText.length + 1 },
+    };
+  }
+
+  return heading;
 }
 
 function stripClosingHashes(text: string): string {
@@ -170,10 +188,24 @@ function matchCodeComment(
   const afterTag = body.slice("@code".length).trim();
   const rawTarget = afterTag.split(/\s+/)[0] ?? "";
 
-  return {
+  const comment: PendingComment = {
     rawTarget,
     location: { filePath, line: lineNumber, column: indentWidth(line) + 1 },
   };
+
+  // Locate the literal target token after the `@code` tag on the source line.
+  if (rawTarget.length > 0) {
+    const tagIndex = line.indexOf("@code");
+    const targetStart = tagIndex === -1 ? -1 : line.indexOf(rawTarget, tagIndex + "@code".length);
+    if (targetStart !== -1) {
+      comment.targetRange = {
+        start: { line: lineNumber, column: targetStart + 1 },
+        end: { line: lineNumber, column: targetStart + rawTarget.length + 1 },
+      };
+    }
+  }
+
+  return comment;
 }
 
 function isCommentLine(line: string): boolean {
@@ -206,33 +238,38 @@ function attachHeading(
 ): void {
   const endpoint = `${filePath}#${heading.anchor}`;
 
-  anchors.push({
+  const anchor: DocAnchorEndpoint = {
     kind: "doc",
     filePath,
     anchor: heading.anchor,
     endpoint,
     headingText: heading.headingText,
     location: heading.location,
-  });
+  };
+  if (heading.headingTextRange !== undefined) {
+    anchor.headingTextRange = heading.headingTextRange;
+  }
+  anchors.push(anchor);
 
   if (seenAnchors.has(heading.anchor)) {
-    diagnostics.push({
+    const diagnostic: SpecLinkDiagnostic = {
       severity: "error",
       code: "duplicate_doc_anchor",
       target: endpoint,
       message: `Duplicate doc anchor "${heading.anchor}" in ${filePath}.`,
       location: heading.location,
-    });
+    };
+    if (heading.headingTextRange !== undefined) {
+      diagnostic.range = heading.headingTextRange;
+    }
+    diagnostics.push(diagnostic);
   } else {
     seenAnchors.add(heading.anchor);
   }
 
   const seenLinkTargets = new Set<string>();
   for (const comment of pending) {
-    const parsed = parseLinkTarget(comment.rawTarget, {
-      source: endpoint,
-      location: comment.location,
-    });
+    const parsed = parseLinkTarget(comment.rawTarget, parseOptions(comment, endpoint));
 
     if (!parsed.ok) {
       diagnostics.push(parsed.diagnostic);
@@ -241,71 +278,95 @@ function attachHeading(
 
     const target = comment.rawTarget;
     if (seenLinkTargets.has(target)) {
-      diagnostics.push({
+      const diagnostic: SpecLinkDiagnostic = {
         severity: "warning",
         code: "duplicate_link",
         source: endpoint,
         target,
         message: `Duplicate @code link from ${endpoint} to ${target}.`,
         location: comment.location,
-      });
+      };
+      if (comment.targetRange !== undefined) {
+        diagnostic.range = comment.targetRange;
+      }
+      diagnostics.push(diagnostic);
     } else {
       seenLinkTargets.add(target);
     }
 
-    links.push({
+    const link: CodeLinkAnnotation = {
       direction: "doc-to-code",
       source: endpoint,
       target,
       location: comment.location,
-    });
+    };
+    if (comment.targetRange !== undefined) {
+      link.targetRange = comment.targetRange;
+    }
+    links.push(link);
   }
+}
+
+/** Build parse options for a pending `@code` comment, carrying its target range. */
+function parseOptions(
+  comment: PendingComment,
+  source?: string,
+): ParseLinkTargetOptions {
+  const options: ParseLinkTargetOptions = { location: comment.location };
+  if (source !== undefined) {
+    options.source = source;
+  }
+  if (comment.targetRange !== undefined) {
+    options.targetRange = comment.targetRange;
+  }
+  return options;
 }
 
 function flushDangling(
   pending: PendingComment[],
   diagnostics: SpecLinkDiagnostic[],
 ): void {
-  for (const comment of pending) {
-    const parsed = parseLinkTarget(comment.rawTarget, {
-      location: comment.location,
-    });
-
-    if (!parsed.ok) {
-      diagnostics.push(parsed.diagnostic);
-      continue;
-    }
-
-    diagnostics.push({
-      severity: "warning",
-      code: "dangling_code_annotation",
-      target: comment.rawTarget,
-      message: "@code annotation is not attached to a following heading.",
-      location: comment.location,
-    });
-  }
+  flushDanglingWith(
+    pending,
+    diagnostics,
+    "@code annotation is not attached to a following heading.",
+  );
 }
 
 function flushDanglingEmptyHeading(
   pending: PendingComment[],
   diagnostics: SpecLinkDiagnostic[],
 ): void {
+  flushDanglingWith(
+    pending,
+    diagnostics,
+    "@code annotation is attached to an empty heading that has no anchor.",
+  );
+}
+
+function flushDanglingWith(
+  pending: PendingComment[],
+  diagnostics: SpecLinkDiagnostic[],
+  message: string,
+): void {
   for (const comment of pending) {
-    const parsed = parseLinkTarget(comment.rawTarget, {
-      location: comment.location,
-    });
+    const parsed = parseLinkTarget(comment.rawTarget, parseOptions(comment));
 
     if (!parsed.ok) {
       diagnostics.push(parsed.diagnostic);
       continue;
     }
 
-    diagnostics.push({
+    const diagnostic: SpecLinkDiagnostic = {
       severity: "warning",
       code: "dangling_code_annotation",
       target: comment.rawTarget,
-      message: "@code annotation is attached to an empty heading that has no anchor.",
+      message,
       location: comment.location,
-    });
+    };
+    if (comment.targetRange !== undefined) {
+      diagnostic.range = comment.targetRange;
+    }
+    diagnostics.push(diagnostic);
   }
 }
