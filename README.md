@@ -239,6 +239,7 @@ v0.4:
 - MCP server
 - Claude Code integration
 - Cursor integration
+- Zed integration
 - Codex integration
 
 ## Vision
