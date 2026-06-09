@@ -25,6 +25,14 @@ build:
 verify-lsp:
     bun run scripts/lsp-verify.ts
 
+# Install the SpecLink editor extension into VS Code and open this workspace.
+vscode-lsp:
+    scripts/install-vscode-compatible-lsp.sh code
+
+# Install the same VS Code-compatible extension into Cursor and open this workspace.
+cursor-lsp:
+    scripts/install-vscode-compatible-lsp.sh cursor
+
 flake-check:
     nix flake check
 
