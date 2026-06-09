@@ -145,3 +145,7 @@ test("normalizeChangedPaths strips leading ./ segments", () => {
 test("normalizeChangedPaths drops empty and whitespace-only entries", () => {
   expect(normalizeChangedPaths("/repo", ["", "  ", "src/a.ts"])).toEqual(["src/a.ts"]);
 });
+
+test("normalizeChangedPaths dedupes paths that normalize to the same file", () => {
+  expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual(["src/a.ts"]);
+});

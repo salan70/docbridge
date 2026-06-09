@@ -37,19 +37,19 @@ export type RelatedResult = {
  * Normalize raw changed-file paths (as emitted by `git diff --name-only` or
  * typed by hand) into the root-relative form used by scan results: absolute
  * paths are relativized against `projectRoot`, leading `./` segments are
- * stripped, and empty entries are dropped.
+ * stripped, empty entries are dropped, and duplicates are deduplicated.
  */
 export function normalizeChangedPaths(projectRoot: string, paths: string[]): string[] {
-  const normalized: string[] = [];
+  const normalized = new Set<string>();
   for (const raw of paths) {
     const trimmed = raw.trim();
     if (trimmed === "") {
       continue;
     }
     const relativized = isAbsolute(trimmed) ? relative(projectRoot, trimmed) : trimmed;
-    normalized.push(relativized.replace(/^(\.\/)+/, ""));
+    normalized.add(relativized.replace(/^(\.\/)+/, ""));
   }
-  return normalized;
+  return [...normalized];
 }
 
 /**
@@ -61,11 +61,12 @@ export function computeRelated(graph: LinkGraph, changedFiles: string[]): Relate
   const changedSet = new Set(changedFiles);
 
   const sortedPaths = [...changedSet].sort((left, right) => left.localeCompare(right));
+  const endpointsByFile = indexEndpointsByFile(graph);
 
   const files: RelatedFile[] = [];
   for (const filePath of sortedPaths) {
     const endpoints: RelatedEndpoint[] = [];
-    for (const endpoint of endpointsInFile(graph, filePath)) {
+    for (const endpoint of endpointsByFile.get(filePath) ?? []) {
       const counterparts = counterpartsOf(graph, endpoint.endpoint).map((counterpart) => ({
         endpoint: counterpart.endpoint,
         filePath: counterpart.filePath,
@@ -163,20 +164,28 @@ function fragmentOf(endpoint: string): string {
   return hashIndex === -1 ? endpoint : endpoint.slice(hashIndex + 1);
 }
 
-function endpointsInFile(graph: LinkGraph, filePath: string): GraphEndpoint[] {
-  const endpoints: GraphEndpoint[] = [];
-  for (const code of graph.codeByEndpoint.values()) {
-    if (code.filePath === filePath) {
-      endpoints.push(code);
+/** Index every graph endpoint by file path, each file's list sorted by position. */
+function indexEndpointsByFile(graph: LinkGraph): Map<string, GraphEndpoint[]> {
+  const byFile = new Map<string, GraphEndpoint[]>();
+  const add = (endpoint: GraphEndpoint): void => {
+    const existing = byFile.get(endpoint.filePath);
+    if (existing === undefined) {
+      byFile.set(endpoint.filePath, [endpoint]);
+    } else {
+      existing.push(endpoint);
     }
+  };
+  for (const code of graph.codeByEndpoint.values()) {
+    add(code);
   }
   for (const doc of graph.docByEndpoint.values()) {
-    if (doc.filePath === filePath) {
-      endpoints.push(doc);
-    }
+    add(doc);
   }
-  return endpoints.sort(
-    (left, right) =>
-      left.location.line - right.location.line || left.location.column - right.location.column,
-  );
+  for (const endpoints of byFile.values()) {
+    endpoints.sort(
+      (left, right) =>
+        left.location.line - right.location.line || left.location.column - right.location.column,
+    );
+  }
+  return byFile;
 }
