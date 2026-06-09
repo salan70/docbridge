@@ -1,10 +1,11 @@
 #!/usr/bin/env bun
 
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import pkg from "../../package.json";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
+import { formatRelatedResult, related as runRelatedCore } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
 
@@ -19,6 +20,8 @@ export type CliCheckOptions = {
 export type CliIo = {
   stdout: (text: string) => void;
   stderr: (text: string) => void;
+  /** Read all of stdin; injectable for tests. Used by `related --stdin`. */
+  stdin?: () => string;
 };
 
 /** Raised for CLI invocation errors that must go to stderr with exit code 1. */
@@ -29,10 +32,12 @@ const HELP = `SpecLink
 Usage:
   speclink [--version] [--help]
   speclink check [--root <path>] [--json] [--audit]
+  speclink related [--root <path>] [--json] [--stdin] [files...]
   speclink lsp
 
 Commands:
   check    Validate links between TypeScript and Markdown.
+  related  List the linked counterparts of the given changed files.
   lsp      Run the Language Server over stdio.
 
 Global options:
@@ -43,6 +48,11 @@ Check options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --audit        Include audit diagnostics such as undocumented_symbol.
+
+Related options:
+  --root <path>  Project root to scan. Defaults to current directory.
+  --json         Emit machine-readable JSON.
+  --stdin        Read newline-separated file paths from stdin.
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
@@ -81,6 +91,57 @@ export function parseCheckOptions(args: string[]): CliCheckOptions {
   return options;
 }
 
+export type CliRelatedOptions = {
+  root: string;
+  json: boolean;
+  stdin: boolean;
+  files: string[];
+};
+
+export function parseRelatedOptions(args: string[]): CliRelatedOptions {
+  const options: CliRelatedOptions = {
+    root: ".",
+    json: false,
+    stdin: false,
+    files: [],
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    if (arg === "--json") {
+      options.json = true;
+      continue;
+    }
+
+    if (arg === "--stdin") {
+      options.stdin = true;
+      continue;
+    }
+
+    if (arg === "--root") {
+      const root = args[index + 1];
+      if (root === undefined) {
+        throw new CliError("--root requires a path.");
+      }
+      options.root = root;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--")) {
+      throw new CliError(`Unknown option: ${arg}`);
+    }
+
+    options.files.push(arg);
+  }
+
+  return options;
+}
+
 function resolveProjectRoot(root: string): string {
   const projectRoot = resolve(root);
 
@@ -113,6 +174,33 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
   return result.summary.errors > 0 ? 1 : 0;
 }
 
+function runRelated(options: CliRelatedOptions, io: CliIo): number {
+  if (!options.stdin && options.files.length === 0) {
+    throw new CliError("Provide file paths as arguments or use --stdin.");
+  }
+
+  const projectRoot = resolveProjectRoot(options.root);
+
+  const changedFiles = [...options.files];
+  if (options.stdin) {
+    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
+    changedFiles.push(...readStdin().split("\n"));
+  }
+
+  const outcome = runRelatedCore({ projectRoot, changedFiles });
+  if (!outcome.ok) {
+    throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+  }
+
+  if (options.json) {
+    io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
+  } else {
+    io.stdout(`${formatRelatedResult(outcome.result)}\n`);
+  }
+
+  return 0;
+}
+
 /**
  * Execute the CLI for the given argv (without the `bun` / script prefix) and
  * return the process exit code. Output is written through the injected IO so the
@@ -142,6 +230,10 @@ export function run(
 
     if (command === "check") {
       return runCheck(parseCheckOptions(rest), io);
+    }
+
+    if (command === "related") {
+      return runRelated(parseRelatedOptions(rest), io);
     }
 
     if (command === "lsp") {
