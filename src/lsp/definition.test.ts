@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { definition } from "../../src/lsp/navigation";
+import { definition } from "./navigation";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
 
 const CODE = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";

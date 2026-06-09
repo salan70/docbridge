@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import { describe, expect, test } from "bun:test";
 
-import { encodeMessage, MessageReader } from "../../src/lsp/transport";
+import { encodeMessage, MessageReader } from "./transport";
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 const EXAMPLE_ROOT = resolve(REPO_ROOT, "examples/basic");

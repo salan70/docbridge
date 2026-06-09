@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildLinkGraph } from "../../src/core/graph";
-import { scanMarkdown } from "../../src/core/markdown";
-import { scanTypeScript } from "../../src/core/typescript";
-import { buildPositionIndex, endpointAt } from "../../src/lsp/index-lookup";
+import { buildLinkGraph } from "../core/graph";
+import { scanMarkdown } from "../core/markdown";
+import { scanTypeScript } from "../core/typescript";
+import { buildPositionIndex, endpointAt } from "./index-lookup";
 import {
   fromLspPosition,
   rangeContains,
   toLspPosition,
   toLspRange,
-} from "../../src/lsp/position";
+} from "./position";
 
 const CODE_FILE = "src/auth/login.ts";
 const DOC_FILE = "docs/auth.md";

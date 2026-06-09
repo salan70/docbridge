@@ -1,10 +1,10 @@
-import { sortDiagnostics } from "../../src/core/diagnostics";
-import { buildLinkGraph } from "../../src/core/graph";
-import { scanMarkdown } from "../../src/core/markdown";
-import { resolveLinks } from "../../src/core/resolver";
-import { scanTypeScript } from "../../src/core/typescript";
-import { buildPositionIndex } from "../../src/lsp/index-lookup";
-import type { ProjectState } from "../../src/lsp/project";
+import { sortDiagnostics } from "../core/diagnostics";
+import { buildLinkGraph } from "../core/graph";
+import { scanMarkdown } from "../core/markdown";
+import { resolveLinks } from "../core/resolver";
+import { scanTypeScript } from "../core/typescript";
+import { buildPositionIndex } from "./index-lookup";
+import type { ProjectState } from "./project";
 
 export const CODE_FILE = "src/auth/login.ts";
 export const DOC_FILE = "docs/auth.md";
