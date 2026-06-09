@@ -253,6 +253,7 @@ on Bun and the TypeScript Compiler API.
 - v0.1 decisions: [docs/decisions/v0.1.md](docs/decisions/v0.1.md)
 - v0.2 decisions: [docs/decisions/v0.2.md](docs/decisions/v0.2.md)
 - Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
+- Testing convention: [docs/contributing/testing.md](docs/contributing/testing.md)
 
 ## Roadmap
 

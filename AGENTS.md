@@ -13,6 +13,10 @@ Core implementation lives under `src/`. Specifications live under `docs/specs/`,
 Japanese documentation lives under `docs/ja/`, examples live under `examples/`,
 and JSON schema files live under `schemas/`.
 
+Tests are colocated with the modules they cover as `*.test.ts` files under
+`src/`; there is no separate `test/` directory. See
+[docs/contributing/testing.md](docs/contributing/testing.md).
+
 Use the repo-native commands in `justfile`:
 
 - `just check`

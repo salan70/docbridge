@@ -18,6 +18,10 @@ Core implementation lives under `src/`. Specifications live under `docs/specs/`,
 Japanese documentation lives under `docs/ja/`, examples live under `examples/`,
 and JSON schema files live under `schemas/`.
 
+Tests are colocated with the modules they cover as `*.test.ts` files under
+`src/`; there is no separate `test/` directory. See
+[docs/contributing/testing.md](docs/contributing/testing.md).
+
 Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
 Compiler API for core implementation.
 
