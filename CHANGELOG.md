@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `speclink related`: an informational command that lists the linked
+  counterparts of a set of changed files (positional arguments or
+  newline-separated stdin via `--stdin`), marking whether each counterpart is
+  itself in the change set. Designed to sit behind `git diff --name-only` in
+  pre-commit hooks and CI. Supports `--root` and `--json`; always exits `0` on
+  success.
 - `speclink lsp`: a Language Server over stdio that exposes the SpecLink link
   graph to editors, with JSON-RPC `Content-Length` framing and the standard
   `initialize` / `initialized` / `shutdown` / `exit` lifecycle.

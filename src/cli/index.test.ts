@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import pkg from "../../package.json";
-import { parseCheckOptions, run } from "./index";
+import { parseCheckOptions, parseRelatedOptions, run } from "./index";
 
 type Captured = {
   out: string;
@@ -201,6 +201,186 @@ test("run exits 1 when check errors exist", () => {
     expect(code).toBe(1);
     expect(c.out).toContain("error");
     expect(c.out).toContain("Summary:");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+// --- related command ---------------------------------------------------------
+
+test("parseRelatedOptions reads root, json, stdin, and positional files", () => {
+  expect(
+    parseRelatedOptions(["--root", "examples/basic", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
+  ).toEqual({
+    root: "examples/basic",
+    json: true,
+    stdin: true,
+    files: ["src/a.ts", "docs/b.md"],
+  });
+});
+
+test("run help documents the related command", () => {
+  const c = capture();
+  run(["--help"], c.io);
+
+  expect(c.out).toContain("speclink related");
+  expect(c.out).toContain("Related options:");
+});
+
+test("run related without files or --stdin errors on stderr and exits 1", () => {
+  const c = capture();
+  const code = run(["related"], c.io);
+
+  expect(code).toBe(1);
+  expect(c.err).toContain("--stdin");
+  expect(c.out).toBe("");
+});
+
+function makeRelatedProject(): string {
+  const project = mkdtempSync(join(tmpdir(), "speclink-related-"));
+  writeFileSync(
+    join(project, "speclink.config.json"),
+    JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+  );
+  mkdirSync(join(project, "src", "auth"), { recursive: true });
+  writeFileSync(
+    join(project, "src", "auth", "login.ts"),
+    "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n",
+  );
+  mkdirSync(join(project, "docs"), { recursive: true });
+  writeFileSync(
+    join(project, "docs", "auth.md"),
+    "<!-- @code src/auth/login.ts#login -->\n## Login Spec\n",
+  );
+  return project;
+}
+
+test("run related prints endpoint counterparts with change-set marks and a summary", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe(
+      [
+        "src/auth/login.ts",
+        "  login -> docs/auth.md#login-spec (not in change set)",
+        "",
+        "1 changed file, 1 with links",
+        "",
+      ].join("\n"),
+    );
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related marks counterparts that are in the change set", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "src/auth/login.ts", "docs/auth.md"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toContain("  login -> docs/auth.md#login-spec (in change set)");
+    expect(c.out).toContain("  login-spec -> src/auth/login.ts#login (in change set)");
+    expect(c.out).toContain("2 changed files, 2 with links");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related prints only the summary when no input file has links", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "bun.lock"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("1 changed file, 0 with links\n");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --stdin reads newline-separated paths from stdin", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "--stdin"], {
+      ...c.io,
+      stdin: () => "src/auth/login.ts\nbun.lock\n",
+    });
+
+    expect(code).toBe(0);
+    expect(c.out).toContain("  login -> docs/auth.md#login-spec (not in change set)");
+    expect(c.out).toContain("2 changed files, 1 with links");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --stdin accepts empty input and exits 0", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "--stdin"], { ...c.io, stdin: () => "" });
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("0 changed files, 0 with links\n");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --json emits the result as machine-readable JSON", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "--json", "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      files: Array<{
+        filePath: string;
+        endpoints: Array<{
+          endpoint: string;
+          counterparts: Array<{ endpoint: string; filePath: string; inChangeSet: boolean }>;
+        }>;
+      }>;
+      summary: { changedFiles: number; filesWithLinks: number };
+    };
+    expect(parsed.files).toEqual([
+      {
+        filePath: "src/auth/login.ts",
+        endpoints: [
+          {
+            endpoint: "src/auth/login.ts#login",
+            counterparts: [
+              { endpoint: "docs/auth.md#login-spec", filePath: "docs/auth.md", inChangeSet: false },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(parsed.summary).toEqual({ changedFiles: 1, filesWithLinks: 1 });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related reports config errors on stderr and exits 1", () => {
+  const project = mkdtempSync(join(tmpdir(), "speclink-related-badcfg-"));
+  try {
+    writeFileSync(join(project, "speclink.config.json"), "{ not json");
+    const c = capture();
+    const code = run(["related", "--root", project, "src/a.ts"], c.io);
+
+    expect(code).toBe(1);
+    expect(c.err.length).toBeGreaterThan(0);
+    expect(c.out).toBe("");
   } finally {
     rmSync(project, { recursive: true, force: true });
   }
