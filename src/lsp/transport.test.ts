@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { encodeMessage, MessageReader } from "../../src/lsp/transport";
+import { encodeMessage, MessageReader } from "./transport";
 
 describe("encodeMessage", () => {
   test("frames a message with a CRLFCRLF header separator and UTF-8 body", () => {

@@ -4,7 +4,7 @@ import {
   MAX_SECTION_LENGTH,
   capSectionLength,
   extractDocSection,
-} from "../../src/lsp/section";
+} from "./section";
 
 describe("extractDocSection", () => {
   test("includes deeper subsections and stops at the next same-or-higher heading", () => {

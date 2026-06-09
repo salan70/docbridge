@@ -3,8 +3,8 @@ import { pathToFileURL } from "node:url";
 
 import { describe, expect, test } from "bun:test";
 
-import { Project } from "../../src/lsp/project";
-import { Server, type SendFn } from "../../src/lsp/server";
+import { Project } from "./project";
+import { Server, type SendFn } from "./server";
 
 const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/basic");
 const ROOT_URI = pathToFileURL(EXAMPLE_ROOT).href;

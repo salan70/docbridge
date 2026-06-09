@@ -254,6 +254,8 @@ Environment loader:
 - v0.2 決定事項: [../decisions/v0.2.md](../decisions/v0.2.md)
 - Commit message convention: [contributing/commits.md](contributing/commits.md)
 - English commit message convention: [../contributing/commits.md](../contributing/commits.md)
+- テスト規約: [contributing/testing.md](contributing/testing.md)
+- English testing convention: [../contributing/testing.md](../contributing/testing.md)
 
 ## Roadmap
 

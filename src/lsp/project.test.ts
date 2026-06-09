@@ -2,8 +2,8 @@ import { resolve } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 
-import { counterpartsOf } from "../../src/core/graph";
-import { Project } from "../../src/lsp/project";
+import { counterpartsOf } from "../core/graph";
+import { Project } from "./project";
 
 const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/basic");
 const CODE_FILE = "src/auth/login.ts";
