@@ -1,5 +1,7 @@
 # SpecLink
 
+[![Japanese README](https://img.shields.io/badge/README-%E6%97%A5%E6%9C%AC%E8%AA%9E-blue)](docs/ja/README.md)
+
 Bring Markdown into the LSP world.
 
 SpecLink creates bidirectional links between TypeScript code and Markdown documentation, enabling LSP-like experiences such as Hover, Definition, References, and Diagnostics across implementation and specification files.
@@ -160,6 +162,24 @@ Exit code policy:
 
 ## Development
 
+### Prerequisites
+
+Recommended:
+
+- Nix
+- direnv
+
+The Nix development shell provides the tools used by this repository:
+
+- Bun
+- just
+- Git
+
+If you do not use Nix, install Bun and just locally before running the project
+commands.
+
+### Setup
+
 Enable the development environment with direnv:
 
 ```sh
@@ -172,14 +192,40 @@ Or enter the Nix development shell manually:
 nix develop
 ```
 
+Install dependencies:
+
+```sh
+bun install --frozen-lockfile
+```
+
+Install repository Git hooks:
+
+```sh
+just install-git-hooks
+```
+
+If `just` is not on `PATH` yet, run:
+
+```sh
+nix develop -c just install-git-hooks
+```
+
+The pre-commit hook runs `just check` and `just test`.
+
+### Common Tasks
+
 Run common tasks with `just`:
 
 ```sh
 just --list
+just check
 just check-example
+just audit
 just test
 just build
 ```
+
+### Project Constraints
 
 Runtime:
 
@@ -189,8 +235,6 @@ Language:
 
 - TypeScript
 
-Core dependencies should stay minimal. The implementation should primarily rely on Bun and the TypeScript Compiler API.
-
 Task runner:
 
 - just
@@ -198,6 +242,9 @@ Task runner:
 Environment loader:
 
 - direnv
+
+Core dependencies should stay minimal. The implementation should primarily rely
+on Bun and the TypeScript Compiler API.
 
 ## Documentation
 
@@ -209,25 +256,8 @@ Environment loader:
 
 ## Roadmap
 
-v0.1:
-
-- `@doc` parsing from JSDoc
-- `@code` parsing from Markdown HTML comments
-- Markdown scanner
-- TypeScript Compiler API integration
-- Link resolution
-- Diagnostics
-- `speclink check`
-
-v0.2:
-
-- Language Server (`speclink lsp`)
-- Diagnostics in the editor
-- Hover
-- Definition
-- References
-- Minimal VS Code client extension (verification; full editor integration stays
-  in v0.4)
+Completed v0.1 and v0.2 capabilities are documented above and in
+[CHANGELOG.md](CHANGELOG.md). The current roadmap tracks upcoming work only.
 
 v0.3:
 

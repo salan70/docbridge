@@ -1,5 +1,7 @@
 # SpecLink
 
+[![English README](https://img.shields.io/badge/README-English-blue)](../../README.md)
+
 Markdown を LSP の世界へ。
 
 SpecLink は TypeScript のコードと Markdown ドキュメントの間に双方向リンクを作るツールです。実装ファイルと仕様ファイルをまたいで、Hover、Definition、References、Diagnostics のような LSP 的体験を実現することを目指します。
@@ -160,6 +162,24 @@ Warnings:
 
 ## 開発
 
+### 前提
+
+推奨:
+
+- Nix
+- direnv
+
+Nix development shell には、このリポジトリで使う以下のツールが含まれます。
+
+- Bun
+- just
+- Git
+
+Nix を使わない場合は、Bun と just をローカルにインストールしてから
+プロジェクトのコマンドを実行してください。
+
+### セットアップ
+
 direnv で開発環境を有効にする:
 
 ```sh
@@ -172,14 +192,40 @@ direnv allow
 nix develop
 ```
 
+依存関係をインストールする:
+
+```sh
+bun install --frozen-lockfile
+```
+
+リポジトリの Git hooks をインストールする:
+
+```sh
+just install-git-hooks
+```
+
+まだ `just` が `PATH` にない場合:
+
+```sh
+nix develop -c just install-git-hooks
+```
+
+pre-commit hook は `just check` と `just test` を実行します。
+
+### 共通タスク
+
 共通タスクは `just` で実行します。
 
 ```sh
 just --list
+just check
 just check-example
+just audit
 just test
 just build
 ```
+
+### プロジェクト制約
 
 Runtime:
 
@@ -189,8 +235,6 @@ Language:
 
 - TypeScript
 
-コア依存は最小限にします。実装は主に Bun と TypeScript Compiler API に依存する方針です。
-
 Task runner:
 
 - just
@@ -198,6 +242,9 @@ Task runner:
 Environment loader:
 
 - direnv
+
+コア依存は最小限にします。実装は主に Bun と TypeScript Compiler API に
+依存する方針です。
 
 ## 関連ドキュメント
 
@@ -210,24 +257,9 @@ Environment loader:
 
 ## Roadmap
 
-v0.1:
-
-- JSDoc からの `@doc` parsing
-- Markdown HTML コメントからの `@code` parsing
-- Markdown scanner
-- TypeScript Compiler API integration
-- Link resolution
-- Diagnostics
-- `speclink check`
-
-v0.2:
-
-- Language Server (`speclink lsp`)
-- エディタ上の Diagnostics
-- Hover
-- Definition
-- References
-- VS Code 最小クライアント拡張(検証用。全面的なエディタ統合は v0.4)
+完了済みの v0.1 と v0.2 の機能は、上記の説明と
+[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。現在の Roadmap では
+今後の作業のみを扱います。
 
 v0.3:
 
