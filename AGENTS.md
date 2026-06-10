@@ -33,7 +33,11 @@ Compiler API for core implementation.
 
 Codex hooks live under `.codex/`. The `SessionStart` hook injects a short
 repository reminder, and the `Stop` hook runs `just check` and `just test` when
-the working tree has changes.
+the working tree has changes. When those checks pass, the `Stop` hook also runs
+`just related-gate`, which lists linked counterparts of the changed files that
+were not themselves changed. If it blocks, either update each listed
+counterpart or state explicitly in the final report why it needs no update.
+The gate blocks once per turn; it asks for a judgment, not a mechanical fix.
 
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if

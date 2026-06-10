@@ -49,24 +49,48 @@ status=0
   run_just test
 } >"$log_file" 2>&1 || status=$?
 
-if [[ "$status" -eq 0 ]]; then
+if [[ "$status" -ne 0 ]]; then
+  LOG_FILE="$log_file" bun -e '
+    const log = await Bun.file(process.env.LOG_FILE).text();
+    const tail = log.split("\n").slice(-160).join("\n");
+    console.log(JSON.stringify({
+      decision: "block",
+      reason: [
+        "SpecLink Stop hook found failing final checks.",
+        "",
+        tail,
+        "",
+        "Read the failure, fix it if it is caused by this change, then rerun `just check` and `just test` before the final response. If the failure cannot be fixed in this turn, report it explicitly."
+      ].join("\n")
+    }));
+  '
   rm -f "$log_file"
   exit 0
 fi
+rm -f "$log_file"
 
-LOG_FILE="$log_file" bun -e '
+gate_log="$(mktemp)"
+gate_status=0
+run_just related-gate >"$gate_log" 2>&1 || gate_status=$?
+
+if [[ "$gate_status" -eq 0 ]]; then
+  rm -f "$gate_log"
+  exit 0
+fi
+
+LOG_FILE="$gate_log" bun -e '
   const log = await Bun.file(process.env.LOG_FILE).text();
-  const tail = log.split("\n").slice(-160).join("\n");
+  const tail = log.split("\n").slice(-80).join("\n");
   console.log(JSON.stringify({
     decision: "block",
     reason: [
-      "SpecLink Stop hook found failing final checks.",
+      "SpecLink Stop hook found changed files whose linked counterparts were not updated (`just related-gate`).",
       "",
       tail,
       "",
-      "Read the failure, fix it if it is caused by this change, then rerun `just check` and `just test` before the final response. If the failure cannot be fixed in this turn, report it explicitly."
+      "For each listed counterpart, either update it to match this change or state explicitly in the final response why it needs no update. This guard does not fire again this turn."
     ].join("\n")
   }));
 '
 
-rm -f "$log_file"
+rm -f "$gate_log"
