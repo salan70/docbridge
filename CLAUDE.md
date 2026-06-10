@@ -16,7 +16,8 @@ diagnostics through `speclink check`.
 
 Core implementation lives under `src/`. Specifications live under `docs/specs/`,
 Japanese documentation lives under `docs/ja/`, examples live under `examples/`,
-and JSON schema files live under `schemas/`.
+per-diagnostic fixture projects live under `fixtures/diagnostics/`, and JSON
+schema files live under `schemas/`.
 
 Tests are colocated with the modules they cover as `*.test.ts` files under
 `src/`; there is no separate `test/` directory. See
@@ -33,6 +34,8 @@ Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 - `just check-example` — check the `examples/basic` project
 - `just check-example-json` — check the example with JSON output
 - `just audit` — run audit diagnostics
+- `just check-fixture <code>` — check one diagnostic fixture under
+  `fixtures/diagnostics/`
 - `just test` — run the Bun test suite (`bun test`)
 - `just build` — build the CLI with Bun
 
