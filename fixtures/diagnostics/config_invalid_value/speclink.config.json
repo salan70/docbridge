@@ -1,0 +1,6 @@
+{
+  "include": {
+    "code": [],
+    "docs": ["docs/**/*.md"]
+  }
+}

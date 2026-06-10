@@ -1,0 +1,7 @@
+{
+  "include": {
+    "code": ["src/**/*.ts"],
+    "docs": ["docs/**/*.md"]
+  },
+  "extra": true
+}
