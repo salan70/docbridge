@@ -5,7 +5,7 @@ SpecLink provides the `check` and `related` commands.
 ```sh
 speclink [--version] [--help]
 speclink check [--root <path>] [--json] [--audit]
-speclink related [--root <path>] [--json] [--stdin] [files...]
+speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
@@ -58,10 +58,12 @@ project root, prints diagnostics, and returns the process exit code.
 ## Related Command
 
 The related command is an informational command: given a set of changed files,
-it lists the linked counterparts of every linked endpoint in those files. It
-performs no validation and renders no judgment; deciding whether a counterpart
-also needs a change is left to the consumer (a human, an agent, or a CI
-script). It is designed to sit behind `git`:
+it lists the linked counterparts of every linked endpoint in those files. By
+default it performs no validation and renders no judgment; deciding whether a
+counterpart also needs a change is left to the consumer (a human, an agent, or
+a CI script). The `--gate` flag opts into the one judgment SpecLink can make
+mechanically (see [Related Gate Mode](#related-gate-mode)). It is designed to
+sit behind `git`:
 
 ```sh
 # pre-commit
@@ -135,5 +137,57 @@ src/auth/login.ts
 Output ordering is deterministic: files sort by path, endpoints within a file
 sort by source position, and counterparts sort by file path then position.
 
-`related` exits with code `0` on success regardless of what it finds. Only CLI
-invocation errors and configuration errors exit with code `1`.
+Without `--gate`, `related` exits with code `0` on success regardless of what
+it finds. Only CLI invocation errors and configuration errors exit with code
+`1`.
+
+<!-- @code src/core/related.ts#collectGateViolations -->
+## Related Gate Mode
+
+`related --gate` turns the report into a verdict: it collects every
+counterpart whose file is not itself in the change set (a *violation*), prints
+only those, and exits with code `1` when at least one exists. The check is
+symmetric, mirroring the bidirectional link graph: a changed code file with an
+unchanged linked doc is a violation, and a changed doc with an unchanged
+linked code file is one too.
+
+A violation does not necessarily mean the counterpart must change; it means
+nobody has decided yet. The intended consumer is a guardrail (an agent Stop
+hook or a CI step) that asks the author to either update the counterpart or
+explicitly justify leaving it unchanged. Deciding what counts as the change
+set (staged files, working tree, PR diff) remains the caller's concern, the
+same as in the default mode.
+
+Human-readable output prints one line per violation, then the summary line,
+which is always printed:
+
+```text
+src/auth/login.ts#login -> docs/auth.md#login-spec (counterpart not in change set)
+
+1 changed file, 1 counterpart not in change set
+```
+
+`--gate --json` emits the violations as machine-readable JSON:
+
+```json
+{
+  "violations": [
+    {
+      "changedEndpoint": "src/auth/login.ts#login",
+      "changedFilePath": "src/auth/login.ts",
+      "counterpartEndpoint": "docs/auth.md#login-spec",
+      "counterpartFilePath": "docs/auth.md"
+    }
+  ],
+  "summary": {
+    "changedFiles": 1,
+    "violations": 1
+  }
+}
+```
+
+Violations follow the default mode's ordering (files by path, endpoints by
+position, counterparts by file path then position). Gate mode exits `0` when
+there are no violations — including when the change set is empty or has no
+links — and `1` when at least one violation exists. CLI invocation errors and
+configuration errors exit with code `1` as usual.

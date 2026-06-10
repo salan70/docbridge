@@ -87,6 +87,38 @@ export function computeRelated(graph: LinkGraph, changedFiles: string[]): Relate
   };
 }
 
+export type RelatedGateViolation = {
+  changedEndpoint: string;
+  changedFilePath: string;
+  counterpartEndpoint: string;
+  counterpartFilePath: string;
+};
+
+/**
+ * Collect the gate violations in a `RelatedResult`: every counterpart whose
+ * file is not itself in the change set, in result order.
+ *
+ * @doc docs/specs/cli.md#related-gate-mode
+ */
+export function collectGateViolations(result: RelatedResult): RelatedGateViolation[] {
+  const violations: RelatedGateViolation[] = [];
+  for (const file of result.files) {
+    for (const endpoint of file.endpoints) {
+      for (const counterpart of endpoint.counterparts) {
+        if (!counterpart.inChangeSet) {
+          violations.push({
+            changedEndpoint: endpoint.endpoint,
+            changedFilePath: file.filePath,
+            counterpartEndpoint: counterpart.endpoint,
+            counterpartFilePath: counterpart.filePath,
+          });
+        }
+      }
+    }
+  }
+  return violations;
+}
+
 export type RelatedOptions = {
   projectRoot: string;
   /** Raw changed-file paths; normalized with `normalizeChangedPaths`. */
@@ -152,6 +184,30 @@ export function formatRelatedResult(result: RelatedResult): string {
   }
   lines.push(formatRelatedSummary(result.summary));
   return lines.join("\n");
+}
+
+/**
+ * Render gate violations as the human-readable `speclink related --gate`
+ * report: one `changed -> counterpart` line per violation, then the summary.
+ */
+export function formatGateResult(result: RelatedResult, violations: RelatedGateViolation[]): string {
+  const lines: string[] = [];
+  for (const violation of violations) {
+    lines.push(
+      `${violation.changedEndpoint} -> ${violation.counterpartEndpoint} (counterpart not in change set)`,
+    );
+  }
+  if (violations.length > 0) {
+    lines.push("");
+  }
+  lines.push(formatGateSummary(result.summary.changedFiles, violations.length));
+  return lines.join("\n");
+}
+
+function formatGateSummary(changedFiles: number, violations: number): string {
+  const fileWord = changedFiles === 1 ? "file" : "files";
+  const counterpartWord = violations === 1 ? "counterpart" : "counterparts";
+  return `${changedFiles} changed ${fileWord}, ${violations} ${counterpartWord} not in change set`;
 }
 
 function formatRelatedSummary(summary: RelatedSummary): string {

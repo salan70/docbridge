@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { buildLinkGraph, type LinkGraph } from "./graph";
 import { scanMarkdown } from "./markdown";
-import { computeRelated, normalizeChangedPaths } from "./related";
+import { collectGateViolations, computeRelated, normalizeChangedPaths } from "./related";
 import { scanTypeScript } from "./typescript";
 
 const LOGIN_TS = ["/**", " * @doc docs/auth.md#login-spec", " */", "export function login() {}", ""].join("\n");
@@ -127,6 +127,44 @@ test("computeRelated orders files by path and endpoints by position", () => {
   expect(result.files[0]?.endpoints.map((endpoint) => endpoint.endpoint)).toEqual([
     "docs/auth.md#login-spec",
     "docs/auth.md#another-spec",
+  ]);
+});
+
+test("collectGateViolations lists counterparts that are not in the change set", () => {
+  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+
+  const result = computeRelated(graph, ["src/auth/login.ts"]);
+
+  expect(collectGateViolations(result)).toEqual([
+    {
+      changedEndpoint: "src/auth/login.ts#login",
+      changedFilePath: "src/auth/login.ts",
+      counterpartEndpoint: "docs/auth.md#login-spec",
+      counterpartFilePath: "docs/auth.md",
+    },
+  ]);
+});
+
+test("collectGateViolations returns no violations when every counterpart is in the change set", () => {
+  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+
+  const result = computeRelated(graph, ["src/auth/login.ts", "docs/auth.md"]);
+
+  expect(collectGateViolations(result)).toEqual([]);
+});
+
+test("collectGateViolations reports the unchanged code counterpart of a changed doc", () => {
+  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+
+  const result = computeRelated(graph, ["docs/auth.md"]);
+
+  expect(collectGateViolations(result)).toEqual([
+    {
+      changedEndpoint: "docs/auth.md#login-spec",
+      changedFilePath: "docs/auth.md",
+      counterpartEndpoint: "src/auth/login.ts#login",
+      counterpartFilePath: "src/auth/login.ts",
+    },
   ]);
 });
 

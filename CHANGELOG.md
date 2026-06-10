@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   itself in the change set. Designed to sit behind `git diff --name-only` in
   pre-commit hooks and CI. Supports `--root` and `--json`; always exits `0` on
   success.
+- `speclink related --gate`: a gate mode that reports only the counterparts
+  that are not themselves in the change set and exits `1` when any exist. The
+  check is symmetric (changed code with unchanged linked docs, and changed
+  docs with unchanged linked code). Combines with `--json` for a
+  machine-readable violations report.
 - `speclink lsp`: a Language Server over stdio that exposes the SpecLink link
   graph to editors, with JSON-RPC `Content-Length` framing and the standard
   `initialize` / `initialized` / `shutdown` / `exit` lifecycle.

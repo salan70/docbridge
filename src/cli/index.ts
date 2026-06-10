@@ -5,7 +5,12 @@ import { resolve } from "node:path";
 
 import pkg from "../../package.json";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
-import { formatRelatedResult, related as runRelatedCore } from "../core/related";
+import {
+  collectGateViolations,
+  formatGateResult,
+  formatRelatedResult,
+  related as runRelatedCore,
+} from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
 
@@ -32,7 +37,7 @@ const HELP = `SpecLink
 Usage:
   speclink [--version] [--help]
   speclink check [--root <path>] [--json] [--audit]
-  speclink related [--root <path>] [--json] [--stdin] [files...]
+  speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
   speclink lsp
 
 Commands:
@@ -53,6 +58,7 @@ Related options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --stdin        Read newline-separated file paths from stdin.
+  --gate         Report counterparts that are not in the change set and exit 1 if any.
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
@@ -95,6 +101,7 @@ export type CliRelatedOptions = {
   root: string;
   json: boolean;
   stdin: boolean;
+  gate: boolean;
   files: string[];
 };
 
@@ -103,6 +110,7 @@ export function parseRelatedOptions(args: string[]): CliRelatedOptions {
     root: ".",
     json: false,
     stdin: false,
+    gate: false,
     files: [],
   };
 
@@ -119,6 +127,11 @@ export function parseRelatedOptions(args: string[]): CliRelatedOptions {
 
     if (arg === "--stdin") {
       options.stdin = true;
+      continue;
+    }
+
+    if (arg === "--gate") {
+      options.gate = true;
       continue;
     }
 
@@ -190,6 +203,23 @@ function runRelated(options: CliRelatedOptions, io: CliIo): number {
   const outcome = runRelatedCore({ projectRoot, changedFiles });
   if (!outcome.ok) {
     throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+  }
+
+  if (options.gate) {
+    const violations = collectGateViolations(outcome.result);
+    if (options.json) {
+      const gateReport = {
+        violations,
+        summary: {
+          changedFiles: outcome.result.summary.changedFiles,
+          violations: violations.length,
+        },
+      };
+      io.stdout(`${JSON.stringify(gateReport, null, 2)}\n`);
+    } else {
+      io.stdout(`${formatGateResult(outcome.result, violations)}\n`);
+    }
+    return violations.length > 0 ? 1 : 0;
   }
 
   if (options.json) {
