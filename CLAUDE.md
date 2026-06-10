@@ -51,6 +51,11 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
   changes, and blocks completion with the failure output if either fails. Fix
   the failure if this change caused it, then rerun the checks; if it cannot be
   fixed this turn, report it explicitly.
+- When those checks pass, the `Stop` hook also runs `just related-gate`, which
+  lists linked counterparts of the changed files that were not themselves
+  changed. If it blocks, either update each listed counterpart or state
+  explicitly in the final report why it needs no update. The gate blocks once
+  per turn; it asks for a judgment, not a mechanical fix.
 
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if `just`

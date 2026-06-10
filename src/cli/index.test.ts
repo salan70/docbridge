@@ -215,7 +215,18 @@ test("parseRelatedOptions reads root, json, stdin, and positional files", () => 
     root: "examples/basic",
     json: true,
     stdin: true,
+    gate: false,
     files: ["src/a.ts", "docs/b.md"],
+  });
+});
+
+test("parseRelatedOptions reads the --gate flag", () => {
+  expect(parseRelatedOptions(["--gate", "src/a.ts"])).toEqual({
+    root: ".",
+    json: false,
+    stdin: false,
+    gate: true,
+    files: ["src/a.ts"],
   });
 });
 
@@ -366,6 +377,79 @@ test("run related --json emits the result as machine-readable JSON", () => {
       },
     ]);
     expect(parsed.summary).toEqual({ changedFiles: 1, filesWithLinks: 1 });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --gate prints unchanged counterparts and exits 1", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "--gate", "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(1);
+    expect(c.out).toBe(
+      [
+        "src/auth/login.ts#login -> docs/auth.md#login-spec (counterpart not in change set)",
+        "",
+        "1 changed file, 1 counterpart not in change set",
+        "",
+      ].join("\n"),
+    );
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --gate exits 0 when every counterpart is in the change set", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(
+      ["related", "--root", project, "--gate", "src/auth/login.ts", "docs/auth.md"],
+      c.io,
+    );
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("2 changed files, 0 counterparts not in change set\n");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --gate exits 0 when no changed file has links", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "--gate", "bun.lock"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("1 changed file, 0 counterparts not in change set\n");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run related --gate --json emits violations as machine-readable JSON", () => {
+  const project = makeRelatedProject();
+  try {
+    const c = capture();
+    const code = run(["related", "--root", project, "--gate", "--json", "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(1);
+    expect(JSON.parse(c.out)).toEqual({
+      violations: [
+        {
+          changedEndpoint: "src/auth/login.ts#login",
+          changedFilePath: "src/auth/login.ts",
+          counterpartEndpoint: "docs/auth.md#login-spec",
+          counterpartFilePath: "docs/auth.md",
+        },
+      ],
+      summary: { changedFiles: 1, violations: 1 },
+    });
   } finally {
     rmSync(project, { recursive: true, force: true });
   }

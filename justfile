@@ -15,6 +15,10 @@ check-example-json:
 audit:
     bun run src/cli/index.ts check --audit
 
+# List counterparts of uncommitted changes that are themselves unchanged; exit 1 if any.
+related-gate:
+    { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | bun run src/cli/index.ts related --stdin --gate
+
 test:
     bun test
 
