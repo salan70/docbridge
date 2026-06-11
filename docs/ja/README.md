@@ -32,7 +32,7 @@ SpecLink は双方向の関係を扱います。
 Code <-> Documentation
 ```
 
-v0.1 では、TypeScript のトップレベル export シンボルと Markdown セクションをリンクします。
+SpecLink は、TypeScript のトップレベル export シンボルと Markdown セクションをリンクします。
 
 ## 例
 
@@ -56,9 +56,9 @@ Markdown:
 Login flow specification.
 ```
 
-## v0.1 の範囲
+## 範囲
 
-最初のマイルストーンは `speclink check` に集中します。
+SpecLink は以下の要素を対象にします。
 
 対象にする TypeScript 宣言:
 
@@ -113,7 +113,20 @@ just audit
 
 - `undocumented_symbol`
 
-## エディタ対応(v0.2)
+変更したファイルにリンクされたカウンターパートを一覧する:
+
+```sh
+git diff --name-only | speclink related --stdin
+```
+
+`speclink related` は情報提供のためのコマンドです。各カウンターパートと、それ自身が
+変更セットに含まれるかどうかを報告し、成功時は常に `0` で終了します。変更ファイルは
+位置引数でも渡せます。`--gate` を付けると、変更セットに含まれていないカウンターパート
+のみを報告し、1 件以上あれば `1` で終了します。`just related-gate` は未コミットの
+変更に対してこれを実行します。どちらのモードも `--root` と `--json` に対応します。
+詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
+
+## エディタ対応
 
 SpecLink は、同じリンクグラフをエディタへ公開する Language Server を同梱します。
 
@@ -220,7 +233,9 @@ pre-commit hook は `just check` と `just test` を実行します。
 just --list
 just check
 just check-example
+just check-fixture <code>
 just audit
+just related-gate
 just test
 just build
 ```
