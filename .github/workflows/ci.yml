@@ -31,3 +31,65 @@ jobs:
 
       - name: just build
         run: nix develop -c just build
+
+  # Informational, never required for merge: runs `speclink related --gate`
+  # over the PR's whole change set and maintains one sticky comment so the
+  # human approving the merge sees which linked counterparts were not updated.
+  related-gate-report:
+    name: related-gate-report
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      - name: Install dependencies
+        run: nix develop -c bun install --frozen-lockfile
+
+      - name: Run related-gate over the PR change set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
+            -q '.[].filename' > changed-files.txt
+          gate_status=0
+          nix develop -c bun run src/cli/index.ts related --stdin --gate \
+            < changed-files.txt > gate-output.txt 2>&1 || gate_status=$?
+          echo "GATE_STATUS=${gate_status}" >> "$GITHUB_ENV"
+          cat gate-output.txt
+
+      - name: Create or update the sticky PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          marker='<!-- speclink-related-gate -->'
+          {
+            echo "$marker"
+            echo "## SpecLink related-gate"
+            echo
+            if [ "$GATE_STATUS" = "0" ]; then
+              echo "All linked counterparts of the changed files are part of this PR's change set."
+            else
+              echo "Changed files have linked counterparts that this PR does not update."
+              echo "For each entry, either update the counterpart or make sure the PR explains why no update is needed."
+              echo
+              echo '```'
+              cat gate-output.txt
+              echo '```'
+            fi
+          } > comment.md
+          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+            -q ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)"
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -F body=@comment.md
+          else
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@comment.md
+          fi
