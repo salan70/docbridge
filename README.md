@@ -32,7 +32,7 @@ SpecLink focuses on both directions:
 Code <-> Documentation
 ```
 
-In v0.1, SpecLink links top-level exported TypeScript symbols to Markdown sections.
+SpecLink links top-level exported TypeScript symbols to Markdown sections.
 
 ## Example
 
@@ -56,9 +56,9 @@ Markdown:
 Login flow specification.
 ```
 
-## v0.1 Scope
+## Scope
 
-The first milestone focuses on `speclink check`.
+SpecLink recognizes the following elements.
 
 Supported TypeScript declarations:
 
@@ -113,7 +113,21 @@ Audit diagnostics include:
 
 - `undocumented_symbol`
 
-## Editor support (v0.2)
+List the linked counterparts of changed files:
+
+```sh
+git diff --name-only | speclink related --stdin
+```
+
+`speclink related` is informational: it reports each counterpart and whether it
+is itself in the change set, and always exits `0` on success. Changed files can
+also be passed as positional arguments. Add `--gate` to report only the
+counterparts that are not themselves in the change set and exit `1` when any
+exist; `just related-gate` runs this over uncommitted changes. Both modes
+support `--root` and `--json`. See [docs/specs/cli.md](docs/specs/cli.md) for
+details.
+
+## Editor support
 
 SpecLink ships a language server that exposes the same link graph to editors:
 
@@ -220,7 +234,9 @@ Run common tasks with `just`:
 just --list
 just check
 just check-example
+just check-fixture <code>
 just audit
+just related-gate
 just test
 just build
 ```
