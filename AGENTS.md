@@ -33,13 +33,22 @@ Compiler API for core implementation.
 
 ## Local Guardrails
 
-Codex hooks live under `.codex/`. The `SessionStart` hook injects a short
-repository reminder, and the `Stop` hook runs `just check` and `just test` when
-the working tree has changes. When those checks pass, the `Stop` hook also runs
-`just related-gate`, which lists linked counterparts of the changed files that
-were not themselves changed. If it blocks, either update each listed
-counterpart or state explicitly in the final report why it needs no update.
-The gate blocks once per turn; it asks for a judgment, not a mechanical fix.
+Codex hooks live under `.codex/` (`hooks.json` plus scripts in
+`.codex/hooks/`). Codex loads project-local hooks only after they are reviewed
+and trusted with the `/hooks` command, and a hook must be re-trusted whenever
+its script changes. If hooks do not appear to fire, check `/hooks` first. Treat
+these hooks as best-effort awareness; the hard guards are the `pre-commit` git
+hook and CI.
+
+The `SessionStart` hook injects a short repository reminder. The `Stop` hook
+runs `just check` and `just test` when the working tree has changes, and blocks
+completion with the failure output if either fails; on continuation turns it
+re-runs the checks and reports the result without blocking again. When those
+checks pass, it also reports `just related-gate` results over uncommitted
+changes as information: either update each listed counterpart or state
+explicitly in the final report why it needs no update. CI re-runs the gate over
+the whole PR change set and maintains a sticky PR comment; the human merge
+approval is the enforcement point.
 
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if
