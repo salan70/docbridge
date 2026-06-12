@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `speclink context`: prints the content of the counterparts linked from a set
+  of input files (positional arguments or newline-separated stdin via
+  `--stdin`) — full Markdown sections for doc counterparts, full declarations
+  including JSDoc for code counterparts. Default output is Markdown suitable
+  for direct injection into an agent prompt; `--json` emits a machine-readable
+  report following `schemas/context-output.schema.json`. Extraction is
+  best-effort: check diagnostics located in the input files are reported on
+  stderr (or in the `diagnostics` field) without affecting the exit code.
+- TypeScript scanner: records a `declarationRange` covering each supported
+  declaration including its JSDoc block, backing `context` content extraction.
+- `just context`: prints the linked counterpart content of the uncommitted
+  changes.
+
+### Changed
+
+- Markdown section extraction moved from the LSP layer into `src/core/` and is
+  now shared by LSP hover and `speclink context` (no behavior change).
+
 ## [0.2.0] - 2026-06-11
 
 ### Added

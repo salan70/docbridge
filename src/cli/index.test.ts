@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import pkg from "../../package.json";
-import { parseCheckOptions, parseRelatedOptions, run } from "./index";
+import { parseCheckOptions, parseContextOptions, parseRelatedOptions, run } from "./index";
 
 type Captured = {
   out: string;
@@ -461,6 +461,188 @@ test("run related reports config errors on stderr and exits 1", () => {
     writeFileSync(join(project, "speclink.config.json"), "{ not json");
     const c = capture();
     const code = run(["related", "--root", project, "src/a.ts"], c.io);
+
+    expect(code).toBe(1);
+    expect(c.err.length).toBeGreaterThan(0);
+    expect(c.out).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+// --- context command ---------------------------------------------------------
+
+test("parseContextOptions reads root, json, stdin, and positional files", () => {
+  expect(
+    parseContextOptions(["--root", "examples/basic", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
+  ).toEqual({
+    root: "examples/basic",
+    json: true,
+    stdin: true,
+    files: ["src/a.ts", "docs/b.md"],
+  });
+});
+
+test("run help documents the context command", () => {
+  const c = capture();
+  run(["--help"], c.io);
+
+  expect(c.out).toContain("speclink context");
+  expect(c.out).toContain("Context options:");
+});
+
+test("run context without files or --stdin errors on stderr and exits 1", () => {
+  const c = capture();
+  const code = run(["context"], c.io);
+
+  expect(code).toBe(1);
+  expect(c.err).toContain("--stdin");
+  expect(c.out).toBe("");
+});
+
+function makeContextProject(): string {
+  const project = mkdtempSync(join(tmpdir(), "speclink-context-"));
+  writeFileSync(
+    join(project, "speclink.config.json"),
+    JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+  );
+  mkdirSync(join(project, "src", "auth"), { recursive: true });
+  writeFileSync(
+    join(project, "src", "auth", "login.ts"),
+    "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n",
+  );
+  mkdirSync(join(project, "docs"), { recursive: true });
+  writeFileSync(
+    join(project, "docs", "auth.md"),
+    "<!-- @code src/auth/login.ts#login -->\n## Login Spec\n\nThe login flow.\n",
+  );
+  return project;
+}
+
+test("run context prints counterpart content blocks and a summary", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["context", "--root", project, "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe(
+      [
+        "docs/auth.md#login-spec (linked from src/auth/login.ts#login)",
+        "",
+        "## Login Spec",
+        "",
+        "The login flow.",
+        "",
+        "1 input file, 1 context block",
+        "",
+      ].join("\n"),
+    );
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run context prints only the summary when no input file has links", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["context", "--root", project, "bun.lock"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("1 input file, 0 context blocks\n");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run context --stdin reads newline-separated paths from stdin", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["context", "--root", project, "--stdin"], {
+      ...c.io,
+      stdin: () => "src/auth/login.ts\nbun.lock\n",
+    });
+
+    expect(code).toBe(0);
+    expect(c.out).toContain("docs/auth.md#login-spec (linked from src/auth/login.ts#login)");
+    expect(c.out).toContain("2 input files, 1 context block");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run context --json emits contexts, diagnostics, and summary as JSON", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["context", "--root", project, "--json", "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(JSON.parse(c.out)).toEqual({
+      contexts: [
+        {
+          endpoint: "docs/auth.md#login-spec",
+          kind: "doc",
+          filePath: "docs/auth.md",
+          startLine: 2,
+          endLine: 4,
+          linkedFrom: ["src/auth/login.ts#login"],
+          content: "## Login Spec\n\nThe login flow.",
+        },
+      ],
+      diagnostics: [],
+      summary: { inputFiles: 1, contexts: 1 },
+    });
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run context reports broken links in input files on stderr but still exits 0", () => {
+  const project = makeContextProject();
+  try {
+    writeFileSync(
+      join(project, "src", "auth", "broken.ts"),
+      "/**\n * @doc docs/auth.md#missing\n */\nexport function broken() {}\n",
+    );
+    const c = capture();
+    const code = run(["context", "--root", project, "src/auth/broken.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("1 input file, 0 context blocks\n");
+    expect(c.err).toContain("doc_anchor_not_found");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run context omits diagnostics located outside the input files", () => {
+  const project = makeContextProject();
+  try {
+    writeFileSync(
+      join(project, "src", "auth", "broken.ts"),
+      "/**\n * @doc docs/auth.md#missing\n */\nexport function broken() {}\n",
+    );
+    const c = capture();
+    const code = run(["context", "--root", project, "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run context reports config errors on stderr and exits 1", () => {
+  const project = mkdtempSync(join(tmpdir(), "speclink-context-badcfg-"));
+  try {
+    writeFileSync(join(project, "speclink.config.json"), "{ not json");
+    const c = capture();
+    const code = run(["context", "--root", project, "src/a.ts"], c.io);
 
     expect(code).toBe(1);
     expect(c.err.length).toBeGreaterThan(0);

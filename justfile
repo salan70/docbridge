@@ -24,6 +24,10 @@ check-fixture code:
 related-gate:
     { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | bun run src/cli/index.ts related --stdin --gate
 
+# Print the linked counterpart content of the uncommitted changes.
+context:
+    { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | bun run src/cli/index.ts context --stdin
+
 test:
     bun test
 
