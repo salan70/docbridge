@@ -136,6 +136,29 @@ test("computeContext orders context blocks by file path then position", () => {
   ]);
 });
 
+test("computeContext slices same-line declarations by column, excluding neighbors", () => {
+  const sameLineTs = "/** @doc docs/a.md#a-spec */ export const a = 1; export const b = 2;\n";
+  const aMd = ["<!-- @code src/a.ts#a -->", "## A Spec", ""].join("\n");
+  const sources: Sources = {
+    code: [["src/a.ts", sameLineTs]],
+    docs: [["docs/a.md", aMd]],
+  };
+
+  const result = computeContext(graphFrom(sources), contentMap(sources), ["docs/a.md"]);
+
+  expect(result.contexts).toEqual([
+    {
+      endpoint: "src/a.ts#a",
+      kind: "code",
+      filePath: "src/a.ts",
+      startLine: 1,
+      endLine: 1,
+      linkedFrom: ["docs/a.md#a-spec"],
+      content: "/** @doc docs/a.md#a-spec */ export const a = 1;",
+    },
+  ]);
+});
+
 test("computeContext returns no blocks for input files without links", () => {
   const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["bun.lock", "src/other.ts"]);
 
@@ -175,6 +198,37 @@ test("formatContextResult renders doc sections raw and code declarations fenced"
       "```",
       "",
       "2 input files, 2 context blocks",
+    ].join("\n"),
+  );
+});
+
+test("formatContextResult lengthens the code fence beyond backtick runs in the content", () => {
+  const result = {
+    contexts: [
+      {
+        endpoint: "src/a.ts#example",
+        kind: "code" as const,
+        filePath: "src/a.ts",
+        startLine: 1,
+        endLine: 2,
+        linkedFrom: ["docs/a.md#a-spec"],
+        content: '/** @doc docs/a.md#a-spec */\nexport const example = " ``` ";',
+      },
+    ],
+    summary: { inputFiles: 1, contexts: 1 },
+    diagnostics: [],
+  };
+
+  expect(formatContextResult(result)).toBe(
+    [
+      "src/a.ts#example (linked from docs/a.md#a-spec)",
+      "",
+      "````ts",
+      "/** @doc docs/a.md#a-spec */",
+      'export const example = " ``` ";',
+      "````",
+      "",
+      "1 input file, 1 context block",
     ].join("\n"),
   );
 });

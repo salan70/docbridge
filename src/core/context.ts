@@ -173,8 +173,20 @@ export function formatContextResult(result: ContextResult): string {
 
 function renderBlock(block: ContextBlock): string {
   const header = `${block.endpoint} (linked from ${block.linkedFrom.join(", ")})`;
-  const body = block.kind === "code" ? `\`\`\`ts\n${block.content}\n\`\`\`` : block.content;
-  return `${header}\n\n${body}`;
+  if (block.kind !== "code") {
+    return `${header}\n\n${block.content}`;
+  }
+  const fence = codeFence(block.content);
+  return `${header}\n\n${fence}ts\n${block.content}\n${fence}`;
+}
+
+/** A backtick fence one longer than the longest backtick run in the content. */
+function codeFence(content: string): string {
+  let longestRun = 0;
+  for (const match of content.matchAll(/`+/g)) {
+    longestRun = Math.max(longestRun, match[0].length);
+  }
+  return "`".repeat(Math.max(3, longestRun + 1));
 }
 
 function formatContextSummary(summary: ContextSummary): string {
@@ -235,6 +247,15 @@ function extractBlock(
   // exactly at the previous line's newline.
   const endLine = range.end.column === 1 ? range.end.line - 1 : range.end.line;
   const lines = content.split("\n").slice(startLine - 1, endLine);
+  const lastIndex = lines.length - 1;
+  const lastLine = lines[lastIndex];
+  if (lastLine !== undefined && range.end.column > 1) {
+    lines[lastIndex] = lastLine.slice(0, range.end.column - 1);
+  }
+  const firstLine = lines[0];
+  if (firstLine !== undefined) {
+    lines[0] = firstLine.slice(range.start.column - 1);
+  }
   return {
     endpoint: counterpart.endpoint,
     kind: "code",
