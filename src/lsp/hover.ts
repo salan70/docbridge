@@ -2,7 +2,7 @@ import { counterpartsOf, type GraphEndpoint } from "../core/graph";
 import type { Position, Range } from "../core/types";
 import { endpointAt } from "./index-lookup";
 import type { ProjectState } from "./project";
-import { capSectionLength, extractDocSection } from "./section";
+import { capSectionLength, extractDocSection } from "../core/section";
 
 /** Markdown hover content plus the range of the element it describes. */
 export type HoverResult = {

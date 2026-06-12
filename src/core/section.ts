@@ -1,5 +1,5 @@
 /**
- * Markdown section extraction for the LSP hover feature.
+ * Markdown section extraction, shared by LSP hover and `speclink context`.
  *
  * Mirrors the heading and fence detection rules in `src/core/markdown.ts`: ATX
  * headings allow up to three leading spaces and one to six `#`, and fenced code
@@ -7,7 +7,7 @@
  * ends a section.
  */
 
-/** Loose hover section length cap, in characters. */
+/** Loose section length cap for hover surfaces, in characters. */
 export const MAX_SECTION_LENGTH = 2000;
 
 /** Continuation marker appended when a section is truncated by the length cap. */
