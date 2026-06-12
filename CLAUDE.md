@@ -15,9 +15,11 @@ JSDoc and `@code` annotations in Markdown HTML comments, then reports
 diagnostics through `speclink check`.
 
 Core implementation lives under `src/`. Specifications live under `docs/specs/`,
-Japanese documentation lives under `docs/ja/`, examples live under `examples/`,
-per-diagnostic fixture projects live under `fixtures/diagnostics/`, and JSON
-schema files live under `schemas/`.
+Japanese documentation lives under `docs/ja/`, AI integration recipes live
+under `docs/integrations/`, examples live under `examples/` (including
+copyable agent hook scripts in `examples/hooks/`), distributable skill
+templates live under `templates/skills/`, per-diagnostic fixture projects live
+under `fixtures/diagnostics/`, and JSON schema files live under `schemas/`.
 
 Tests are colocated with the modules they cover as `*.test.ts` files under
 `src/`; there is no separate `test/` directory. See
@@ -50,6 +52,10 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
 
 - The `SessionStart` hook injects a short repository reminder as additional
   context.
+- The `PreToolUse` hook (Edit/Write) injects the linked counterpart content of
+  the file about to be edited via `speclink context`, so the relevant
+  specification or code is in context before the change. Files without linked
+  counterparts inject nothing.
 - The `Stop` hook runs `just check` and `just test` when the working tree has
   changes, and blocks completion with the failure output if either fails. Fix
   the failure if this change caused it, then rerun the checks; if it cannot be
@@ -57,10 +63,12 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
   the checks and reports the measured pass/fail result without blocking again.
 - When those checks pass, the `Stop` hook also runs `just related-gate` over
   uncommitted changes and reports linked counterparts that were not themselves
-  changed. This message is informational and never blocks: either update each
-  listed counterpart or state explicitly in the final report why it needs no
-  update. CI re-runs the gate over the whole PR change set and maintains a
-  sticky PR comment; the human merge approval is the enforcement point.
+  changed, attaching the flagged counterparts' content fetched via
+  `speclink context`. This message is informational and never blocks: either
+  update each listed counterpart or state explicitly in the final report why it
+  needs no update (use the `speclink-sync` skill for the triage). CI re-runs
+  the gate over the whole PR change set and maintains a sticky PR comment; the
+  human merge approval is the enforcement point.
 
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if `just`
@@ -92,6 +100,18 @@ invoked directly with `/<skill-name>`.
   or human reviewers), act or justify per comment, then reply to and resolve
   every thread. Use it with `/review-response`, or when a PR has review feedback
   to address.
+- `speclink-annotate` — create `@doc`/`@code` link pairs between TypeScript
+  declarations and Markdown sections and verify them with `speclink check`.
+  Use it with `/speclink-annotate`, or when linking code to its specification
+  or fixing link diagnostics.
+- `speclink-sync` — triage `related --gate` findings: judge divergence using
+  the counterpart content from `speclink context`, then update the counterpart
+  or justify leaving it unchanged. Use it with `/speclink-sync`, or when a
+  Stop-hook message or CI comment flags unchanged counterparts.
+
+`speclink-annotate` and `speclink-sync` are installed copies; the distributable
+source of truth is `templates/skills/`. Apply edits there and copy them into
+`.claude/skills/`, keeping the two identical.
 
 ## Language Policy
 

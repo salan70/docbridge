@@ -127,6 +127,36 @@ exist; `just related-gate` runs this over uncommitted changes. Both modes
 support `--root` and `--json`. See [docs/specs/cli.md](docs/specs/cli.md) for
 details.
 
+Print the content of the linked counterparts of changed files:
+
+```sh
+git diff --name-only | speclink context --stdin
+```
+
+`speclink context` answers "what do the linked counterparts say": full
+Markdown sections for doc counterparts, full declarations including JSDoc for
+code counterparts. The default output is Markdown suitable for direct
+injection into an agent prompt; `--json` follows
+[schemas/context-output.schema.json](schemas/context-output.schema.json).
+Extraction is best-effort and the command exits `0` on success even when the
+tree has broken links. See [docs/specs/cli.md](docs/specs/cli.md) for details.
+
+## AI agent integration
+
+SpecLink's link graph is built to be consumed by AI coding agents:
+
+- [docs/integrations](docs/integrations) — recipes for Claude Code, Codex,
+  and CI: pre-edit context injection with `speclink context`, gate triage
+  with `speclink related --gate`, and PR reporting.
+- [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
+  those recipes.
+- [templates/skills](templates/skills) — distributable agent skills:
+  `speclink-annotate` (create link pairs) and `speclink-sync` (triage gate
+  findings).
+
+This repository dogfoods all three in its own guardrails under `.claude/` and
+`.codex/`.
+
 ## Editor support
 
 SpecLink ships a language server that exposes the same link graph to editors:
@@ -268,6 +298,8 @@ on Bun and the TypeScript Compiler API.
 - Specifications: [docs/specs](docs/specs)
 - v0.1 decisions: [docs/decisions/v0.1.md](docs/decisions/v0.1.md)
 - v0.2 decisions: [docs/decisions/v0.2.md](docs/decisions/v0.2.md)
+- v0.3 decisions: [docs/decisions/v0.3.md](docs/decisions/v0.3.md)
+- AI agent integration recipes: [docs/integrations](docs/integrations)
 - Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
 - Testing convention: [docs/contributing/testing.md](docs/contributing/testing.md)
 
