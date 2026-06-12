@@ -1,11 +1,12 @@
 # CLI
 
-SpecLink provides the `check` and `related` commands.
+SpecLink provides the `check`, `related`, and `context` commands.
 
 ```sh
 speclink [--version] [--help]
 speclink check [--root <path>] [--json] [--audit]
 speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
+speclink context [--root <path>] [--json] [--stdin] [files...]
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
@@ -191,3 +192,94 @@ position, counterparts by file path then position). Gate mode exits `0` when
 there are no violations — including when the change set is empty or has no
 links — and `1` when at least one violation exists. CLI invocation errors and
 configuration errors exit with code `1` as usual.
+
+<!-- @code src/core/context.ts#context -->
+## Context Command
+
+The context command prints the *content* of the counterparts linked from a set
+of input files: where `related` answers "which files are linked", `context`
+answers "what do they say". Its primary consumer is an agent hook that injects
+the linked specification (or the linked code) into the agent's context before
+it edits a file, so the default output is Markdown suitable for direct
+injection. It takes the same input forms as `related`:
+
+```sh
+# before editing a file
+speclink context src/auth/login.ts
+
+# uncommitted changes
+git diff --name-only HEAD | speclink context --stdin
+```
+
+Input files are passed as positional arguments, as newline-separated paths on
+stdin with `--stdin`, or both combined. Invoking `context` with neither
+positional files nor `--stdin` is a CLI invocation error. Input paths are
+normalized exactly like `related` input paths (root-relative interpretation,
+absolute-path relativization, `./` stripping, deduplication).
+
+Counterpart resolution follows the link graph semantics used by `related` and
+LSP navigation: direct links only (one hop), including resolvable one-way
+links. For every linked endpoint in the input files, each counterpart
+contributes one *context block*:
+
+- A **doc counterpart** contributes its full Markdown section: the heading and
+  its body up to the next heading at the same or a higher level, including
+  deeper subsections, with no length cap.
+- A **code counterpart** contributes its full declaration source, including
+  the leading JSDoc block.
+
+A counterpart linked from multiple input endpoints appears once; every linking
+endpoint is recorded in its `linkedFrom` list (sorted). Blocks are ordered
+deterministically by counterpart file path, then position in the file. Input
+files that are not in the managed set, do not exist, or have no linked
+endpoints contribute no blocks; they are only reflected in the summary count.
+A counterpart whose content cannot be extracted is skipped.
+
+Extraction is best-effort: the command reports the blocks it can resolve even
+when the project has broken links. Check diagnostics located in the input
+files are reported alongside the result — on stderr in human-readable mode, in
+the `diagnostics` field with `--json` — and never affect the exit code, so a
+temporarily broken tree still yields the context that does resolve. Validation
+verdicts remain `speclink check`'s and `related --gate`'s concern.
+
+Human-readable output prints one block per counterpart, separated by
+horizontal rules, then the summary line, which is always printed. Doc sections
+are rendered raw; code declarations are fenced:
+
+```text
+docs/auth.md#login-spec (linked from src/auth/login.ts#login)
+
+## Login Spec
+
+The login flow.
+
+1 input file, 1 context block
+```
+
+`--json` emits the same data as machine-readable JSON, following
+[schemas/context-output.schema.json](../../schemas/context-output.schema.json):
+
+```json
+{
+  "contexts": [
+    {
+      "endpoint": "docs/auth.md#login-spec",
+      "kind": "doc",
+      "filePath": "docs/auth.md",
+      "startLine": 2,
+      "endLine": 4,
+      "linkedFrom": ["src/auth/login.ts#login"],
+      "content": "## Login Spec\n\nThe login flow."
+    }
+  ],
+  "diagnostics": [],
+  "summary": { "inputFiles": 1, "contexts": 1 }
+}
+```
+
+`startLine` and `endLine` are 1-based and inclusive, covering the lines of
+`content` within `filePath`.
+
+`context` exits with code `0` on success regardless of what it finds or which
+diagnostics it reports. Only CLI invocation errors and configuration errors
+exit with code `1`.

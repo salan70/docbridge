@@ -4,6 +4,7 @@ import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import pkg from "../../package.json";
+import { context as runContextCore, formatContextResult } from "../core/context";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import {
   collectGateViolations,
@@ -38,11 +39,13 @@ Usage:
   speclink [--version] [--help]
   speclink check [--root <path>] [--json] [--audit]
   speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
+  speclink context [--root <path>] [--json] [--stdin] [files...]
   speclink lsp
 
 Commands:
   check    Validate links between TypeScript and Markdown.
   related  List the linked counterparts of the given changed files.
+  context  Print the content of the counterparts linked from the given files.
   lsp      Run the Language Server over stdio.
 
 Global options:
@@ -59,6 +62,11 @@ Related options:
   --json         Emit machine-readable JSON.
   --stdin        Read newline-separated file paths from stdin.
   --gate         Report counterparts that are not in the change set and exit 1 if any.
+
+Context options:
+  --root <path>  Project root to scan. Defaults to current directory.
+  --json         Emit machine-readable JSON.
+  --stdin        Read newline-separated file paths from stdin.
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
@@ -132,6 +140,57 @@ export function parseRelatedOptions(args: string[]): CliRelatedOptions {
 
     if (arg === "--gate") {
       options.gate = true;
+      continue;
+    }
+
+    if (arg === "--root") {
+      const root = args[index + 1];
+      if (root === undefined) {
+        throw new CliError("--root requires a path.");
+      }
+      options.root = root;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--")) {
+      throw new CliError(`Unknown option: ${arg}`);
+    }
+
+    options.files.push(arg);
+  }
+
+  return options;
+}
+
+export type CliContextOptions = {
+  root: string;
+  json: boolean;
+  stdin: boolean;
+  files: string[];
+};
+
+export function parseContextOptions(args: string[]): CliContextOptions {
+  const options: CliContextOptions = {
+    root: ".",
+    json: false,
+    stdin: false,
+    files: [],
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    if (arg === "--json") {
+      options.json = true;
+      continue;
+    }
+
+    if (arg === "--stdin") {
+      options.stdin = true;
       continue;
     }
 
@@ -231,6 +290,37 @@ function runRelated(options: CliRelatedOptions, io: CliIo): number {
   return 0;
 }
 
+function runContext(options: CliContextOptions, io: CliIo): number {
+  if (!options.stdin && options.files.length === 0) {
+    throw new CliError("Provide file paths as arguments or use --stdin.");
+  }
+
+  const projectRoot = resolveProjectRoot(options.root);
+
+  const inputFiles = [...options.files];
+  if (options.stdin) {
+    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
+    inputFiles.push(...readStdin().split("\n"));
+  }
+
+  const outcome = runContextCore({ projectRoot, inputFiles });
+  if (!outcome.ok) {
+    throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+  }
+
+  if (options.json) {
+    io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
+    return 0;
+  }
+
+  io.stdout(`${formatContextResult(outcome.result)}\n`);
+  if (outcome.result.diagnostics.length > 0) {
+    io.stderr(`${outcome.result.diagnostics.map(formatDiagnostic).join("\n")}\n`);
+  }
+
+  return 0;
+}
+
 /**
  * Execute the CLI for the given argv (without the `bun` / script prefix) and
  * return the process exit code. Output is written through the injected IO so the
@@ -264,6 +354,10 @@ export function run(
 
     if (command === "related") {
       return runRelated(parseRelatedOptions(rest), io);
+    }
+
+    if (command === "context") {
+      return runContext(parseContextOptions(rest), io);
     }
 
     if (command === "lsp") {

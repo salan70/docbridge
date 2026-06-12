@@ -358,5 +358,27 @@ describe(scanTypeScript, () => {
         end: { line: 2, column: 9 + "not-a-valid-target".length },
       });
     });
+
+    test("records the full declaration range including the JSDoc block", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {\n  return true;\n}\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.declarationRange).toEqual({
+        start: { line: 1, column: 1 },
+        end: { line: 6, column: 2 },
+      });
+    });
+
+    test("records the declaration range of an annotated exported const including its JSDoc", () => {
+      const content =
+        "import x from \"./x\";\n\n/**\n * @doc docs/auth.md#token-spec\n */\nexport const token = \"abc\";\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.declarationRange).toEqual({
+        start: { line: 3, column: 1 },
+        end: { line: 6, column: 28 },
+      });
+    });
   });
 });

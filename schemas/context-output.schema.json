@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SpecLink Context Output",
+  "description": "Shape of `speclink context --json` output. See docs/specs/cli.md#context-command.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contexts", "diagnostics", "summary"],
+  "properties": {
+    "contexts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["endpoint", "kind", "filePath", "startLine", "endLine", "linkedFrom", "content"],
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "Counterpart endpoint in `file#fragment` form."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["code", "doc"]
+          },
+          "filePath": {
+            "type": "string",
+            "description": "Project-root-relative POSIX path of the counterpart file."
+          },
+          "startLine": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based first line of `content` within `filePath`."
+          },
+          "endLine": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based last line of `content` within `filePath`, inclusive."
+          },
+          "linkedFrom": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "Endpoints in the input files that link to this counterpart, sorted."
+          },
+          "content": {
+            "type": "string",
+            "description": "Full Markdown section (doc) or full declaration source including JSDoc (code)."
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "description": "Check diagnostics located in the input files, in check order.",
+      "items": {
+        "type": "object",
+        "required": ["severity", "code", "target", "message"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["error", "warning"]
+          },
+          "code": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object",
+            "required": ["filePath", "line", "column"],
+            "properties": {
+              "filePath": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "column": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputFiles", "contexts"],
+      "properties": {
+        "inputFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct input files after normalization."
+        },
+        "contexts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of context blocks."
+        }
+      }
+    }
+  }
+}

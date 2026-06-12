@@ -31,6 +31,7 @@ type SupportedDeclaration = {
   symbolName: string;
   location: SourceLocation;
   nameRange?: Range;
+  declarationRange?: Range;
   docTags: DocTag[];
 };
 
@@ -120,6 +121,7 @@ export function scanTypeScript(
             endpoint,
             declaration.location,
             declaration.nameRange,
+            declaration.declarationRange,
           ),
         );
       }
@@ -155,6 +157,7 @@ export function scanTypeScript(
         endpoint,
         declaration.location,
         declaration.nameRange,
+        declaration.declarationRange,
       ),
     );
 
@@ -268,6 +271,11 @@ function describeSupportedDeclaration(
     docTags,
   };
   declaration.nameRange = rangeOfNode(sourceFile, nameNode);
+  declaration.declarationRange = rangeFromOffsets(
+    sourceFile,
+    statement.getStart(sourceFile, /* includeJsDocComment */ true),
+    statement.getEnd(),
+  );
   return declaration;
 }
 
@@ -388,6 +396,7 @@ function makeCodeSymbol(
   endpoint: string,
   location: SourceLocation,
   nameRange: Range | undefined,
+  declarationRange: Range | undefined,
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
@@ -398,6 +407,9 @@ function makeCodeSymbol(
   };
   if (nameRange !== undefined) {
     symbol.nameRange = nameRange;
+  }
+  if (declarationRange !== undefined) {
+    symbol.declarationRange = declarationRange;
   }
   return symbol;
 }

@@ -62,6 +62,8 @@ Codex skills live in `.agents/skills/`.
 
 When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or explicitly asks to deeply examine a plan or design, use `.agents/skills/grill-me/SKILL.md`.
 
+When the user asks to review a PR, inspect a PR for defects, or post review findings, use `.agents/skills/pr-review/SKILL.md`.
+
 When branching, committing, pushing, opening or merging a PR, or cutting a release, use `.agents/skills/git-workflow/SKILL.md`.
 
 When a PR has review comments to triage, reply to, and resolve, use `.agents/skills/review-response/SKILL.md`.

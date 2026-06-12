@@ -80,6 +80,10 @@ invoked directly with `/<skill-name>`.
   understanding is reached. Use it with `/grill-me`, or when the user says
   `grill me`, `grill して`, `徹底的に詰めて`, or asks to deeply examine a plan
   or design.
+- `pr-review` — review a pull request from the reviewer side: find real
+  defects, verify them, and post actionable inline comments on the diff. Use it
+  with `/pr-review`, or when asked to review a PR, inspect a PR for bugs, or
+  post review findings.
 - `git-workflow` — branch naming, PR-based flow, merge commits, branch
   protection, agent autonomy gates, and the semi-automated release procedure.
   Use it with `/git-workflow`, or when branching, committing, pushing, opening

@@ -80,6 +80,11 @@ export type CodeSymbolEndpoint = {
   location: SourceLocation;
   /** Range of the declaration name identifier, used as a navigation trigger. */
   nameRange?: Range;
+  /**
+   * Range of the whole declaration including its leading JSDoc block, used to
+   * extract the declaration source as context content.
+   */
+  declarationRange?: Range;
 };
 
 export type DocAnchorEndpoint = {
