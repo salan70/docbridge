@@ -40,3 +40,9 @@ single Markdown file.
 
 TypeScript scanning extracts exported declarations and `@doc` annotations using
 the TypeScript Compiler API.
+
+For each supported declaration the scanner records, alongside the name range
+used for navigation, a `declarationRange` covering the whole declaration
+including its leading JSDoc block. The
+[context command](cli.md#context-command) extracts declaration content from
+this range.
