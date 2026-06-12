@@ -13,6 +13,19 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-context.sh\"",
+            "timeout": 30,
+            "statusMessage": "Fetching SpecLink counterpart context"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

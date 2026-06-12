@@ -107,10 +107,25 @@ if [[ "$gate_status" -eq 0 && -z "$pass_note" ]]; then
   exit 0
 fi
 
+# When the gate flags counterparts, fetch their content so the triage judgment
+# (update the counterpart, or justify leaving it) can be made without extra
+# file discovery. Both commands are best-effort; an empty file just drops the
+# content section from the message.
+violations_log="$(mktemp)"
+context_log="$(mktemp)"
+if [[ "$gate_status" -ne 0 ]]; then
+  changed_files="$({ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
+  printf '%s\n' "$changed_files" |
+    run_bun run src/cli/index.ts related --stdin --gate --json >"$violations_log" 2>/dev/null || true
+  printf '%s\n' "$changed_files" |
+    run_bun run src/cli/index.ts context --stdin --json >"$context_log" 2>/dev/null || true
+fi
+
 # The related-gate result is informational, never blocking: judgment about
 # counterparts belongs to the pull request, where CI re-runs the gate over the
 # whole branch change set and a human approves the merge.
-GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" run_bun -e '
+GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
+  VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" run_bun -e '
   const parts = [];
   if (process.env.PASS_NOTE) {
     parts.push(process.env.PASS_NOTE);
@@ -125,8 +140,34 @@ GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" run_bun -
       "",
       "Update each listed counterpart or state in the final response why it needs no update. This message is informational and does not block; CI re-checks the whole branch on the pull request."
     ].join("\n"));
+    const parse = async (path) => {
+      try {
+        return JSON.parse(await Bun.file(path).text());
+      } catch {
+        return null;
+      }
+    };
+    const violations = (await parse(process.env.VIOLATIONS_LOG))?.violations ?? [];
+    const contexts = (await parse(process.env.CONTEXT_LOG))?.contexts ?? [];
+    const flagged = new Set(violations.map((v) => v.counterpartEndpoint));
+    const blocks = contexts.filter((c) => flagged.has(c.endpoint)).map((c) => {
+      const header = `${c.endpoint} (linked from ${c.linkedFrom.join(", ")})`;
+      if (c.kind !== "code") {
+        return `${header}\n\n${c.content}`;
+      }
+      const longestRun = Math.max(2, ...(c.content.match(/`+/g) ?? []).map((r) => r.length));
+      const fence = "`".repeat(longestRun + 1);
+      return `${header}\n\n${fence}ts\n${c.content}\n${fence}`;
+    });
+    if (blocks.length > 0) {
+      parts.push([
+        "Flagged counterpart content (via `speclink context`):",
+        "",
+        blocks.join("\n\n---\n\n")
+      ].join("\n"));
+    }
   }
   console.log(JSON.stringify({ systemMessage: parts.join("\n\n") }));
 '
 
-rm -f "$gate_log"
+rm -f "$gate_log" "$violations_log" "$context_log"
