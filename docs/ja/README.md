@@ -126,6 +126,37 @@ git diff --name-only | speclink related --stdin
 変更に対してこれを実行します。どちらのモードも `--root` と `--json` に対応します。
 詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
 
+変更したファイルにリンクされたカウンターパートの内容を出力する:
+
+```sh
+git diff --name-only | speclink context --stdin
+```
+
+`speclink context` は「リンクされたカウンターパートに何が書かれているか」に答える
+コマンドです。ドキュメント側のカウンターパートは Markdown セクション全体、コード側の
+カウンターパートは JSDoc を含む宣言全体を出力します。デフォルト出力はエージェントの
+プロンプトへそのまま注入できる Markdown で、`--json` は
+[../../schemas/context-output.schema.json](../../schemas/context-output.schema.json)
+に従います。抽出はベストエフォートで、リンク切れがあっても成功時は `0` で終了します。
+詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
+
+## AI エージェント統合
+
+SpecLink のリンクグラフは、AI コーディングエージェントから利用されることを想定して
+設計されています。
+
+- [../integrations](../integrations) — Claude Code、Codex、CI 向けのレシピ:
+  `speclink context` による編集時のカウンターパート把握、`speclink related --gate`
+  によるゲートのトリアージ、PR へのレポート。
+- [../../examples/hooks](../../examples/hooks) — レシピを実装した、コピーして使える
+  エージェントフックスクリプト。
+- [../../templates/skills](../../templates/skills) — 配布用のエージェントスキル:
+  `speclink-annotate`(リンクペアの作成)と `speclink-sync`(ゲート結果の
+  トリアージ)。
+
+このリポジトリ自身も、`.claude/` と `.codex/` のガードレールでこれら 3 つを
+ドッグフーディングしています。
+
 ## エディタ対応
 
 SpecLink は、同じリンクグラフをエディタへ公開する Language Server を同梱します。
@@ -267,6 +298,8 @@ Environment loader:
 - 仕様: [../specs](../specs)
 - v0.1 決定事項: [../decisions/v0.1.md](../decisions/v0.1.md)
 - v0.2 決定事項: [../decisions/v0.2.md](../decisions/v0.2.md)
+- v0.3 決定事項: [../decisions/v0.3.md](../decisions/v0.3.md)
+- AI エージェント統合レシピ: [../integrations](../integrations)
 - Commit message convention: [contributing/commits.md](contributing/commits.md)
 - English commit message convention: [../contributing/commits.md](../contributing/commits.md)
 - テスト規約: [contributing/testing.md](contributing/testing.md)
