@@ -146,7 +146,7 @@ tree has broken links. See [docs/specs/cli.md](docs/specs/cli.md) for details.
 SpecLink's link graph is built to be consumed by AI coding agents:
 
 - [docs/integrations](docs/integrations) — recipes for Claude Code, Codex,
-  and CI: pre-edit context injection with `speclink context`, gate triage
+  and CI: on-edit counterpart awareness with `speclink context`, gate triage
   with `speclink related --gate`, and PR reporting.
 - [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
   those recipes.

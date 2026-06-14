@@ -3,10 +3,12 @@
 # that were not themselves changed, together with their content, so the agent
 # either updates each counterpart or justifies leaving it unchanged.
 #
-# The message is informational and never blocks the turn; put the enforcement
-# point in CI or code review. Wire it as a Stop hook in .claude/settings.json;
-# see the README in this directory. Requires bash, git, bun, and the SpecLink
-# CLI.
+# The feedback is returned as Stop `additionalContext` (injected into Claude's
+# context for the agent to act on), not `systemMessage` (which is only a
+# user-facing warning). It never blocks the turn — the conversation simply
+# continues with the context attached; put the enforcement point in CI or code
+# review. Wire it as a Stop hook in .claude/settings.json; see the README in
+# this directory. Requires bash, git, bun, and the SpecLink CLI.
 set -euo pipefail
 
 # The Stop payload is not needed: this hook never blocks, so it does not need
@@ -75,5 +77,10 @@ VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
       ["Flagged counterpart content (via `speclink context`):", "", blocks.join("\n\n---\n\n")].join("\n"),
     );
   }
-  console.log(JSON.stringify({ systemMessage: parts.join("\n\n") }));
+  console.log(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: "Stop",
+      additionalContext: parts.join("\n\n"),
+    },
+  }));
 '

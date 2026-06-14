@@ -14,12 +14,15 @@ This repository's Codex setup lives under `.codex/`:
 [`hooks.json`](../../.codex/hooks.json) registers the hook events and the
 scripts live in [`.codex/hooks/`](../../.codex/hooks/).
 
-- **Pre-edit context injection** —
-  [`.codex/hooks/pre-edit-context.sh`](../../.codex/hooks/pre-edit-context.sh)
-  runs on `PreToolUse` for the editing tools. It reads the target `file_path`
+- **On-edit counterpart awareness** —
+  [`.codex/hooks/on-edit-context.sh`](../../.codex/hooks/on-edit-context.sh)
+  runs on `PostToolUse` for the editing tools. It reads the target `file_path`
   from the tool input, runs `speclink context <file>`, and returns the
-  Markdown output as additional context. Files SpecLink does not manage, and
-  files without linked counterparts, inject nothing.
+  Markdown output as additional context so the agent reconciles the edit
+  against the counterpart. Files SpecLink does not manage, and files without
+  linked counterparts, inject nothing. (It mirrors the Claude Code hook, which
+  is `PostToolUse` rather than `PreToolUse` because a `PreToolUse` hook's
+  additional context is delivered only after the edit runs.)
 - **Gate triage on Stop** —
   [`.codex/hooks/stop-verify.sh`](../../.codex/hooks/stop-verify.sh) reports
   `speclink related --gate` findings over uncommitted changes as information

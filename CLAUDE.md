@@ -52,10 +52,12 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
 
 - The `SessionStart` hook injects a short repository reminder as additional
   context.
-- The `PreToolUse` hook (Edit/Write) injects the linked counterpart content of
-  the file about to be edited via `speclink context`, so the relevant
-  specification or code is in context before the change. Files without linked
-  counterparts inject nothing.
+- The `PostToolUse` hook (Edit/Write) surfaces the linked counterpart content
+  of the file just edited via `speclink context`, so the change can be
+  reconciled against the relevant specification or code. It is `PostToolUse`,
+  not `PreToolUse`, because a `PreToolUse` hook's `additionalContext` is
+  delivered only after the edit runs. Files without linked counterparts inject
+  nothing.
 - The `Stop` hook runs `just check` and `just test` when the working tree has
   changes, and blocks completion with the failure output if either fails. Fix
   the failure if this change caused it, then rerun the checks; if it cannot be
@@ -64,7 +66,8 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
 - When those checks pass, the `Stop` hook also runs `just related-gate` over
   uncommitted changes and reports linked counterparts that were not themselves
   changed, attaching the flagged counterparts' content fetched via
-  `speclink context`. This message is informational and never blocks: either
+  `speclink context`. It is delivered as Stop `additionalContext` (not a
+  user-facing `systemMessage`) and is informational, never blocking: either
   update each listed counterpart or state explicitly in the final report why it
   needs no update (use the `speclink-sync` skill for the triage). CI re-runs
   the gate over the whole PR change set and maintains a sticky PR comment; the

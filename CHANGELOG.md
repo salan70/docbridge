@@ -21,12 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   declaration including its JSDoc block, backing `context` content extraction.
 - `just context`: prints the linked counterpart content of the uncommitted
   changes.
-- AI integration recipes under `docs/integrations/`: pre-edit context
-  injection and gate triage for Claude Code and Codex, and a CI recipe for
+- AI integration recipes under `docs/integrations/`: on-edit counterpart
+  awareness and gate triage for Claude Code and Codex, and a CI recipe for
   gating the PR change set and reporting counterpart content.
-- Copyable agent hook scripts under `examples/hooks/`: a `PreToolUse` hook
-  that injects linked counterpart content before edits, and a `Stop` hook that
-  reports `related --gate` findings with the flagged counterparts' content.
+- Copyable agent hook scripts under `examples/hooks/`: a `PostToolUse` hook
+  that surfaces linked counterpart content on edit, and a `Stop` hook that
+  reports `related --gate` findings with the flagged counterparts' content as
+  Stop `additionalContext`.
 - Distributable agent skills under `templates/skills/`: `speclink-annotate`
   (create `@doc`/`@code` link pairs and verify them with `speclink check`) and
   `speclink-sync` (triage `related --gate` findings using `speclink context`).

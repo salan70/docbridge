@@ -34,6 +34,10 @@ case "$file_path" in
   *) exit 0 ;;
 esac
 
+# This is a PostToolUse hook: PreToolUse additionalContext is delivered next to
+# the tool result (after the edit), so it cannot enforce read-before-editing.
+# We instead surface the counterpart content right after the edit, so the agent
+# reconciles it before moving on.
 context_out="$(run_bun run src/cli/index.ts context "$file_path" 2>/dev/null || true)"
 
 # The summary line is always printed last (see docs/specs/cli.md); a zero
@@ -47,9 +51,9 @@ esac
 FILE_PATH="$file_path" CONTEXT_OUT="$context_out" run_bun -e '
   console.log(JSON.stringify({
     hookSpecificOutput: {
-      hookEventName: "PreToolUse",
+      hookEventName: "PostToolUse",
       additionalContext: [
-        `SpecLink: linked counterpart content for ${process.env.FILE_PATH} (read before editing; if the edit changes documented behavior, update the counterpart too):`,
+        `SpecLink: linked counterpart content for ${process.env.FILE_PATH} (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:`,
         "",
         process.env.CONTEXT_OUT,
       ].join("\n"),

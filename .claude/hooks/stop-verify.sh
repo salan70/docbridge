@@ -123,7 +123,10 @@ fi
 
 # The related-gate result is informational, never blocking: judgment about
 # counterparts belongs to the pull request, where CI re-runs the gate over the
-# whole branch change set and a human approves the merge.
+# whole branch change set and a human approves the merge. It is returned as Stop
+# `additionalContext` (injected into the agent's context for it to act on), not
+# `systemMessage` (a user-facing warning the model never sees); the turn still
+# continues without blocking.
 GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
   VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" run_bun -e '
   const parts = [];
@@ -138,7 +141,7 @@ GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
       "",
       tail,
       "",
-      "Update each listed counterpart or state in the final response why it needs no update. This message is informational and does not block; CI re-checks the whole branch on the pull request."
+      "Update each listed counterpart or state in the final response why it needs no update. This is informational and does not block; CI re-checks the whole branch on the pull request."
     ].join("\n"));
     const parse = async (path) => {
       try {
@@ -167,7 +170,12 @@ GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
       ].join("\n"));
     }
   }
-  console.log(JSON.stringify({ systemMessage: parts.join("\n\n") }));
+  console.log(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: "Stop",
+      additionalContext: parts.join("\n\n"),
+    },
+  }));
 '
 
 rm -f "$gate_log" "$violations_log" "$context_log"

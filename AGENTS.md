@@ -42,19 +42,21 @@ its script changes. If hooks do not appear to fire, check `/hooks` first. Treat
 these hooks as best-effort awareness; the hard guards are the `pre-commit` git
 hook and CI.
 
-The `SessionStart` hook injects a short repository reminder. The `PreToolUse`
-hook (Edit/Write) injects the linked counterpart content of the file about to
-be edited via `speclink context`; files without linked counterparts inject
-nothing. The `Stop` hook runs `just check` and `just test` when the working
-tree has changes, and blocks completion with the failure output if either
-fails; on continuation turns it re-runs the checks and reports the result
-without blocking again. When those checks pass, it also reports
+The `SessionStart` hook injects a short repository reminder. The `PostToolUse`
+hook (Edit/Write) surfaces the linked counterpart content of the file just
+edited via `speclink context` so the change can be reconciled against it; it is
+`PostToolUse` rather than `PreToolUse` because a `PreToolUse` hook's additional
+context is delivered only after the edit runs, and files without linked
+counterparts inject nothing. The `Stop` hook runs `just check` and `just test`
+when the working tree has changes, and blocks completion with the failure
+output if either fails; on continuation turns it re-runs the checks and reports
+the result without blocking again. When those checks pass, it also reports
 `just related-gate` results over uncommitted changes as information, attaching
-the flagged counterparts' content fetched via `speclink context`: either
-update each listed counterpart or state explicitly in the final report why it
-needs no update. CI re-runs the gate over the whole PR change set and
-maintains a sticky PR comment; the human merge approval is the enforcement
-point.
+the flagged counterparts' content fetched via `speclink context` and delivered
+as Stop `additionalContext` (not a user-facing `systemMessage`): either update
+each listed counterpart or state explicitly in the final report why it needs no
+update. CI re-runs the gate over the whole PR change set and maintains a sticky
+PR comment; the human merge approval is the enforcement point.
 
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if

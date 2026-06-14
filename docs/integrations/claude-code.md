@@ -1,34 +1,40 @@
 # Claude Code integration
 
 How to wire SpecLink into [Claude Code](https://claude.com/claude-code) so the
-agent reads linked specifications before editing code and triages unchanged
-counterparts before finishing a turn.
+agent reconciles its edits against the linked specification and triages
+unchanged counterparts before finishing a turn.
 
 Both recipes consume the SpecLink CLI. If `speclink` is not on `PATH`, the
 example scripts accept a `SPECLINK_CMD` override, for example
 `SPECLINK_CMD="bun run /path/to/spec-link/src/cli/index.ts"`.
 
-## Pre-edit context injection
+## On-edit counterpart awareness
 
-Goal: before Claude Code edits a TypeScript or Markdown file, inject the
-content of the file's linked counterparts so the relevant specification (or
-the linked code) is in context without extra file discovery.
+Goal: when Claude Code edits a TypeScript or Markdown file, surface the content
+of the file's linked counterparts so the agent reconciles the edit against the
+relevant specification (or the linked code) without extra file discovery.
 
-1. Copy [`examples/hooks/claude-pre-edit-context.sh`](../../examples/hooks/claude-pre-edit-context.sh)
+This is a `PostToolUse` hook, not `PreToolUse`. Claude Code delivers a
+`PreToolUse` hook's `additionalContext` next to the tool result — after the
+edit has already run — so it cannot enforce read-before-editing. Surfacing the
+counterpart immediately after the edit, while the agent can still act on it
+before moving on, is the documented behavior.
+
+1. Copy [`examples/hooks/claude-on-edit-context.sh`](../../examples/hooks/claude-on-edit-context.sh)
    into your repository, conventionally `.claude/hooks/`.
-2. Register it as a `PreToolUse` hook for the editing tools in
+2. Register it as a `PostToolUse` hook for the editing tools in
    `.claude/settings.json`:
 
    ```json
    {
      "hooks": {
-       "PreToolUse": [
+       "PostToolUse": [
          {
            "matcher": "Edit|MultiEdit|Write",
            "hooks": [
              {
                "type": "command",
-               "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/claude-pre-edit-context.sh\"",
+               "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/claude-on-edit-context.sh\"",
                "timeout": 30
              }
            ]
@@ -74,11 +80,13 @@ unchanged in its final report.
    ```
 
 The hook runs `speclink related --stdin --gate --json` over the uncommitted
-changes and, when counterparts were left unchanged, emits an informational
-`systemMessage` that lists each violation and attaches the counterpart content
-fetched via `speclink context --stdin --json`. It never blocks the turn; pair
-it with the [CI recipe](ci.md) so the pull request remains the enforcement
-point.
+changes and, when counterparts were left unchanged, returns Stop
+`hookSpecificOutput` `additionalContext` that lists each violation and attaches
+the counterpart content fetched via `speclink context --stdin --json`. It uses
+`additionalContext` (injected into the agent's context for it to act on) rather
+than `systemMessage` (a user-facing warning the model never sees), and never
+blocks the turn — the conversation continues with the context attached. Pair it
+with the [CI recipe](ci.md) so the pull request remains the enforcement point.
 
 ## Skills
 
@@ -95,7 +103,7 @@ that consume the same commands. Copy them into your repository's
 
 This repository wires the same integration into its own guardrails:
 [`.claude/settings.json`](../../.claude/settings.json) registers
-[`.claude/hooks/pre-edit-context.sh`](../../.claude/hooks/pre-edit-context.sh)
+[`.claude/hooks/on-edit-context.sh`](../../.claude/hooks/on-edit-context.sh)
 and a `Stop` hook that runs the repo's checks before reporting gate findings
 with counterpart content. Treat it as a known-good reference for payload
 handling and output formats.

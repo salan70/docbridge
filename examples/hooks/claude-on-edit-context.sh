@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Claude Code PreToolUse hook: inject the linked counterpart content of the
-# file about to be edited, so the agent reads the relevant specification (or
-# the linked code) before changing it.
+# Claude Code PostToolUse hook: surface the linked counterpart content of the
+# file that was just edited, so the agent reconciles the edit with the linked
+# specification (or code) before moving on.
+#
+# PostToolUse, not PreToolUse: Claude Code delivers a PreToolUse hook's
+# additionalContext next to the tool result (after the edit runs), so it cannot
+# enforce read-before-editing. Delivering it right after the edit is the honest,
+# documented behavior.
 #
 # Wire it to the Edit and Write tools in .claude/settings.json; see the README
 # in this directory. Requires bash, git, bun, and the SpecLink CLI.
@@ -48,9 +53,9 @@ esac
 FILE_PATH="$file_path" CONTEXT_OUT="$context_out" bun -e '
   console.log(JSON.stringify({
     hookSpecificOutput: {
-      hookEventName: "PreToolUse",
+      hookEventName: "PostToolUse",
       additionalContext: [
-        `SpecLink: linked counterpart content for ${process.env.FILE_PATH} (read before editing; if the edit changes documented behavior, update the counterpart too):`,
+        `SpecLink: linked counterpart content for ${process.env.FILE_PATH} (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:`,
         "",
         process.env.CONTEXT_OUT,
       ].join("\n"),
