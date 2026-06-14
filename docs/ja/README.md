@@ -307,22 +307,14 @@ Environment loader:
 
 ## Roadmap
 
-完了済みの v0.1 と v0.2 の機能は、上記の説明と
+完了済みの v0.1〜v0.3 の機能は、上記の説明と
 [../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。現在の Roadmap では
 今後の作業のみを扱います。
 
-v0.3:
-
-- Context generation
-- AI integration
-
 v0.4:
 
-- MCP server
-- Claude Code integration
-- Cursor integration
-- Zed integration
-- Codex integration
+- リンクグラフと `speclink context` の出力をツールとして公開する MCP サーバー
+- それを基盤としたエディタ・エージェント連携(Claude Code、Cursor、Zed、Codex)
 
 ## Vision
 
