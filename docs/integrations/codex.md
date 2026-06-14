@@ -37,6 +37,27 @@ To adopt the integration in another repository, copy the scripts from
 hook configuration the same way `.codex/hooks.json` does here. The scripts
 accept a `SPECLINK_CMD` override when `speclink` is not on `PATH`.
 
+## Skills
+
+[`templates/skills/`](../../templates/skills/) ships agent skills that also
+work as Codex-style project skills when copied to `.agents/skills/`:
+
+- `speclink-annotate` — create correct `@doc`/`@code` link pairs and verify
+  them with `speclink check`.
+- `speclink-sync` — triage `related --gate` findings using `speclink context`,
+  then update the counterpart or justify the divergence.
+- `speclink-adopt` — adopt SpecLink in an existing TypeScript project by
+  confirming docs/code scope and creating or improving config.
+- `speclink-link` — link existing docs sections to existing exported
+  TypeScript symbols with section-level confirmation.
+- `speclink-review` — review all existing links for semantic validity using
+  `speclink graph --json --include-content`.
+
+This repository keeps the distributable SpecLink skills canonical under
+`templates/skills/` and dogfoods them as skill-level symlinks from
+`.agents/skills/`. External repositories should usually copy the skill
+directories so they remain self-contained.
+
 ## Keeping the stacks in sync
 
 When a repository serves both Claude Code and Codex (as this one does), keep

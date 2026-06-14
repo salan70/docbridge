@@ -6,10 +6,12 @@ import { resolve } from "node:path";
 import pkg from "../../package.json";
 import { context as runContextCore, formatContextResult } from "../core/context";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
+import { formatGraphResult, graph as runGraphCore } from "../core/graph-output";
 import {
   collectGateViolations,
   formatGateResult,
   formatRelatedResult,
+  normalizeChangedPaths,
   related as runRelatedCore,
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
@@ -40,12 +42,14 @@ Usage:
   speclink check [--root <path>] [--json] [--audit]
   speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
   speclink context [--root <path>] [--json] [--stdin] [files...]
+  speclink graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
   speclink lsp
 
 Commands:
   check    Validate links between TypeScript and Markdown.
   related  List the linked counterparts of the given changed files.
   context  Print the content of the counterparts linked from the given files.
+  graph    Print the resolved link graph.
   lsp      Run the Language Server over stdio.
 
 Global options:
@@ -67,6 +71,12 @@ Context options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
   --stdin        Read newline-separated file paths from stdin.
+
+Graph options:
+  --root <path>       Project root to scan. Defaults to current directory.
+  --json              Emit machine-readable JSON.
+  --include-content   Include lightweight node content. Requires --json.
+  --stdin             Read newline-separated file paths from stdin.
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
@@ -214,6 +224,68 @@ export function parseContextOptions(args: string[]): CliContextOptions {
   return options;
 }
 
+export type CliGraphOptions = {
+  root: string;
+  json: boolean;
+  includeContent: boolean;
+  stdin: boolean;
+  files: string[];
+};
+
+export function parseGraphOptions(args: string[]): CliGraphOptions {
+  const options: CliGraphOptions = {
+    root: ".",
+    json: false,
+    includeContent: false,
+    stdin: false,
+    files: [],
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    if (arg === "--json") {
+      options.json = true;
+      continue;
+    }
+
+    if (arg === "--include-content") {
+      options.includeContent = true;
+      continue;
+    }
+
+    if (arg === "--stdin") {
+      options.stdin = true;
+      continue;
+    }
+
+    if (arg === "--root") {
+      const root = args[index + 1];
+      if (root === undefined) {
+        throw new CliError("--root requires a path.");
+      }
+      options.root = root;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--")) {
+      throw new CliError(`Unknown option: ${arg}`);
+    }
+
+    options.files.push(arg);
+  }
+
+  if (options.includeContent && !options.json) {
+    throw new CliError("--include-content requires --json.");
+  }
+
+  return options;
+}
+
 function resolveProjectRoot(root: string): string {
   const projectRoot = resolve(root);
 
@@ -321,6 +393,37 @@ function runContext(options: CliContextOptions, io: CliIo): number {
   return 0;
 }
 
+function runGraph(options: CliGraphOptions, io: CliIo): number {
+  const projectRoot = resolveProjectRoot(options.root);
+
+  const inputFiles = [...options.files];
+  if (options.stdin) {
+    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
+    inputFiles.push(...readStdin().split("\n"));
+  }
+  const normalizedInputFiles = normalizeChangedPaths(projectRoot, inputFiles);
+
+  const outcome = runGraphCore({
+    projectRoot,
+    inputFiles,
+    includeContent: options.includeContent,
+  });
+  if (!outcome.ok) {
+    throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+  }
+
+  if (options.json) {
+    io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
+  } else {
+    io.stdout(`${formatGraphResult(outcome.result, normalizedInputFiles)}\n`);
+    if (outcome.result.diagnostics.length > 0) {
+      io.stderr(`${outcome.result.diagnostics.map(formatDiagnostic).join("\n")}\n`);
+    }
+  }
+
+  return 0;
+}
+
 /**
  * Execute the CLI for the given argv (without the `bun` / script prefix) and
  * return the process exit code. Output is written through the injected IO so the
@@ -358,6 +461,10 @@ export function run(
 
     if (command === "context") {
       return runContext(parseContextOptions(rest), io);
+    }
+
+    if (command === "graph") {
+      return runGraph(parseGraphOptions(rest), io);
     }
 
     if (command === "lsp") {

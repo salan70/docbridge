@@ -32,6 +32,7 @@ type SupportedDeclaration = {
   location: SourceLocation;
   nameRange?: Range;
   declarationRange?: Range;
+  signatureRange?: Range;
   docTags: DocTag[];
 };
 
@@ -122,6 +123,7 @@ export function scanTypeScript(
             declaration.location,
             declaration.nameRange,
             declaration.declarationRange,
+            declaration.signatureRange,
           ),
         );
       }
@@ -158,6 +160,7 @@ export function scanTypeScript(
         declaration.location,
         declaration.nameRange,
         declaration.declarationRange,
+        declaration.signatureRange,
       ),
     );
 
@@ -271,10 +274,12 @@ function describeSupportedDeclaration(
     docTags,
   };
   declaration.nameRange = rangeOfNode(sourceFile, nameNode);
-  declaration.declarationRange = rangeFromOffsets(
+  const declarationStart = statement.getStart(sourceFile, /* includeJsDocComment */ true);
+  declaration.declarationRange = rangeFromOffsets(sourceFile, declarationStart, statement.getEnd());
+  declaration.signatureRange = rangeFromOffsets(
     sourceFile,
-    statement.getStart(sourceFile, /* includeJsDocComment */ true),
-    statement.getEnd(),
+    declarationStart,
+    signatureEndOffset(sourceFile, statement),
   );
   return declaration;
 }
@@ -373,6 +378,63 @@ function rangeOfNode(sourceFile: ts.SourceFile, node: ts.Node): Range {
   return rangeFromOffsets(sourceFile, node.getStart(sourceFile), node.getEnd());
 }
 
+function signatureEndOffset(sourceFile: ts.SourceFile, statement: ts.Statement): number {
+  if (ts.isFunctionDeclaration(statement) && statement.body !== undefined) {
+    return statement.body.getStart(sourceFile);
+  }
+
+  if (ts.isClassDeclaration(statement)) {
+    return classBodyStartOffset(sourceFile, statement) ?? statement.getEnd();
+  }
+
+  if (ts.isVariableStatement(statement)) {
+    return variableSignatureEndOffset(sourceFile, statement) ?? statement.getEnd();
+  }
+
+  return statement.getEnd();
+}
+
+function classBodyStartOffset(
+  sourceFile: ts.SourceFile,
+  statement: ts.ClassDeclaration | ts.ClassExpression,
+): number | undefined {
+  const searchStart =
+    statement.heritageClauses?.at(-1)?.getEnd() ??
+    statement.typeParameters?.at(-1)?.getEnd() ??
+    statement.name?.getEnd() ??
+    statement.getStart(sourceFile);
+  const bodyStart = sourceFile.text.indexOf("{", searchStart);
+  return bodyStart !== -1 && bodyStart < statement.getEnd() ? bodyStart : undefined;
+}
+
+function variableSignatureEndOffset(
+  sourceFile: ts.SourceFile,
+  statement: ts.VariableStatement,
+): number | undefined {
+  const declaration = statement.declarationList.declarations[0];
+  const initializer = declaration?.initializer;
+  if (initializer === undefined) {
+    return undefined;
+  }
+
+  if (
+    (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) &&
+    ts.isBlock(initializer.body)
+  ) {
+    return initializer.body.getStart(sourceFile);
+  }
+
+  if (ts.isObjectLiteralExpression(initializer)) {
+    return initializer.getStart(sourceFile);
+  }
+
+  if (ts.isClassExpression(initializer)) {
+    return classBodyStartOffset(sourceFile, initializer);
+  }
+
+  return undefined;
+}
+
 /**
  * Locate the literal target string inside a JSDoc `@doc` tag. The target is a
  * whitespace-free token, so the first occurrence at or after the tag's start is
@@ -397,6 +459,7 @@ function makeCodeSymbol(
   location: SourceLocation,
   nameRange: Range | undefined,
   declarationRange: Range | undefined,
+  signatureRange?: Range,
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
@@ -410,6 +473,9 @@ function makeCodeSymbol(
   }
   if (declarationRange !== undefined) {
     symbol.declarationRange = declarationRange;
+  }
+  if (signatureRange !== undefined) {
+    symbol.signatureRange = signatureRange;
   }
   return symbol;
 }

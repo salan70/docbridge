@@ -46,3 +46,9 @@ used for navigation, a `declarationRange` covering the whole declaration
 including its leading JSDoc block. The
 [context command](cli.md#context-command) extracts declaration content from
 this range.
+
+The scanner also records a `signatureRange` for the declaration's public
+surface. The signature range includes the leading JSDoc block but excludes
+implementation bodies when the syntax has one, including function bodies, class
+bodies, and supported `const` initializers with arrow-function, function,
+class, or object bodies.

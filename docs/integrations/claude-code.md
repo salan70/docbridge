@@ -90,14 +90,26 @@ with the [CI recipe](ci.md) so the pull request remains the enforcement point.
 
 ## Skills
 
-[`templates/skills/`](../../templates/skills/) ships two Claude Code skills
-that consume the same commands. Copy them into your repository's
+[`templates/skills/`](../../templates/skills/) ships Claude Code skills that
+consume the same commands. Copy the skills you want into your repository's
 `.claude/skills/` directory:
 
 - `speclink-annotate` — create correct `@doc`/`@code` link pairs and verify
   them with `speclink check`.
 - `speclink-sync` — triage `related --gate` findings using `speclink context`,
   then update the counterpart or justify the divergence.
+- `speclink-adopt` — adopt SpecLink in an existing TypeScript project by
+  confirming docs/code scope and creating or improving config.
+- `speclink-link` — link existing docs sections to existing exported
+  TypeScript symbols with section-level confirmation.
+- `speclink-review` — review all existing links for semantic validity using
+  `speclink graph --json --include-content`.
+
+Claude Code discovers project skills at `.claude/skills/<skill-name>/SKILL.md`.
+This repository keeps the distributable SpecLink skills canonical under
+`templates/skills/` and dogfoods them as skill-level symlinks from
+`.claude/skills/`. External repositories should usually copy the skill
+directories so they are not tied to this repository's checkout path.
 
 ## Dogfooding reference
 

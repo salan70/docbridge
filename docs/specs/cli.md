@@ -1,12 +1,13 @@
 # CLI
 
-SpecLink provides the `check`, `related`, and `context` commands.
+SpecLink provides the `check`, `related`, `context`, and `graph` commands.
 
 ```sh
 speclink [--version] [--help]
 speclink check [--root <path>] [--json] [--audit]
 speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
 speclink context [--root <path>] [--json] [--stdin] [files...]
+speclink graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
@@ -192,6 +193,67 @@ position, counterparts by file path then position). Gate mode exits `0` when
 there are no violations — including when the change set is empty or has no
 links — and `1` when at least one violation exists. CLI invocation errors and
 configuration errors exit with code `1` as usual.
+
+<!-- @code src/core/graph-output.ts#graph -->
+## Graph Command
+
+The graph command prints the resolved SpecLink graph. It includes complete
+bidirectional links and resolvable one-way links: an annotation contributes an
+edge when its target file and anchor/symbol exist, even if the backlink is
+missing. Broken targets remain diagnostics and do not become graph edges.
+
+```sh
+# whole project
+speclink graph
+
+# a file plus directly linked counterparts
+speclink graph src/auth/login.ts
+
+# machine-readable graph for tools and agents
+speclink graph --json --include-content
+```
+
+Input files are optional. With no files and no `--stdin`, `graph` emits the
+whole managed project graph. With positional files, `--stdin`, or both, the
+output is scoped to endpoints in those files plus directly linked counterpart
+endpoints. Input paths are normalized the same way as `related` and `context`.
+
+Human-readable output is optimized for inspection. Whole-project output is
+docs-oriented:
+
+```text
+docs/auth.md
+  login-spec -> src/auth/login.ts#login (bidirectional)
+
+2 nodes, 2 edges, 1 bidirectional pair, 0 one-way edges, 0 diagnostics
+```
+
+Scoped human-readable output is grouped by each requested file, so a code file
+request is code-oriented and a docs file request is docs-oriented. Pair labels
+are `bidirectional`, `missing @code backlink`, or `missing @doc backlink`.
+
+`--json` emits a node/edge graph:
+
+- `nodes[]` are resolved endpoints (`file#fragment`) that participate in at
+  least one resolved annotation edge.
+- `edges[]` are annotation edges. `kind: "doc"` means a code-to-doc `@doc`
+  annotation; `kind: "code"` means a doc-to-code `@code` annotation.
+- `pairs[]` summarizes resolved code/doc relationships with
+  `hasDocEdge`/`hasCodeEdge` so consumers do not need to reconstruct backlink
+  completeness from raw edges.
+- `diagnostics[]` contains check diagnostics relevant to the output graph.
+- `summary` counts nodes, edges, code nodes, doc nodes, bidirectional pairs,
+  one-way edges, and diagnostics.
+
+`--include-content` requires `--json`. It adds lightweight content to nodes:
+doc nodes include the heading text, and code nodes include the symbol name plus
+JSDoc/signature text with implementation bodies omitted. The JSON shape is
+defined by [schemas/graph-output.schema.json](../../schemas/graph-output.schema.json).
+
+`graph` exits with code `1` for CLI invocation errors, invalid roots, and
+configuration errors that prevent scanning. File read, TypeScript parse, and
+link diagnostics are included in the output when possible; they do not by
+themselves make `graph` exit non-zero.
 
 <!-- @code src/core/context.ts#context -->
 ## Context Command

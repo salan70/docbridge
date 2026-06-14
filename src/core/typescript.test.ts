@@ -9,7 +9,7 @@ function scan(content: string, filePath = FILE) {
   return scanTypeScript(filePath, content);
 }
 
-describe(scanTypeScript, () => {
+describe("scanTypeScript", () => {
   test("returns the scanned file path", () => {
     const result = scan("export const value = 1;\n");
 
@@ -367,6 +367,50 @@ describe(scanTypeScript, () => {
       expect(result.symbols[0]?.declarationRange).toEqual({
         start: { line: 1, column: 1 },
         end: { line: 6, column: 2 },
+      });
+    });
+
+    test("records the signature range including JSDoc but excluding the function body", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {\n  return true;\n}\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.signatureRange).toEqual({
+        start: { line: 1, column: 1 },
+        end: { line: 4, column: 25 },
+      });
+    });
+
+    test("records the class signature range without truncating object-shaped type parameters", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#widget-spec\n */\nexport class Widget<T extends { y: number }> extends Base {\n  value = 1;\n}\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.signatureRange).toEqual({
+        start: { line: 1, column: 1 },
+        end: { line: 4, column: 59 },
+      });
+    });
+
+    test("records const arrow function signature range excluding the initializer body", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#login-spec\n */\nexport const login = <T extends { ok: boolean }>() => {\n  return true;\n};\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.signatureRange).toEqual({
+        start: { line: 1, column: 1 },
+        end: { line: 4, column: 55 },
+      });
+    });
+
+    test("records const object signature range excluding the initializer body", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#config-spec\n */\nexport const config = {\n  enabled: true,\n};\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.signatureRange).toEqual({
+        start: { line: 1, column: 1 },
+        end: { line: 4, column: 23 },
       });
     });
 
