@@ -742,6 +742,46 @@ test("run graph prints docs-oriented text output for the whole project", () => {
   }
 });
 
+test("run graph text output scopes normalized input paths", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project, "./src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe(
+      [
+        "src/auth/login.ts",
+        "  login -> docs/auth.md#login-spec (bidirectional)",
+        "",
+        "2 nodes, 2 edges, 1 bidirectional pair, 0 one-way edges, 0 diagnostics",
+        "",
+      ].join("\n"),
+    );
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph text output reports scoped diagnostics on stderr", () => {
+  const project = makeContextProject();
+  try {
+    writeFileSync(
+      join(project, "src", "auth", "broken.ts"),
+      "/**\n * @doc docs/auth.md#missing\n */\nexport function broken() {}\n",
+    );
+    const c = capture();
+    const code = run(["graph", "--root", project, "src/auth/broken.ts"], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe("0 nodes, 0 edges, 0 bidirectional pairs, 0 one-way edges, 1 diagnostic\n");
+    expect(c.err).toContain("doc_anchor_not_found");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("run graph --json scopes output to input files and direct counterparts", () => {
   const project = makeContextProject();
   try {

@@ -23,7 +23,8 @@ from the examples inside.
 This repository dogfoods the distributable SpecLink skills from both
 `.claude/skills/` and `.agents/skills/` as skill-level symlinks to this
 directory. The template is the source of truth; do not edit the symlinked
-copies in place.
+copies in place. In-repository dogfood links require symlink-capable checkouts;
+external projects should use the copy-based installation above.
 
 The hook-side integration that complements these skills lives in
 [`examples/hooks/`](../../examples/hooks/) with recipes under

@@ -384,13 +384,55 @@ function signatureEndOffset(sourceFile: ts.SourceFile, statement: ts.Statement):
   }
 
   if (ts.isClassDeclaration(statement)) {
-    const firstBrace = sourceFile.text.indexOf("{", statement.getStart(sourceFile));
-    if (firstBrace !== -1 && firstBrace < statement.getEnd()) {
-      return firstBrace;
-    }
+    return classBodyStartOffset(sourceFile, statement) ?? statement.getEnd();
+  }
+
+  if (ts.isVariableStatement(statement)) {
+    return variableSignatureEndOffset(sourceFile, statement) ?? statement.getEnd();
   }
 
   return statement.getEnd();
+}
+
+function classBodyStartOffset(
+  sourceFile: ts.SourceFile,
+  statement: ts.ClassDeclaration | ts.ClassExpression,
+): number | undefined {
+  const searchStart =
+    statement.heritageClauses?.at(-1)?.getEnd() ??
+    statement.typeParameters?.at(-1)?.getEnd() ??
+    statement.name?.getEnd() ??
+    statement.getStart(sourceFile);
+  const bodyStart = sourceFile.text.indexOf("{", searchStart);
+  return bodyStart !== -1 && bodyStart < statement.getEnd() ? bodyStart : undefined;
+}
+
+function variableSignatureEndOffset(
+  sourceFile: ts.SourceFile,
+  statement: ts.VariableStatement,
+): number | undefined {
+  const declaration = statement.declarationList.declarations[0];
+  const initializer = declaration?.initializer;
+  if (initializer === undefined) {
+    return undefined;
+  }
+
+  if (
+    (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) &&
+    ts.isBlock(initializer.body)
+  ) {
+    return initializer.body.getStart(sourceFile);
+  }
+
+  if (ts.isObjectLiteralExpression(initializer)) {
+    return initializer.getStart(sourceFile);
+  }
+
+  if (ts.isClassExpression(initializer)) {
+    return classBodyStartOffset(sourceFile, initializer);
+  }
+
+  return undefined;
 }
 
 /**

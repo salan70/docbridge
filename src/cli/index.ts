@@ -11,6 +11,7 @@ import {
   collectGateViolations,
   formatGateResult,
   formatRelatedResult,
+  normalizeChangedPaths,
   related as runRelatedCore,
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
@@ -400,6 +401,7 @@ function runGraph(options: CliGraphOptions, io: CliIo): number {
     const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
     inputFiles.push(...readStdin().split("\n"));
   }
+  const normalizedInputFiles = normalizeChangedPaths(projectRoot, inputFiles);
 
   const outcome = runGraphCore({
     projectRoot,
@@ -413,7 +415,10 @@ function runGraph(options: CliGraphOptions, io: CliIo): number {
   if (options.json) {
     io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
   } else {
-    io.stdout(`${formatGraphResult(outcome.result, inputFiles)}\n`);
+    io.stdout(`${formatGraphResult(outcome.result, normalizedInputFiles)}\n`);
+    if (outcome.result.diagnostics.length > 0) {
+      io.stderr(`${outcome.result.diagnostics.map(formatDiagnostic).join("\n")}\n`);
+    }
   }
 
   return 0;

@@ -229,7 +229,8 @@ docs/auth.md
 ```
 
 Scoped human-readable output is grouped by each requested file, so a code file
-request is code-oriented and a docs file request is docs-oriented.
+request is code-oriented and a docs file request is docs-oriented. Pair labels
+are `bidirectional`, `missing @code backlink`, or `missing @doc backlink`.
 
 `--json` emits a node/edge graph:
 
