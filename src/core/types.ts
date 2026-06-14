@@ -85,6 +85,11 @@ export type CodeSymbolEndpoint = {
    * extract the declaration source as context content.
    */
   declarationRange?: Range;
+  /**
+   * Range of the declaration's public surface including its leading JSDoc
+   * block, but excluding implementation bodies when the syntax has one.
+   */
+  signatureRange?: Range;
 };
 
 export type DocAnchorEndpoint = {

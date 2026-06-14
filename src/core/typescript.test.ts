@@ -370,6 +370,17 @@ describe(scanTypeScript, () => {
       });
     });
 
+    test("records the signature range including JSDoc but excluding the function body", () => {
+      const content =
+        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {\n  return true;\n}\n";
+      const result = scan(content);
+
+      expect(result.symbols[0]?.signatureRange).toEqual({
+        start: { line: 1, column: 1 },
+        end: { line: 4, column: 25 },
+      });
+    });
+
     test("records the declaration range of an annotated exported const including its JSDoc", () => {
       const content =
         "import x from \"./x\";\n\n/**\n * @doc docs/auth.md#token-spec\n */\nexport const token = \"abc\";\n";

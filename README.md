@@ -141,6 +141,17 @@ injection into an agent prompt; `--json` follows
 Extraction is best-effort and the command exits `0` on success even when the
 tree has broken links. See [docs/specs/cli.md](docs/specs/cli.md) for details.
 
+Inspect the resolved link graph:
+
+```sh
+speclink graph
+speclink graph --json --include-content
+```
+
+`speclink graph` prints the resolved endpoint graph, including resolvable
+one-way links. JSON output follows
+[schemas/graph-output.schema.json](schemas/graph-output.schema.json).
+
 ## AI agent integration
 
 SpecLink's link graph is built to be consumed by AI coding agents:
@@ -151,11 +162,11 @@ SpecLink's link graph is built to be consumed by AI coding agents:
 - [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
   those recipes.
 - [templates/skills](templates/skills) — distributable agent skills:
-  `speclink-annotate` (create link pairs) and `speclink-sync` (triage gate
-  findings).
+  `speclink-annotate`, `speclink-sync`, `speclink-adopt`, `speclink-link`,
+  and `speclink-review`.
 
-This repository dogfoods all three in its own guardrails under `.claude/` and
-`.codex/`.
+This repository dogfoods the hooks and skills in its own guardrails under
+`.claude/`, `.codex/`, and `.agents/`.
 
 ## Editor support
 

@@ -13,7 +13,7 @@ function graphOf(code: string, doc: string) {
   return buildLinkGraph([codeScan], [docScan]);
 }
 
-describe(buildLinkGraph, () => {
+describe("buildLinkGraph", () => {
   test("links a code symbol and a doc anchor through a resolvable pair", () => {
     const graph = graphOf(
       "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n",

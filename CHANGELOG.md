@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `speclink graph`: prints the resolved link graph as human-readable output or
+  as JSON following `schemas/graph-output.schema.json`, including resolvable
+  one-way links, pair completeness, optional lightweight node content, and
+  diagnostics that do not prevent graph construction.
+- Distributable adoption skills under `templates/skills/`: `speclink-adopt`
+  for existing-project setup, `speclink-link` for docs-first annotation
+  candidate confirmation, and `speclink-review` for whole-graph semantic
+  review using `speclink graph --json --include-content`.
+
+### Changed
+
+- SpecLink's distributable skills are now dogfooded from `.agents/skills/` and
+  `.claude/skills/` as symlinks to the canonical `templates/skills/` entries.
+- TypeScript scanner endpoints now include `signatureRange` in addition to the
+  existing full `declarationRange`, allowing graph consumers to read the
+  public JSDoc/signature surface without implementation bodies.
+
 ## [0.3.0] - 2026-06-14
 
 ### Added

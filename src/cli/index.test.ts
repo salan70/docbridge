@@ -4,7 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import pkg from "../../package.json";
-import { parseCheckOptions, parseContextOptions, parseRelatedOptions, run } from "./index";
+import {
+  parseCheckOptions,
+  parseContextOptions,
+  parseGraphOptions,
+  parseRelatedOptions,
+  run,
+} from "./index";
 
 type Captured = {
   out: string;
@@ -615,6 +621,235 @@ test("run context reports broken links in input files on stderr but still exits 
     expect(code).toBe(0);
     expect(c.out).toBe("1 input file, 0 context blocks\n");
     expect(c.err).toContain("doc_anchor_not_found");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+// --- graph command -----------------------------------------------------------
+
+test("parseGraphOptions reads root, json, include-content, stdin, and positional files", () => {
+  expect(
+    parseGraphOptions([
+      "--root",
+      "examples/basic",
+      "--json",
+      "--include-content",
+      "--stdin",
+      "src/a.ts",
+      "docs/b.md",
+    ]),
+  ).toEqual({
+    root: "examples/basic",
+    json: true,
+    includeContent: true,
+    stdin: true,
+    files: ["src/a.ts", "docs/b.md"],
+  });
+});
+
+test("run graph --json emits nodes, edges, pairs, diagnostics, and summary", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{ endpoint: string; kind: string; filePath: string }>;
+      edges: Array<{ kind: string; source: string; target: string }>;
+      pairs: Array<{
+        codeEndpoint: string;
+        docEndpoint: string;
+        hasDocEdge: boolean;
+        hasCodeEdge: boolean;
+      }>;
+      diagnostics: unknown[];
+      summary: {
+        nodes: number;
+        edges: number;
+        codeNodes: number;
+        docNodes: number;
+        bidirectionalPairs: number;
+        oneWayEdges: number;
+        diagnostics: number;
+      };
+    };
+
+    expect(parsed.nodes.map((node) => node.endpoint).sort()).toEqual([
+      "docs/auth.md#login-spec",
+      "src/auth/login.ts#login",
+    ]);
+    expect(
+      parsed.edges
+        .map((edge) => ({ kind: edge.kind, source: edge.source, target: edge.target }))
+        .sort((left, right) => left.kind.localeCompare(right.kind)),
+    ).toEqual([
+      {
+        kind: "code",
+        source: "docs/auth.md#login-spec",
+        target: "src/auth/login.ts#login",
+      },
+      {
+        kind: "doc",
+        source: "src/auth/login.ts#login",
+        target: "docs/auth.md#login-spec",
+      },
+    ]);
+    expect(parsed.pairs).toEqual([
+      {
+        codeEndpoint: "src/auth/login.ts#login",
+        docEndpoint: "docs/auth.md#login-spec",
+        hasDocEdge: true,
+        hasCodeEdge: true,
+      },
+    ]);
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.summary).toEqual({
+      nodes: 2,
+      edges: 2,
+      codeNodes: 1,
+      docNodes: 1,
+      bidirectionalPairs: 1,
+      oneWayEdges: 0,
+      diagnostics: 0,
+    });
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph prints docs-oriented text output for the whole project", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project], c.io);
+
+    expect(code).toBe(0);
+    expect(c.out).toBe(
+      [
+        "docs/auth.md",
+        "  login-spec -> src/auth/login.ts#login (bidirectional)",
+        "",
+        "2 nodes, 2 edges, 1 bidirectional pair, 0 one-way edges, 0 diagnostics",
+        "",
+      ].join("\n"),
+    );
+    expect(c.err).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --json scopes output to input files and direct counterparts", () => {
+  const project = makeContextProject();
+  try {
+    mkdirSync(join(project, "src", "billing"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "billing", "charge.ts"),
+      "/**\n * @doc docs/billing.md#charge-spec\n */\nexport function charge() {}\n",
+    );
+    writeFileSync(
+      join(project, "docs", "billing.md"),
+      "<!-- @code src/billing/charge.ts#charge -->\n## Charge Spec\n",
+    );
+
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "src/auth/login.ts"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{ endpoint: string }>;
+      pairs: Array<{ codeEndpoint: string; docEndpoint: string }>;
+      summary: { nodes: number; edges: number };
+    };
+    expect(parsed.nodes.map((node) => node.endpoint).sort()).toEqual([
+      "docs/auth.md#login-spec",
+      "src/auth/login.ts#login",
+    ]);
+    expect(parsed.pairs).toEqual([
+      {
+        codeEndpoint: "src/auth/login.ts#login",
+        docEndpoint: "docs/auth.md#login-spec",
+        hasDocEdge: true,
+        hasCodeEdge: true,
+      },
+    ]);
+    expect(parsed.summary).toMatchObject({ nodes: 2, edges: 2 });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --json --include-content includes lightweight node content", () => {
+  const project = makeContextProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?: { kind: "code"; symbolName: string; signature: string } | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+    const docNode = parsed.nodes.find((node) => node.kind === "doc");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login()",
+    });
+    expect(docNode?.content).toEqual({ kind: "doc", headingText: "Login Spec" });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --include-content without --json errors", () => {
+  const c = capture();
+  const code = run(["graph", "--include-content"], c.io);
+
+  expect(code).toBe(1);
+  expect(c.err).toContain("--json");
+  expect(c.out).toBe("");
+});
+
+test("run graph includes resolvable one-way links and exits 0 with link diagnostics", () => {
+  const project = makeContextProject();
+  try {
+    writeFileSync(join(project, "docs", "auth.md"), "## Login Spec\n\nThe login flow.\n");
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      pairs: Array<{
+        codeEndpoint: string;
+        docEndpoint: string;
+        hasDocEdge: boolean;
+        hasCodeEdge: boolean;
+      }>;
+      diagnostics: Array<{ code: string }>;
+      summary: { oneWayEdges: number; diagnostics: number };
+    };
+    expect(parsed.pairs).toEqual([
+      {
+        codeEndpoint: "src/auth/login.ts#login",
+        docEndpoint: "docs/auth.md#login-spec",
+        hasDocEdge: true,
+        hasCodeEdge: false,
+      },
+    ]);
+    expect(parsed.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "doc_backlink_not_found",
+    );
+    expect(parsed.summary.oneWayEdges).toBe(1);
+    expect(parsed.summary.diagnostics).toBeGreaterThan(0);
+    expect(c.err).toBe("");
   } finally {
     rmSync(project, { recursive: true, force: true });
   }

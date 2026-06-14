@@ -32,6 +32,7 @@ type SupportedDeclaration = {
   location: SourceLocation;
   nameRange?: Range;
   declarationRange?: Range;
+  signatureRange?: Range;
   docTags: DocTag[];
 };
 
@@ -122,6 +123,7 @@ export function scanTypeScript(
             declaration.location,
             declaration.nameRange,
             declaration.declarationRange,
+            declaration.signatureRange,
           ),
         );
       }
@@ -158,6 +160,7 @@ export function scanTypeScript(
         declaration.location,
         declaration.nameRange,
         declaration.declarationRange,
+        declaration.signatureRange,
       ),
     );
 
@@ -271,10 +274,12 @@ function describeSupportedDeclaration(
     docTags,
   };
   declaration.nameRange = rangeOfNode(sourceFile, nameNode);
-  declaration.declarationRange = rangeFromOffsets(
+  const declarationStart = statement.getStart(sourceFile, /* includeJsDocComment */ true);
+  declaration.declarationRange = rangeFromOffsets(sourceFile, declarationStart, statement.getEnd());
+  declaration.signatureRange = rangeFromOffsets(
     sourceFile,
-    statement.getStart(sourceFile, /* includeJsDocComment */ true),
-    statement.getEnd(),
+    declarationStart,
+    signatureEndOffset(sourceFile, statement),
   );
   return declaration;
 }
@@ -373,6 +378,21 @@ function rangeOfNode(sourceFile: ts.SourceFile, node: ts.Node): Range {
   return rangeFromOffsets(sourceFile, node.getStart(sourceFile), node.getEnd());
 }
 
+function signatureEndOffset(sourceFile: ts.SourceFile, statement: ts.Statement): number {
+  if (ts.isFunctionDeclaration(statement) && statement.body !== undefined) {
+    return statement.body.getStart(sourceFile);
+  }
+
+  if (ts.isClassDeclaration(statement)) {
+    const firstBrace = sourceFile.text.indexOf("{", statement.getStart(sourceFile));
+    if (firstBrace !== -1 && firstBrace < statement.getEnd()) {
+      return firstBrace;
+    }
+  }
+
+  return statement.getEnd();
+}
+
 /**
  * Locate the literal target string inside a JSDoc `@doc` tag. The target is a
  * whitespace-free token, so the first occurrence at or after the tag's start is
@@ -397,6 +417,7 @@ function makeCodeSymbol(
   location: SourceLocation,
   nameRange: Range | undefined,
   declarationRange: Range | undefined,
+  signatureRange?: Range,
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
@@ -410,6 +431,9 @@ function makeCodeSymbol(
   }
   if (declarationRange !== undefined) {
     symbol.declarationRange = declarationRange;
+  }
+  if (signatureRange !== undefined) {
+    symbol.signatureRange = signatureRange;
   }
   return symbol;
 }

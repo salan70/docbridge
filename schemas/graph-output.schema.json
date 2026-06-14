@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SpecLink Graph Output",
+  "description": "Shape of `speclink graph --json` output. See docs/specs/cli.md#graph-command.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodes", "edges", "pairs", "diagnostics", "summary"],
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "endpoint", "filePath", "location"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable node identifier; equal to `endpoint`."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["code", "doc"]
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "Endpoint in `file#fragment` form."
+          },
+          "filePath": {
+            "type": "string",
+            "description": "Project-root-relative POSIX path of the endpoint file."
+          },
+          "location": { "$ref": "#/$defs/location" },
+          "range": { "$ref": "#/$defs/range" },
+          "content": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "symbolName", "signature"],
+                "properties": {
+                  "kind": { "const": "code" },
+                  "symbolName": { "type": "string" },
+                  "signature": {
+                    "type": "string",
+                    "description": "JSDoc plus declaration signature; implementation body is omitted."
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "headingText"],
+                "properties": {
+                  "kind": { "const": "doc" },
+                  "headingText": { "type": "string" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "source", "target", "location"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["doc", "code"],
+            "description": "`doc` is a code-to-doc @doc annotation; `code` is a doc-to-code @code annotation."
+          },
+          "source": {
+            "type": "string",
+            "description": "Source endpoint of the annotation edge."
+          },
+          "target": {
+            "type": "string",
+            "description": "Resolved target endpoint of the annotation edge."
+          },
+          "location": { "$ref": "#/$defs/location" },
+          "range": { "$ref": "#/$defs/range" }
+        }
+      }
+    },
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["codeEndpoint", "docEndpoint", "hasDocEdge", "hasCodeEdge"],
+        "properties": {
+          "codeEndpoint": { "type": "string" },
+          "docEndpoint": { "type": "string" },
+          "hasDocEdge": {
+            "type": "boolean",
+            "description": "True when a resolved @doc annotation exists from code to doc."
+          },
+          "hasCodeEdge": {
+            "type": "boolean",
+            "description": "True when a resolved @code annotation exists from doc to code."
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "edges",
+        "codeNodes",
+        "docNodes",
+        "bidirectionalPairs",
+        "oneWayEdges",
+        "diagnostics"
+      ],
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 },
+        "codeNodes": { "type": "integer", "minimum": 0 },
+        "docNodes": { "type": "integer", "minimum": 0 },
+        "bidirectionalPairs": { "type": "integer", "minimum": 0 },
+        "oneWayEdges": { "type": "integer", "minimum": 0 },
+        "diagnostics": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filePath", "line", "column"],
+      "properties": {
+        "filePath": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "column"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "$ref": "#/$defs/position" },
+        "end": { "$ref": "#/$defs/position" }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["severity", "code", "target", "message"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning"]
+        },
+        "code": { "type": "string" },
+        "target": { "type": "string" },
+        "source": { "type": "string" },
+        "message": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" },
+        "range": { "$ref": "#/$defs/range" }
+      }
+    }
+  }
+}
