@@ -1,10 +1,24 @@
 import { expect, test } from "bun:test";
+import { tmpdir } from "node:os";
 
 import {
+  clangModuleCachePath,
   invokeScannerWorker,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
 import type { ScannerWorkerRequest } from "./scanner-worker";
+
+test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", () => {
+  const path = clangModuleCachePath();
+
+  expect(path.startsWith(tmpdir())).toBe(true);
+  expect(path).toContain("speclink-clang-module-cache");
+  // Not the world-shared, non-portable hardcoded location.
+  expect(path).not.toBe("/tmp/speclink-clang-module-cache");
+  if (typeof process.getuid === "function") {
+    expect(path).toContain(String(process.getuid()));
+  }
+});
 
 test("invokeScannerWorker sends one JSON request with files and options", () => {
   let captured: string | undefined;

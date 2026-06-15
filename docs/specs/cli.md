@@ -235,7 +235,7 @@ are `bidirectional`, `missing @code backlink`, or `missing @doc backlink`.
 `--json` emits a node/edge graph:
 
 - `nodes[]` are resolved endpoints (`file#fragment`) that participate in at
-  least one resolved annotation edge.
+  least one resolved annotation edge. Code nodes include `language`.
 - `edges[]` are annotation edges. `kind: "doc"` means a code-to-doc `@doc`
   annotation; `kind: "code"` means a doc-to-code `@code` annotation.
 - `pairs[]` summarizes resolved code/doc relationships with
@@ -247,7 +247,8 @@ are `bidirectional`, `missing @code backlink`, or `missing @doc backlink`.
 
 `--include-content` requires `--json`. It adds lightweight content to nodes:
 doc nodes include the heading text, and code nodes include the symbol name plus
-JSDoc/signature text with implementation bodies omitted. The JSON shape is
+JSDoc/signature text with implementation bodies omitted. Code node metadata
+includes the configured language. The JSON shape is
 defined by [schemas/graph-output.schema.json](../../schemas/graph-output.schema.json).
 
 `graph` exits with code `1` for CLI invocation errors, invalid roots, and
@@ -288,7 +289,7 @@ contributes one *context block*:
   its body up to the next heading at the same or a higher level, including
   deeper subsections, with no length cap.
 - A **code counterpart** contributes its full declaration source, including
-  the leading JSDoc block.
+  the leading documentation block, fenced with the code language.
 
 A counterpart linked from multiple input endpoints appears once; every linking
 endpoint is recorded in its `linkedFrom` list (sorted). Blocks are ordered

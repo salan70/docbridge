@@ -41,6 +41,12 @@ const LANGUAGE_SUFFIX: Record<CodeLanguage, string> = {
   dart: ".dart",
 };
 
+const LANGUAGE_VISIBILITY: Record<CodeLanguage, readonly string[]> = {
+  typescript: [],
+  swift: ["public", "open", "internal"],
+  dart: ["public"],
+};
+
 /**
  * Load `speclink.config.json` from `projectRoot`, then validate it.
  *
@@ -289,14 +295,18 @@ function validateCodeEntry(
     diagnostics,
   );
 
-  if ("visibility" in value && !isStringArray(value.visibility)) {
-    diagnostics.push(
-      configDiagnostic(
-        "config_invalid_value",
-        `${target}.visibility`,
-        `\`${target}.visibility\` must be an array of strings.`,
-      ),
-    );
+  if ("visibility" in value) {
+    if (!isStringArray(value.visibility)) {
+      diagnostics.push(
+        configDiagnostic(
+          "config_invalid_value",
+          `${target}.visibility`,
+          `\`${target}.visibility\` must be an array of strings.`,
+        ),
+      );
+    } else {
+      validateVisibilityOptions(language, value.visibility, target, diagnostics);
+    }
   }
 
   if (diagnostics.length !== before) {
@@ -308,6 +318,36 @@ function validateCodeEntry(
     entry.visibility = value.visibility;
   }
   return entry;
+}
+
+function validateVisibilityOptions(
+  language: CodeLanguage,
+  values: string[],
+  target: string,
+  diagnostics: SpecLinkDiagnostic[],
+): void {
+  const allowed = LANGUAGE_VISIBILITY[language];
+  if (allowed.length === 0) {
+    diagnostics.push(
+      configDiagnostic(
+        "config_invalid_value",
+        `${target}.visibility`,
+        `\`${target}.visibility\` is not supported for ${language}.`,
+      ),
+    );
+    return;
+  }
+  for (const value of values) {
+    if (!allowed.includes(value)) {
+      diagnostics.push(
+        configDiagnostic(
+          "config_invalid_value",
+          `${target}.visibility`,
+          `Unsupported ${language} visibility: ${value}. Supported values: ${allowed.join(", ")}.`,
+        ),
+      );
+    }
+  }
 }
 
 function validatePatternArray(

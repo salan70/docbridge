@@ -9,11 +9,13 @@ import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
 import type { EndpointKind, SpecLinkDiagnostic } from "./types";
+import type { CodeLanguage } from "./types";
 
 export type ContextBlock = {
   endpoint: string;
   kind: EndpointKind;
   filePath: string;
+  language?: CodeLanguage;
   /** 1-based first line of `content` within `filePath`. */
   startLine: number;
   /** 1-based last line of `content` within `filePath`, inclusive. */
@@ -175,7 +177,17 @@ function renderBlock(block: ContextBlock): string {
     return `${header}\n\n${block.content}`;
   }
   const fence = codeFence(block.content);
-  return `${header}\n\n${fence}ts\n${block.content}\n${fence}`;
+  return `${header}\n\n${fence}${fenceLanguage(block.language)}\n${block.content}\n${fence}`;
+}
+
+function fenceLanguage(language: CodeLanguage | undefined): string {
+  if (language === "swift") {
+    return "swift";
+  }
+  if (language === "dart") {
+    return "dart";
+  }
+  return "ts";
 }
 
 /** A backtick fence one longer than the longest backtick run in the content. */
@@ -258,6 +270,7 @@ function extractBlock(
     endpoint: counterpart.endpoint,
     kind: "code",
     filePath: counterpart.filePath,
+    language: counterpart.language,
     startLine,
     endLine,
     linkedFrom: [],

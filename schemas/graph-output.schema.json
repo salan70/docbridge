@@ -29,6 +29,11 @@
             "type": "string",
             "description": "Project-root-relative POSIX path of the endpoint file."
           },
+          "language": {
+            "type": "string",
+            "enum": ["typescript", "swift", "dart"],
+            "description": "Code language for code nodes."
+          },
           "location": { "$ref": "#/$defs/location" },
           "range": { "$ref": "#/$defs/range" },
           "content": {

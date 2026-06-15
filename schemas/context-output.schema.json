@@ -25,6 +25,11 @@
             "type": "string",
             "description": "Project-root-relative POSIX path of the counterpart file."
           },
+          "language": {
+            "type": "string",
+            "enum": ["typescript", "swift", "dart"],
+            "description": "Code language for code context blocks."
+          },
           "startLine": {
             "type": "integer",
             "minimum": 1,

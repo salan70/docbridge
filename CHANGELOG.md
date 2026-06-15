@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Swift scanner worker support for SwiftPM source checkouts, including
+  SwiftSyntax-based `@doc` extraction, type/member canonical IDs, visibility
+  filtering, and Swift end-to-end check/context/graph/LSP integration.
 - Worker-backed scanner protocol foundation for Swift and Dart adapters,
   including stdin/stdout JSON invocation and scanner availability/failure
   diagnostics.
@@ -23,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `speclink context` and `speclink graph --json` now carry code language
+  metadata for code blocks/nodes so Swift endpoints render and serialize as
+  Swift.
 - SpecLink's distributable skills are now dogfooded from `.agents/skills/` and
   `.claude/skills/` as symlinks to the canonical `templates/skills/` entries.
 - TypeScript scanner endpoints now include `signatureRange` in addition to the

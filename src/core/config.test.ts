@@ -58,6 +58,20 @@ test("resolveConfig accepts a language entry with a visibility option", () => {
   });
 });
 
+test("resolveConfig rejects unsupported visibility options for a language", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { swift: { patterns: ["Sources/**/*.swift"], visibility: ["private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics[0]?.code).toBe("config_invalid_value");
+  expect(result.diagnostics[0]?.message).toContain("Unsupported swift visibility: private");
+});
+
 test("resolveConfig rejects the old include.code array form", () => {
   const result = resolveConfig(
     JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
@@ -164,6 +178,15 @@ test.each([
       },
     },
     "visibility not an array",
+  ],
+  [
+    {
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["public"] } },
+        docs: ["docs/**/*.md"],
+      },
+    },
+    "typescript visibility unsupported",
   ],
   [
     { include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.ts"] } },

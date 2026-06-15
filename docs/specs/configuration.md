@@ -69,6 +69,9 @@ Each entry requires a non-empty `patterns` array of strings. Patterns must end
 with the language extension: `.ts` for `typescript` (but not `.d.ts`), `.swift`
 for `swift`, and `.dart` for `dart`. An optional `visibility` array narrows the
 audited public surface; allowed values are validated per language adapter.
+Swift accepts `public`, `open`, and `internal`; omitting `visibility` scans
+`public` and `open`. Dart accepts `public`. TypeScript does not accept
+`visibility` and keeps its exported top-level declaration rules.
 
 If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong

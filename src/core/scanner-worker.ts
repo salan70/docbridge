@@ -1,3 +1,7 @@
+import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
 import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
 
@@ -120,12 +124,29 @@ export function invokeScannerWorker(
   };
 }
 
+/**
+ * Directory the Swift/clang toolchain may use as its module cache during a
+ * worker scan. Rooted in the OS temp dir and scoped per user so concurrent
+ * users on a shared host never collide on a directory owned by someone else,
+ * and so the path stays valid on platforms without `/tmp`.
+ */
+export function clangModuleCachePath(): string {
+  const owner = typeof process.getuid === "function" ? process.getuid() : "shared";
+  return join(tmpdir(), `speclink-clang-module-cache-${owner}`);
+}
+
 function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
   try {
+    const moduleCachePath = clangModuleCachePath();
+    mkdirSync(moduleCachePath, { recursive: true });
     const result = Bun.spawnSync({
       cmd: input.command,
+      env: {
+        ...Bun.env,
+        CLANG_MODULE_CACHE_PATH: moduleCachePath,
+      },
       stdin: new TextEncoder().encode(input.stdin),
       stdout: "pipe",
       stderr: "pipe",
