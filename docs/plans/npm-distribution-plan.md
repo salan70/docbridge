@@ -164,11 +164,14 @@ The release workflow should:
 - Stage scanner binaries into the `dist/bin/<platform>/` layout.
 - Run package verification against the staged dist.
 - Run `npm pack --dry-run` and record the file list in CI output.
+- Run a real `npm pack`, install the resulting tarball into a temporary
+  directory outside the source checkout, and smoke-test the installed package.
 - Publish to npm only after all verification passes.
 
 The implementation may use one workflow or split artifact build and publish
 steps across jobs. The publish step must consume verified artifacts rather than
-rebuilding unverified outputs.
+rebuilding unverified outputs. Dry-run packaging is only a file-list guard; it
+does not replace installed-tarball execution.
 
 ## Agent Workflow
 
@@ -335,6 +338,8 @@ Tasks:
 - Add npm trusted publishing or an npm token secret.
 - Wire release publish to consume the verified `dist/` and scanner artifacts.
 - Run `npm pack --dry-run` before `npm publish`.
+- Run `npm pack` and install the generated tarball into a temporary directory
+  outside the source checkout before `npm publish`.
 - Ensure publish only runs from the release approval path.
 - Keep GitHub Release creation and npm publishing tied to the same version.
 
@@ -342,12 +347,14 @@ Verification:
 
 ```sh
 npm pack --dry-run
+npm pack
 ```
 
 Done when:
 
-- A release merge can publish the npm package without local tagging or manual
-  artifact assembly.
+- A release merge can publish only after the generated tarball has been
+  installed and smoke-tested outside the source checkout, without local tagging
+  or manual artifact assembly.
 
 ## Slice 7: Documentation and Release Readiness
 
@@ -360,7 +367,8 @@ Tasks:
 - Document Swift/Dart scanner support and unsupported-platform behavior.
 - Update Japanese docs under `docs/ja/` after the English docs settle.
 - Add release notes under `CHANGELOG.md`.
-- Verify package contents and local tarball execution.
+- Verify package contents and installed tarball execution outside the source
+  checkout.
 
 Verification:
 
@@ -368,9 +376,23 @@ Verification:
 just check
 just test
 npm pack --dry-run
+npm pack
 ```
+
+The real tarball smoke must run from a temporary project directory that is not
+inside the SpecLink source checkout. It should install the generated tarball and
+exercise:
+
+- `speclink --version`
+- `speclink --help`
+- a TypeScript-only fixture
+- Swift and Dart fixtures on every supported scanner platform
+
+The smoke should verify the installed `bin` target, executable bits, Bun
+shebang, `dist/bin/<platform>` scanner lookup, and scanner runtime dependencies.
 
 Done when:
 
 - A user can discover the npm package, run it through `bunx`, and understand
   the Swift/Dart platform support boundaries.
+- Release readiness cannot be marked complete from `npm pack --dry-run` alone.
