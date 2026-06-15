@@ -35,6 +35,17 @@ used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
 be added without changing them.
 
+Worker-backed scanners receive one JSON request on stdin and return one JSON
+response on stdout. The request contains schema version `1`, a request ID, the
+language, the absolute project root, the file path/content pairs to scan, and
+language options such as visibility. Stderr is treated as debug/error text and
+does not affect stdout JSON parsing.
+
+If a configured worker cannot be started, SpecLink emits
+`code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
+returns invalid JSON, or returns a response whose schema version, request ID, or
+language does not match the request, SpecLink emits `code_scanner_failed`.
+
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection
 

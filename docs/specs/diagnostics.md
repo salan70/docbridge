@@ -7,12 +7,17 @@ type SpecLinkDiagnostic = {
   severity: "error" | "warning";
   code: DiagnosticCode;
   target: string;
+  language?: "typescript" | "swift" | "dart";
   source?: string;
   message: string;
   location?: {
     filePath: string;
     line: number;
     column: number;
+  };
+  range?: {
+    start: { line: number; column: number };
+    end: { line: number; column: number };
   };
 };
 ```
@@ -43,6 +48,10 @@ Error diagnostic codes:
 - [`duplicate_doc_anchor`](../../fixtures/diagnostics/duplicate_doc_anchor/)
 - [`duplicate_code_symbol`](../../fixtures/diagnostics/duplicate_code_symbol/)
 - [`code_parse_error`](../../fixtures/diagnostics/code_parse_error/)
+- `code_scanner_unavailable` — no fixture; scanner executable availability is
+  environment-dependent, so unit tests cover this code instead.
+- `code_scanner_failed` — no fixture; worker protocol failures are covered by
+  unit tests instead of a checked-in project fixture.
 - `file_read_error` — no fixture; I/O failures are not deterministically
   reproducible from checked-in files, so unit tests cover this code instead.
 

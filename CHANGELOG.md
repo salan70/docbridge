@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Worker-backed scanner protocol foundation for Swift and Dart adapters,
+  including stdin/stdout JSON invocation and scanner availability/failure
+  diagnostics.
 - `speclink graph`: prints the resolved link graph as human-readable output or
   as JSON following `schemas/graph-output.schema.json`, including resolvable
   one-way links, pair completeness, optional lightweight node content, and

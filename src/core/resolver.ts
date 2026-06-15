@@ -201,6 +201,7 @@ export function check(options: CheckOptions): CheckResult {
   const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
 
   const codeScan = scanCodeFiles(
+    projectRoot,
     collectCodeFiles(projectRoot, configResult.config.include.code),
     configResult.config.include.code,
     (relPath) => readManagedFile(projectRoot, relPath),

@@ -31,6 +31,11 @@ export type CodeScanOptions = {
   visibility?: string[];
 };
 
+/** Per-scan context shared by all language adapters. */
+export type CodeScanContext = {
+  projectRoot: string;
+};
+
 /**
  * The internal extension point for a code language. Slice 1 ships only the
  * in-process TypeScript adapter; Swift and Dart adapters arrive as worker-backed
@@ -42,5 +47,6 @@ export type CodeLanguageAdapter = {
     filePath: string,
     content: string,
     options: CodeScanOptions,
+    context: CodeScanContext,
   ): CodeScanResult;
 };

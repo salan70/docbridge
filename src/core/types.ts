@@ -24,6 +24,8 @@ export type DiagnosticCode =
   | "duplicate_doc_anchor"
   | "duplicate_code_symbol"
   | "code_parse_error"
+  | "code_scanner_unavailable"
+  | "code_scanner_failed"
   | "file_read_error"
   | "duplicate_link"
   | "dangling_code_annotation"

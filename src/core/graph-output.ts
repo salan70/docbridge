@@ -229,6 +229,7 @@ function scanManagedFiles(
   const contentByFile = new Map<string, string>();
 
   const codeScan = scanCodeFiles(
+    projectRoot,
     collectCodeFiles(projectRoot, include.code),
     include.code,
     (relPath) => readManagedFile(projectRoot, relPath),

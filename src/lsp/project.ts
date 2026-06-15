@@ -74,6 +74,7 @@ export class Project {
     const contentByFile = new Map<string, string>();
 
     const codeScan = scanCodeFiles(
+      this.projectRoot,
       this.collectCode(codeInclude),
       codeInclude,
       (relPath) => this.readContent(relPath),

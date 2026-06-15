@@ -22,6 +22,8 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
     "duplicate_doc_anchor",
     "duplicate_code_symbol",
     "code_parse_error",
+    "code_scanner_unavailable",
+    "code_scanner_failed",
     "file_read_error",
     "duplicate_link",
     "dangling_code_annotation",
@@ -29,7 +31,7 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
     "undocumented_symbol",
   ] satisfies DiagnosticCode[];
 
-  expect(codes).toHaveLength(17);
+  expect(codes).toHaveLength(19);
 });
 
 test("sortDiagnostics orders diagnostics deterministically", () => {
