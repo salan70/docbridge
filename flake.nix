@@ -29,6 +29,7 @@
         default = pkgs.mkShellNoCC {
           packages = [
             pkgs.bun
+            pkgs.dart
             pkgs.direnv
             pkgs.git
             pkgs.just

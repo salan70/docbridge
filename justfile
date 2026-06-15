@@ -37,6 +37,12 @@ test-swift-scanner:
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
 
+test-dart-scanner:
+    cd packages/dart-scanner && dart pub get && dart test
+
+build-dart-scanner:
+    cd packages/dart-scanner && dart pub get && dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
+
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.
 typecheck:
