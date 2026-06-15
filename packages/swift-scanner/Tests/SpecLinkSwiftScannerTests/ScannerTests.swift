@@ -47,6 +47,51 @@ final class ScannerTests: XCTestCase {
     ])
   }
 
+  func testCanonicalizesMembersWhenTheSignatureWrapsAcrossLines() throws {
+    let source = """
+    public struct AuthService {
+      /// @doc docs/auth.md#login
+      public func login(
+        email: String,
+        password: String
+      ) {}
+    }
+    """
+
+    let file = try scan(source)
+
+    XCTAssertEqual(file.symbols.map(\.canonicalId), ["AuthService.login(email:password:)"])
+  }
+
+  func testIgnoresBracesInsideCommentsWhenTrackingTypeScope() throws {
+    let source = """
+    public struct AuthService {
+      // resets the state when the session ends }
+      /// @doc docs/auth.md#login
+      public func login(email: String) {}
+    }
+    """
+
+    let file = try scan(source)
+
+    XCTAssertEqual(file.symbols.map(\.canonicalId), ["AuthService.login(email:)"])
+  }
+
+  func testIgnoresBracesInsideStringLiteralsWhenTrackingTypeScope() throws {
+    let source = """
+    public struct AuthService {
+      private let closing = "}"
+
+      /// @doc docs/auth.md#login
+      public func login(email: String) {}
+    }
+    """
+
+    let file = try scan(source)
+
+    XCTAssertEqual(file.symbols.map(\.canonicalId), ["AuthService.login(email:)"])
+  }
+
   func testCanonicalizesExtensionMembersAsMembersOfTheExtendedType() throws {
     let source = """
     extension AuthService {

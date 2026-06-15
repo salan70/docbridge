@@ -41,8 +41,12 @@ public final class Scanner {
     }
 
     let visibilitySet = Set(visibility ?? ["public", "open"])
-    let source = SourceText(filePath: file.filePath, content: file.content)
-    let declarations = collectDeclarations(source: source, visibility: visibilitySet)
+    let converter = PositionConverter(content: file.content)
+    let declarations = collectDeclarations(
+      tree: tree,
+      converter: converter,
+      visibility: visibilitySet
+    )
 
     var symbols: [CodeSymbol] = []
     var undocumentedSymbols: [CodeSymbol] = []
@@ -146,246 +150,343 @@ private struct DocTarget {
   let range: SourceRange?
 }
 
-private struct TypeScope {
-  let name: String
-  let closesAtDepth: Int
+// MARK: - AST-based declaration collection
+
+/// Walk the parsed syntax tree and emit one `Declaration` per supported
+/// declaration, plus an `unsupported` marker for `@doc`-annotated declarations
+/// that SpecLink does not canonicalize. Scope qualification, argument labels,
+/// and `@doc` extraction all come from the AST so multi-line signatures and
+/// braces inside comments or string literals cannot perturb the result.
+private func collectDeclarations(
+  tree: SourceFileSyntax,
+  converter: PositionConverter,
+  visibility: Set<String>
+) -> [Declaration] {
+  var collector = DeclarationCollector(converter: converter, visibility: visibility)
+  collector.walkTopLevel(tree.statements)
+  return collector.declarations
 }
 
-private func collectDeclarations(source: SourceText, visibility: Set<String>) -> [Declaration] {
+private let SUPPORTED_VISIBILITY_KEYWORDS: Set<String> = [
+  "open", "public", "internal", "fileprivate", "private",
+]
+
+private struct DeclarationCollector {
+  let converter: PositionConverter
+  let visibility: Set<String>
   var declarations: [Declaration] = []
-  var pendingDoc: PendingDoc?
-  var scopes: [TypeScope] = []
-  var braceDepth = 0
-  var inBlockDoc = false
-  var blockDocLines: [String] = []
-  var blockDocStart = 1
 
-  for lineNumber in 1...source.lineCount {
-    let line = source.line(lineNumber)
-    let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-    while let last = scopes.last, braceDepth < last.closesAtDepth {
-      scopes.removeLast()
-    }
-
-    if inBlockDoc {
-      blockDocLines.append(line)
-      if trimmed.contains("*/") {
-        pendingDoc = parseDocTargets(
-          lines: blockDocLines,
-          startLine: blockDocStart,
-          source: source
-        )
-        blockDocLines = []
-        inBlockDoc = false
+  mutating func walkTopLevel(_ statements: CodeBlockItemListSyntax) {
+    for statement in statements {
+      switch statement.item {
+      case .decl(let decl):
+        handle(decl: decl, typeQualifier: nil)
+      case .stmt(let stmt):
+        markUnsupportedIfAnnotated(Syntax(stmt))
+      case .expr(let expr):
+        markUnsupportedIfAnnotated(Syntax(expr))
       }
-      braceDepth += braceDelta(line)
-      continue
     }
-
-    if trimmed.hasPrefix("/**") {
-      inBlockDoc = !trimmed.contains("*/")
-      blockDocStart = lineNumber
-      blockDocLines = [line]
-      if !inBlockDoc {
-        pendingDoc = parseDocTargets(lines: blockDocLines, startLine: blockDocStart, source: source)
-        blockDocLines = []
-      }
-      braceDepth += braceDelta(line)
-      continue
-    }
-
-    if trimmed.hasPrefix("///") {
-      let current = pendingDoc ?? PendingDoc(targets: [], startLine: lineNumber)
-      let targets = current.targets + parseDocLine(line, lineNumber: lineNumber, source: source)
-      pendingDoc = PendingDoc(targets: targets, startLine: current.startLine)
-      braceDepth += braceDelta(line)
-      continue
-    }
-
-    if trimmed.isEmpty || trimmed.hasPrefix("//") {
-      braceDepth += braceDelta(line)
-      continue
-    }
-
-    if let info = parseSupportedDeclaration(line: line, typeName: scopes.last?.name) {
-      let doc = pendingDoc
-      pendingDoc = nil
-      let visible = visibility.contains(info.visibility)
-      let declarationRange = source.range(
-        startLine: doc?.startLine ?? lineNumber,
-        startColumn: 1,
-        endLine: lineNumber,
-        endColumn: source.utf16ColumnAfterLine(lineNumber)
-      )
-      declarations.append(
-        Declaration(
-          symbolName: info.symbolName,
-          canonicalId: info.canonicalId,
-          line: lineNumber,
-          column: info.nameColumn,
-          visible: visible,
-          unsupported: false,
-          nameRange: source.range(
-            startLine: lineNumber,
-            startColumn: info.nameColumn,
-            endLine: lineNumber,
-            endColumn: info.nameColumn + info.symbolName.utf16.count
-          ),
-          declarationRange: declarationRange,
-          signatureRange: declarationRange,
-          docTargets: doc?.targets ?? []
-        )
-      )
-      if let typeName = info.opensTypeScope, line.contains("{") {
-        scopes.append(TypeScope(name: typeName, closesAtDepth: braceDepth + 1))
-      }
-      braceDepth += braceDelta(line)
-      continue
-    }
-
-    if let extended = parseExtension(line: line), line.contains("{") {
-      pendingDoc = nil
-      scopes.append(TypeScope(name: extended, closesAtDepth: braceDepth + 1))
-      braceDepth += braceDelta(line)
-      continue
-    }
-
-    if let doc = pendingDoc {
-      declarations.append(
-        Declaration(
-          symbolName: "",
-          canonicalId: "",
-          line: lineNumber,
-          column: firstNonWhitespaceColumn(line),
-          visible: true,
-          unsupported: true,
-          nameRange: nil,
-          declarationRange: nil,
-          signatureRange: nil,
-          docTargets: doc.targets
-        )
-      )
-      pendingDoc = nil
-    }
-
-    braceDepth += braceDelta(line)
   }
 
-  return declarations
-}
+  mutating func walkMembers(_ members: MemberBlockItemListSyntax, typeQualifier: String?) {
+    for member in members {
+      handle(decl: member.decl, typeQualifier: typeQualifier)
+    }
+  }
 
-private struct DeclarationInfo {
-  let symbolName: String
-  let canonicalId: String
-  let visibility: String
-  let nameColumn: Int
-  let opensTypeScope: String?
-}
+  mutating func handle(decl: DeclSyntax, typeQualifier: String?) {
+    if let typeDecl = decl.asTypeDeclaration {
+      let name = typeDecl.name
+      let canonicalId = qualify(typeQualifier, name)
+      record(
+        decl: decl,
+        symbolName: name,
+        canonicalId: canonicalId,
+        nameToken: typeDecl.nameToken,
+        signatureEnd: typeDecl.signatureEnd
+      )
+      walkMembers(typeDecl.members, typeQualifier: name)
+      return
+    }
 
-private func parseSupportedDeclaration(line: String, typeName: String?) -> DeclarationInfo? {
-  let pattern = #"^\s*(?:(open|public|internal|fileprivate|private)\s+)?(?:(?:final|static|class|mutating|nonmutating|override|required|convenience)\s+)*(class|struct|enum|protocol|actor|func|var|let|init)\b\s*([A-Za-z_][A-Za-z0-9_]*)?"#
-  guard let match = line.firstMatch(pattern: pattern) else { return nil }
-  let visibility = match.group(1) ?? "internal"
-  let kind = match.group(2) ?? ""
-  let rawName = match.group(3)
+    if let ext = decl.as(ExtensionDeclSyntax.self) {
+      // Extensions do not produce a symbol; their members canonicalize against
+      // the extended type. A `@doc` on the extension itself is ignored, matching
+      // the previous scanner behavior.
+      walkMembers(ext.memberBlock.members, typeQualifier: ext.extendedType.trimmedDescription)
+      return
+    }
 
-  if ["class", "struct", "enum", "protocol", "actor"].contains(kind), let name = rawName {
-    return DeclarationInfo(
-      symbolName: name,
-      canonicalId: typeName.map { "\($0).\(name)" } ?? name,
-      visibility: visibility,
-      nameColumn: utf16Column(of: name, in: line),
-      opensTypeScope: name
+    if let function = decl.as(FunctionDeclSyntax.self) {
+      let name = function.name.text
+      let labels = argumentLabels(function.signature.parameterClause.parameters)
+      let prefix = typeQualifier.map { "\($0)." } ?? ""
+      record(
+        decl: decl,
+        symbolName: name,
+        canonicalId: "\(prefix)\(name)(\(labels))",
+        nameToken: function.name,
+        signatureEnd: function.signature.endPositionBeforeTrailingTrivia
+      )
+      return
+    }
+
+    if let initializer = decl.as(InitializerDeclSyntax.self) {
+      let labels = argumentLabels(initializer.signature.parameterClause.parameters)
+      let prefix = typeQualifier.map { "\($0)." } ?? ""
+      record(
+        decl: decl,
+        symbolName: "init",
+        canonicalId: "\(prefix)init(\(labels))",
+        nameToken: initializer.initKeyword,
+        signatureEnd: initializer.signature.endPositionBeforeTrailingTrivia
+      )
+      return
+    }
+
+    if let variable = decl.as(VariableDeclSyntax.self) {
+      guard
+        let binding = variable.bindings.first,
+        let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier
+      else {
+        markUnsupportedIfAnnotated(Syntax(decl))
+        return
+      }
+      let name = identifier.text
+      let prefix = typeQualifier.map { "\($0)." } ?? ""
+      record(
+        decl: decl,
+        symbolName: name,
+        canonicalId: "\(prefix)\(name)",
+        nameToken: identifier,
+        signatureEnd: variable.endPositionBeforeTrailingTrivia
+      )
+      return
+    }
+
+    markUnsupportedIfAnnotated(Syntax(decl))
+  }
+
+  private func qualify(_ typeQualifier: String?, _ name: String) -> String {
+    typeQualifier.map { "\($0).\(name)" } ?? name
+  }
+
+  /// Record a supported declaration. Visibility filtering and the documented vs
+  /// undocumented split happen downstream in `scanFile`.
+  private mutating func record(
+    decl: DeclSyntax,
+    symbolName: String,
+    canonicalId: String,
+    nameToken: TokenSyntax,
+    signatureEnd: AbsolutePosition
+  ) {
+    let doc = docTargets(for: decl)
+    let visible = visibility.contains(accessLevel(of: decl))
+    let namePosition = nameToken.positionAfterSkippingLeadingTrivia
+    let (nameLine, nameColumn) = converter.lineColumn(at: namePosition)
+
+    let declarationStart = doc.startOffset ?? decl.positionAfterSkippingLeadingTrivia.utf8Offset
+
+    declarations.append(
+      Declaration(
+        symbolName: symbolName,
+        canonicalId: canonicalId,
+        line: nameLine,
+        column: nameColumn,
+        visible: visible,
+        unsupported: false,
+        nameRange: converter.range(
+          from: namePosition,
+          to: nameToken.endPositionBeforeTrailingTrivia
+        ),
+        declarationRange: converter.range(
+          fromOffset: declarationStart,
+          to: decl.endPositionBeforeTrailingTrivia
+        ),
+        signatureRange: converter.range(fromOffset: declarationStart, to: signatureEnd),
+        docTargets: doc.targets
+      )
     )
   }
 
-  if kind == "init" {
-    let labels = argumentLabels(line: line)
-    let canonical = "\(typeName.map { "\($0)." } ?? "")init(\(labels))"
-    return DeclarationInfo(
-      symbolName: "init",
-      canonicalId: canonical,
-      visibility: visibility,
-      nameColumn: utf16Column(of: "init", in: line),
-      opensTypeScope: nil
+  private mutating func markUnsupportedIfAnnotated(_ node: Syntax) {
+    let doc = docTargets(for: node)
+    guard !doc.targets.isEmpty else { return }
+    let position = node.positionAfterSkippingLeadingTrivia
+    let (line, column) = converter.lineColumn(at: position)
+    declarations.append(
+      Declaration(
+        symbolName: "",
+        canonicalId: "",
+        line: line,
+        column: column,
+        visible: true,
+        unsupported: true,
+        nameRange: nil,
+        declarationRange: nil,
+        signatureRange: nil,
+        docTargets: doc.targets
+      )
     )
   }
 
-  guard let name = rawName else { return nil }
-  let memberPrefix = typeName.map { "\($0)." } ?? ""
-  let suffix = kind == "func" ? "(\(argumentLabels(line: line)))" : ""
-  return DeclarationInfo(
-    symbolName: name,
-    canonicalId: "\(memberPrefix)\(name)\(suffix)",
-    visibility: visibility,
-    nameColumn: utf16Column(of: name, in: line),
-    opensTypeScope: nil
-  )
-}
-
-private func parseExtension(line: String) -> String? {
-  let pattern = #"^\s*(?:(?:public|internal|fileprivate|private)\s+)?extension\s+([A-Za-z_][A-Za-z0-9_\.]*)"#
-  return line.firstMatch(pattern: pattern)?.group(1)
-}
-
-private func argumentLabels(line: String) -> String {
-  guard let open = line.firstIndex(of: "("), let close = line[open...].firstIndex(of: ")") else {
-    return ""
-  }
-  let params = line[line.index(after: open)..<close]
-  if params.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-    return ""
-  }
-  return params.split(separator: ",").map { raw in
-    let parameter = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-    let parts = parameter.split(whereSeparator: { $0 == " " || $0 == "\t" })
-    if parts.first == "_" {
-      return "_:"
+  private func accessLevel(of decl: DeclSyntax) -> String {
+    let modifiers = decl.asProtocol(WithModifiersSyntax.self)?.modifiers ?? []
+    for modifier in modifiers {
+      // Ignore `private(set)` and similar setter-scoped modifiers; they do not
+      // determine the declaration's own access level.
+      if modifier.detail != nil { continue }
+      let name = modifier.name.text
+      if SUPPORTED_VISIBILITY_KEYWORDS.contains(name) {
+        return name
+      }
     }
-    let label = (parts.first ?? "").trimmingCharacters(in: CharacterSet(charactersIn: ":"))
-    return "\(label):"
+    return "internal"
+  }
+
+  /// Extract `@doc` targets from the leading doc comments (`///` and `/** */`)
+  /// of a node, with source positions for each target.
+  private func docTargets(for node: some SyntaxProtocol) -> (targets: [DocTarget], startOffset: Int?) {
+    var targets: [DocTarget] = []
+    var startOffset: Int? = nil
+    var offset = node.position.utf8Offset
+    for piece in node.leadingTrivia {
+      let length = piece.sourceLength.utf8Length
+      let text: String?
+      switch piece {
+      case .docLineComment(let value), .docBlockComment(let value):
+        text = value
+      default:
+        text = nil
+      }
+      if let text {
+        if startOffset == nil {
+          startOffset = offset
+        }
+        for match in docMatches(in: text) {
+          let absoluteOffset = offset + match.byteOffset
+          let (line, column) = converter.lineColumn(atOffset: absoluteOffset)
+          targets.append(
+            DocTarget(
+              target: match.target,
+              line: line,
+              column: column,
+              range: SourceRange(
+                start: Position(line: line, column: column),
+                end: Position(line: line, column: column + match.target.utf16.count)
+              )
+            )
+          )
+        }
+      }
+      offset += length
+    }
+    return (targets, startOffset)
+  }
+}
+
+private struct DocMatch {
+  let target: String
+  /// UTF-8 byte offset of the target within the comment text.
+  let byteOffset: Int
+}
+
+private let DOC_REGEX = try! NSRegularExpression(pattern: #"@doc\s+(\S+)"#)
+
+private func docMatches(in text: String) -> [DocMatch] {
+  let ns = text as NSString
+  let matches = DOC_REGEX.matches(in: text, range: NSRange(location: 0, length: ns.length))
+  return matches.compactMap { match in
+    let group = match.range(at: 1)
+    guard group.location != NSNotFound else { return nil }
+    let target = ns.substring(with: group)
+    guard
+      let utf16Index = text.utf16.index(
+        text.utf16.startIndex,
+        offsetBy: group.location,
+        limitedBy: text.utf16.endIndex
+      ),
+      let stringIndex = utf16Index.samePosition(in: text)
+    else {
+      return nil
+    }
+    let byteOffset = text.utf8.distance(from: text.utf8.startIndex, to: stringIndex)
+    return DocMatch(target: target, byteOffset: byteOffset)
+  }
+}
+
+private func argumentLabels(_ parameters: FunctionParameterListSyntax) -> String {
+  parameters.map { parameter in
+    let label = parameter.firstName.text
+    return label == "_" ? "_:" : "\(label):"
   }.joined()
 }
 
-private struct PendingDoc {
-  let targets: [DocTarget]
-  let startLine: Int
+// MARK: - Type declaration abstraction
+
+/// Uniform view over the type-like declarations SpecLink scopes against.
+private struct TypeDeclaration {
+  let name: String
+  let nameToken: TokenSyntax
+  let members: MemberBlockItemListSyntax
+  let signatureEnd: AbsolutePosition
 }
 
-private func parseDocTargets(lines: [String], startLine: Int, source: SourceText) -> PendingDoc {
-  var targets: [DocTarget] = []
-  for (offset, line) in lines.enumerated() {
-    targets.append(contentsOf: parseDocLine(line, lineNumber: startLine + offset, source: source))
-  }
-  return PendingDoc(targets: targets, startLine: startLine)
-}
-
-private func parseDocLine(_ line: String, lineNumber: Int, source: SourceText) -> [DocTarget] {
-  guard let range = line.range(of: #"@doc\s+(\S+)"#, options: .regularExpression) else {
-    return []
-  }
-  let matched = String(line[range])
-  let target = matched.replacingOccurrences(
-    of: #"^@doc\s+"#,
-    with: "",
-    options: .regularExpression
-  )
-  let start = line.distance(from: line.startIndex, to: range.lowerBound) + matched.utf16.count - target.utf16.count + 1
-  return [
-    DocTarget(
-      target: target,
-      line: lineNumber,
-      column: start,
-      range: source.range(
-        startLine: lineNumber,
-        startColumn: start,
-        endLine: lineNumber,
-        endColumn: start + target.utf16.count
+private extension DeclSyntax {
+  var asTypeDeclaration: TypeDeclaration? {
+    if let node = self.as(StructDeclSyntax.self) {
+      return TypeDeclaration(
+        name: node.name.text,
+        nameToken: node.name,
+        members: node.memberBlock.members,
+        signatureEnd: typeSignatureEnd(name: node.name, inheritance: node.inheritanceClause)
       )
-    )
-  ]
+    }
+    if let node = self.as(ClassDeclSyntax.self) {
+      return TypeDeclaration(
+        name: node.name.text,
+        nameToken: node.name,
+        members: node.memberBlock.members,
+        signatureEnd: typeSignatureEnd(name: node.name, inheritance: node.inheritanceClause)
+      )
+    }
+    if let node = self.as(EnumDeclSyntax.self) {
+      return TypeDeclaration(
+        name: node.name.text,
+        nameToken: node.name,
+        members: node.memberBlock.members,
+        signatureEnd: typeSignatureEnd(name: node.name, inheritance: node.inheritanceClause)
+      )
+    }
+    if let node = self.as(ProtocolDeclSyntax.self) {
+      return TypeDeclaration(
+        name: node.name.text,
+        nameToken: node.name,
+        members: node.memberBlock.members,
+        signatureEnd: typeSignatureEnd(name: node.name, inheritance: node.inheritanceClause)
+      )
+    }
+    if let node = self.as(ActorDeclSyntax.self) {
+      return TypeDeclaration(
+        name: node.name.text,
+        nameToken: node.name,
+        members: node.memberBlock.members,
+        signatureEnd: typeSignatureEnd(name: node.name, inheritance: node.inheritanceClause)
+      )
+    }
+    return nil
+  }
 }
+
+private func typeSignatureEnd(
+  name: TokenSyntax,
+  inheritance: InheritanceClauseSyntax?
+) -> AbsolutePosition {
+  inheritance?.endPositionBeforeTrailingTrivia ?? name.endPositionBeforeTrailingTrivia
+}
+
+// MARK: - Symbol/diagnostic construction
 
 private func makeSymbol(filePath: String, declaration: Declaration) -> CodeSymbol {
   CodeSymbol(
@@ -423,75 +524,61 @@ private func diagnostic(
   )
 }
 
-private func braceDelta(_ line: String) -> Int {
-  var delta = 0
-  var inString = false
-  for char in line {
-    if char == "\"" { inString.toggle() }
-    if inString { continue }
-    if char == "{" { delta += 1 }
-    if char == "}" { delta -= 1 }
-  }
-  return delta
-}
+// MARK: - Position conversion
 
-private func firstNonWhitespaceColumn(_ line: String) -> Int {
-  var column = 1
-  for char in line {
-    if char != " " && char != "\t" { return column }
-    column += String(char).utf16.count
-  }
-  return 1
-}
+/// Converts SwiftSyntax UTF-8 byte offsets into SpecLink's 1-based line numbers
+/// and 1-based UTF-16 columns, matching the TypeScript scanner's convention.
+private struct PositionConverter {
+  private let utf8: [UInt8]
+  /// UTF-8 byte offset at which each line begins.
+  private let lineStarts: [Int]
 
-private func utf16Column(of needle: String, in line: String) -> Int {
-  guard let range = line.range(of: needle) else { return firstNonWhitespaceColumn(line) }
-  return line[..<range.lowerBound].utf16.count + 1
-}
-
-private struct RegexMatch {
-  let match: NSTextCheckingResult
-  let text: NSString
-
-  func group(_ index: Int) -> String? {
-    let range = match.range(at: index)
-    guard range.location != NSNotFound else { return nil }
-    return text.substring(with: range)
-  }
-}
-
-private extension String {
-  func firstMatch(pattern: String) -> RegexMatch? {
-    guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-    let text = self as NSString
-    let range = NSRange(location: 0, length: text.length)
-    guard let match = regex.firstMatch(in: self, range: range) else { return nil }
-    return RegexMatch(match: match, text: text)
-  }
-}
-
-private struct SourceText {
-  let filePath: String
-  let lines: [String]
-
-  init(filePath: String, content: String) {
-    self.filePath = filePath
-    self.lines = content.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+  init(content: String) {
+    let bytes = Array(content.utf8)
+    self.utf8 = bytes
+    var starts = [0]
+    for (index, byte) in bytes.enumerated() where byte == 0x0A {
+      starts.append(index + 1)
+    }
+    self.lineStarts = starts
   }
 
-  var lineCount: Int { lines.count }
-
-  func line(_ number: Int) -> String {
-    guard number > 0 && number <= lines.count else { return "" }
-    return lines[number - 1]
+  func lineColumn(at position: AbsolutePosition) -> (line: Int, column: Int) {
+    lineColumn(atOffset: position.utf8Offset)
   }
 
-  func utf16ColumnAfterLine(_ number: Int) -> Int {
-    line(number).utf16.count + 1
+  func lineColumn(atOffset offset: Int) -> (line: Int, column: Int) {
+    let clamped = max(0, min(offset, utf8.count))
+    var low = 0
+    var high = lineStarts.count - 1
+    var lineIndex = 0
+    while low <= high {
+      let mid = (low + high) / 2
+      if lineStarts[mid] <= clamped {
+        lineIndex = mid
+        low = mid + 1
+      } else {
+        high = mid - 1
+      }
+    }
+    let lineStart = lineStarts[lineIndex]
+    let prefix = utf8[lineStart..<clamped]
+    let column = String(decoding: prefix, as: UTF8.self).utf16.count + 1
+    return (lineIndex + 1, column)
   }
 
-  func range(startLine: Int, startColumn: Int, endLine: Int, endColumn: Int) -> SourceRange {
-    SourceRange(
+  func range(from start: AbsolutePosition, to end: AbsolutePosition) -> SourceRange {
+    range(fromOffset: start.utf8Offset, toOffset: end.utf8Offset)
+  }
+
+  func range(fromOffset start: Int, to end: AbsolutePosition) -> SourceRange {
+    range(fromOffset: start, toOffset: end.utf8Offset)
+  }
+
+  func range(fromOffset start: Int, toOffset end: Int) -> SourceRange {
+    let (startLine, startColumn) = lineColumn(atOffset: start)
+    let (endLine, endColumn) = lineColumn(atOffset: end)
+    return SourceRange(
       start: Position(line: startLine, column: startColumn),
       end: Position(line: endLine, column: endColumn)
     )
