@@ -191,6 +191,17 @@ Diagnostic codes should describe the failure category, not the implementation
 language. Replace the current `typescript_parse_error` with `code_parse_error`
 as part of the foundation slice.
 
+The worker foundation should also define scanner-process diagnostics before
+Swift or Dart workers land:
+
+- `code_parse_error`: the configured code file was parsed by its language
+  scanner, and the scanner reported source syntax errors that make the file
+  unscannable.
+- `code_scanner_unavailable`: a configured first-party scanner worker cannot be
+  found or executed.
+- `code_scanner_failed`: a configured scanner worker started but failed to
+  return a valid protocol response.
+
 `SpecLinkDiagnostic` should gain an optional `language` field.
 
 ```ts
@@ -210,6 +221,8 @@ Attach `language` only when it is known from code scanning or from a known code
 endpoint:
 
 - `code_parse_error`
+- `code_scanner_unavailable`
+- `code_scanner_failed`
 - `unsupported_declaration`
 - `duplicate_code_symbol`
 - `undocumented_symbol`
@@ -295,14 +308,22 @@ Response:
 }
 ```
 
+Within each worker response file entry, `undocumentedSymbols` carries supported
+code endpoints that have no `@doc` annotation. The core does not report them by
+default; audit mode turns these entries into `undocumented_symbol` diagnostics.
+They use the same endpoint shape as `symbols` so graph, context, and LSP code
+can keep one code endpoint model.
+
 Initial implementation is process-per-scan, one request on stdin and one
 response on stdout. Persistent workers are a future performance optimization.
 The `requestId` exists now so the protocol can evolve without changing the
 payload shape.
 
 If a configured first-party worker cannot be executed, `speclink check` should
-fail with a clear scanner-unavailable diagnostic rather than silently skipping
-that language.
+fail with `code_scanner_unavailable` rather than silently skipping that
+language. A worker process that starts but returns invalid JSON, a mismatched
+`requestId`, or otherwise violates the protocol should produce
+`code_scanner_failed`.
 
 ### Position Model
 
@@ -439,8 +460,8 @@ Tests:
 - Worker response maps to `CodeScanResult`.
 - Worker stderr is preserved for debug/error messaging without corrupting
   stdout JSON parsing.
-- Missing configured worker emits a scanner-unavailable diagnostic.
-- Invalid response JSON emits a scanner-failed diagnostic.
+- Missing configured worker emits `code_scanner_unavailable`.
+- Invalid response JSON emits `code_scanner_failed`.
 
 Verification:
 
