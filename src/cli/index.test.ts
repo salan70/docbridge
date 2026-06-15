@@ -177,7 +177,7 @@ test("run exits 0 when only warnings exist", () => {
   try {
     writeFileSync(
       join(errProject, "speclink.config.json"),
-      JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+      JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
     );
     // No source files: no diagnostics at all -> exit 0.
     const c = capture();
@@ -193,7 +193,7 @@ test("run exits 1 when check errors exist", () => {
   try {
     writeFileSync(
       join(project, "speclink.config.json"),
-      JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+      JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
     );
     // A code file with a @doc link to a non-existent doc -> doc_file_not_found error.
     const srcDir = join(project, "src");
@@ -257,7 +257,7 @@ function makeRelatedProject(): string {
   const project = mkdtempSync(join(tmpdir(), "speclink-related-"));
   writeFileSync(
     join(project, "speclink.config.json"),
-    JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+    JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
   );
   mkdirSync(join(project, "src", "auth"), { recursive: true });
   writeFileSync(
@@ -510,7 +510,7 @@ function makeContextProject(): string {
   const project = mkdtempSync(join(tmpdir(), "speclink-context-"));
   writeFileSync(
     join(project, "speclink.config.json"),
-    JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+    JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
   );
   mkdirSync(join(project, "src", "auth"), { recursive: true });
   writeFileSync(

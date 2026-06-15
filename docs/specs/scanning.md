@@ -1,6 +1,6 @@
 # Scanning
 
-SpecLink v0.1 scans files matched by `include.code` and `include.docs`.
+SpecLink scans files matched by `include.code` and `include.docs`.
 
 File matching is case-sensitive on every platform.
 
@@ -11,17 +11,29 @@ SpecLink ignores these paths even when they match an include glob:
 - any path segment that starts with `.`
 - symlink files and symlink directories
 
-SpecLink does not read `.gitignore` in v0.1.
+SpecLink does not read `.gitignore`.
 
-Code files are TypeScript `.ts` files. Declaration files ending in `.d.ts` are excluded.
+Code files belong to a configured language: TypeScript `.ts` files (declaration
+files ending in `.d.ts` are excluded), Swift `.swift` files, and Dart `.dart`
+files. Each code file is scanned by its language adapter.
 
 Markdown files are `.md` files.
 
 If a scan target cannot be read, SpecLink emits `file_read_error`. Config file read or parse failures use `config_file_invalid` instead.
 
-If a TypeScript file has syntactic parse errors, SpecLink emits `typescript_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned.
+If a code file has syntactic parse errors, SpecLink emits `code_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned.
 
-When a file has `file_read_error` or `typescript_parse_error`, derived link diagnostics that depend on that file are suppressed.
+When a file has `file_read_error` or `code_parse_error`, derived link diagnostics that depend on that file are suppressed.
+
+<!-- @code src/core/code-scanner.ts#CodeScanResult -->
+## Code Scanning
+
+Code scanning is language-aware but not language-specific. Every code language
+adapter, in-process (TypeScript) or worker-backed (Swift, Dart), produces the
+same language-neutral result: the supported symbols, the undocumented symbols
+used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
+graph, context command, and LSP consume this shared shape so a new language can
+be added without changing them.
 
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection

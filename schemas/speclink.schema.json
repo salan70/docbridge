@@ -14,15 +14,40 @@
       "required": ["code", "docs"],
       "properties": {
         "code": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "typescript": { "$ref": "#/$defs/codeLanguageEntry" },
+            "swift": { "$ref": "#/$defs/codeLanguageEntry" },
+            "dart": { "$ref": "#/$defs/codeLanguageEntry" }
+          }
+        },
+        "docs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "codeLanguageEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "string"
           }
         },
-        "docs": {
+        "visibility": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "type": "string"
           }

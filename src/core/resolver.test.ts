@@ -2,9 +2,9 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 
+import type { CodeScanResult } from "./code-scanner";
 import type { MarkdownScanResult } from "./markdown";
 import { check, resolveLinks } from "./resolver";
-import type { TypeScriptScanResult } from "./typescript";
 import type {
   CodeLinkAnnotation,
   CodeSymbolEndpoint,
@@ -24,8 +24,10 @@ function loc(filePath: string): SourceLocation {
 function codeSymbol(symbolName: string, filePath = CODE_FILE): CodeSymbolEndpoint {
   return {
     kind: "code",
+    language: "typescript",
     filePath,
     symbolName,
+    canonicalId: symbolName,
     endpoint: `${filePath}#${symbolName}`,
     location: loc(filePath),
   };
@@ -66,8 +68,8 @@ function codeFile(
   links: DocLinkAnnotation[],
   diagnostics: SpecLinkDiagnostic[] = [],
   undocumentedSymbols: CodeSymbolEndpoint[] = [],
-): TypeScriptScanResult {
-  return { filePath, symbols, undocumentedSymbols, links, diagnostics };
+): CodeScanResult {
+  return { language: "typescript", filePath, symbols, undocumentedSymbols, links, diagnostics };
 }
 
 function docFile(
@@ -231,7 +233,7 @@ describe(resolveLinks, () => {
       scanDiagnostics: [
         {
           severity: "error",
-          code: "typescript_parse_error",
+          code: "code_parse_error",
           target: CODE_FILE,
           message: "Parse error.",
           location: loc(CODE_FILE),
@@ -301,7 +303,7 @@ describe(resolveLinks, () => {
       scanDiagnostics: [
         {
           severity: "error",
-          code: "typescript_parse_error",
+          code: "code_parse_error",
           target: CODE_FILE,
           message: "parse error",
           location: loc(CODE_FILE),

@@ -200,7 +200,7 @@ Errors:
 - `doc_backlink_not_found`
 - `duplicate_doc_anchor`
 - `duplicate_code_symbol`
-- `typescript_parse_error`
+- `code_parse_error`
 - `file_read_error`
 
 Warnings:

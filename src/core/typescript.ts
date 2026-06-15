@@ -1,5 +1,10 @@
 import ts from "typescript";
 
+import type {
+  CodeLanguageAdapter,
+  CodeScanOptions,
+  CodeScanResult,
+} from "./code-scanner";
 import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeSymbolEndpoint,
@@ -9,16 +14,17 @@ import type {
   SpecLinkDiagnostic,
 } from "./types";
 
-export type TypeScriptScanResult = {
-  filePath: string;
-  symbols: CodeSymbolEndpoint[];
-  /**
-   * Supported, top-level exported declarations whose `file#name` endpoint has no
-   * `@doc` annotation. Used by audit mode to emit `undocumented_symbol`.
-   */
-  undocumentedSymbols: CodeSymbolEndpoint[];
-  links: DocLinkAnnotation[];
-  diagnostics: SpecLinkDiagnostic[];
+const LANGUAGE = "typescript" as const;
+
+/**
+ * The in-process TypeScript code language adapter. Visibility options are not
+ * used: TypeScript scope stays exported top-level declarations.
+ */
+export const typeScriptAdapter: CodeLanguageAdapter = {
+  language: LANGUAGE,
+  scanFile(filePath: string, content: string, _options: CodeScanOptions) {
+    return scanTypeScript(filePath, content);
+  },
 };
 
 type DocTag = {
@@ -42,7 +48,7 @@ type SupportedDeclaration = {
 export function scanTypeScript(
   filePath: string,
   content: string,
-): TypeScriptScanResult {
+): CodeScanResult {
   const sourceFile = ts.createSourceFile(
     filePath,
     content,
@@ -55,6 +61,7 @@ export function scanTypeScript(
   if (parseDiagnostics.length > 0) {
     const first = parseDiagnostics[0];
     return {
+      language: LANGUAGE,
       filePath,
       symbols: [],
       undocumentedSymbols: [],
@@ -207,7 +214,14 @@ export function scanTypeScript(
     }
   }
 
-  return { filePath, symbols, undocumentedSymbols, links, diagnostics };
+  return {
+    language: LANGUAGE,
+    filePath,
+    symbols,
+    undocumentedSymbols,
+    links,
+    diagnostics,
+  };
 }
 
 function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
@@ -463,8 +477,12 @@ function makeCodeSymbol(
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
+    language: LANGUAGE,
     filePath,
     symbolName,
+    // TypeScript endpoints are top-level declarations, so the canonical ID is
+    // the bare declaration name.
+    canonicalId: symbolName,
     endpoint,
     location,
   };
@@ -525,7 +543,8 @@ function parseErrorDiagnostic(
 
   return {
     severity: "error",
-    code: "typescript_parse_error",
+    code: "code_parse_error",
+    language: LANGUAGE,
     target: filePath,
     message: `TypeScript parse error: ${detail}`,
     location,
@@ -539,6 +558,7 @@ function unsupportedDeclarationDiagnostic(
   return {
     severity: "warning",
     code: "unsupported_declaration",
+    language: LANGUAGE,
     target: filePath,
     message:
       "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class.",
@@ -554,6 +574,7 @@ function duplicateCodeSymbolDiagnostic(
   const diagnostic: SpecLinkDiagnostic = {
     severity: "error",
     code: "duplicate_code_symbol",
+    language: LANGUAGE,
     target: endpoint,
     message: `Multiple @doc-annotated declarations expose the same code endpoint ${endpoint}.`,
     location,

@@ -42,7 +42,7 @@ Error diagnostic codes:
 - [`doc_backlink_not_found`](../../fixtures/diagnostics/doc_backlink_not_found/)
 - [`duplicate_doc_anchor`](../../fixtures/diagnostics/duplicate_doc_anchor/)
 - [`duplicate_code_symbol`](../../fixtures/diagnostics/duplicate_code_symbol/)
-- [`typescript_parse_error`](../../fixtures/diagnostics/typescript_parse_error/)
+- [`code_parse_error`](../../fixtures/diagnostics/code_parse_error/)
 - `file_read_error` — no fixture; I/O failures are not deterministically
   reproducible from checked-in files, so unit tests cover this code instead.
 

@@ -1,6 +1,12 @@
 {
   "include": {
-    "code": [],
-    "docs": ["docs/**/*.md"]
+    "code": {
+      "typescript": {
+        "patterns": []
+      }
+    },
+    "docs": [
+      "docs/**/*.md"
+    ]
   }
 }
