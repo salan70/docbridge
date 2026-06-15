@@ -151,6 +151,35 @@ void publicUndocumented() {}
     );
   });
 
+  test('excludes members of a library-private type', () {
+    final file = scan('''
+class _Secret {
+  /// @doc docs/a.md#login
+  void login() {}
+
+  /// @doc docs/a.md#ctor
+  _Secret();
+}
+''');
+
+    expect(file['symbols'], isEmpty);
+    expect(file['undocumentedSymbols'], isEmpty);
+    expect(file['links'], isEmpty);
+    expect(file['diagnostics'], isEmpty);
+  });
+
+  test('excludes members added by an extension on a private type', () {
+    final file = scan('''
+extension on _Secret {
+  /// @doc docs/a.md#logout
+  void logout() {}
+}
+''');
+
+    expect(file['symbols'], isEmpty);
+    expect(file['links'], isEmpty);
+  });
+
   test('uses utf16 one-based end-exclusive ranges', () {
     final file = scan('''
 /// @doc docs/auth.md#smile

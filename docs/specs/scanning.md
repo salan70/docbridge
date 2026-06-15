@@ -117,9 +117,11 @@ example `AuthService.login(email:password:)`, `AuthService.refresh(_:)`, and
 
 Dart scanning extracts `@doc` annotations from `///` and `/** ... */`
 documentation comments. Only public declarations are scanned: Dart marks
-library-private declarations with a leading underscore, so identifiers that
-start with `_` are excluded. `include.code.dart.visibility` accepts only
-`public`.
+library-private declarations with a leading underscore, so an endpoint is
+excluded when any name segment of its canonical ID starts with `_`. A member or
+constructor of a library-private type (or an extension on one) is therefore
+private even when its own name is public. `include.code.dart.visibility` accepts
+only `public`.
 
 Supported Dart declarations are:
 

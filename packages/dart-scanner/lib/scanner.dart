@@ -317,7 +317,7 @@ class _Collector {
     required String canonicalId,
     required int signatureEnd,
   }) {
-    final visible = !symbolName.startsWith('_');
+    final visible = _isPublicCanonical(canonicalId);
     final declStart = _declarationStart(node);
     final location = lineInfo.getLocation(nameToken.offset);
     declarations.add(
@@ -352,6 +352,20 @@ class _Collector {
         docTargets: targets,
       ),
     );
+  }
+
+  /// A Dart endpoint is public only when every name segment of its canonical
+  /// ID is public. Members and constructors of a library-private type (or an
+  /// extension on one) are private even when their own name has no leading
+  /// underscore, because the type that roots the endpoint is private.
+  bool _isPublicCanonical(String canonicalId) {
+    for (final segment in canonicalId.split('.')) {
+      final name = segment.endsWith('=')
+          ? segment.substring(0, segment.length - 1)
+          : segment;
+      if (name.startsWith('_')) return false;
+    }
+    return true;
   }
 
   String _extendedTypeName(ExtensionDeclaration extension) {
