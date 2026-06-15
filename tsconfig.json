@@ -6,7 +6,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "types": ["bun-types"],
+    "types": ["bun"],
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]

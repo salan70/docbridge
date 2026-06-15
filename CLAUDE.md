@@ -39,6 +39,8 @@ Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 - `just check-fixture <code>` — check one diagnostic fixture under
   `fixtures/diagnostics/`
 - `just test` — run the Bun test suite (`bun test`)
+- `just typecheck` — type-check the project (`tsc --noEmit`); catches type
+  drift that `bun build` ignores
 - `just build` — build the CLI with Bun
 
 If `just` is not on `PATH`, prefix commands with `nix develop -c` (for example,
@@ -58,11 +60,12 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
   not `PreToolUse`, because a `PreToolUse` hook's `additionalContext` is
   delivered only after the edit runs. Files without linked counterparts inject
   nothing.
-- The `Stop` hook runs `just check` and `just test` when the working tree has
-  changes, and blocks completion with the failure output if either fails. Fix
-  the failure if this change caused it, then rerun the checks; if it cannot be
-  fixed this turn, report it explicitly. On continuation turns the hook re-runs
-  the checks and reports the measured pass/fail result without blocking again.
+- The `Stop` hook runs `just check`, `just typecheck`, and `just test` when the
+  working tree has changes, and blocks completion with the failure output if any
+  fails. Fix the failure if this change caused it, then rerun the checks; if it
+  cannot be fixed this turn, report it explicitly. On continuation turns the hook
+  re-runs the checks and reports the measured pass/fail result without blocking
+  again.
 - When those checks pass, the `Stop` hook also runs `just related-gate` over
   uncommitted changes and reports linked counterparts that were not themselves
   changed, attaching the flagged counterparts' content fetched via
@@ -76,7 +79,8 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if `just`
 is not on `PATH`. The command configures `core.hooksPath` for this repository.
-The `pre-commit` hook runs `just check` and `just test` as a mandatory guard.
+The `pre-commit` hook runs `just check`, `just typecheck`, and `just test` as a
+mandatory guard.
 
 ## Skills
 
@@ -152,7 +156,8 @@ Full rules and the release procedure live in the `git-workflow` skill
   --ff-only`) and delete the local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
-- CI (`just check`, `just test`, `just build`) must pass before merging.
+- CI (`just check`, `just typecheck`, `just test`, `just build`) must pass
+  before merging.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR
   requires explicit human approval.** Release tagging and publishing are
   automated by GitHub Actions when the release PR is merged, so the merge is the
