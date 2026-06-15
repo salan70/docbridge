@@ -20,7 +20,13 @@
     in
     {
       devShells = forAllSystems (pkgs: {
-        default = pkgs.mkShell {
+        # `mkShellNoCC` avoids pulling in a C compiler the project does not need
+        # (it is pure Bun/TypeScript). On macOS the default `mkShell` stdenv
+        # exports `SDKROOT`/`DEVELOPER_DIR` pointing at nixpkgs' Apple SDK, which
+        # is built with an older Swift than the system toolchain and breaks
+        # `swift build` for the bundled Swift scanner. Dropping the CC wrapper
+        # leaves those variables unset so the system Swift toolchain works.
+        default = pkgs.mkShellNoCC {
           packages = [
             pkgs.bun
             pkgs.direnv
