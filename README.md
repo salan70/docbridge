@@ -1,6 +1,7 @@
 # SpecLink
 
 [![Japanese README](https://img.shields.io/badge/README-%E6%97%A5%E6%9C%AC%E8%AA%9E-blue)](docs/ja/README.md)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/salan70/spec-link)
 
 Bring Markdown into the LSP world.
 
