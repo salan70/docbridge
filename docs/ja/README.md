@@ -76,12 +76,24 @@ SpecLink は以下の要素を対象にします。
 - HTML コメント
 - 次の見出しに紐づく `@code` アノテーション
 
-デフォルトのスキャン対象:
+プロジェクトは `speclink.config.json` でスキャン対象を定義する必要があります。
+暗黙のデフォルト設定はありません。設定ファイルがない場合、SpecLink は
+`config_file_invalid` を報告し、プロジェクトファイルをスキャンしません。
 
-- `src/**/*.ts`
-- `docs/**/*.md`
+TypeScript 向けの最小設定:
 
-プロジェクトは `speclink.config.json` でスキャン対象を上書きできます。
+```json
+{
+  "include": {
+    "code": {
+      "typescript": {
+        "patterns": ["src/**/*.ts"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
 
 ## CLI
 

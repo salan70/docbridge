@@ -77,12 +77,24 @@ Supported Markdown elements:
 - HTML comments
 - `@code` annotations attached to the next heading
 
-Default scan targets:
+Projects must define scan targets in `speclink.config.json`. There is no
+implicit default configuration; when the config file is missing, SpecLink
+reports `config_file_invalid` and does not scan project files.
 
-- `src/**/*.ts`
-- `docs/**/*.md`
+Minimal TypeScript configuration:
 
-Projects can override scan targets with `speclink.config.json`.
+```json
+{
+  "include": {
+    "code": {
+      "typescript": {
+        "patterns": ["src/**/*.ts"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
 
 ## CLI
 
