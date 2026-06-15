@@ -27,6 +27,30 @@ SpecLink uses the Bun test runner (`bun test`, wrapped as `just test`).
   `bun install --frozen-lockfile` so every machine resolves the same types; a
   stale `node_modules` is the usual cause of "type errors on one machine only".
 
+## Scanner workers
+
+- `just test` includes TypeScript, Swift, and Dart end-to-end integration
+  tests. The Swift and Dart integration tests spawn the built worker binaries,
+  so build them first when running from a source checkout:
+  `just build-swift-scanner` and `just build-dart-scanner`.
+- `just test-swift-scanner` runs the SwiftPM test suite for
+  `packages/swift-scanner`. It requires a Swift 6 toolchain on `PATH`; the Nix
+  dev shell intentionally does not provide Swift, and CI installs it
+  separately.
+- `just test-dart-scanner` runs the Dart package tests for
+  `packages/dart-scanner`. The Dart SDK is provided by the Nix dev shell.
+- CI treats the scanner-native test suites as mandatory before the shared
+  `just test` gate. Local changes to scanner code should run the matching
+  native test plus `just test`.
+
+## Executable examples
+
+- `just check-example` verifies the TypeScript example under `examples/basic`.
+- `just check-swift-example` verifies the Swift multilanguage fixture under
+  `fixtures/multilanguage/swift-basic`.
+- `just check-dart-example` verifies the Dart multilanguage fixture under
+  `fixtures/multilanguage/dart-basic`.
+
 ## Notes
 
 - Colocated test files never reach `dist/`: `bun build` starts from the CLI

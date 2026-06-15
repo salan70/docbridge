@@ -41,10 +41,16 @@ jobs:
       - name: Build the Swift scanner
         run: swift build --package-path packages/swift-scanner -c release
 
+      - name: Test the Swift scanner
+        run: swift test --package-path packages/swift-scanner
+
       # The Dart integration test spawns the bundled Dart scanner binary. Dart
       # comes from the Nix dev shell, so build through nix.
       - name: Build the Dart scanner
         run: nix develop -c just build-dart-scanner
+
+      - name: Test the Dart scanner
+        run: nix develop -c just test-dart-scanner
 
       - name: just test
         run: nix develop -c just test

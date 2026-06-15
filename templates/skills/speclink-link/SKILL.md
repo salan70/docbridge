@@ -1,13 +1,14 @@
 ---
 name: speclink-link
-description: Link existing Markdown specification sections to existing TypeScript exports. Use for docs-first candidate discovery, section-level confirmation, and adding @doc/@code annotations to existing projects.
+description: Link existing Markdown specification sections to existing supported code declarations. Use for docs-first candidate discovery, section-level confirmation, and adding @doc/@code annotations to existing projects.
 ---
 
 # speclink-link
 
 Create SpecLink annotations for existing docs and code. Work docs-first: choose
-Markdown sections that look like specifications, then propose TypeScript
-exported symbols that implement or represent each section.
+Markdown sections that look like specifications, then propose supported
+TypeScript, Swift, or Dart declarations that implement or represent each
+section.
 
 Run SpecLink with the project's native invocation: `speclink` on `PATH`, a
 repo recipe such as `just check`, or
@@ -57,9 +58,9 @@ repo recipe such as `just check`, or
 6. **Add annotations only after confirmation.**
    - Add `@code` directly above the Markdown heading, as the nearest comment
      to the heading.
-   - Add `@doc` to the TypeScript declaration JSDoc.
-   - If the declaration has no JSDoc, create a minimal JSDoc block containing
-     only `@doc`.
+   - Add `@doc` to the code declaration's documentation comment.
+   - If the declaration has no documentation comment, create a minimal one
+     containing only `@doc`, using the language's documentation comment form.
    - If the pair already exists on one side, show it and, after confirmation,
      add the missing backlink.
    - Preserve existing annotations; do not replace or clean up suspicious links

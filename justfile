@@ -9,6 +9,12 @@ check:
 check-example:
     bun run src/cli/index.ts check --root examples/basic
 
+check-swift-example:
+    bun run src/cli/index.ts check --root fixtures/multilanguage/swift-basic
+
+check-dart-example:
+    bun run src/cli/index.ts check --root fixtures/multilanguage/dart-basic
+
 check-example-json:
     bun run src/cli/index.ts check --root examples/basic --json
 
