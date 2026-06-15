@@ -25,8 +25,8 @@ Normative behavior will be reflected in these specs as the slices land:
 - [x] Slice 2: Worker Protocol Foundation
 - [x] Slice 3: Swift Scanner Worker
 - [x] Slice 4: Swift End-to-End Integration
-- [ ] Slice 5: Dart Scanner Worker
-- [ ] Slice 6: Dart End-to-End Integration
+- [x] Slice 5: Dart Scanner Worker
+- [x] Slice 6: Dart End-to-End Integration
 - [ ] Slice 7: Multilanguage Release Readiness
 
 ## Goals

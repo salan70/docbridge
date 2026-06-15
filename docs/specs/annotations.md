@@ -19,6 +19,14 @@ declarations:
 public func login(email: String, password: String) {}
 ```
 
+Dart uses documentation comments with `@doc` attached to supported
+declarations:
+
+```dart
+/// @doc docs/specs/auth.md#login-flow
+void login(String email, String password) {}
+```
+
 Markdown uses standalone HTML comments with `@code` attached to the next heading:
 
 ```md
@@ -67,6 +75,16 @@ Markdown backlinks must use the scanner-produced canonical ID exactly:
 
 ```md
 <!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+## Login Flow
+```
+
+Supported Dart declarations are listed in [Scanning](./scanning.md#dart-scanning).
+Dart member endpoints are type-qualified (without parameter signatures, since
+Dart has no overloading), so Markdown backlinks must use the scanner-produced
+canonical ID exactly:
+
+```md
+<!-- @code lib/auth_service.dart#AuthService.login -->
 ## Login Flow
 ```
 

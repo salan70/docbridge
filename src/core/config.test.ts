@@ -72,6 +72,36 @@ test("resolveConfig rejects unsupported visibility options for a language", () =
   expect(result.diagnostics[0]?.message).toContain("Unsupported swift visibility: private");
 });
 
+test("resolveConfig accepts a dart entry with the public visibility option", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], visibility: ["public"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(true);
+  expect(result.config.include.code.dart).toEqual({
+    patterns: ["lib/**/*.dart"],
+    visibility: ["public"],
+  });
+});
+
+test("resolveConfig rejects unsupported dart visibility options", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], visibility: ["private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics[0]?.code).toBe("config_invalid_value");
+  expect(result.diagnostics[0]?.message).toContain("Unsupported dart visibility: private");
+});
+
 test("resolveConfig rejects the old include.code array form", () => {
   const result = resolveConfig(
     JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),

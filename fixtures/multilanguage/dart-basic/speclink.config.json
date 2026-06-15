@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "dart": {
+        "patterns": ["lib/**/*.dart"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
