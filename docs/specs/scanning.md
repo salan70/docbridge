@@ -54,7 +54,10 @@ The bundled Swift worker is a SwiftPM package under `packages/swift-scanner`.
 It uses SwiftSyntax/SwiftParser and communicates through the worker protocol.
 The adapter executes the built `speclink-swift-scanner` binary from that
 package; run `just test-swift-scanner` or `just build-swift-scanner` locally to
-build it before checking Swift projects from a source checkout.
+build it before checking Swift projects from a source checkout. Building the
+package requires a Swift 6 toolchain on `PATH`. The Nix dev shell deliberately
+omits a C compiler (`mkShellNoCC`) so it does not export an `SDKROOT` that would
+shadow the system Swift toolchain on macOS; CI installs Swift separately.
 
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection
