@@ -46,16 +46,20 @@ fi
 log_file="$(mktemp)"
 status=0
 
+run_final_check() {
+  local name="$1"
+
+  echo "$ just $name"
+  run_just "$name" || return $?
+}
+
 {
-  echo "$ just check"
-  run_just check
+  run_final_check check || status=$?
   echo
-  echo "$ just typecheck"
-  run_just typecheck
+  run_final_check typecheck || status=$?
   echo
-  echo "$ just test"
-  run_just test
-} >"$log_file" 2>&1 || status=$?
+  run_final_check test || status=$?
+} >"$log_file" 2>&1
 
 if [[ "$status" -ne 0 ]]; then
   if [[ "$stop_hook_active" == "true" ]]; then
@@ -67,7 +71,7 @@ if [[ "$status" -ne 0 ]]; then
       const tail = log.split("\n").slice(-160).join("\n");
       console.log(JSON.stringify({
         systemMessage: [
-          "SpecLink Stop hook: `just check` / `just test` are STILL FAILING on this continuation turn.",
+          "SpecLink Stop hook: `just check` / `just typecheck` / `just test` are STILL FAILING on this continuation turn.",
           "",
           tail,
           "",
@@ -86,7 +90,7 @@ if [[ "$status" -ne 0 ]]; then
           "",
           tail,
           "",
-          "Read the failure, fix it if it is caused by this change, then rerun `just check` and `just test` before the final response. If the failure cannot be fixed in this turn, report it explicitly."
+          "Read the failure, fix it if it is caused by this change, then rerun `just check`, `just typecheck`, and `just test` before the final response. If the failure cannot be fixed in this turn, report it explicitly."
         ].join("\n")
       }));
     '
@@ -98,7 +102,7 @@ rm -f "$log_file"
 
 pass_note=""
 if [[ "$stop_hook_active" == "true" ]]; then
-  pass_note="SpecLink Stop hook: \`just check\` and \`just test\` passed on this continuation turn."
+  pass_note="SpecLink Stop hook: \`just check\`, \`just typecheck\`, and \`just test\` passed on this continuation turn."
 fi
 
 gate_log="$(mktemp)"
