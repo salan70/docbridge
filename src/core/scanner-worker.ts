@@ -1,0 +1,240 @@
+import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
+import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
+
+export type ScannerWorkerFile = {
+  filePath: string;
+  content: string;
+};
+
+export type ScannerWorkerRequest = {
+  schemaVersion: 1;
+  requestId: string;
+  language: CodeLanguage;
+  projectRoot: string;
+  files: ScannerWorkerFile[];
+  options: CodeScanOptions;
+};
+
+export type ScannerWorkerResponse = {
+  schemaVersion: 1;
+  requestId: string;
+  language: CodeLanguage;
+  files: ScannerWorkerResponseFile[];
+};
+
+export type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
+
+export type ScannerWorkerProcessInput = {
+  command: string[];
+  stdin: string;
+};
+
+export type ScannerWorkerProcessResult =
+  | {
+      ok: true;
+      exitCode: number;
+      stdout: string;
+      stderr: string;
+    }
+  | {
+      ok: false;
+      error: unknown;
+      stderr: string;
+    };
+
+export type ScannerWorkerRun = (
+  input: ScannerWorkerProcessInput,
+) => ScannerWorkerProcessResult;
+
+export type ScannerWorkerSuccess = {
+  ok: true;
+  codeFiles: CodeScanResult[];
+  stderr: string;
+};
+
+export type ScannerWorkerFailure = {
+  ok: false;
+  diagnostic: SpecLinkDiagnostic;
+  stderr: string;
+};
+
+export type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
+
+export function invokeScannerWorker(
+  request: ScannerWorkerRequest,
+  command: string[],
+  run: ScannerWorkerRun = runScannerWorkerProcess,
+): ScannerWorkerResult {
+  const processResult = run({
+    command,
+    stdin: JSON.stringify(request),
+  });
+
+  if (!processResult.ok) {
+    return {
+      ok: false,
+      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error),
+      stderr: processResult.stderr,
+    };
+  }
+
+  if (processResult.exitCode !== 0) {
+    return {
+      ok: false,
+      diagnostic: scannerFailedDiagnostic(
+        request.language,
+        `worker exited with status ${processResult.exitCode}`,
+      ),
+      stderr: processResult.stderr,
+    };
+  }
+
+  let response: unknown;
+  try {
+    response = JSON.parse(processResult.stdout);
+  } catch (error) {
+    return {
+      ok: false,
+      diagnostic: scannerFailedDiagnostic(request.language, reasonOf(error)),
+      stderr: processResult.stderr,
+    };
+  }
+
+  const validationError = validateWorkerResponse(response, request);
+  if (validationError !== undefined) {
+    return {
+      ok: false,
+      diagnostic: scannerFailedDiagnostic(request.language, validationError),
+      stderr: processResult.stderr,
+    };
+  }
+
+  const validResponse = response as ScannerWorkerResponse;
+  return {
+    ok: true,
+    codeFiles: validResponse.files.map((file) => ({
+      ...file,
+      language: request.language,
+    })),
+    stderr: processResult.stderr,
+  };
+}
+
+function runScannerWorkerProcess(
+  input: ScannerWorkerProcessInput,
+): ScannerWorkerProcessResult {
+  try {
+    const result = Bun.spawnSync({
+      cmd: input.command,
+      stdin: new TextEncoder().encode(input.stdin),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    return {
+      ok: true,
+      exitCode: result.exitCode,
+      stdout: new TextDecoder().decode(result.stdout),
+      stderr: new TextDecoder().decode(result.stderr),
+    };
+  } catch (error) {
+    return { ok: false, error, stderr: "" };
+  }
+}
+
+function validateWorkerResponse(
+  value: unknown,
+  request: ScannerWorkerRequest,
+): string | undefined {
+  if (!isRecord(value)) {
+    return "worker response must be a JSON object";
+  }
+  if (value.schemaVersion !== 1) {
+    return "worker response schemaVersion must be 1";
+  }
+  if (value.requestId !== request.requestId) {
+    return "worker response requestId does not match the request";
+  }
+  if (value.language !== request.language) {
+    return "worker response language does not match the request";
+  }
+  if (!Array.isArray(value.files)) {
+    return "worker response files must be an array";
+  }
+  if (!responseFilesMatchRequest(value.files, request.files)) {
+    return "worker response files must match requested files";
+  }
+  for (const file of value.files) {
+    if (!isResponseFile(file)) {
+      return "worker response files contain an invalid scan result";
+    }
+  }
+  return undefined;
+}
+
+function responseFilesMatchRequest(
+  responseFiles: unknown[],
+  requestFiles: ScannerWorkerFile[],
+): boolean {
+  if (responseFiles.length !== requestFiles.length) {
+    return false;
+  }
+  return responseFiles.every((file, index) => {
+    if (!isRecord(file)) {
+      return false;
+    }
+    return file.filePath === requestFiles[index]?.filePath;
+  });
+}
+
+function isResponseFile(value: unknown): value is ScannerWorkerResponseFile {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.filePath === "string" &&
+    Array.isArray(value.symbols) &&
+    Array.isArray(value.undocumentedSymbols) &&
+    Array.isArray(value.links) &&
+    Array.isArray(value.diagnostics)
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function scannerUnavailableDiagnostic(
+  language: CodeLanguage,
+  error: unknown,
+): SpecLinkDiagnostic {
+  const label = languageLabel(language);
+  return {
+    severity: "error",
+    code: "code_scanner_unavailable",
+    language,
+    target: language,
+    message: `${label} scanner worker is unavailable: ${reasonOf(error)}`,
+  };
+}
+
+function scannerFailedDiagnostic(
+  language: CodeLanguage,
+  reason: string,
+): SpecLinkDiagnostic {
+  const label = languageLabel(language);
+  return {
+    severity: "error",
+    code: "code_scanner_failed",
+    language,
+    target: language,
+    message: `${label} scanner worker failed: ${reason}`,
+  };
+}
+
+function reasonOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function languageLabel(language: CodeLanguage): string {
+  return language.charAt(0).toUpperCase() + language.slice(1);
+}

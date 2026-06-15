@@ -22,7 +22,7 @@ Normative behavior will be reflected in these specs as the slices land:
 ## Status
 
 - [x] Slice 1: Language Adapter Foundation
-- [ ] Slice 2: Worker Protocol Foundation
+- [x] Slice 2: Worker Protocol Foundation
 - [ ] Slice 3: Swift Scanner Worker
 - [ ] Slice 4: Swift End-to-End Integration
 - [ ] Slice 5: Dart Scanner Worker

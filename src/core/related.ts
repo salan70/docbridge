@@ -145,6 +145,7 @@ export function related(options: RelatedOptions): RelatedOutcome {
 
   // Unreadable files are skipped silently here; `speclink check` reports them.
   const codeFiles = scanCodeFiles(
+    options.projectRoot,
     collectCodeFiles(options.projectRoot, configResult.config.include.code),
     configResult.config.include.code,
     (relPath) => readManagedFile(options.projectRoot, relPath),

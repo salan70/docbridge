@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Worker-backed scanner protocol foundation for Swift and Dart adapters,
+  including stdin/stdout JSON invocation and scanner availability/failure
+  diagnostics.
 - `speclink graph`: prints the resolved link graph as human-readable output or
   as JSON following `schemas/graph-output.schema.json`, including resolvable
   one-way links, pair completeness, optional lightweight node content, and
@@ -25,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript scanner endpoints now include `signatureRange` in addition to the
   existing full `declarationRange`, allowing graph consumers to read the
   public JSDoc/signature surface without implementation bodies.
+
+### Fixed
+
+- Worker-backed scanner responses now fail when the returned file list does not
+  exactly match the requested files, and worker failures suppress derived link
+  diagnostics for the failed file.
 
 ## [0.3.0] - 2026-06-14
 

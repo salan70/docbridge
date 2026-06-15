@@ -1,5 +1,15 @@
-import type { CodeLanguageAdapter, CodeScanResult } from "./code-scanner";
+import { join } from "node:path";
+
+import type {
+  CodeLanguageAdapter,
+  CodeScanOptions,
+  CodeScanResult,
+} from "./code-scanner";
 import { collectFiles } from "./glob";
+import {
+  invokeScannerWorker,
+  type ScannerWorkerRun,
+} from "./scanner-worker";
 import { typeScriptAdapter } from "./typescript";
 import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
 
@@ -29,10 +39,14 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
 }
 
-// Built-in adapter registry. Slice 1 registers only the in-process TypeScript
-// adapter; Swift and Dart worker adapters are added in later slices.
 const ADAPTERS: Partial<Record<CodeLanguage, CodeLanguageAdapter>> = {
   typescript: typeScriptAdapter,
+  swift: createScannerWorkerAdapter("swift", (projectRoot) => [
+    join(projectRoot, "packages/swift-scanner/.build/release/speclink-swift-scanner"),
+  ]),
+  dart: createScannerWorkerAdapter("dart", (projectRoot) => [
+    join(projectRoot, "packages/dart-scanner/bin/speclink_dart_scanner"),
+  ]),
 };
 
 /** The registered adapter for a language, or `undefined` when none exists yet. */
@@ -40,6 +54,60 @@ export function getCodeAdapter(
   language: CodeLanguage,
 ): CodeLanguageAdapter | undefined {
   return ADAPTERS[language];
+}
+
+export type ScannerWorkerCommandFactory = (projectRoot: string) => string[];
+
+export type ScannerWorkerAdapterOptions = {
+  requestId?: () => string;
+  run?: ScannerWorkerRun;
+};
+
+export function createScannerWorkerAdapter(
+  language: CodeLanguage,
+  command: ScannerWorkerCommandFactory,
+  adapterOptions: ScannerWorkerAdapterOptions = {},
+): CodeLanguageAdapter {
+  return {
+    language,
+    scanFile(filePath, content, options, context) {
+      const result = invokeScannerWorker(
+        {
+          schemaVersion: 1,
+          requestId: adapterOptions.requestId?.() ?? crypto.randomUUID(),
+          language,
+          projectRoot: context.projectRoot,
+          files: [{ filePath, content }],
+          options,
+        },
+        command(context.projectRoot),
+        adapterOptions.run,
+      );
+      if (result.ok) {
+        const scan = result.codeFiles[0];
+        return scan ?? emptyScan(language, filePath);
+      }
+      return {
+        ...emptyScan(language, filePath),
+        diagnostics: [fileScopedScannerDiagnostic(result.diagnostic, filePath)],
+      };
+    },
+  };
+}
+
+export function setCodeAdapterForTest(
+  language: CodeLanguage,
+  adapter: CodeLanguageAdapter,
+): () => void {
+  const previous = ADAPTERS[language];
+  ADAPTERS[language] = adapter;
+  return () => {
+    if (previous === undefined) {
+      delete ADAPTERS[language];
+    } else {
+      ADAPTERS[language] = previous;
+    }
+  };
 }
 
 export type CollectedCodeFile = {
@@ -92,10 +160,11 @@ export type ScanCodeFilesResult = {
  * Read and scan each collected code file through its language adapter. The
  * `read` callback lets callers source content from disk or from editor buffer
  * overlays; `onContent` receives the resolved content for callers that cache it.
- * Files in a configured language with no registered adapter are skipped (worker
- * adapters land in later slices).
+ * Configured languages are dispatched through the registered in-process or
+ * worker-backed adapter.
  */
 export function scanCodeFiles(
+  projectRoot: string,
   files: CollectedCodeFile[],
   codeInclude: CodeInclude,
   read: (relPath: string) => CodeFileRead,
@@ -115,8 +184,11 @@ export function scanCodeFiles(
       continue;
     }
     const entry = codeInclude[language];
-    const options = entry?.visibility !== undefined ? { visibility: entry.visibility } : {};
-    const scan = adapter.scanFile(relPath, result.content, options);
+    const options: CodeScanOptions =
+      entry?.visibility !== undefined ? { visibility: entry.visibility } : {};
+    const scan = adapter.scanFile(relPath, result.content, options, {
+      projectRoot,
+    });
     diagnostics.push(...scan.diagnostics);
     codeFiles.push(scan);
   }
@@ -147,4 +219,22 @@ export function codeFileOwners(
     }
   }
   return owners;
+}
+
+function emptyScan(language: CodeLanguage, filePath: string): CodeScanResult {
+  return {
+    language,
+    filePath,
+    symbols: [],
+    undocumentedSymbols: [],
+    links: [],
+    diagnostics: [],
+  };
+}
+
+function fileScopedScannerDiagnostic(
+  diagnostic: SpecLinkDiagnostic,
+  filePath: string,
+): SpecLinkDiagnostic {
+  return { ...diagnostic, target: filePath };
 }

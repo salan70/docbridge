@@ -44,6 +44,10 @@ If a TypeScript `@doc` target doc file does not exist in the managed docs set, S
 
 If a Markdown `@code` target code file does not exist in the managed code set, SpecLink emits `code_file_not_found`. If the file exists but the matching `@doc` pair is missing, SpecLink emits `code_backlink_not_found`.
 
+If the target file had a read, parse, or scanner-worker failure, SpecLink
+suppresses relationship diagnostics that would otherwise be derived from that
+file's incomplete scan result.
+
 Duplicate `@doc` or `@code` annotations from the same source to the same target produce `duplicate_link`.
 
 If multiple `@doc`-annotated supported declarations in the same file expose the same code endpoint, SpecLink emits `duplicate_code_symbol`.

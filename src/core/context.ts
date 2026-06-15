@@ -113,6 +113,7 @@ export function context(options: ContextOptions): ContextOutcome {
   const contentByFile = new Map<string, string>();
 
   const codeScan = scanCodeFiles(
+    options.projectRoot,
     collectCodeFiles(options.projectRoot, configResult.config.include.code),
     configResult.config.include.code,
     (relPath) => readManagedFile(options.projectRoot, relPath),
