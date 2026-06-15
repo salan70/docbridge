@@ -1,6 +1,7 @@
 # SpecLink
 
 [![Japanese README](https://img.shields.io/badge/README-%E6%97%A5%E6%9C%AC%E8%AA%9E-blue)](docs/ja/README.md)
+[![Ask Devin](https://img.shields.io/badge/Ask%20Devin-000000)](https://app.devin.ai/)
 
 Bring Markdown into the LSP world.
 
