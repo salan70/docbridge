@@ -89,7 +89,7 @@ export function createScannerWorkerAdapter(
       }
       return {
         ...emptyScan(language, filePath),
-        diagnostics: [result.diagnostic],
+        diagnostics: [fileScopedScannerDiagnostic(result.diagnostic, filePath)],
       };
     },
   };
@@ -230,4 +230,11 @@ function emptyScan(language: CodeLanguage, filePath: string): CodeScanResult {
     links: [],
     diagnostics: [],
   };
+}
+
+function fileScopedScannerDiagnostic(
+  diagnostic: SpecLinkDiagnostic,
+  filePath: string,
+): SpecLinkDiagnostic {
+  return { ...diagnostic, target: filePath };
 }

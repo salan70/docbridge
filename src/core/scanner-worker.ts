@@ -160,12 +160,30 @@ function validateWorkerResponse(
   if (!Array.isArray(value.files)) {
     return "worker response files must be an array";
   }
+  if (!responseFilesMatchRequest(value.files, request.files)) {
+    return "worker response files must match requested files";
+  }
   for (const file of value.files) {
     if (!isResponseFile(file)) {
       return "worker response files contain an invalid scan result";
     }
   }
   return undefined;
+}
+
+function responseFilesMatchRequest(
+  responseFiles: unknown[],
+  requestFiles: ScannerWorkerFile[],
+): boolean {
+  if (responseFiles.length !== requestFiles.length) {
+    return false;
+  }
+  return responseFiles.every((file, index) => {
+    if (!isRecord(file)) {
+      return false;
+    }
+    return file.filePath === requestFiles[index]?.filePath;
+  });
 }
 
 function isResponseFile(value: unknown): value is ScannerWorkerResponseFile {

@@ -28,7 +28,15 @@ test("invokeScannerWorker sends one JSON request with files and options", () => 
           schemaVersion: 1,
           requestId: "req-1",
           language: "swift",
-          files: [],
+          files: [
+            {
+              filePath: "Sources/Auth.swift",
+              symbols: [],
+              undocumentedSymbols: [],
+              links: [],
+              diagnostics: [],
+            },
+          ],
         }),
         stderr: "",
       };
@@ -113,6 +121,80 @@ test("invokeScannerWorker maps response files to CodeScanResult", () => {
     ],
     stderr: "debug output\n",
   });
+});
+
+test("invokeScannerWorker rejects responses with missing requested files", () => {
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-missing-file",
+      language: "swift",
+      projectRoot: "/project",
+      files: [{ filePath: "Sources/Auth.swift", content: "" }],
+      options: {},
+    },
+    ["mock-worker"],
+    (): ScannerWorkerProcessResult => ({
+      ok: true,
+      exitCode: 0,
+      stdout: JSON.stringify({
+        schemaVersion: 1,
+        requestId: "req-missing-file",
+        language: "swift",
+        files: [],
+      }),
+      stderr: "",
+    }),
+  );
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.code).toBe("code_scanner_failed");
+    expect(result.diagnostic.message).toContain(
+      "worker response files must match requested files",
+    );
+  }
+});
+
+test("invokeScannerWorker rejects responses with unexpected file paths", () => {
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-wrong-file",
+      language: "swift",
+      projectRoot: "/project",
+      files: [{ filePath: "Sources/Auth.swift", content: "" }],
+      options: {},
+    },
+    ["mock-worker"],
+    (): ScannerWorkerProcessResult => ({
+      ok: true,
+      exitCode: 0,
+      stdout: JSON.stringify({
+        schemaVersion: 1,
+        requestId: "req-wrong-file",
+        language: "swift",
+        files: [
+          {
+            filePath: "Sources/Other.swift",
+            symbols: [],
+            undocumentedSymbols: [],
+            links: [],
+            diagnostics: [],
+          },
+        ],
+      }),
+      stderr: "",
+    }),
+  );
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.code).toBe("code_scanner_failed");
+    expect(result.diagnostic.message).toContain(
+      "worker response files must match requested files",
+    );
+  }
 });
 
 test("invokeScannerWorker emits scanner unavailable when the process cannot start", () => {

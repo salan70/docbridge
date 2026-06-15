@@ -15,6 +15,7 @@ import {
 } from "./code-language";
 import { readManagedFile } from "./glob";
 import { check } from "./resolver";
+import type { ScannerWorkerProcessResult } from "./scanner-worker";
 
 function withProject(
   files: Record<string, string>,
@@ -208,6 +209,43 @@ test("check resolves links from a worker-backed language scan", () => {
       );
       try {
         expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+      } finally {
+        restore();
+      }
+    },
+  );
+});
+
+test("check suppresses link diagnostics that depend on a failed worker scan", () => {
+  withProject(
+    {
+      "speclink.config.json": JSON.stringify({
+        include: {
+          code: { swift: { patterns: ["Sources/**/*.swift"] } },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+      "Sources/Auth.swift": "public struct AuthService {}\n",
+      "docs/auth.md": "<!-- @code Sources/Auth.swift#AuthService -->\n## Auth Service\n",
+    },
+    (root) => {
+      const restore = setCodeAdapterForTest(
+        "swift",
+        createScannerWorkerAdapter("swift", () => ["missing-swift-worker"], {
+          requestId: () => "req-swift-missing",
+          run: (): ScannerWorkerProcessResult => ({
+            ok: false,
+            error: new Error("ENOENT"),
+            stderr: "",
+          }),
+        }),
+      );
+      try {
+        const diagnostics = check({ projectRoot: root }).diagnostics;
+        expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+          "code_scanner_unavailable",
+        ]);
+        expect(diagnostics[0]?.target).toBe("Sources/Auth.swift");
       } finally {
         restore();
       }

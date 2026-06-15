@@ -23,7 +23,9 @@ If a scan target cannot be read, SpecLink emits `file_read_error`. Config file r
 
 If a code file has syntactic parse errors, SpecLink emits `code_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned.
 
-When a file has `file_read_error` or `code_parse_error`, derived link diagnostics that depend on that file are suppressed.
+When a file has `file_read_error`, `code_parse_error`,
+`code_scanner_unavailable`, or `code_scanner_failed`, derived link diagnostics
+that depend on that file are suppressed.
 
 <!-- @code src/core/code-scanner.ts#CodeScanResult -->
 ## Code Scanning
@@ -45,6 +47,8 @@ If a configured worker cannot be started, SpecLink emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
 returns invalid JSON, or returns a response whose schema version, request ID, or
 language does not match the request, SpecLink emits `code_scanner_failed`.
+Worker responses must contain exactly the requested file paths in request order;
+missing files, unexpected files, or reordered files are `code_scanner_failed`.
 
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection

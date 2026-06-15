@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing full `declarationRange`, allowing graph consumers to read the
   public JSDoc/signature surface without implementation bodies.
 
+### Fixed
+
+- Worker-backed scanner responses now fail when the returned file list does not
+  exactly match the requested files, and worker failures suppress derived link
+  diagnostics for the failed file.
+
 ## [0.3.0] - 2026-06-14
 
 ### Added

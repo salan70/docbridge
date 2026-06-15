@@ -269,12 +269,22 @@ function collectErroredFiles(diagnostics: SpecLinkDiagnostic[]): Set<string> {
   for (const diagnostic of diagnostics) {
     if (
       diagnostic.code === "file_read_error" ||
-      diagnostic.code === "code_parse_error"
+      diagnostic.code === "code_parse_error" ||
+      isFileScopedScannerDiagnostic(diagnostic)
     ) {
       errored.add(diagnostic.target);
     }
   }
   return errored;
+}
+
+function isFileScopedScannerDiagnostic(diagnostic: SpecLinkDiagnostic): boolean {
+  return (
+    (diagnostic.code === "code_scanner_unavailable" ||
+      diagnostic.code === "code_scanner_failed") &&
+    diagnostic.language !== undefined &&
+    diagnostic.target !== diagnostic.language
+  );
 }
 
 function pairKey(source: string, target: string): string {
