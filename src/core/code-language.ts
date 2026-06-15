@@ -46,8 +46,8 @@ const ADAPTERS: Partial<Record<CodeLanguage, CodeLanguageAdapter>> = {
   swift: createScannerWorkerAdapter("swift", (_projectRoot) => [
     swiftScannerExecutablePath(),
   ]),
-  dart: createScannerWorkerAdapter("dart", (projectRoot) => [
-    join(projectRoot, "packages/dart-scanner/bin/speclink_dart_scanner"),
+  dart: createScannerWorkerAdapter("dart", (_projectRoot) => [
+    dartScannerExecutablePath(),
   ]),
 };
 
@@ -72,6 +72,20 @@ function swiftScannerExecutablePath(): string {
     return debug;
   }
   return release;
+}
+
+function dartScannerPackagePath(): string {
+  const sourceLayout = fileURLToPath(
+    new URL("../../packages/dart-scanner", import.meta.url),
+  );
+  const bundledLayout = fileURLToPath(
+    new URL("../packages/dart-scanner", import.meta.url),
+  );
+  return existsSync(sourceLayout) ? sourceLayout : bundledLayout;
+}
+
+function dartScannerExecutablePath(): string {
+  return join(dartScannerPackagePath(), "bin/speclink_dart_scanner");
 }
 
 /** The registered adapter for a language, or `undefined` when none exists yet. */

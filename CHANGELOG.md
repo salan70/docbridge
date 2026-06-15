@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Dart scanner worker support, including analyzer-based `@doc` extraction,
+  type/member canonical IDs (without parameter signatures, since Dart has no
+  overloading), public-by-naming visibility, and Dart end-to-end
+  check/context/graph/LSP integration. The Dart toolchain is provided by the Nix
+  dev shell.
 - Swift scanner worker support for SwiftPM source checkouts, including
   SwiftSyntax-based `@doc` extraction, type/member canonical IDs, visibility
   filtering, and Swift end-to-end check/context/graph/LSP integration.

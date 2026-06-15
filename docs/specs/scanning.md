@@ -59,6 +59,13 @@ package requires a Swift 6 toolchain on `PATH`. The Nix dev shell deliberately
 omits a C compiler (`mkShellNoCC`) so it does not export an `SDKROOT` that would
 shadow the system Swift toolchain on macOS; CI installs Swift separately.
 
+The bundled Dart worker is a Dart package under `packages/dart-scanner`. It uses
+the Dart `analyzer` and communicates through the worker protocol. The adapter
+executes the compiled `speclink_dart_scanner` binary from that package; run
+`just test-dart-scanner` or `just build-dart-scanner` locally to build it before
+checking Dart projects from a source checkout. Building the package requires the
+Dart SDK, which the Nix dev shell provides.
+
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection
 
@@ -105,3 +112,26 @@ Supported Swift declarations are:
 Swift canonical IDs use type-qualified member names and argument labels, for
 example `AuthService.login(email:password:)`, `AuthService.refresh(_:)`, and
 `AuthService.init(email:password:)`.
+
+## Dart Scanning
+
+Dart scanning extracts `@doc` annotations from `///` and `/** ... */`
+documentation comments. Only public declarations are scanned: Dart marks
+library-private declarations with a leading underscore, so an endpoint is
+excluded when any name segment of its canonical ID starts with `_`. A member or
+constructor of a library-private type (or an extension on one) is therefore
+private even when its own name is public. `include.code.dart.visibility` accepts
+only `public`.
+
+Supported Dart declarations are:
+
+- top-level functions, getters, setters, and variables
+- `class`, `enum`, `mixin`, and their members: methods, getters, setters,
+  fields, and constructors
+- members declared in extensions, canonicalized as members of the extended type
+
+Dart has no method overloading, so canonical IDs are type-qualified member
+names without parameter signatures, for example `AuthService.login`. Setters
+carry a trailing `=` to stay distinct from a same-named getter or field
+(`AuthService.token=`), the unnamed constructor is `AuthService.new`, and named
+constructors keep their name (`AuthService.guest`).
