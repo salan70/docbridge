@@ -801,7 +801,12 @@ test("run graph --json scopes output to input files and direct counterparts", ()
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
       nodes: Array<{ endpoint: string }>;
-      pairs: Array<{ codeEndpoint: string; docEndpoint: string }>;
+      pairs: Array<{
+        codeEndpoint: string;
+        docEndpoint: string;
+        hasDocEdge: boolean;
+        hasCodeEdge: boolean;
+      }>;
       summary: { nodes: number; edges: number };
     };
     expect(parsed.nodes.map((node) => node.endpoint).sort()).toEqual([

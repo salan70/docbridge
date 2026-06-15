@@ -11,7 +11,13 @@ const ROOT_URI = pathToFileURL(EXAMPLE_ROOT).href;
 const CODE_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "src/auth/login.ts")).href;
 const DOC_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "docs/auth.md")).href;
 
-type Outgoing = { id?: number | string; method?: string; result?: unknown; params?: unknown };
+type Outgoing = {
+  jsonrpc?: string;
+  id?: number | string;
+  method?: string;
+  result?: unknown;
+  params?: unknown;
+};
 
 function harness(options: { debounceMs?: number } = {}) {
   const sent: Outgoing[] = [];

@@ -84,9 +84,10 @@ export function scanTypeScript(
     if (supported === null) {
       // Only annotated unsupported declarations are reported; bare ones are
       // ignored entirely.
-      if (docTags.length > 0) {
+      const firstDocTag = docTags[0];
+      if (firstDocTag) {
         diagnostics.push(
-          unsupportedDeclarationDiagnostic(filePath, docTags[0].location),
+          unsupportedDeclarationDiagnostic(filePath, firstDocTag.location),
         );
       }
       continue;
@@ -324,10 +325,11 @@ function supportedNameNode(statement: ts.Statement): ts.Identifier | null {
       return null;
     }
     const declarations = statement.declarationList.declarations;
-    if (declarations.length !== 1) {
+    const declaration = declarations.length === 1 ? declarations[0] : undefined;
+    if (!declaration) {
       return null;
     }
-    const name = declarations[0].name;
+    const name = declaration.name;
     return ts.isIdentifier(name) ? name : null;
   }
 
