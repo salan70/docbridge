@@ -28,6 +28,7 @@ Use the repo-native commands in `justfile`:
 - `just audit`
 - `just check-fixture <code>`
 - `just test`
+- `just typecheck`
 - `just build`
 
 Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
@@ -47,9 +48,10 @@ hook (Edit/Write) surfaces the linked counterpart content of the file just
 edited via `speclink context` so the change can be reconciled against it; it is
 `PostToolUse` rather than `PreToolUse` because a `PreToolUse` hook's additional
 context is delivered only after the edit runs, and files without linked
-counterparts inject nothing. The `Stop` hook runs `just check` and `just test`
-when the working tree has changes, and blocks completion with the failure
-output if either fails; on continuation turns it re-runs the checks and reports
+counterparts inject nothing. The `Stop` hook runs `just check`, `just
+typecheck`, and `just test` when the working tree has changes, and blocks
+completion with the failure output if any fails; on continuation turns it
+re-runs the checks and reports
 the result without blocking again. When those checks pass, it also reports
 `just related-gate` results over uncommitted changes as information, attaching
 the flagged counterparts' content fetched via `speclink context` and delivered
@@ -61,8 +63,8 @@ PR comment; the human merge approval is the enforcement point.
 Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
 when hook setup is missing; use `nix develop -c just install-git-hooks` if
 `just` is not on `PATH`. The command configures `core.hooksPath` for this
-repository. The `pre-commit` hook runs `just check` and `just test` as a
-mandatory guard.
+repository. The `pre-commit` hook runs `just check`, `just typecheck`, and
+`just test` as a mandatory guard.
 
 ## Skills
 
@@ -108,7 +110,8 @@ Full rules and the release procedure live in the `git-workflow` skill
 - After a PR merges, return to an updated `main` (`git switch main && git pull --ff-only`) and delete the local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
-- CI (`just check`, `just test`, `just build`) must pass before merging.
+- CI (`just check`, `just typecheck`, `just test`, `just build`) must pass
+  before merging.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR requires explicit human approval.** Release tagging and publishing are automated by GitHub Actions when the release PR is merged, so the merge is the release approval gate.
 
 ### Commit messages

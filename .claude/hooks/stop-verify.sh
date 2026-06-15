@@ -50,6 +50,9 @@ status=0
   echo "$ just check"
   run_just check
   echo
+  echo "$ just typecheck"
+  run_just typecheck
+  echo
   echo "$ just test"
   run_just test
 } >"$log_file" 2>&1 || status=$?
