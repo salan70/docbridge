@@ -31,6 +31,12 @@ context:
 test:
     bun test
 
+test-swift-scanner:
+    swift test --package-path packages/swift-scanner
+
+build-swift-scanner:
+    swift build --package-path packages/swift-scanner -c release
+
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.
 typecheck:

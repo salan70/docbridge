@@ -50,6 +50,12 @@ language does not match the request, SpecLink emits `code_scanner_failed`.
 Worker responses must contain exactly the requested file paths in request order;
 missing files, unexpected files, or reordered files are `code_scanner_failed`.
 
+The bundled Swift worker is a SwiftPM package under `packages/swift-scanner`.
+It uses SwiftSyntax/SwiftParser and communicates through the worker protocol.
+The adapter executes the built `speclink-swift-scanner` binary from that
+package; run `just test-swift-scanner` or `just build-swift-scanner` locally to
+build it before checking Swift projects from a source checkout.
+
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection
 
@@ -79,3 +85,20 @@ surface. The signature range includes the leading JSDoc block but excludes
 implementation bodies when the syntax has one, including function bodies, class
 bodies, and supported `const` initializers with arrow-function, function,
 class, or object bodies.
+
+## Swift Scanning
+
+Swift scanning extracts `@doc` annotations from `///` and `/** ... */`
+documentation comments. By default, `public` and `open` declarations are
+included; `internal` declarations are included only when configured through
+`include.code.swift.visibility`.
+
+Supported Swift declarations are:
+
+- top-level and member `class`, `struct`, `enum`, `protocol`, and `actor`
+- top-level and member `func`, `var`, `let`, and `init`
+- members declared in extensions, canonicalized as members of the extended type
+
+Swift canonical IDs use type-qualified member names and argument labels, for
+example `AuthService.login(email:password:)`, `AuthService.refresh(_:)`, and
+`AuthService.init(email:password:)`.

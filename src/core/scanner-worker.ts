@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
 import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
 
@@ -124,8 +126,14 @@ function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
   try {
+    const moduleCachePath = "/tmp/speclink-clang-module-cache";
+    mkdirSync(moduleCachePath, { recursive: true });
     const result = Bun.spawnSync({
       cmd: input.command,
+      env: {
+        ...Bun.env,
+        CLANG_MODULE_CACHE_PATH: moduleCachePath,
+      },
       stdin: new TextEncoder().encode(input.stdin),
       stdout: "pipe",
       stderr: "pipe",

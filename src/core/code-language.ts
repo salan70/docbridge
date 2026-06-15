@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type {
   CodeLanguageAdapter,
@@ -41,13 +43,36 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
 
 const ADAPTERS: Partial<Record<CodeLanguage, CodeLanguageAdapter>> = {
   typescript: typeScriptAdapter,
-  swift: createScannerWorkerAdapter("swift", (projectRoot) => [
-    join(projectRoot, "packages/swift-scanner/.build/release/speclink-swift-scanner"),
+  swift: createScannerWorkerAdapter("swift", (_projectRoot) => [
+    swiftScannerExecutablePath(),
   ]),
   dart: createScannerWorkerAdapter("dart", (projectRoot) => [
     join(projectRoot, "packages/dart-scanner/bin/speclink_dart_scanner"),
   ]),
 };
+
+function swiftScannerPackagePath(): string {
+  const sourceLayout = fileURLToPath(
+    new URL("../../packages/swift-scanner", import.meta.url),
+  );
+  const bundledLayout = fileURLToPath(
+    new URL("../packages/swift-scanner", import.meta.url),
+  );
+  return existsSync(sourceLayout) ? sourceLayout : bundledLayout;
+}
+
+function swiftScannerExecutablePath(): string {
+  const packagePath = swiftScannerPackagePath();
+  const release = join(packagePath, ".build/release/speclink-swift-scanner");
+  if (existsSync(release)) {
+    return release;
+  }
+  const debug = join(packagePath, ".build/debug/speclink-swift-scanner");
+  if (existsSync(debug)) {
+    return debug;
+  }
+  return release;
+}
 
 /** The registered adapter for a language, or `undefined` when none exists yet. */
 export function getCodeAdapter(

@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "swift": {
+        "patterns": ["Sources/**/*.swift"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

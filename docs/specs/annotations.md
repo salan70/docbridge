@@ -11,6 +11,14 @@ TypeScript uses JSDoc `@doc` tags attached to supported declarations:
 export function runCheck() {}
 ```
 
+Swift uses documentation comments with `@doc` attached to supported
+declarations:
+
+```swift
+/// @doc docs/specs/auth.md#login-flow
+public func login(email: String, password: String) {}
+```
+
 Markdown uses standalone HTML comments with `@code` attached to the next heading:
 
 ```md
@@ -52,6 +60,15 @@ Unsupported examples include:
 - non-exported declarations with `@doc`
 
 SpecLink relies on the TypeScript Compiler API to associate JSDoc with declarations. Orphan `@doc` comments that are not associated with a declaration are not detected in v0.1.
+
+Supported Swift declarations are listed in [Scanning](./scanning.md#swift-scanning).
+Swift member endpoints are type-qualified and include argument labels, so
+Markdown backlinks must use the scanner-produced canonical ID exactly:
+
+```md
+<!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+## Login Flow
+```
 
 Markdown `@code` comments may be indented by 0 to 3 spaces. Comments indented by 4 or more spaces are ignored.
 

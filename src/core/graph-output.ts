@@ -8,6 +8,7 @@ import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
 import type {
+  CodeLanguage,
   CodeLinkAnnotation,
   CodeSymbolEndpoint,
   DocAnchorEndpoint,
@@ -22,6 +23,7 @@ export type GraphNode = {
   kind: "code" | "doc";
   endpoint: string;
   filePath: string;
+  language?: CodeLanguage;
   location: SourceLocation;
   range?: Range;
   content?: GraphNodeContent;
@@ -320,6 +322,7 @@ function codeNode(
     kind: "code",
     endpoint: symbol.endpoint,
     filePath: symbol.filePath,
+    language: symbol.language,
     location: symbol.location,
   };
   const range = symbol.signatureRange ?? symbol.declarationRange;
