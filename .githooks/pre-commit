@@ -15,5 +15,8 @@ run_just() {
 echo "Running pre-commit guard: just check"
 run_just check
 
+echo "Running pre-commit guard: just typecheck"
+run_just typecheck
+
 echo "Running pre-commit guard: just test"
 run_just test

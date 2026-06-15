@@ -14,7 +14,8 @@ cannot be pushed to directly. Follow these rules for all git work.
   this for everyone, including administrators.
 - Merge method is **Create a merge commit**. PR boundaries stay visible in
   `main` history; use `git log --first-parent main` for a PR-level view.
-- CI (`just check`, `just test`, `just build`) must pass before a PR can merge.
+- CI (`just check`, `just typecheck`, `just test`, `just build`) must pass
+  before a PR can merge.
 - Commit messages follow
   [docs/contributing/commits.md](../../../docs/contributing/commits.md):
   `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated

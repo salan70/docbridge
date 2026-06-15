@@ -31,6 +31,11 @@ context:
 test:
     bun test
 
+# Type-check the whole project with the TypeScript compiler (no emit). This is
+# the gate that catches type drift `bun build` silently ignores.
+typecheck:
+    bunx tsc --noEmit
+
 build:
     bun build src/cli/index.ts --outdir dist --target bun
 

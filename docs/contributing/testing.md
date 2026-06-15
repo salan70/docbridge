@@ -16,6 +16,17 @@ SpecLink uses the Bun test runner (`bun test`, wrapped as `just test`).
   `.test` suffix, so the runner does not execute them as suites. Example:
   `src/lsp/fixtures.ts`.
 
+## Type checking
+
+- `just typecheck` runs `tsc --noEmit` over the whole project. `bun build`
+  strips types without checking them, so this is the only gate that catches
+  type errors. It runs in CI, in the `pre-commit` hook, and in the agent `Stop`
+  hook alongside `just check` and `just test`.
+- The TypeScript toolchain is pinned through `bun.lock` (`typescript`,
+  `@types/bun`, and the transitive `@types/node`). Run installs with
+  `bun install --frozen-lockfile` so every machine resolves the same types; a
+  stale `node_modules` is the usual cause of "type errors on one machine only".
+
 ## Notes
 
 - Colocated test files never reach `dist/`: `bun build` starts from the CLI

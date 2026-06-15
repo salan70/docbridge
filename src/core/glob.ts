@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync, readdirSync } from "node:fs";
+import { type Dirent, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import type { SpecLinkDiagnostic } from "./types";
@@ -79,7 +79,7 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
   const matched = new Set<string>();
 
   const walk = (relDir: string): void => {
-    let entries: ReturnType<typeof readdirSync>;
+    let entries: Dirent[];
     try {
       entries = readdirSync(join(projectRoot, relDir), { withFileTypes: true });
     } catch {

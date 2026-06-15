@@ -26,6 +26,9 @@ jobs:
       - name: just check
         run: nix develop -c just check
 
+      - name: just typecheck
+        run: nix develop -c just typecheck
+
       - name: just test
         run: nix develop -c just test
 
