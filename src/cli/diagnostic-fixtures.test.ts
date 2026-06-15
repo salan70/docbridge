@@ -156,11 +156,11 @@ test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => 
   expect(exitCode).toBe(1);
 });
 
-test("fixture typescript_parse_error fires exactly typescript_parse_error", () => {
-  const { exitCode, diagnostics } = checkFixture("typescript_parse_error");
+test("fixture code_parse_error fires exactly code_parse_error", () => {
+  const { exitCode, diagnostics } = checkFixture("code_parse_error");
 
   expect(diagnostics).toEqual([
-    { code: "typescript_parse_error", filePath: "src/example.ts", line: 1 },
+    { code: "code_parse_error", filePath: "src/example.ts", line: 1 },
   ]);
   expect(exitCode).toBe(1);
 });

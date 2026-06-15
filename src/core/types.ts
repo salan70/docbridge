@@ -3,6 +3,12 @@ export type LinkTarget = {
   fragment: string;
 };
 
+/**
+ * Fixed lowercase identifiers for the code languages SpecLink understands. The
+ * set is closed; configuration rejects any other value.
+ */
+export type CodeLanguage = "typescript" | "swift" | "dart";
+
 export type DiagnosticSeverity = "error" | "warning";
 
 export type DiagnosticCode =
@@ -17,7 +23,7 @@ export type DiagnosticCode =
   | "doc_backlink_not_found"
   | "duplicate_doc_anchor"
   | "duplicate_code_symbol"
-  | "typescript_parse_error"
+  | "code_parse_error"
   | "file_read_error"
   | "duplicate_link"
   | "dangling_code_annotation"
@@ -49,6 +55,13 @@ export type SpecLinkDiagnostic = {
   severity: DiagnosticSeverity;
   code: DiagnosticCode;
   target: string;
+  /**
+   * The code language this diagnostic pertains to, when it is known from code
+   * scanning or a known code endpoint. Left unset for config diagnostics,
+   * Markdown diagnostics, and diagnostics whose target maps to no single
+   * configured language.
+   */
+  language?: CodeLanguage;
   source?: string;
   message: string;
   location?: SourceLocation;
@@ -74,8 +87,17 @@ export type EndpointKind = "code" | "doc";
 
 export type CodeSymbolEndpoint = {
   kind: "code";
+  language: CodeLanguage;
   filePath: string;
+  /** Human-facing declaration name. */
   symbolName: string;
+  /**
+   * Language-adapter-produced stable symbol identity used as the `#fragment` of
+   * the endpoint. For TypeScript top-level declarations this equals
+   * `symbolName`; languages with member endpoints qualify it (e.g.
+   * `AuthService.login(email:password:)`).
+   */
+  canonicalId: string;
   endpoint: string;
   location: SourceLocation;
   /** Range of the declaration name identifier, used as a navigation trigger. */

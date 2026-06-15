@@ -1,21 +1,22 @@
+import { collectCodeFiles, scanCodeFiles } from "./code-language";
+import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { parseLinkTarget } from "./links";
-import { scanTypeScript, type TypeScriptScanResult } from "./typescript";
 import type { CheckResult, LinkAnnotation, SpecLinkDiagnostic } from "./types";
 
 export type ResolveInput = {
-  /** One per scanned `.ts` file, including files that hit a parse error. */
-  codeFiles: TypeScriptScanResult[];
+  /** One per scanned code file, including files that hit a parse error. */
+  codeFiles: CodeScanResult[];
   /** One per scanned `.md` file. */
   docFiles: MarkdownScanResult[];
   /**
-   * Diagnostics collected upstream (config, file_read_error,
-   * typescript_parse_error, and the scanner diagnostics). They are not
-   * re-emitted here, but `file_read_error` / `typescript_parse_error` entries
-   * are used to suppress derived link diagnostics.
+   * Diagnostics collected upstream (config, file_read_error, code_parse_error,
+   * and the scanner diagnostics). They are not re-emitted here, but
+   * `file_read_error` / `code_parse_error` entries are used to suppress derived
+   * link diagnostics.
    */
   scanDiagnostics: SpecLinkDiagnostic[];
   audit: boolean;
@@ -199,17 +200,13 @@ export function check(options: CheckOptions): CheckResult {
 
   const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
 
-  const codeFiles: TypeScriptScanResult[] = [];
-  for (const relPath of collectFiles(projectRoot, configResult.config.include.code)) {
-    const read = readManagedFile(projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      continue;
-    }
-    const scan = scanTypeScript(relPath, read.content);
-    scanDiagnostics.push(...scan.diagnostics);
-    codeFiles.push(scan);
-  }
+  const codeScan = scanCodeFiles(
+    collectCodeFiles(projectRoot, configResult.config.include.code),
+    configResult.config.include.code,
+    (relPath) => readManagedFile(projectRoot, relPath),
+  );
+  const codeFiles = codeScan.codeFiles;
+  scanDiagnostics.push(...codeScan.diagnostics);
 
   const docFiles: MarkdownScanResult[] = [];
   for (const relPath of collectFiles(projectRoot, configResult.config.include.docs)) {
@@ -255,6 +252,7 @@ function auditUndocumentedSymbols(
       diagnostics.push({
         severity: "warning",
         code: "undocumented_symbol",
+        language: symbol.language,
         target: symbol.endpoint,
         message: `Exported symbol ${symbol.endpoint} has no @doc annotation.`,
         location: symbol.location,
@@ -270,7 +268,7 @@ function collectErroredFiles(diagnostics: SpecLinkDiagnostic[]): Set<string> {
   for (const diagnostic of diagnostics) {
     if (
       diagnostic.code === "file_read_error" ||
-      diagnostic.code === "typescript_parse_error"
+      diagnostic.code === "code_parse_error"
     ) {
       errored.add(diagnostic.target);
     }

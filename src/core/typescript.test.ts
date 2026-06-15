@@ -61,8 +61,10 @@ describe("scanTypeScript", () => {
 
         const expectedSymbol: CodeSymbolEndpoint = {
           kind: "code",
+          language: "typescript",
           filePath: FILE,
           symbolName,
+          canonicalId: symbolName,
           endpoint: `${FILE}#${symbolName}`,
           location: expect.objectContaining({
             filePath: FILE,
@@ -72,6 +74,7 @@ describe("scanTypeScript", () => {
         };
 
         expect(result.symbols).toMatchObject([expectedSymbol]);
+        expect(result.language).toBe("typescript");
 
         const expectedLink: DocLinkAnnotation = {
           direction: "code-to-doc",
@@ -230,7 +233,7 @@ describe("scanTypeScript", () => {
   });
 
   describe("parse errors", () => {
-    test("emits typescript_parse_error and extracts nothing on syntactic errors", () => {
+    test("emits code_parse_error and extracts nothing on syntactic errors", () => {
       const content =
         "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login( {\n";
       const result = scan(content);
@@ -238,7 +241,8 @@ describe("scanTypeScript", () => {
       expect(result.symbols).toEqual([]);
       expect(result.links).toEqual([]);
       expect(result.diagnostics).toHaveLength(1);
-      expect(result.diagnostics[0]?.code).toBe("typescript_parse_error");
+      expect(result.diagnostics[0]?.code).toBe("code_parse_error");
+      expect(result.diagnostics[0]?.language).toBe("typescript");
       expect(result.diagnostics[0]?.severity).toBe("error");
       expect(result.diagnostics[0]?.location?.filePath).toBe(FILE);
     });

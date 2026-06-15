@@ -1,3 +1,5 @@
+import { collectCodeFiles, scanCodeFiles } from "./code-language";
+import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { sortDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
@@ -6,7 +8,6 @@ import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
-import { scanTypeScript, type TypeScriptScanResult } from "./typescript";
 import type { EndpointKind, SpecLinkDiagnostic } from "./types";
 
 export type ContextBlock = {
@@ -111,18 +112,14 @@ export function context(options: ContextOptions): ContextOutcome {
   const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
   const contentByFile = new Map<string, string>();
 
-  const codeFiles: TypeScriptScanResult[] = [];
-  for (const relPath of collectFiles(options.projectRoot, configResult.config.include.code)) {
-    const read = readManagedFile(options.projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      continue;
-    }
-    contentByFile.set(relPath, read.content);
-    const scan = scanTypeScript(relPath, read.content);
-    scanDiagnostics.push(...scan.diagnostics);
-    codeFiles.push(scan);
-  }
+  const codeScan = scanCodeFiles(
+    collectCodeFiles(options.projectRoot, configResult.config.include.code),
+    configResult.config.include.code,
+    (relPath) => readManagedFile(options.projectRoot, relPath),
+    (relPath, content) => contentByFile.set(relPath, content),
+  );
+  const codeFiles: CodeScanResult[] = codeScan.codeFiles;
+  scanDiagnostics.push(...codeScan.diagnostics);
 
   const docFiles: MarkdownScanResult[] = [];
   for (const relPath of collectFiles(options.projectRoot, configResult.config.include.docs)) {

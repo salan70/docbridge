@@ -1,7 +1,15 @@
 {
   "$schema": "./schemas/speclink.schema.json",
   "include": {
-    "code": ["src/**/*.ts"],
-    "docs": ["docs/specs/**/*.md"]
+    "code": {
+      "typescript": {
+        "patterns": [
+          "src/**/*.ts"
+        ]
+      }
+    },
+    "docs": [
+      "docs/specs/**/*.md"
+    ]
   }
 }

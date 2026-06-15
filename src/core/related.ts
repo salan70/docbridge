@@ -1,10 +1,10 @@
 import { isAbsolute, relative } from "node:path";
 
+import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import { loadConfig } from "./config";
 import { collectFiles, readManagedFile } from "./glob";
 import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
-import { scanTypeScript, type TypeScriptScanResult } from "./typescript";
 import type { SpecLinkDiagnostic } from "./types";
 
 export type RelatedCounterpart = {
@@ -143,13 +143,12 @@ export function related(options: RelatedOptions): RelatedOutcome {
     return { ok: false, diagnostics: configResult.diagnostics };
   }
 
-  const codeFiles: TypeScriptScanResult[] = [];
-  for (const relPath of collectFiles(options.projectRoot, configResult.config.include.code)) {
-    const read = readManagedFile(options.projectRoot, relPath);
-    if (read.ok) {
-      codeFiles.push(scanTypeScript(relPath, read.content));
-    }
-  }
+  // Unreadable files are skipped silently here; `speclink check` reports them.
+  const codeFiles = scanCodeFiles(
+    collectCodeFiles(options.projectRoot, configResult.config.include.code),
+    configResult.config.include.code,
+    (relPath) => readManagedFile(options.projectRoot, relPath),
+  ).codeFiles;
 
   const docFiles: MarkdownScanResult[] = [];
   for (const relPath of collectFiles(options.projectRoot, configResult.config.include.docs)) {

@@ -1,5 +1,5 @@
+import type { CodeScanResult } from "./code-scanner";
 import type { MarkdownScanResult } from "./markdown";
-import type { TypeScriptScanResult } from "./typescript";
 import type { CodeSymbolEndpoint, DocAnchorEndpoint } from "./types";
 
 export type GraphEndpoint = CodeSymbolEndpoint | DocAnchorEndpoint;
@@ -33,7 +33,7 @@ export type LinkGraph = {
  * resolves to a known endpoint.
  */
 export function buildLinkGraph(
-  codeFiles: TypeScriptScanResult[],
+  codeFiles: CodeScanResult[],
   docFiles: MarkdownScanResult[],
 ): LinkGraph {
   const codeByEndpoint = new Map<string, CodeSymbolEndpoint>();

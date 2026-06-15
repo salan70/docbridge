@@ -1,10 +1,17 @@
+import {
+  collectCodeFiles,
+  KNOWN_CODE_LANGUAGES,
+  scanCodeFiles,
+  type CodeFileRead,
+  type CodeInclude,
+  type CollectedCodeFile,
+} from "../core/code-language";
 import { loadConfig } from "../core/config";
 import { sortDiagnostics } from "../core/diagnostics";
 import { buildLinkGraph, type LinkGraph } from "../core/graph";
 import { collectFiles, matchGlob, readManagedFile } from "../core/glob";
 import { scanMarkdown, type MarkdownScanResult } from "../core/markdown";
 import { resolveLinks } from "../core/resolver";
-import { scanTypeScript, type TypeScriptScanResult } from "../core/typescript";
 import type { SpecLinkDiagnostic } from "../core/types";
 import { buildPositionIndex, type PositionIndex } from "./index-lookup";
 
@@ -60,23 +67,20 @@ export class Project {
       return this.current;
     }
 
-    const codePaths = this.collect(configResult.config.include.code, true);
+    const codeInclude = configResult.config.include.code;
     const docPaths = this.collect(configResult.config.include.docs, false);
 
     const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
     const contentByFile = new Map<string, string>();
 
-    const codeFiles: TypeScriptScanResult[] = [];
-    for (const relPath of codePaths) {
-      const content = this.contentFor(relPath, scanDiagnostics);
-      if (content === undefined) {
-        continue;
-      }
-      contentByFile.set(relPath, content);
-      const scan = scanTypeScript(relPath, content);
-      scanDiagnostics.push(...scan.diagnostics);
-      codeFiles.push(scan);
-    }
+    const codeScan = scanCodeFiles(
+      this.collectCode(codeInclude),
+      codeInclude,
+      (relPath) => this.readContent(relPath),
+      (relPath, content) => contentByFile.set(relPath, content),
+    );
+    const codeFiles = codeScan.codeFiles;
+    scanDiagnostics.push(...codeScan.diagnostics);
 
     const docFiles: MarkdownScanResult[] = [];
     for (const relPath of docPaths) {
@@ -105,6 +109,47 @@ export class Project {
       contentByFile,
     };
     return this.current;
+  }
+
+  /**
+   * Collect the managed code files across configured languages, each tagged
+   * with its language: disk matches plus any open-buffer path that matches a
+   * language's patterns but is not (yet) on disk.
+   */
+  private collectCode(codeInclude: CodeInclude): CollectedCodeFile[] {
+    const onDisk = collectCodeFiles(this.projectRoot, codeInclude);
+    const seen = new Set(onDisk.map((file) => file.relPath));
+    const all = [...onDisk];
+    for (const language of KNOWN_CODE_LANGUAGES) {
+      const entry = codeInclude[language];
+      if (entry === undefined) {
+        continue;
+      }
+      for (const relPath of this.overlay.keys()) {
+        if (seen.has(relPath)) {
+          continue;
+        }
+        if (language === "typescript" && relPath.endsWith(".d.ts")) {
+          continue;
+        }
+        if (entry.patterns.some((pattern) => matchGlob(pattern, relPath))) {
+          seen.add(relPath);
+          all.push({ language, relPath });
+        }
+      }
+    }
+    return all.sort((left, right) =>
+      left.relPath < right.relPath ? -1 : left.relPath > right.relPath ? 1 : 0,
+    );
+  }
+
+  /** Resolve content for a code path: buffer overlay first, then on-disk. */
+  private readContent(relPath: string): CodeFileRead {
+    const overlaid = this.overlay.get(relPath);
+    if (overlaid !== undefined) {
+      return { ok: true, content: overlaid };
+    }
+    return readManagedFile(this.projectRoot, relPath);
   }
 
   /**

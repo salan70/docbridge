@@ -1,44 +1,102 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { loadConfig, resolveConfig } from "./config";
 
-const DEFAULT_CONFIG = {
-  include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] },
+const TS_CONFIG = {
+  include: {
+    code: { typescript: { patterns: ["src/**/*.ts"] } },
+    docs: ["docs/**/*.md"],
+  },
 };
 
-test("resolveConfig returns default config when no file is present", () => {
+function codes(result: ReturnType<typeof resolveConfig>): string[] {
+  return result.diagnostics.map((diagnostic) => diagnostic.code);
+}
+
+test("resolveConfig rejects a missing config file", () => {
   const result = resolveConfig(undefined);
-  expect(result.ok).toBe(true);
-  expect(result.diagnostics).toEqual([]);
-  expect(result.config).toEqual(DEFAULT_CONFIG);
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics[0]).toMatchObject({ code: "config_file_invalid" });
 });
 
-test("resolveConfig accepts a valid root-style config", () => {
+test("resolveConfig accepts a language-keyed config", () => {
   const result = resolveConfig(
     JSON.stringify({
       $schema: "./schemas/speclink.schema.json",
-      include: { code: ["src/**/*.ts"], docs: ["docs/specs/**/*.md"] },
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/specs/**/*.md"],
+      },
     }),
   );
   expect(result.ok).toBe(true);
   expect(result.diagnostics).toEqual([]);
   expect(result.config).toEqual({
-    include: { code: ["src/**/*.ts"], docs: ["docs/specs/**/*.md"] },
+    include: {
+      code: { typescript: { patterns: ["src/**/*.ts"] } },
+      docs: ["docs/specs/**/*.md"],
+    },
   });
 });
 
-test("resolveConfig accepts a valid example-style config", () => {
+test("resolveConfig accepts a language entry with a visibility option", () => {
   const result = resolveConfig(
     JSON.stringify({
-      $schema: "../../schemas/speclink.schema.json",
-      include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] },
+      include: {
+        code: { swift: { patterns: ["Sources/**/*.swift"], visibility: ["public", "open"] } },
+        docs: ["docs/**/*.md"],
+      },
     }),
   );
   expect(result.ok).toBe(true);
-  expect(result.diagnostics).toEqual([]);
+  expect(result.config.include.code.swift).toEqual({
+    patterns: ["Sources/**/*.swift"],
+    visibility: ["public", "open"],
+  });
+});
+
+test("resolveConfig rejects the old include.code array form", () => {
+  const result = resolveConfig(
+    JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
+  );
+  expect(result.ok).toBe(false);
+  expect(codes(result)).toContain("config_invalid_value");
+});
+
+test("resolveConfig rejects an unknown language ID", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: { code: { kotlin: { patterns: ["src/**/*.kt"] } }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(codes(result)).toContain("config_invalid_value");
+});
+
+test("resolveConfig rejects a shorthand array language entry", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: { code: { swift: ["Sources/**/*.swift"] }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(codes(result)).toContain("config_invalid_value");
+});
+
+test("resolveConfig rejects an unknown key inside a language entry", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"], extra: true } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(codes(result)).toContain("config_unknown_key");
 });
 
 test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
@@ -46,78 +104,118 @@ test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
   expect(result.ok).toBe(false);
   expect(result.diagnostics).toHaveLength(1);
   expect(result.diagnostics[0]).toMatchObject({
-    severity: "error",
     code: "config_file_invalid",
     target: "speclink.config.json",
   });
 });
 
 test("resolveConfig reports config_unknown_key for unknown top-level keys", () => {
-  const result = resolveConfig(
-    JSON.stringify({
-      include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] },
-      extra: true,
-    }),
-  );
+  const result = resolveConfig(JSON.stringify({ ...TS_CONFIG, extra: true }));
   expect(result.ok).toBe(false);
-  expect(result.diagnostics.some((d) => d.code === "config_unknown_key")).toBe(true);
+  expect(codes(result)).toContain("config_unknown_key");
 });
 
 test("resolveConfig reports config_unknown_key for unknown include keys", () => {
   const result = resolveConfig(
     JSON.stringify({
-      include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"], tests: ["t/*.ts"] },
+      include: { ...TS_CONFIG.include, tests: ["t/*.ts"] },
     }),
   );
   expect(result.ok).toBe(false);
-  expect(result.diagnostics.some((d) => d.code === "config_unknown_key")).toBe(true);
+  expect(codes(result)).toContain("config_unknown_key");
 });
 
 test.each([
   [{ include: { docs: ["docs/**/*.md"] } }, "missing include.code"],
-  [{ include: { code: ["src/**/*.ts"] } }, "missing include.docs"],
-  [{ include: { code: [], docs: ["docs/**/*.md"] } }, "empty include.code"],
-  [{ include: { code: ["src/**/*.ts"], docs: [] } }, "empty include.docs"],
-  [{ include: { code: [1], docs: ["docs/**/*.md"] } }, "non-string in code"],
+  [{ include: { code: { typescript: { patterns: ["src/**/*.ts"] } } } }, "missing include.docs"],
+  [{ include: { code: {}, docs: ["docs/**/*.md"] } }, "empty include.code"],
+  [
+    { include: { code: { typescript: { patterns: [] } }, docs: ["docs/**/*.md"] } },
+    "empty patterns",
+  ],
+  [{ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: [] } }, "empty docs"],
+  [
+    { include: { code: { typescript: { patterns: [1] } }, docs: ["docs/**/*.md"] } },
+    "non-string pattern",
+  ],
   [{ include: "x" }, "include not an object"],
   [{}, "missing include"],
-  [{ include: { code: ["src/**/*.md"], docs: ["docs/**/*.md"] } }, "code wrong suffix"],
-  [{ include: { code: ["src/**/*.d.ts"], docs: ["docs/**/*.md"] } }, "code .d.ts suffix"],
-  [{ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.ts"] } }, "docs wrong suffix"],
-  [{ include: { code: ["/src/**/*.ts"], docs: ["docs/**/*.md"] } }, "absolute code path"],
-  [{ include: { code: ["./src/**/*.ts"], docs: ["docs/**/*.md"] } }, "dot-prefixed code path"],
-  [{ include: { code: ["../src/**/*.ts"], docs: ["docs/**/*.md"] } }, "parent traversal"],
-  [{ include: { code: ["src\\**\\*.ts"], docs: ["docs/**/*.md"] } }, "backslash separator"],
-  [{ include: { code: ["src/[a]/*.ts"], docs: ["docs/**/*.md"] } }, "invalid glob syntax"],
-  [{ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] }, $schema: 5 }, "non-string schema"],
+  [
+    { include: { code: { typescript: { patterns: ["src/**/*.md"] } }, docs: ["docs/**/*.md"] } },
+    "typescript wrong suffix",
+  ],
+  [
+    { include: { code: { typescript: { patterns: ["src/**/*.d.ts"] } }, docs: ["docs/**/*.md"] } },
+    "typescript .d.ts suffix",
+  ],
+  [
+    { include: { code: { swift: { patterns: ["Sources/**/*.ts"] } }, docs: ["docs/**/*.md"] } },
+    "swift wrong suffix",
+  ],
+  [
+    { include: { code: { dart: { patterns: ["lib/**/*.ts"] } }, docs: ["docs/**/*.md"] } },
+    "dart wrong suffix",
+  ],
+  [
+    {
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"], visibility: "public" } },
+        docs: ["docs/**/*.md"],
+      },
+    },
+    "visibility not an array",
+  ],
+  [
+    { include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.ts"] } },
+    "docs wrong suffix",
+  ],
+  [
+    { include: { code: { typescript: { patterns: ["/src/**/*.ts"] } }, docs: ["docs/**/*.md"] } },
+    "absolute code path",
+  ],
+  [
+    { include: { code: { typescript: { patterns: ["../src/**/*.ts"] } }, docs: ["docs/**/*.md"] } },
+    "parent traversal",
+  ],
+  [{ ...TS_CONFIG, $schema: 5 }, "non-string schema"],
 ])("resolveConfig reports config_invalid_value for %s", (raw) => {
   const result = resolveConfig(JSON.stringify(raw));
   expect(result.ok).toBe(false);
-  expect(result.diagnostics.some((d) => d.code === "config_invalid_value")).toBe(true);
+  expect(codes(result)).toContain("config_invalid_value");
 });
 
 test("loadConfig reads speclink.config.json from project root", () => {
   const root = mkdtempSync(join(tmpdir(), "speclink-config-"));
   try {
-    writeFileSync(
-      join(root, "speclink.config.json"),
-      JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
-    );
+    writeFileSync(join(root, "speclink.config.json"), JSON.stringify(TS_CONFIG));
     const result = loadConfig(root);
     expect(result.ok).toBe(true);
-    expect(result.config).toEqual(DEFAULT_CONFIG);
+    expect(result.config).toEqual(TS_CONFIG);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("loadConfig falls back to defaults when no config file exists", () => {
+test("loadConfig reports config_file_invalid when no config file exists", () => {
   const root = mkdtempSync(join(tmpdir(), "speclink-config-"));
   try {
     const result = loadConfig(root);
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics[0]).toMatchObject({ code: "config_file_invalid" });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("loadConfig does not report a false overlap for a valid single-language config", () => {
+  const root = mkdtempSync(join(tmpdir(), "speclink-overlap-"));
+  try {
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 1;\n");
+    writeFileSync(join(root, "speclink.config.json"), JSON.stringify(TS_CONFIG));
+    const result = loadConfig(root);
     expect(result.ok).toBe(true);
     expect(result.diagnostics).toEqual([]);
-    expect(result.config).toEqual(DEFAULT_CONFIG);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

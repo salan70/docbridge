@@ -1,3 +1,5 @@
+import { collectCodeFiles, scanCodeFiles, type CodeInclude } from "./code-language";
+import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { sortDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
@@ -5,7 +7,6 @@ import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
-import { scanTypeScript, type TypeScriptScanResult } from "./typescript";
 import type {
   CodeLinkAnnotation,
   CodeSymbolEndpoint,
@@ -81,7 +82,7 @@ export type GraphOutcome =
   | { ok: false; diagnostics: SpecLinkDiagnostic[] };
 
 type ScanData = {
-  codeFiles: TypeScriptScanResult[];
+  codeFiles: CodeScanResult[];
   docFiles: MarkdownScanResult[];
   diagnostics: SpecLinkDiagnostic[];
   contentByFile: Map<string, string>;
@@ -222,22 +223,19 @@ export function formatGraphResult(result: GraphResult, inputFiles: string[] = []
 
 function scanManagedFiles(
   projectRoot: string,
-  include: { code: string[]; docs: string[] },
+  include: { code: CodeInclude; docs: string[] },
 ): ScanData {
   const diagnostics: SpecLinkDiagnostic[] = [];
   const contentByFile = new Map<string, string>();
-  const codeFiles: TypeScriptScanResult[] = [];
-  for (const relPath of collectFiles(projectRoot, include.code)) {
-    const read = readManagedFile(projectRoot, relPath);
-    if (!read.ok) {
-      diagnostics.push(read.diagnostic);
-      continue;
-    }
-    contentByFile.set(relPath, read.content);
-    const scan = scanTypeScript(relPath, read.content);
-    diagnostics.push(...scan.diagnostics);
-    codeFiles.push(scan);
-  }
+
+  const codeScan = scanCodeFiles(
+    collectCodeFiles(projectRoot, include.code),
+    include.code,
+    (relPath) => readManagedFile(projectRoot, relPath),
+    (relPath, content) => contentByFile.set(relPath, content),
+  );
+  const codeFiles = codeScan.codeFiles;
+  diagnostics.push(...codeScan.diagnostics);
 
   const docFiles: MarkdownScanResult[] = [];
   for (const relPath of collectFiles(projectRoot, include.docs)) {
