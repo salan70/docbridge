@@ -25,6 +25,10 @@ jobs:
       - name: Install Swift
         uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
+          # When bumping this, also update the swift<version> segment in the
+          # "Cache the Swift scanner build" key and restore-keys below. The
+          # cached .build/swiftpm artifacts are compiled by this toolchain, so a
+          # stale key would restore artifacts built by a different compiler.
           swift-version: "6.2"
 
       - name: Install dependencies
