@@ -252,9 +252,9 @@ includes the configured language. The JSON shape is
 defined by [schemas/graph-output.schema.json](../../schemas/graph-output.schema.json).
 
 `graph` exits with code `1` for CLI invocation errors, invalid roots, and
-configuration errors that prevent scanning. File read, TypeScript parse, and
-link diagnostics are included in the output when possible; they do not by
-themselves make `graph` exit non-zero.
+configuration errors that prevent scanning. File read, code parse, scanner
+worker, and link diagnostics are included in the output when possible; they do
+not by themselves make `graph` exit non-zero.
 
 <!-- @code src/core/context.ts#context -->
 ## Context Command

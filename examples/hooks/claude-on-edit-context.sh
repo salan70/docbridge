@@ -33,13 +33,11 @@ file_path="$(
   '
 )"
 
-# SpecLink manages TypeScript and Markdown only; skip everything else without
-# paying for a project scan.
-case "$file_path" in
-  *.ts | *.md) ;;
-  *) exit 0 ;;
-esac
-
+# Let SpecLink decide whether the file is managed: `speclink context` resolves
+# the path against the project's language-keyed config and reports no context
+# blocks for anything it does not manage (handled by the summary-line guard
+# below). This keeps the hook language-agnostic instead of hard-coding an
+# extension allowlist.
 context_out="$("${speclink_cmd[@]}" context "$file_path" 2>/dev/null || true)"
 
 # The summary line is always printed last; a zero count means the file has no

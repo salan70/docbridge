@@ -32,7 +32,7 @@ Duplicate non-empty anchors inside the same Markdown file produce `duplicate_doc
 
 SpecLink uses a pair-based model:
 
-- one TypeScript `@doc` tag creates one directed `code -> doc` link
+- one code `@doc` tag creates one directed `code -> doc` link
 - one Markdown `@code` comment creates one directed `doc -> code` link
 - a valid link pair exists only when the same code endpoint and doc endpoint are present in both directions
 
@@ -40,7 +40,7 @@ One-to-many and many-to-many relationships are represented as multiple independe
 
 Normal code endpoint resolution is annotation-first. Markdown `@code` resolution checks whether the target code file exists and whether a matching `@doc` pair exists in that file. It does not separately check for an unannotated exported symbol with the same name.
 
-If a TypeScript `@doc` target doc file does not exist in the managed docs set, SpecLink emits `doc_file_not_found`. If the file exists but the anchor does not, SpecLink emits `doc_anchor_not_found`. If the anchor exists but the matching `@code` is missing, SpecLink emits `doc_backlink_not_found`.
+If a code `@doc` target doc file does not exist in the managed docs set, SpecLink emits `doc_file_not_found`. If the file exists but the anchor does not, SpecLink emits `doc_anchor_not_found`. If the anchor exists but the matching `@code` is missing, SpecLink emits `doc_backlink_not_found`.
 
 If a Markdown `@code` target code file does not exist in the managed code set, SpecLink emits `code_file_not_found`. If the file exists but the matching `@doc` pair is missing, SpecLink emits `code_backlink_not_found`.
 

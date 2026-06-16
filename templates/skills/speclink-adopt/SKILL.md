@@ -1,6 +1,6 @@
 ---
 name: speclink-adopt
-description: Adopt SpecLink in an existing TypeScript project. Use when asked to introduce SpecLink into a repository, choose docs/code scope, create or improve speclink.config.json, and optionally wire simple CI or agent hooks.
+description: Adopt SpecLink in an existing TypeScript, Swift, or Dart project. Use when asked to introduce SpecLink into a repository, choose docs/code scope, create or improve speclink.config.json, and optionally wire simple CI or agent hooks.
 ---
 
 # speclink-adopt
@@ -21,7 +21,7 @@ repo recipe such as `just check`, or
 1. **Survey the repository.** Inspect:
    - existing `speclink.config.json`
    - Markdown docs structure and likely specification directories
-   - TypeScript source structure and exported API locations
+   - TypeScript, Swift, or Dart source structure and public API locations
    - existing `@doc` / `@code` annotations
    - package scripts, CI files, git hooks, and agent hooks
 
@@ -29,8 +29,8 @@ repo recipe such as `just check`, or
    your recommendation for:
    - docs scope: directories/files whose sections are likely specifications,
      contracts, behavior, constraints, or design decisions
-   - code scope: TypeScript directories/files whose exported declarations
-     should be linkable
+   - code scope: language-keyed TypeScript, Swift, or Dart directories/files
+     whose supported declarations should be linkable
    - CI/hook mode: if any integration should be added now
 
    Do not ask the user to rediscover obvious facts from the repository. Show
@@ -39,6 +39,10 @@ repo recipe such as `just check`, or
 3. **Create or improve config.**
    - If no config exists, create `speclink.config.json` with the confirmed
      `include.code` and `include.docs` globs.
+   - Use the language-keyed `include.code` object. Do not write the old
+     array form; for example, use `{ "typescript": { "patterns": [...] } }`,
+     `{ "swift": { "patterns": [...] } }`, or
+     `{ "dart": { "patterns": [...] } }`.
    - If config exists, read it, explain the current scope, propose any
      improvement, and edit only after confirmation.
    - Never replace a user-authored config blindly.
@@ -67,6 +71,8 @@ repo recipe such as `just check`, or
 - Treat README, changelogs, contribution docs, runbooks, logs, and release
   notes as exclusions by default unless the user identifies specific sections
   as specifications.
-- Prefer exported top-level TypeScript declarations as link targets.
+- Prefer supported public API declarations as link targets. TypeScript starts
+  with top-level exported declarations; Swift and Dart also support member
+  endpoints with scanner-produced canonical IDs.
 - Do not decide project workflow policy such as branch or PR strategy. Mention
   only what affects SpecLink adoption.

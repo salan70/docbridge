@@ -3,7 +3,7 @@
 Copyable hook scripts that wire SpecLink into an AI coding agent. They cover
 the two v0.3 use cases:
 
-- **On-edit counterpart awareness** — when the agent edits a TypeScript or
+- **On-edit counterpart awareness** — when the agent edits a managed code or
   Markdown file, surface the content of its linked counterparts
   (`speclink context`), so the agent reconciles the edit against the relevant
   specification (or the linked code) without extra file discovery.
@@ -75,9 +75,9 @@ them executable, and register them in `.claude/settings.json`:
 ### `claude-on-edit-context.sh`
 
 `PostToolUse` hook for the `Edit` and `Write` tools. Reads the target
-`file_path` from the tool input, skips files SpecLink does not manage
-(anything other than `*.ts` and `*.md`), runs `speclink context <file>`, and
-returns the Markdown output as `additionalContext`. Files without linked
+`file_path` from the tool input, lets SpecLink decide whether the file is
+managed by the project's language-keyed config, runs `speclink context <file>`,
+and returns the Markdown output as `additionalContext`. Files without linked
 counterparts inject nothing.
 
 ### `claude-stop-related-gate.sh`

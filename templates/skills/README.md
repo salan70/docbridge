@@ -12,10 +12,10 @@ from the examples inside.
   findings: fetch the flagged counterpart content with `speclink context`,
   then update the counterpart or justify leaving it unchanged.
 - [`speclink-adopt`](speclink-adopt/SKILL.md) — adopt SpecLink in an existing
-  TypeScript project by confirming docs/code scope, creating or improving
-  config, and handling simple CI/hook setup.
+  TypeScript, Swift, or Dart project by confirming docs/code scope, creating
+  or improving config, and handling simple CI/hook setup.
 - [`speclink-link`](speclink-link/SKILL.md) — link existing docs sections to
-  existing exported TypeScript symbols through docs-first candidate discovery
+  existing supported code declarations through docs-first candidate discovery
   and section-level confirmation.
 - [`speclink-review`](speclink-review/SKILL.md) — review the whole SpecLink
   graph for semantic validity using `speclink graph --json --include-content`.

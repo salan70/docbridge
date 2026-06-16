@@ -5,7 +5,10 @@
 
 Bring Markdown into the LSP world.
 
-SpecLink creates bidirectional links between TypeScript code and Markdown documentation, enabling LSP-like experiences such as Hover, Definition, References, and Diagnostics across implementation and specification files.
+SpecLink creates bidirectional links between TypeScript, Swift, or Dart code
+and Markdown documentation, enabling LSP-like experiences such as Hover,
+Definition, References, and Diagnostics across implementation and specification
+files.
 
 ## Motivation
 
@@ -33,7 +36,9 @@ SpecLink focuses on both directions:
 Code <-> Documentation
 ```
 
-SpecLink links top-level exported TypeScript symbols to Markdown sections.
+SpecLink links supported code declarations to Markdown sections. TypeScript is
+scanned in-process; Swift and Dart are scanned through bundled first-party
+worker packages.
 
 ## Example
 
@@ -57,19 +62,35 @@ Markdown:
 Login flow specification.
 ```
 
+Swift and Dart use the same `@doc` and `@code` model. Their code fragments are
+the scanner-produced canonical IDs, so members are type-qualified:
+
+```swift
+/// @doc docs/auth.md#login-spec
+public struct AuthService {
+  public func login(email: String, password: String) {}
+}
+```
+
+```md
+<!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+## Login Spec
+```
+
 ## Scope
 
 SpecLink recognizes the following elements.
 
-Supported TypeScript declarations:
+Supported code declarations:
 
-- Top-level exported `function`
-- Top-level exported `class`
-- Top-level exported `abstract class`
-- Top-level exported `interface`
-- Top-level exported `type`
-- Top-level exported `const`
-- Top-level exported `enum`
+- TypeScript top-level exported declarations: `function`, `class`,
+  `abstract class`, `interface`, `type`, `const`, `enum`, and supported
+  `declare` / named default forms
+- Swift public/open declarations and configured internal declarations:
+  top-level and member types, functions, variables, constants, initializers,
+  and extension members
+- Dart public declarations: top-level functions/variables, classes, enums,
+  mixins, constructors, fields, accessors, methods, and extension members
 
 Supported Markdown elements:
 
@@ -95,6 +116,26 @@ Minimal TypeScript configuration:
   }
 }
 ```
+
+Multilanguage configuration is language-keyed. The old `include.code` array
+shape is intentionally invalid; migrate it to a `typescript` entry:
+
+```json
+{
+  "include": {
+    "code": {
+      "typescript": { "patterns": ["src/**/*.ts"] },
+      "swift": { "patterns": ["Sources/**/*.swift"] },
+      "dart": { "patterns": ["lib/**/*.dart"] }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
+
+Swift and Dart projects must build their scanner workers in source checkouts
+before checking those languages. Run `just build-swift-scanner` for Swift and
+`just build-dart-scanner` for Dart, or use the native test recipes below.
 
 ## CLI
 
@@ -190,7 +231,7 @@ speclink lsp
 ```
 
 `speclink lsp` speaks LSP over stdio and provides Diagnostics, Hover,
-Definition, and References across linked TypeScript and Markdown. It takes no
+Definition, and References across linked code and Markdown. It takes no
 options; the project root comes from the editor's `initialize` request.
 `speclink check` is unchanged.
 
@@ -242,9 +283,11 @@ The Nix development shell provides the tools used by this repository:
 - Bun
 - just
 - Git
+- Dart SDK
 
 If you do not use Nix, install Bun and just locally before running the project
-commands.
+commands. Swift scanner development also requires a Swift 6 toolchain on
+`PATH`; CI installs Swift separately from Nix.
 
 ### Setup
 
@@ -288,12 +331,22 @@ Run common tasks with `just`:
 just --list
 just check
 just check-example
+just check-swift-example
+just check-dart-example
 just check-fixture <code>
 just audit
 just related-gate
 just test
+just test-swift-scanner
+just test-dart-scanner
 just build
 ```
+
+`just check`, `just test`, and `just build` are the default local and CI gates.
+`just test` includes TypeScript, Swift, and Dart end-to-end integration tests;
+the Swift and Dart scanner binaries must be built before those integration
+tests can spawn them. Scanner-native tests are mandatory in CI and are useful
+locally when changing worker code.
 
 ### Project Constraints
 
@@ -304,6 +357,8 @@ Runtime:
 Language:
 
 - TypeScript
+- Swift scanner worker package
+- Dart scanner worker package
 
 Task runner:
 
@@ -313,8 +368,9 @@ Environment loader:
 
 - direnv
 
-Core dependencies should stay minimal. The implementation should primarily rely
-on Bun and the TypeScript Compiler API.
+Core dependencies should stay minimal. The CLI should primarily rely on Bun and
+the TypeScript Compiler API; Swift and Dart parser dependencies stay isolated
+inside their worker packages.
 
 ## Documentation
 

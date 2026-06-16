@@ -46,10 +46,10 @@ work as Codex-style project skills when copied to `.agents/skills/`:
   them with `speclink check`.
 - `speclink-sync` — triage `related --gate` findings using `speclink context`,
   then update the counterpart or justify the divergence.
-- `speclink-adopt` — adopt SpecLink in an existing TypeScript project by
-  confirming docs/code scope and creating or improving config.
+- `speclink-adopt` — adopt SpecLink in an existing TypeScript, Swift, or Dart
+  project by confirming docs/code scope and creating or improving config.
 - `speclink-link` — link existing docs sections to existing exported
-  TypeScript symbols with section-level confirmation.
+  supported code declarations with section-level confirmation.
 - `speclink-review` — review all existing links for semantic validity using
   `speclink graph --json --include-content`.
 

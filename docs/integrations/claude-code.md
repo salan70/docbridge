@@ -10,9 +10,10 @@ example scripts accept a `SPECLINK_CMD` override, for example
 
 ## On-edit counterpart awareness
 
-Goal: when Claude Code edits a TypeScript or Markdown file, surface the content
-of the file's linked counterparts so the agent reconciles the edit against the
-relevant specification (or the linked code) without extra file discovery.
+Goal: when Claude Code edits a managed code or Markdown file, surface the
+content of the file's linked counterparts so the agent reconciles the edit
+against the relevant specification (or the linked code) without extra file
+discovery.
 
 This is a `PostToolUse` hook, not `PreToolUse`. Claude Code delivers a
 `PreToolUse` hook's `additionalContext` next to the tool result — after the
@@ -98,10 +99,10 @@ consume the same commands. Copy the skills you want into your repository's
   them with `speclink check`.
 - `speclink-sync` — triage `related --gate` findings using `speclink context`,
   then update the counterpart or justify the divergence.
-- `speclink-adopt` — adopt SpecLink in an existing TypeScript project by
-  confirming docs/code scope and creating or improving config.
+- `speclink-adopt` — adopt SpecLink in an existing TypeScript, Swift, or Dart
+  project by confirming docs/code scope and creating or improving config.
 - `speclink-link` — link existing docs sections to existing exported
-  TypeScript symbols with section-level confirmation.
+  supported code declarations with section-level confirmation.
 - `speclink-review` — review all existing links for semantic validity using
   `speclink graph --json --include-content`.
 
