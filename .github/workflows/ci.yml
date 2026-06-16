@@ -36,10 +36,29 @@ jobs:
       - name: just typecheck
         run: nix develop -c just typecheck
 
+      # Cache the SwiftPM build directory and dependency clones so swift-syntax
+      # (the dominant compile cost) is reused across runs. The cache key is
+      # pinned to Package.resolved, which pins the swift-syntax revision, so the
+      # cache stays valid until the dependency is bumped. Debug artifacts only:
+      # caching a release .build can corrupt incremental relinks
+      # (swiftlang/swift-package-manager#8260), so the build below stays debug.
+      - name: Cache the Swift scanner build
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            packages/swift-scanner/.build
+            ~/.cache/org.swift.swiftpm
+          key: swiftpm-${{ runner.os }}-swift6.2-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift6.2-
+
       # The Swift integration test spawns the bundled Swift scanner binary, so
       # build it (with the setup-swift toolchain, not nix) before the suite.
+      # A debug build is used, not release: CI only needs a functional binary
+      # for the test, debug compiles swift-syntax far faster, and `swift test`
+      # below reuses the same debug artifacts instead of recompiling.
       - name: Build the Swift scanner
-        run: swift build --package-path packages/swift-scanner -c release
+        run: swift build --package-path packages/swift-scanner
 
       - name: Test the Swift scanner
         run: swift test --package-path packages/swift-scanner
