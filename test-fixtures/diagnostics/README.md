@@ -1,6 +1,6 @@
 # Diagnostic Fixtures
 
-Each directory under `fixtures/diagnostics/` is a minimal SpecLink project that
+Each directory under `test-fixtures/diagnostics/` is a minimal SpecLink project that
 fires exactly one diagnostic code. The fixtures serve two roles:
 
 - Manual observation: run `just check-fixture <code>` to see the diagnostic in
@@ -12,5 +12,5 @@ fires exactly one diagnostic code. The fixtures serve two roles:
 `file_read_error` has no fixture: I/O failures cannot be reproduced
 deterministically from checked-in files. Unit tests cover that code instead.
 
-`examples/basic` remains the happy-path showcase; these fixtures only cover
+`examples/typescript` remains the happy-path showcase; these fixtures only cover
 diagnostic paths.

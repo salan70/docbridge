@@ -6,7 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { encodeMessage, MessageReader } from "./transport";
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
-const EXAMPLE_ROOT = resolve(REPO_ROOT, "examples/basic");
+const EXAMPLE_ROOT = resolve(REPO_ROOT, "examples/typescript");
 const ROOT_URI = pathToFileURL(EXAMPLE_ROOT).href;
 const CODE_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "src/auth/login.ts")).href;
 

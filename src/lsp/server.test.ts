@@ -6,7 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { Project } from "./project";
 import { Server, type SendFn } from "./server";
 
-const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/basic");
+const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/typescript");
 const ROOT_URI = pathToFileURL(EXAMPLE_ROOT).href;
 const CODE_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "src/auth/login.ts")).href;
 const DOC_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "docs/auth.md")).href;

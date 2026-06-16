@@ -31,23 +31,23 @@ For link diagnostics, `source` is the annotation source endpoint and `target` is
 For diagnostics without a separate source, `target` is the affected endpoint or file.
 
 Each code below links to a minimal fixture project under
-[fixtures/diagnostics/](../../fixtures/diagnostics/) that fires exactly that
+[test-fixtures/diagnostics/](../../test-fixtures/diagnostics/) that fires exactly that
 diagnostic; run it with `just check-fixture <code>`.
 
 Error diagnostic codes:
 
-- [`config_file_invalid`](../../fixtures/diagnostics/config_file_invalid/)
-- [`config_unknown_key`](../../fixtures/diagnostics/config_unknown_key/)
-- [`config_invalid_value`](../../fixtures/diagnostics/config_invalid_value/)
-- [`invalid_link_target`](../../fixtures/diagnostics/invalid_link_target/)
-- [`doc_file_not_found`](../../fixtures/diagnostics/doc_file_not_found/)
-- [`doc_anchor_not_found`](../../fixtures/diagnostics/doc_anchor_not_found/)
-- [`code_file_not_found`](../../fixtures/diagnostics/code_file_not_found/)
-- [`code_backlink_not_found`](../../fixtures/diagnostics/code_backlink_not_found/)
-- [`doc_backlink_not_found`](../../fixtures/diagnostics/doc_backlink_not_found/)
-- [`duplicate_doc_anchor`](../../fixtures/diagnostics/duplicate_doc_anchor/)
-- [`duplicate_code_symbol`](../../fixtures/diagnostics/duplicate_code_symbol/)
-- [`code_parse_error`](../../fixtures/diagnostics/code_parse_error/)
+- [`config_file_invalid`](../../test-fixtures/diagnostics/config_file_invalid/)
+- [`config_unknown_key`](../../test-fixtures/diagnostics/config_unknown_key/)
+- [`config_invalid_value`](../../test-fixtures/diagnostics/config_invalid_value/)
+- [`invalid_link_target`](../../test-fixtures/diagnostics/invalid_link_target/)
+- [`doc_file_not_found`](../../test-fixtures/diagnostics/doc_file_not_found/)
+- [`doc_anchor_not_found`](../../test-fixtures/diagnostics/doc_anchor_not_found/)
+- [`code_file_not_found`](../../test-fixtures/diagnostics/code_file_not_found/)
+- [`code_backlink_not_found`](../../test-fixtures/diagnostics/code_backlink_not_found/)
+- [`doc_backlink_not_found`](../../test-fixtures/diagnostics/doc_backlink_not_found/)
+- [`duplicate_doc_anchor`](../../test-fixtures/diagnostics/duplicate_doc_anchor/)
+- [`duplicate_code_symbol`](../../test-fixtures/diagnostics/duplicate_code_symbol/)
+- [`code_parse_error`](../../test-fixtures/diagnostics/code_parse_error/)
 - `code_scanner_unavailable` — no fixture; scanner executable availability is
   environment-dependent, so unit tests cover this code instead.
 - `code_scanner_failed` — no fixture; worker protocol failures are covered by
@@ -57,10 +57,10 @@ Error diagnostic codes:
 
 Warning diagnostic codes:
 
-- [`duplicate_link`](../../fixtures/diagnostics/duplicate_link/)
-- [`dangling_code_annotation`](../../fixtures/diagnostics/dangling_code_annotation/)
-- [`unsupported_declaration`](../../fixtures/diagnostics/unsupported_declaration/)
-- [`undocumented_symbol`](../../fixtures/diagnostics/undocumented_symbol/)
+- [`duplicate_link`](../../test-fixtures/diagnostics/duplicate_link/)
+- [`dangling_code_annotation`](../../test-fixtures/diagnostics/dangling_code_annotation/)
+- [`unsupported_declaration`](../../test-fixtures/diagnostics/unsupported_declaration/)
+- [`undocumented_symbol`](../../test-fixtures/diagnostics/undocumented_symbol/)
 
 `undocumented_symbol` is emitted only when `--audit` is enabled.
 

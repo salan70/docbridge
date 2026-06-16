@@ -222,7 +222,7 @@ Purpose: prove the built CLI works from `dist/index.js`.
 Tasks:
 
 - Add a repo-native verification command for the built CLI.
-- Verify `dist/index.js --version`, `--help`, and `check --root examples/basic`.
+- Verify `dist/index.js --version`, `--help`, and `check --root examples/typescript`.
 - Verify the shebang is preserved and the file is executable after build.
 - Decide whether `just build` should clean stale `dist/` before rebuilding.
 
@@ -232,7 +232,7 @@ Verification:
 just build
 dist/index.js --version
 dist/index.js --help
-dist/index.js check --root examples/basic
+dist/index.js check --root examples/typescript
 ```
 
 Done when:

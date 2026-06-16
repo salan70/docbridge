@@ -301,7 +301,7 @@ describe("scanTypeScript", () => {
     });
   });
 
-  test("matches the examples/basic login fixture: one symbol and one link", () => {
+  test("matches the examples/typescript login fixture: one symbol and one link", () => {
     const content =
       "/**\n * @doc docs/auth.md#login-spec\n */\nexport async function login() {\n  return { ok: true };\n}\n";
     const result = scanTypeScript("src/auth/login.ts", content);

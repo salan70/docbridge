@@ -9,7 +9,7 @@
   "scripts": {
     "speclink": "bun run src/cli/index.ts",
     "check": "bun run src/cli/index.ts check",
-    "check:example": "bun run src/cli/index.ts check --root examples/basic",
+    "check:example": "bun run src/cli/index.ts check --root examples/typescript",
     "test": "bun test",
     "build": "bun build src/cli/index.ts --outdir dist --target bun"
   },

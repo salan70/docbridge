@@ -11,13 +11,13 @@ resolver, graph, CLI, context command, or LSP.
 
 Normative behavior will be reflected in these specs as the slices land:
 
-- [Configuration](../specs/configuration.md)
-- [Scanning](../specs/scanning.md)
-- [Annotations](../specs/annotations.md)
-- [Link Resolution](../specs/link-resolution.md)
-- [Diagnostics](../specs/diagnostics.md)
-- [CLI](../specs/cli.md)
-- [LSP](../specs/lsp.md)
+- [Configuration](../../specs/configuration.md)
+- [Scanning](../../specs/scanning.md)
+- [Annotations](../../specs/annotations.md)
+- [Link Resolution](../../specs/link-resolution.md)
+- [Diagnostics](../../specs/diagnostics.md)
+- [CLI](../../specs/cli.md)
+- [LSP](../../specs/lsp.md)
 
 ## Status
 

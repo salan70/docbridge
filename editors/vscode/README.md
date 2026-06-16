@@ -31,7 +31,7 @@ Cursor uses the same client because it can run VS Code-compatible extensions.
    ```
 
 2. In Cursor or VS Code, open a project that uses SpecLink (for example the
-   repository root, which contains `examples/basic`). The extension runs
+   repository root, which contains `examples/typescript`). The extension runs
    `speclink lsp` through Bun. If `bun` is not on your `PATH`, set the
    `speclink.bunPath` setting to its absolute path.
 
