@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- npm distribution support for the Bun-only `speclink` package, including
+  `dist/index.js` as the package binary, a runtime package allowlist, dist
+  verification, packed-package smoke testing, and release workflow publishing.
+- Platform-staged Swift and Dart scanner binary layout under
+  `dist/bin/<platform>/`, with initial npm scanner support for `darwin-arm64`
+  and `linux-x64`.
 - Dart scanner worker support, including analyzer-based `@doc` extraction,
   type/member canonical IDs (without parameter signatures, since Dart has no
   overloading), public-by-naming visibility, and Dart end-to-end

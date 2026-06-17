@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -9,6 +15,7 @@ import {
   createScannerWorkerAdapter,
   getCodeAdapter,
   isCodeLanguage,
+  resolveScannerWorkerCommand,
   scanCodeFiles,
   setCodeAdapterForTest,
   type CodeInclude,
@@ -45,6 +52,109 @@ test("TypeScript has an in-process adapter and Swift/Dart have worker-backed ada
   expect(getCodeAdapter("typescript")?.language).toBe("typescript");
   expect(getCodeAdapter("swift")?.language).toBe("swift");
   expect(getCodeAdapter("dart")?.language).toBe("dart");
+});
+
+test("resolveScannerWorkerCommand selects the dist scanner for a supported platform", () => {
+  withProject(
+    { "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" },
+    (root) => {
+      const scannerPath = join(
+        root,
+        "dist/bin/darwin-arm64/speclink-swift-scanner",
+      );
+      chmodSync(scannerPath, 0o755);
+
+      const result = resolveScannerWorkerCommand("swift", {
+        platformKey: "darwin-arm64",
+        sourceRoot: join(root, "missing-source"),
+        distRoot: join(root, "dist"),
+      });
+
+      expect(result).toEqual({ ok: true, command: [scannerPath] });
+    },
+  );
+});
+
+test("resolveScannerWorkerCommand selects source scanners on unsupported dist platforms", () => {
+  withProject(
+    {
+      "packages/swift-scanner/.build/release/speclink-swift-scanner":
+        "#!/bin/sh\n",
+    },
+    (root) => {
+      const scannerPath = join(
+        root,
+        "packages/swift-scanner/.build/release/speclink-swift-scanner",
+      );
+      chmodSync(scannerPath, 0o755);
+
+      const result = resolveScannerWorkerCommand("swift", {
+        platformKey: "darwin-x64",
+        sourceRoot: root,
+        distRoot: join(root, "missing-dist"),
+      });
+
+      expect(result).toEqual({ ok: true, command: [scannerPath] });
+    },
+  );
+});
+
+test("resolveScannerWorkerCommand reports unsupported scanner platforms", () => {
+  const result = resolveScannerWorkerCommand("dart", {
+    platformKey: "linux-arm64",
+    sourceRoot: "/missing-source",
+    distRoot: "/missing-dist",
+  });
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.code).toBe("code_scanner_unavailable");
+    expect(result.diagnostic.message).toContain("linux-arm64");
+    expect(result.diagnostic.message).toContain("darwin-arm64");
+    expect(result.diagnostic.message).toContain("linux-x64");
+  }
+});
+
+test("scanCodeFiles reports scanner resolution diagnostics without starting a worker", () => {
+  withProject({ "lib/auth.dart": "class AuthService {}\n" }, (root) => {
+    const restore = setCodeAdapterForTest(
+      "dart",
+      createScannerWorkerAdapter("dart", () => ({
+        ok: false,
+        diagnostic: {
+          severity: "error",
+          code: "code_scanner_unavailable",
+          language: "dart",
+          target: "dart",
+          message:
+            "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
+        },
+      })),
+    );
+    try {
+      const include: CodeInclude = { dart: { patterns: ["lib/**/*.dart"] } };
+      const result = scanCodeFiles(
+        root,
+        collectCodeFiles(root, include),
+        include,
+        (relPath) => readManagedFile(root, relPath),
+      );
+
+      expect(result.diagnostics).toEqual([
+        {
+          severity: "error",
+          code: "code_scanner_unavailable",
+          language: "dart",
+          target: "lib/auth.dart",
+          message:
+            "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
+        },
+      ]);
+      expect(result.codeFiles[0]?.language).toBe("dart");
+    } finally {
+      restore();
+    }
+  });
 });
 
 test("collectCodeFiles tags each managed file with its language", () => {

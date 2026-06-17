@@ -28,6 +28,7 @@ When a file has `file_read_error`, `code_parse_error`,
 that depend on that file are suppressed.
 
 <!-- @code src/core/code-scanner.ts#CodeScanResult -->
+<!-- @code src/core/code-language.ts#resolveScannerWorkerCommand -->
 ## Code Scanning
 
 Code scanning is language-aware but not language-specific. Every code language
@@ -52,19 +53,31 @@ missing files, unexpected files, or reordered files are `code_scanner_failed`.
 
 The bundled Swift worker is a SwiftPM package under `packages/swift-scanner`.
 It uses SwiftSyntax/SwiftParser and communicates through the worker protocol.
-The adapter executes the built `speclink-swift-scanner` binary from that
-package; run `just test-swift-scanner` or `just build-swift-scanner` locally to
-build it before checking Swift projects from a source checkout. Building the
-package requires a Swift 6 toolchain on `PATH`. The Nix dev shell deliberately
-omits a C compiler (`mkShellNoCC`) so it does not export an `SDKROOT` that would
-shadow the system Swift toolchain on macOS; CI installs Swift separately.
+From a source checkout, the adapter executes the built
+`packages/swift-scanner/.build/release/speclink-swift-scanner` binary, falling
+back to the debug binary when present; run `just test-swift-scanner` or
+`just build-swift-scanner` locally to build it before checking Swift projects
+from a source checkout. In the npm package, the adapter executes
+`dist/bin/<platform>/speclink-swift-scanner`. Building the source package
+requires a Swift 6 toolchain on `PATH`. The Nix dev shell deliberately omits a
+C compiler (`mkShellNoCC`) so it does not export an `SDKROOT` that would shadow
+the system Swift toolchain on macOS; CI installs Swift separately.
 
 The bundled Dart worker is a Dart package under `packages/dart-scanner`. It uses
-the Dart `analyzer` and communicates through the worker protocol. The adapter
-executes the compiled `speclink_dart_scanner` binary from that package; run
+the Dart `analyzer` and communicates through the worker protocol. From a source
+checkout, the adapter executes the compiled
+`packages/dart-scanner/bin/speclink_dart_scanner` binary; run
 `just test-dart-scanner` or `just build-dart-scanner` locally to build it before
-checking Dart projects from a source checkout. Building the package requires the
-Dart SDK, which the Nix dev shell provides.
+checking Dart projects from a source checkout. In the npm package, the adapter
+executes `dist/bin/<platform>/speclink_dart_scanner`. Building the package
+requires the Dart SDK, which the Nix dev shell provides.
+
+The initial npm package supports scanner binaries for `darwin-arm64` and
+`linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
+TypeScript and Markdown checks do not require scanner binaries. If a configured
+Swift or Dart project runs on any other platform, or the expected binary is not
+present for a supported platform, SpecLink emits `code_scanner_unavailable`
+with the missing platform key and the supported keys.
 
 <!-- @code src/core/glob.ts#collectFiles -->
 ## File Collection

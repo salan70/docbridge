@@ -137,6 +137,22 @@ Swift and Dart projects must build their scanner workers in source checkouts
 before checking those languages. Run `just build-swift-scanner` for Swift and
 `just build-dart-scanner` for Dart, or use the native test recipes below.
 
+## Installation
+
+SpecLink is distributed as the `speclink` npm package and is intended to run
+with Bun:
+
+```sh
+bunx speclink check
+```
+
+The npm package is Bun-only; Node.js runtime compatibility is not part of the
+initial distribution. The package includes prebuilt Swift and Dart scanner
+binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
+without scanner binaries. Configured Swift or Dart projects on unsupported
+platforms report `code_scanner_unavailable` and name the supported platform
+keys.
+
 ## CLI
 
 Check links:
@@ -340,13 +356,16 @@ just test
 just test-swift-scanner
 just test-dart-scanner
 just build
+just verify-dist
 ```
 
 `just check`, `just test`, and `just build` are the default local and CI gates.
 `just test` includes TypeScript, Swift, and Dart end-to-end integration tests;
 the Swift and Dart scanner binaries must be built before those integration
 tests can spawn them. Scanner-native tests are mandatory in CI and are useful
-locally when changing worker code.
+locally when changing worker code. `just verify-dist` builds confidence in the
+npm entry point by checking the Bun shebang, executable bit, `--version`,
+`--help`, and a TypeScript example check from `dist/index.js`.
 
 ### Project Constraints
 

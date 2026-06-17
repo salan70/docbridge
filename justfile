@@ -55,7 +55,18 @@ typecheck:
     bunx tsc --noEmit
 
 build:
+    rm -rf dist
     bun build src/cli/index.ts --outdir dist --target bun
+    chmod +x dist/index.js
+
+stage-scanner-binaries *ARGS:
+    bun run scripts/stage-scanner-binaries.ts {{ ARGS }}
+
+verify-dist:
+    bun run scripts/verify-dist.ts
+
+pack-smoke tarball:
+    bun run scripts/smoke-packed-package.ts {{ tarball }}
 
 # Exercise the language server (hover, definition, references, diagnostics) over stdio.
 verify-lsp:

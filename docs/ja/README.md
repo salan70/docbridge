@@ -122,6 +122,20 @@ TypeScript 向けの最小設定:
 
 source checkout から Swift / Dart project を検査するには、先に scanner worker を build します。Swift は `just build-swift-scanner`、Dart は `just build-dart-scanner` を使ってください。
 
+## インストール
+
+SpecLink は npm package `speclink` として配布し、Bun で実行します。
+
+```sh
+bunx speclink check
+```
+
+初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
+Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
+TypeScript と Markdown の check は scanner binary なしで実行できます。
+未対応 platform で Swift / Dart project を設定した場合は
+`code_scanner_unavailable` を報告し、対応 platform key を表示します。
+
 ## CLI
 
 リンクを検査する:
@@ -325,10 +339,13 @@ just test
 just test-swift-scanner
 just test-dart-scanner
 just build
+just verify-dist
 ```
 
 `just check`、`just test`、`just build` が標準の local / CI gate です。
 `just test` には TypeScript、Swift、Dart の end-to-end integration test が含まれます。Swift / Dart の integration test は scanner binary を起動するため、事前に worker を build しておく必要があります。worker code を変更する場合は native scanner test も実行します。CI では必須です。
+`just verify-dist` は `dist/index.js` の Bun shebang、実行 bit、`--version`、
+`--help`、TypeScript example check を確認します。
 
 ### プロジェクト制約
 

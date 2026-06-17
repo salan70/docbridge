@@ -43,49 +43,75 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
 
 const ADAPTERS: Partial<Record<CodeLanguage, CodeLanguageAdapter>> = {
   typescript: typeScriptAdapter,
-  swift: createScannerWorkerAdapter("swift", (_projectRoot) => [
-    swiftScannerExecutablePath(),
-  ]),
-  dart: createScannerWorkerAdapter("dart", (_projectRoot) => [
-    dartScannerExecutablePath(),
-  ]),
+  swift: createScannerWorkerAdapter("swift", (_projectRoot) =>
+    resolveScannerWorkerCommand("swift"),
+  ),
+  dart: createScannerWorkerAdapter("dart", (_projectRoot) =>
+    resolveScannerWorkerCommand("dart"),
+  ),
 };
 
-function swiftScannerPackagePath(): string {
-  const sourceLayout = fileURLToPath(
-    new URL("../../packages/swift-scanner", import.meta.url),
-  );
-  const bundledLayout = fileURLToPath(
-    new URL("../packages/swift-scanner", import.meta.url),
-  );
-  return existsSync(sourceLayout) ? sourceLayout : bundledLayout;
+const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
+
+type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
+
+type ScannerWorkerCommandResolution =
+  | { ok: true; command: string[] }
+  | { ok: false; diagnostic: SpecLinkDiagnostic };
+
+export type ScannerWorkerResolutionOptions = {
+  platformKey?: string;
+  sourceRoot?: string;
+  distRoot?: string;
+};
+
+export function supportedScannerPlatformKeys(): readonly string[] {
+  return SUPPORTED_SCANNER_PLATFORM_KEYS;
 }
 
-function swiftScannerExecutablePath(): string {
-  const packagePath = swiftScannerPackagePath();
-  const release = join(packagePath, ".build/release/speclink-swift-scanner");
-  if (existsSync(release)) {
-    return release;
+export function scannerPlatformKey(): string {
+  return `${process.platform}-${process.arch}`;
+}
+
+/**
+ * Resolve the worker executable for source checkouts and npm dist packages.
+ *
+ * @doc docs/specs/scanning.md#code-scanning
+ */
+export function resolveScannerWorkerCommand(
+  language: ScannerWorkerLanguage,
+  options: ScannerWorkerResolutionOptions = {},
+): ScannerWorkerCommandResolution {
+  const platformKey = options.platformKey ?? scannerPlatformKey();
+  const platformSupported = isSupportedScannerPlatformKey(platformKey);
+  const candidates = scannerExecutableCandidates(
+    language,
+    platformKey,
+    platformSupported,
+    options,
+  );
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (found !== undefined) {
+    return { ok: true, command: [found] };
   }
-  const debug = join(packagePath, ".build/debug/speclink-swift-scanner");
-  if (existsSync(debug)) {
-    return debug;
+
+  if (!platformSupported) {
+    return {
+      ok: false,
+      diagnostic: scannerUnavailableDiagnostic(
+        language,
+        `platform ${platformKey} is unsupported; supported platforms: ${SUPPORTED_SCANNER_PLATFORM_KEYS.join(", ")}`,
+      ),
+    };
   }
-  return release;
-}
 
-function dartScannerPackagePath(): string {
-  const sourceLayout = fileURLToPath(
-    new URL("../../packages/dart-scanner", import.meta.url),
-  );
-  const bundledLayout = fileURLToPath(
-    new URL("../packages/dart-scanner", import.meta.url),
-  );
-  return existsSync(sourceLayout) ? sourceLayout : bundledLayout;
-}
-
-function dartScannerExecutablePath(): string {
-  return join(dartScannerPackagePath(), "bin/speclink_dart_scanner");
+  return {
+    ok: false,
+    diagnostic: scannerUnavailableDiagnostic(
+      language,
+      `missing ${scannerExecutableName(language)} for platform ${platformKey}; supported platforms: ${SUPPORTED_SCANNER_PLATFORM_KEYS.join(", ")}`,
+    ),
+  };
 }
 
 /** The registered adapter for a language, or `undefined` when none exists yet. */
@@ -95,7 +121,9 @@ export function getCodeAdapter(
   return ADAPTERS[language];
 }
 
-export type ScannerWorkerCommandFactory = (projectRoot: string) => string[];
+export type ScannerWorkerCommandFactory = (
+  projectRoot: string,
+) => string[] | ScannerWorkerCommandResolution;
 
 export type ScannerWorkerAdapterOptions = {
   requestId?: () => string;
@@ -110,6 +138,15 @@ export function createScannerWorkerAdapter(
   return {
     language,
     scanFile(filePath, content, options, context) {
+      const commandResolution = normalizeScannerCommand(command(context.projectRoot));
+      if (!commandResolution.ok) {
+        return {
+          ...emptyScan(language, filePath),
+          diagnostics: [
+            fileScopedScannerDiagnostic(commandResolution.diagnostic, filePath),
+          ],
+        };
+      }
       const result = invokeScannerWorker(
         {
           schemaVersion: 1,
@@ -119,7 +156,7 @@ export function createScannerWorkerAdapter(
           files: [{ filePath, content }],
           options,
         },
-        command(context.projectRoot),
+        commandResolution.command,
         adapterOptions.run,
       );
       if (result.ok) {
@@ -276,4 +313,68 @@ function fileScopedScannerDiagnostic(
   filePath: string,
 ): SpecLinkDiagnostic {
   return { ...diagnostic, target: filePath };
+}
+
+function normalizeScannerCommand(
+  value: string[] | ScannerWorkerCommandResolution,
+): ScannerWorkerCommandResolution {
+  return Array.isArray(value) ? { ok: true, command: value } : value;
+}
+
+function scannerExecutableCandidates(
+  language: ScannerWorkerLanguage,
+  platformKey: string,
+  platformSupported: boolean,
+  options: ScannerWorkerResolutionOptions,
+): string[] {
+  const sourceRoot = options.sourceRoot ?? sourceRootPath();
+  const distRoot = options.distRoot ?? distRootPath();
+  const executable = scannerExecutableName(language);
+  if (language === "swift") {
+    return [
+      join(sourceRoot, "packages/swift-scanner/.build/release", executable),
+      join(sourceRoot, "packages/swift-scanner/.build/debug", executable),
+      ...(platformSupported
+        ? [join(distRoot, "bin", platformKey, executable)]
+        : []),
+    ];
+  }
+  return [
+    join(sourceRoot, "packages/dart-scanner/bin", executable),
+    ...(platformSupported
+      ? [join(distRoot, "bin", platformKey, executable)]
+      : []),
+  ];
+}
+
+function isSupportedScannerPlatformKey(platformKey: string): boolean {
+  return SUPPORTED_SCANNER_PLATFORM_KEYS.includes(platformKey as never);
+}
+
+function sourceRootPath(): string {
+  return fileURLToPath(new URL("../..", import.meta.url));
+}
+
+function distRootPath(): string {
+  return fileURLToPath(new URL(".", import.meta.url));
+}
+
+function scannerExecutableName(language: ScannerWorkerLanguage): string {
+  return language === "swift"
+    ? "speclink-swift-scanner"
+    : "speclink_dart_scanner";
+}
+
+function scannerUnavailableDiagnostic(
+  language: ScannerWorkerLanguage,
+  reason: string,
+): SpecLinkDiagnostic {
+  const label = language.charAt(0).toUpperCase() + language.slice(1);
+  return {
+    severity: "error",
+    code: "code_scanner_unavailable",
+    language,
+    target: language,
+    message: `${label} scanner worker is unavailable: ${reason}`,
+  };
 }

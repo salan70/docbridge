@@ -15,13 +15,13 @@ land:
 
 ## Status
 
-- [ ] Slice 1: Package Metadata and Dist Entry Point
-- [ ] Slice 2: Dist Bundle Verification
-- [ ] Slice 3: Scanner Binary Layout
-- [ ] Slice 4: Platform-Aware Scanner Resolution
-- [ ] Slice 5: Release Artifact Build Matrix
-- [ ] Slice 6: npm Publish Workflow
-- [ ] Slice 7: Documentation and Release Readiness
+- [x] Slice 1: Package Metadata and Dist Entry Point
+- [x] Slice 2: Dist Bundle Verification
+- [x] Slice 3: Scanner Binary Layout
+- [x] Slice 4: Platform-Aware Scanner Resolution
+- [x] Slice 5: Release Artifact Build Matrix
+- [x] Slice 6: npm Publish Workflow
+- [x] Slice 7: Documentation and Release Readiness
 
 ## Goals
 

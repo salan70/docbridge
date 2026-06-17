@@ -81,6 +81,12 @@ jobs:
       - name: just build
         run: nix develop -c just build
 
+      - name: just verify-dist
+        run: nix develop -c just verify-dist
+
+      - name: npm pack dry-run
+        run: npm pack --dry-run
+
   # Informational, never required for merge: runs `speclink related --gate`
   # over the PR's whole change set and maintains one sticky comment so the
   # human approving the merge sees which linked counterparts were not updated.

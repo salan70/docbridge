@@ -20,14 +20,89 @@ on:
 permissions:
   contents: write
   checks: read
+  id-token: write
 
 jobs:
+  scanner-artifacts:
+    name: scanner-artifacts (${{ matrix.platform }})
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       startsWith(github.head_ref, 'release/'))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-latest
+          - platform: darwin-arm64
+            os: macos-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      - name: Install Swift on Linux
+        if: runner.os == 'Linux'
+        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
+        with:
+          swift-version: "6.2"
+
+      - name: Install dependencies
+        run: nix develop -c bun install --frozen-lockfile
+
+      - name: Require expected runner platform
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+        run: |
+          actual="$(nix develop -c bun -e "console.log(process.platform + '-' + process.arch)")"
+          echo "runner platform: ${actual}"
+          if [ "$actual" != "$EXPECTED_PLATFORM" ]; then
+            echo "::error::Expected ${EXPECTED_PLATFORM}, got ${actual}." >&2
+            exit 1
+          fi
+
+      - name: Build Swift scanner
+        run: swift build --package-path packages/swift-scanner -c release
+
+      - name: Build Dart scanner
+        run: nix develop -c just build-dart-scanner
+
+      - name: Stage scanner binaries
+        run: nix develop -c just stage-scanner-binaries --platform "${{ matrix.platform }}"
+
+      - name: Build dist CLI
+        run: nix develop -c just build
+
+      - name: Verify dist package
+        run: nix develop -c just verify-dist
+
+      - name: Pack and smoke-test platform package
+        run: |
+          tarball="$(npm pack)"
+          nix develop -c just pack-smoke "$tarball"
+
+      - name: Generate scanner checksums
+        run: |
+          cd "dist/bin/${{ matrix.platform }}"
+          shasum -a 256 speclink-swift-scanner speclink_dart_scanner > SHA256SUMS
+
+      - name: Upload scanner artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-${{ matrix.platform }}
+          path: dist/bin/${{ matrix.platform }}
+          if-no-files-found: error
+
   publish:
     # Only on a merged release PR, or any manual dispatch.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true &&
        startsWith(github.head_ref, 'release/'))
+    needs: scanner-artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Resolve target commit and version
@@ -50,6 +125,12 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ steps.target.outputs.sha }}
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      - name: Install dependencies
+        run: nix develop -c bun install --frozen-lockfile
 
       - name: Determine version
         id: version
@@ -88,6 +169,36 @@ jobs:
             echo "::error::CI check 'ci' did not succeed for ${sha} (conclusion: ${conclusion:-none})." >&2
             exit 1
           fi
+
+      - name: Build dist CLI
+        run: nix develop -c just build
+
+      - name: Download linux scanner artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: scanner-linux-x64
+          path: dist/bin/linux-x64
+
+      - name: Download darwin scanner artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: scanner-darwin-arm64
+          path: dist/bin/darwin-arm64
+
+      - name: Verify dist package
+        run: nix develop -c just verify-dist
+
+      - name: Dry-run npm package
+        run: npm pack --dry-run
+
+      - name: Pack npm package
+        id: pack
+        run: |
+          tarball="$(npm pack)"
+          echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish npm package
+        run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public
 
       - name: Extract changelog section
         env:
