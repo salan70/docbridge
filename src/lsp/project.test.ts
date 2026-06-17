@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { counterpartsOf } from "../core/graph";
 import { Project } from "./project";
 
-const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/basic");
+const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/typescript");
 const CODE_FILE = "src/auth/login.ts";
 const DOC_FILE = "docs/auth.md";
 

@@ -45,11 +45,10 @@ SpecLink uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Executable examples
 
-- `just check-example` verifies the TypeScript example under `examples/basic`.
-- `just check-swift-example` verifies the Swift multilanguage fixture under
-  `fixtures/multilanguage/swift-basic`.
-- `just check-dart-example` verifies the Dart multilanguage fixture under
-  `fixtures/multilanguage/dart-basic`.
+- `just check-example` verifies the TypeScript example under
+  `examples/typescript`.
+- `just check-swift-example` verifies the Swift example under `examples/swift`.
+- `just check-dart-example` verifies the Dart example under `examples/dart`.
 
 ## Notes
 

@@ -7,24 +7,24 @@ check:
     bun run src/cli/index.ts check
 
 check-example:
-    bun run src/cli/index.ts check --root examples/basic
+    bun run src/cli/index.ts check --root examples/typescript
 
 check-swift-example:
-    bun run src/cli/index.ts check --root fixtures/multilanguage/swift-basic
+    bun run src/cli/index.ts check --root examples/swift
 
 check-dart-example:
-    bun run src/cli/index.ts check --root fixtures/multilanguage/dart-basic
+    bun run src/cli/index.ts check --root examples/dart
 
 check-example-json:
-    bun run src/cli/index.ts check --root examples/basic --json
+    bun run src/cli/index.ts check --root examples/typescript --json
 
 audit:
     bun run src/cli/index.ts check --audit
 
-# Run check against one diagnostic fixture (see fixtures/diagnostics/). The
+# Run check against one diagnostic fixture (see test-fixtures/diagnostics/). The
 # fixture is expected to report its diagnostic, so a non-zero exit is ignored.
 check-fixture code:
-    -bun run src/cli/index.ts check --root fixtures/diagnostics/{{ code }} {{ if code == "undocumented_symbol" { "--audit" } else { "" } }}
+    -bun run src/cli/index.ts check --root test-fixtures/diagnostics/{{ code }} {{ if code == "undocumented_symbol" { "--audit" } else { "" } }}
 
 # List counterparts of uncommitted changes that are themselves unchanged; exit 1 if any.
 related-gate:

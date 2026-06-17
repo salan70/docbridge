@@ -11,10 +11,21 @@ diagnostics through `speclink check`.
 
 Core implementation lives under `src/`. Specifications live under `docs/specs/`,
 Japanese documentation lives under `docs/ja/`, AI integration recipes live
-under `docs/integrations/`, examples live under `examples/` (including
-copyable agent hook scripts in `examples/hooks/`), distributable skill
-templates live under `templates/skills/`, per-diagnostic fixture projects live
-under `fixtures/diagnostics/`, and JSON schema files live under `schemas/`.
+under `docs/integrations/`, and implementation plans live under `docs/plans/`
+(see [Plans](#plans)).
+
+The `examples/` and `test-fixtures/` trees both hold small SpecLink projects but
+differ by intended audience:
+
+- `examples/` holds human-facing showcases meant to be read or copied: one per
+  language (`examples/typescript`, `examples/swift`, `examples/dart`) plus
+  copyable agent hook scripts in `examples/hooks/`. These may also serve as
+  integration test inputs; that reuse is intentional, not a reason to move them.
+- `test-fixtures/` holds projects that exist solely to drive automated tests.
+  Per-diagnostic fixtures live under `test-fixtures/diagnostics/`.
+
+Distributable skill templates live under `templates/skills/`, and JSON schema
+files live under `schemas/`.
 
 Tests are colocated with the modules they cover as `*.test.ts` files under
 `src/`; there is no separate `test/` directory. See
@@ -33,6 +44,18 @@ Use the repo-native commands in `justfile`:
 
 Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
 Compiler API for core implementation.
+
+## Plans
+
+Implementation plans live under `docs/plans/` and track their slices in a
+`## Status` checklist.
+
+- Active plans (any slice still unchecked) stay directly under `docs/plans/`.
+- A plan is complete once every `## Status` checkbox is `[x]` and the work has
+  merged to `main`; completed plans are archived under `docs/plans/done/`.
+- The PR that lands a plan's final slice checks the last box and `git mv`-es the
+  plan into `docs/plans/done/` in the same change, so the archive stays current
+  without a separate sweep.
 
 ## Local Guardrails
 

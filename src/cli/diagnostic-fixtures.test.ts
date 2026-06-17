@@ -6,7 +6,7 @@ import { run } from "./index";
 
 /**
  * E2E regression tests for the diagnostic fixture projects under
- * fixtures/diagnostics/. Each fixture is a minimal project that fires exactly
+ * test-fixtures/diagnostics/. Each fixture is a minimal project that fires exactly
  * one diagnostic code; the assertions are exhaustive (code + file + line, no
  * extra diagnostics) so CI guarantees each fixture stays minimal. Messages are
  * deliberately not asserted.
@@ -15,7 +15,13 @@ import { run } from "./index";
  * reproducible from checked-in files. It is covered by unit tests instead.
  */
 
-const FIXTURES_ROOT = join(import.meta.dir, "..", "..", "fixtures", "diagnostics");
+const FIXTURES_ROOT = join(
+  import.meta.dir,
+  "..",
+  "..",
+  "test-fixtures",
+  "diagnostics",
+);
 
 type ObservedDiagnostic = {
   code: DiagnosticCode;

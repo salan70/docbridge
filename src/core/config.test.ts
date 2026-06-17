@@ -280,7 +280,7 @@ test("the actual repo root config files validate cleanly", () => {
   expect(root.ok).toBe(true);
   expect(root.diagnostics).toEqual([]);
 
-  const example = loadConfig(join(repoRoot, "examples", "basic"));
+  const example = loadConfig(join(repoRoot, "examples", "typescript"));
   expect(example.ok).toBe(true);
   expect(example.diagnostics).toEqual([]);
 });

@@ -39,8 +39,8 @@ function capture(): Captured {
 }
 
 test("parseCheckOptions reads root, json, and audit flags", () => {
-  expect(parseCheckOptions(["--root", "examples/basic", "--json", "--audit"])).toEqual({
-    root: "examples/basic",
+  expect(parseCheckOptions(["--root", "examples/typescript", "--json", "--audit"])).toEqual({
+    root: "examples/typescript",
     json: true,
     audit: true,
   });
@@ -144,7 +144,7 @@ test("run reports a non-directory root on stderr and exits 1", () => {
 
 test("run emits valid JSON for --json against a clean project", () => {
   const c = capture();
-  const code = run(["check", "--root", "examples/basic", "--json"], c.io);
+  const code = run(["check", "--root", "examples/typescript", "--json"], c.io);
 
   expect(code).toBe(0);
   const parsed = JSON.parse(c.out) as {
@@ -157,7 +157,7 @@ test("run emits valid JSON for --json against a clean project", () => {
 
 test("run emits 2-space indented pretty JSON", () => {
   const c = capture();
-  run(["check", "--root", "examples/basic", "--json"], c.io);
+  run(["check", "--root", "examples/typescript", "--json"], c.io);
 
   expect(c.out).toContain('  "summary": {');
   expect(c.out.endsWith("\n")).toBe(true);
@@ -165,7 +165,7 @@ test("run emits 2-space indented pretty JSON", () => {
 
 test("run emits a human-readable summary line for a clean project", () => {
   const c = capture();
-  const code = run(["check", "--root", "examples/basic"], c.io);
+  const code = run(["check", "--root", "examples/typescript"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("Summary: 0 errors, 0 warnings");
@@ -216,9 +216,9 @@ test("run exits 1 when check errors exist", () => {
 
 test("parseRelatedOptions reads root, json, stdin, and positional files", () => {
   expect(
-    parseRelatedOptions(["--root", "examples/basic", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
+    parseRelatedOptions(["--root", "examples/typescript", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
   ).toEqual({
-    root: "examples/basic",
+    root: "examples/typescript",
     json: true,
     stdin: true,
     gate: false,
@@ -480,9 +480,9 @@ test("run related reports config errors on stderr and exits 1", () => {
 
 test("parseContextOptions reads root, json, stdin, and positional files", () => {
   expect(
-    parseContextOptions(["--root", "examples/basic", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
+    parseContextOptions(["--root", "examples/typescript", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
   ).toEqual({
-    root: "examples/basic",
+    root: "examples/typescript",
     json: true,
     stdin: true,
     files: ["src/a.ts", "docs/b.md"],
@@ -632,7 +632,7 @@ test("parseGraphOptions reads root, json, include-content, stdin, and positional
   expect(
     parseGraphOptions([
       "--root",
-      "examples/basic",
+      "examples/typescript",
       "--json",
       "--include-content",
       "--stdin",
@@ -640,7 +640,7 @@ test("parseGraphOptions reads root, json, include-content, stdin, and positional
       "docs/b.md",
     ]),
   ).toEqual({
-    root: "examples/basic",
+    root: "examples/typescript",
     json: true,
     includeContent: true,
     stdin: true,

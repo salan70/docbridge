@@ -335,16 +335,16 @@ describe(resolveLinks, () => {
 });
 
 describe(check, () => {
-  test("examples/basic resolves to zero diagnostics", () => {
-    const projectRoot = join(import.meta.dir, "..", "..", "examples", "basic");
+  test("examples/typescript resolves to zero diagnostics", () => {
+    const projectRoot = join(import.meta.dir, "..", "..", "examples", "typescript");
     const result = check({ projectRoot });
 
     expect(result.diagnostics).toEqual([]);
     expect(result.summary).toEqual({ errors: 0, warnings: 0 });
   });
 
-  test("examples/basic with audit also resolves to zero diagnostics", () => {
-    const projectRoot = join(import.meta.dir, "..", "..", "examples", "basic");
+  test("examples/typescript with audit also resolves to zero diagnostics", () => {
+    const projectRoot = join(import.meta.dir, "..", "..", "examples", "typescript");
     const result = check({ projectRoot, audit: true });
 
     expect(result.diagnostics).toEqual([]);
