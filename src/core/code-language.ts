@@ -83,7 +83,19 @@ export function resolveScannerWorkerCommand(
   options: ScannerWorkerResolutionOptions = {},
 ): ScannerWorkerCommandResolution {
   const platformKey = options.platformKey ?? scannerPlatformKey();
-  if (!SUPPORTED_SCANNER_PLATFORM_KEYS.includes(platformKey as never)) {
+  const platformSupported = isSupportedScannerPlatformKey(platformKey);
+  const candidates = scannerExecutableCandidates(
+    language,
+    platformKey,
+    platformSupported,
+    options,
+  );
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (found !== undefined) {
+    return { ok: true, command: [found] };
+  }
+
+  if (!platformSupported) {
     return {
       ok: false,
       diagnostic: scannerUnavailableDiagnostic(
@@ -91,12 +103,6 @@ export function resolveScannerWorkerCommand(
         `platform ${platformKey} is unsupported; supported platforms: ${SUPPORTED_SCANNER_PLATFORM_KEYS.join(", ")}`,
       ),
     };
-  }
-
-  const candidates = scannerExecutableCandidates(language, platformKey, options);
-  const found = candidates.find((candidate) => existsSync(candidate));
-  if (found !== undefined) {
-    return { ok: true, command: [found] };
   }
 
   return {
@@ -318,6 +324,7 @@ function normalizeScannerCommand(
 function scannerExecutableCandidates(
   language: ScannerWorkerLanguage,
   platformKey: string,
+  platformSupported: boolean,
   options: ScannerWorkerResolutionOptions,
 ): string[] {
   const sourceRoot = options.sourceRoot ?? sourceRootPath();
@@ -327,13 +334,21 @@ function scannerExecutableCandidates(
     return [
       join(sourceRoot, "packages/swift-scanner/.build/release", executable),
       join(sourceRoot, "packages/swift-scanner/.build/debug", executable),
-      join(distRoot, "bin", platformKey, executable),
+      ...(platformSupported
+        ? [join(distRoot, "bin", platformKey, executable)]
+        : []),
     ];
   }
   return [
     join(sourceRoot, "packages/dart-scanner/bin", executable),
-    join(distRoot, "bin", platformKey, executable),
+    ...(platformSupported
+      ? [join(distRoot, "bin", platformKey, executable)]
+      : []),
   ];
+}
+
+function isSupportedScannerPlatformKey(platformKey: string): boolean {
+  return SUPPORTED_SCANNER_PLATFORM_KEYS.includes(platformKey as never);
 }
 
 function sourceRootPath(): string {

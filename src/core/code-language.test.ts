@@ -75,6 +75,30 @@ test("resolveScannerWorkerCommand selects the dist scanner for a supported platf
   );
 });
 
+test("resolveScannerWorkerCommand selects source scanners on unsupported dist platforms", () => {
+  withProject(
+    {
+      "packages/swift-scanner/.build/release/speclink-swift-scanner":
+        "#!/bin/sh\n",
+    },
+    (root) => {
+      const scannerPath = join(
+        root,
+        "packages/swift-scanner/.build/release/speclink-swift-scanner",
+      );
+      chmodSync(scannerPath, 0o755);
+
+      const result = resolveScannerWorkerCommand("swift", {
+        platformKey: "darwin-x64",
+        sourceRoot: root,
+        distRoot: join(root, "missing-dist"),
+      });
+
+      expect(result).toEqual({ ok: true, command: [scannerPath] });
+    },
+  );
+});
+
 test("resolveScannerWorkerCommand reports unsupported scanner platforms", () => {
   const result = resolveScannerWorkerCommand("dart", {
     platformKey: "linux-arm64",

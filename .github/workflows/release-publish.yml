@@ -73,6 +73,17 @@ jobs:
       - name: Stage scanner binaries
         run: nix develop -c just stage-scanner-binaries --platform "${{ matrix.platform }}"
 
+      - name: Build dist CLI
+        run: nix develop -c just build
+
+      - name: Verify dist package
+        run: nix develop -c just verify-dist
+
+      - name: Pack and smoke-test platform package
+        run: |
+          tarball="$(npm pack)"
+          nix develop -c just pack-smoke "$tarball"
+
       - name: Generate scanner checksums
         run: |
           cd "dist/bin/${{ matrix.platform }}"
@@ -180,12 +191,11 @@ jobs:
       - name: Dry-run npm package
         run: npm pack --dry-run
 
-      - name: Pack and smoke-test npm package
+      - name: Pack npm package
         id: pack
         run: |
           tarball="$(npm pack)"
           echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
-          nix develop -c just pack-smoke "$tarball"
 
       - name: Publish npm package
         run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public
