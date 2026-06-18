@@ -197,6 +197,19 @@ jobs:
           tarball="$(npm pack)"
           echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
 
+      - name: Configure npm authentication
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NPM_TOKEN}" ]; then
+            echo "::error::NPM_TOKEN secret is not set; cannot publish to npm." >&2
+            exit 1
+          fi
+          # Write the auth token to the user-level .npmrc so `npm publish` can
+          # authenticate. Provenance still comes from the workflow's OIDC token
+          # (id-token: write) on this public repo.
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+
       - name: Publish npm package
         run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public
 

@@ -407,7 +407,7 @@ inside their worker packages.
 Completed v0.1–v0.3 capabilities are documented above and in
 [CHANGELOG.md](CHANGELOG.md). The current roadmap tracks upcoming work only.
 
-v0.4:
+v0.5:
 
 - MCP server exposing the link graph and `speclink context` output as tools
 - Editor and agent delivery channels built on it (Claude Code, Cursor, Zed,
