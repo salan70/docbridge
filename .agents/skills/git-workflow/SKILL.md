@@ -104,10 +104,12 @@ To cut release `vX.Y.Z`:
 3. A human merges the PR with **Create a merge commit**. This merge is the
    release approval gate.
 4. **Release Publish** then runs automatically on the merge: it re-checks CI for
-   the merge commit, extracts the matching `CHANGELOG.md` section, and creates
-   the `vX.Y.Z` tag plus a GitHub Release in one step (`gh release create`, no
-   separate tag push and no PAT). This project attaches no artifacts and
-   publishes nothing to npm.
+   the merge commit, builds the dist CLI with the platform scanner binaries,
+   publishes the `speclink` package to npm
+   (`npm publish --provenance --access public`, authenticated via the `NPM_TOKEN`
+   secret), then extracts the matching `CHANGELOG.md` section and creates the
+   `vX.Y.Z` tag plus a GitHub Release (`gh release create`, no separate tag push
+   and no PAT).
 
 A `workflow_dispatch` fallback on **Release Publish** (input: version) exists for
 recovery if the automatic run does not fire.
