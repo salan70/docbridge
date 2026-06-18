@@ -1,6 +1,6 @@
 {
   "name": "speclink",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A Bun CLI that links Markdown specifications and code declarations.",
   "license": "MIT",
   "type": "module",
