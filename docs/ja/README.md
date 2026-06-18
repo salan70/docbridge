@@ -388,7 +388,7 @@ Environment loader:
 [../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。現在の Roadmap では
 今後の作業のみを扱います。
 
-v0.4:
+v0.5:
 
 - リンクグラフと `speclink context` の出力をツールとして公開する MCP サーバー
 - それを基盤としたエディタ・エージェント連携(Claude Code、Cursor、Zed、Codex)
