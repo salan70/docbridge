@@ -70,11 +70,13 @@ jobs:
       - name: Build Dart scanner
         run: nix develop -c just build-dart-scanner
 
-      - name: Stage scanner binaries
-        run: nix develop -c just stage-scanner-binaries --platform "${{ matrix.platform }}"
-
       - name: Build dist CLI
         run: nix develop -c just build
+
+      # Must run after `just build`: building wipes `dist` (`rm -rf dist`), so
+      # staging the scanner binaries first would delete them before packing.
+      - name: Stage scanner binaries
+        run: nix develop -c just stage-scanner-binaries --platform "${{ matrix.platform }}"
 
       - name: Verify dist package
         run: nix develop -c just verify-dist
