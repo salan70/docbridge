@@ -3,11 +3,14 @@ import {
   chmodSync,
   mkdtempSync,
   mkdirSync,
+  realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   codeFileOwners,
@@ -17,6 +20,7 @@ import {
   isCodeLanguage,
   resolveScannerWorkerCommand,
   scanCodeFiles,
+  scannerRootsFromModuleUrl,
   setCodeAdapterForTest,
   type CodeInclude,
 } from "./code-language";
@@ -97,6 +101,30 @@ test("resolveScannerWorkerCommand selects source scanners on unsupported dist pl
       expect(result).toEqual({ ok: true, command: [scannerPath] });
     },
   );
+});
+
+test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
+  // npm installs the CLI as `node_modules/.bin/<cli>`, a relative symlink to
+  // the packaged `dist/index.js`. The dist scanner binaries sit next to that
+  // real file, so the dist root must follow the symlink to its target — Bun
+  // resolves this on macOS but not on Linux, where the bug surfaced.
+  withProject({ "pkg/dist/index.js": "// cli\n" }, (root) => {
+    const realCli = join(root, "pkg/dist/index.js");
+    const binDir = join(root, "node_modules/.bin");
+    mkdirSync(binDir, { recursive: true });
+    const shim = join(binDir, "speclink");
+    symlinkSync(relative(binDir, realCli), shim);
+
+    const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(
+      pathToFileURL(shim).href,
+    );
+
+    // Compare against the canonical root: realpath also normalizes symlinks in
+    // the temp path itself (e.g. macOS /var -> /private/var).
+    const realRoot = realpathSync(root);
+    expect(distRoot).toBe(join(realRoot, "pkg/dist"));
+    expect(sourceRoot).toBe(realRoot);
+  });
 });
 
 test("resolveScannerWorkerCommand reports unsupported scanner platforms", () => {
