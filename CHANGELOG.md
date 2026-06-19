@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Worker-backed scanner responses now fail when the returned file list does not
   exactly match the requested files, and worker failures suppress derived link
   diagnostics for the failed file.
+- The npm-distributed CLI now resolves its bundled `dist/bin/<platform>` Swift
+  and Dart scanner binaries when launched through the `node_modules/.bin`
+  symlink, which previously resolved to the wrong directory on Linux and
+  reported the scanner as unavailable.
 
 ## [0.3.0] - 2026-06-14
 

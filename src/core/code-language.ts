@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
@@ -351,12 +351,36 @@ function isSupportedScannerPlatformKey(platformKey: string): boolean {
   return SUPPORTED_SCANNER_PLATFORM_KEYS.includes(platformKey as never);
 }
 
+/**
+ * Resolve the dist and source roots from the URL of this module's file.
+ *
+ * npm installs the CLI as `node_modules/.bin/speclink`, a symlink to the
+ * packaged `dist/index.js`. The bundled scanner binaries live next to that real
+ * file under `dist/bin/`, so the symlink must be resolved to its target before
+ * deriving the roots. Bun resolves the bin symlink for `import.meta.url` on
+ * macOS but not on Linux, so realpath it explicitly to behave the same on both.
+ */
+export function scannerRootsFromModuleUrl(moduleUrl: string): {
+  distRoot: string;
+  sourceRoot: string;
+} {
+  const modulePath = fileURLToPath(moduleUrl);
+  let resolved: string;
+  try {
+    resolved = realpathSync(modulePath);
+  } catch {
+    resolved = modulePath;
+  }
+  const moduleDir = dirname(resolved);
+  return { distRoot: moduleDir, sourceRoot: resolve(moduleDir, "..", "..") };
+}
+
 function sourceRootPath(): string {
-  return fileURLToPath(new URL("../..", import.meta.url));
+  return scannerRootsFromModuleUrl(import.meta.url).sourceRoot;
 }
 
 function distRootPath(): string {
-  return fileURLToPath(new URL(".", import.meta.url));
+  return scannerRootsFromModuleUrl(import.meta.url).distRoot;
 }
 
 function scannerExecutableName(language: ScannerWorkerLanguage): string {
