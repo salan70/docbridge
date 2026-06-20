@@ -135,8 +135,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/spec-link/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/salan70/spec-link/releases/tag/v0.4.0
-[0.3.0]: https://github.com/salan70/spec-link/releases/tag/v0.3.0
-[0.2.0]: https://github.com/salan70/spec-link/releases/tag/v0.2.0
-[0.1.0]: https://github.com/salan70/spec-link/releases/tag/v0.1.0
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/salan70/docbridge/releases/tag/v0.4.0
+[0.3.0]: https://github.com/salan70/docbridge/releases/tag/v0.3.0
+[0.2.0]: https://github.com/salan70/docbridge/releases/tag/v0.2.0
+[0.1.0]: https://github.com/salan70/docbridge/releases/tag/v0.1.0
