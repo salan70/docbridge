@@ -8,7 +8,7 @@
             "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/session-start.sh\"",
             "timeout": 5,
-            "statusMessage": "Loading SpecLink reminders"
+            "statusMessage": "Loading DocBridge reminders"
           }
         ]
       }
@@ -21,7 +21,7 @@
             "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/on-edit-context.sh\"",
             "timeout": 30,
-            "statusMessage": "Fetching SpecLink counterpart context"
+            "statusMessage": "Fetching DocBridge counterpart context"
           }
         ]
       }
@@ -33,7 +33,7 @@
             "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/stop-verify.sh\"",
             "timeout": 300,
-            "statusMessage": "Running SpecLink final checks"
+            "statusMessage": "Running DocBridge final checks"
           }
         ]
       }

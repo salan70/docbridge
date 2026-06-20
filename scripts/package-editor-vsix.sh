@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EDITOR_DIR="$ROOT/editors/vscode"
 VERSION="$(bun -e "console.log(require('$EDITOR_DIR/package.json').version)")"
-OUT="$ROOT/.tmp/speclink-vscode-$VERSION.vsix"
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/speclink-vsix.XXXXXX")"
+OUT="$ROOT/.tmp/docbridge-vscode-$VERSION.vsix"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/docbridge-vsix.XXXXXX")"
 
 trap 'rm -rf "$WORK"' EXIT
 
@@ -37,9 +37,9 @@ cat > "$WORK/extension.vsixmanifest" <<XML
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">
   <Metadata>
-    <Identity Language="en-US" Id="speclink-vscode" Version="$VERSION" Publisher="speclink"/>
-    <DisplayName>SpecLink</DisplayName>
-    <Description xml:space="preserve">Minimal VS Code-compatible client that launches the SpecLink language server.</Description>
+    <Identity Language="en-US" Id="docbridge-vscode" Version="$VERSION" Publisher="docbridge"/>
+    <DisplayName>DocBridge</DisplayName>
+    <Description xml:space="preserve">Minimal VS Code-compatible client that launches the DocBridge language server.</Description>
     <Tags>__MSG_@@extension</Tags>
     <Categories>Other</Categories>
   </Metadata>

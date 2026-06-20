@@ -12,7 +12,7 @@ import { buildLinkGraph, type LinkGraph } from "../core/graph";
 import { collectFiles, matchGlob, readManagedFile } from "../core/glob";
 import { scanMarkdown, type MarkdownScanResult } from "../core/markdown";
 import { resolveLinks } from "../core/resolver";
-import type { SpecLinkDiagnostic } from "../core/types";
+import type { DocBridgeDiagnostic } from "../core/types";
 import { buildPositionIndex, type PositionIndex } from "./index-lookup";
 
 /** The resolved whole-project state the LSP handlers query. */
@@ -20,7 +20,7 @@ export type ProjectState = {
   graph: LinkGraph;
   index: PositionIndex;
   /** Full, sorted diagnostics across the project. */
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
   /** Resolved content (buffer overlay or on-disk) per scanned file path. */
   contentByFile: Map<string, string>;
 };
@@ -70,7 +70,7 @@ export class Project {
     const codeInclude = configResult.config.include.code;
     const docPaths = this.collect(configResult.config.include.docs, false);
 
-    const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
+    const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
     const contentByFile = new Map<string, string>();
 
     const codeScan = scanCodeFiles(
@@ -176,7 +176,7 @@ export class Project {
   /** Resolve content for a path: buffer overlay first, then on-disk. */
   private contentFor(
     relPath: string,
-    scanDiagnostics: SpecLinkDiagnostic[],
+    scanDiagnostics: DocBridgeDiagnostic[],
   ): string | undefined {
     const overlaid = this.overlay.get(relPath);
     if (overlaid !== undefined) {

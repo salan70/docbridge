@@ -11,7 +11,7 @@ import type {
   DocLinkAnnotation,
   Range,
   SourceLocation,
-  SpecLinkDiagnostic,
+  DocBridgeDiagnostic,
 } from "./types";
 
 const LANGUAGE = "typescript" as const;
@@ -70,7 +70,7 @@ export function scanTypeScript(
     };
   }
 
-  const diagnostics: SpecLinkDiagnostic[] = [];
+  const diagnostics: DocBridgeDiagnostic[] = [];
   const symbols: CodeSymbolEndpoint[] = [];
   const undocumentedSymbols: CodeSymbolEndpoint[] = [];
   const links: DocLinkAnnotation[] = [];
@@ -524,7 +524,7 @@ function parseErrorDiagnostic(
   filePath: string,
   sourceFile: ts.SourceFile,
   diagnostic: ts.Diagnostic | undefined,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   const location: SourceLocation = { filePath, line: 1, column: 1 };
   if (
     diagnostic !== undefined &&
@@ -556,7 +556,7 @@ function parseErrorDiagnostic(
 function unsupportedDeclarationDiagnostic(
   filePath: string,
   location: SourceLocation,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   return {
     severity: "warning",
     code: "unsupported_declaration",
@@ -572,8 +572,8 @@ function duplicateCodeSymbolDiagnostic(
   endpoint: string,
   location: SourceLocation,
   range: Range | undefined,
-): SpecLinkDiagnostic {
-  const diagnostic: SpecLinkDiagnostic = {
+): DocBridgeDiagnostic {
+  const diagnostic: DocBridgeDiagnostic = {
     severity: "error",
     code: "duplicate_code_symbol",
     language: LANGUAGE,
@@ -592,8 +592,8 @@ function duplicateLinkDiagnostic(
   target: string,
   location: SourceLocation,
   range: Range | undefined,
-): SpecLinkDiagnostic {
-  const diagnostic: SpecLinkDiagnostic = {
+): DocBridgeDiagnostic {
+  const diagnostic: DocBridgeDiagnostic = {
     severity: "warning",
     code: "duplicate_link",
     target,

@@ -8,7 +8,7 @@ import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
-import type { EndpointKind, SpecLinkDiagnostic } from "./types";
+import type { EndpointKind, DocBridgeDiagnostic } from "./types";
 import type { CodeLanguage } from "./types";
 
 export type ContextBlock = {
@@ -37,7 +37,7 @@ export type ContextData = {
 
 export type ContextResult = ContextData & {
   /** Check diagnostics located in the input files, in check order. */
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
 };
 
 /**
@@ -94,10 +94,10 @@ export type ContextOptions = {
 
 export type ContextOutcome =
   | { ok: true; result: ContextResult }
-  | { ok: false; diagnostics: SpecLinkDiagnostic[] };
+  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
 /**
- * Full orchestration for `speclink context`: load config, scan the managed
+ * Full orchestration for `docbridge context`: load config, scan the managed
  * files, build the link graph, and collect the counterpart content of the
  * input files. Extraction is best-effort: check diagnostics located in the
  * input files are reported alongside the blocks that did resolve, and never
@@ -111,7 +111,7 @@ export function context(options: ContextOptions): ContextOutcome {
     return { ok: false, diagnostics: configResult.diagnostics };
   }
 
-  const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
+  const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
   const contentByFile = new Map<string, string>();
 
   const codeScan = scanCodeFiles(
@@ -157,7 +157,7 @@ export function context(options: ContextOptions): ContextOutcome {
 }
 
 /**
- * Render a `ContextResult` as the `speclink context` Markdown report: one block
+ * Render a `ContextResult` as the `docbridge context` Markdown report: one block
  * per counterpart (doc sections raw, code declarations fenced), separated by
  * horizontal rules, then the summary line. Diagnostics are not rendered here;
  * the CLI reports them on stderr.

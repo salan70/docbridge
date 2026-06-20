@@ -1,7 +1,7 @@
 import { type Dirent, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import type { SpecLinkDiagnostic } from "./types";
+import type { DocBridgeDiagnostic } from "./types";
 
 export type GlobValidation = { ok: true } | { ok: false; message: string };
 
@@ -141,7 +141,7 @@ export function readManagedFile(
   relativePath: string,
 ):
   | { ok: true; content: string }
-  | { ok: false; diagnostic: SpecLinkDiagnostic } {
+  | { ok: false; diagnostic: DocBridgeDiagnostic } {
   try {
     const content = readFileSync(join(projectRoot, relativePath), "utf8");
     return { ok: true, content };

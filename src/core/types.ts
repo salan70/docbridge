@@ -4,7 +4,7 @@ export type LinkTarget = {
 };
 
 /**
- * Fixed lowercase identifiers for the code languages SpecLink understands. The
+ * Fixed lowercase identifiers for the code languages DocBridge understands. The
  * set is closed; configuration rejects any other value.
  */
 export type CodeLanguage = "typescript" | "swift" | "dart";
@@ -53,7 +53,7 @@ export type Range = {
   end: Position;
 };
 
-export type SpecLinkDiagnostic = {
+export type DocBridgeDiagnostic = {
   severity: DiagnosticSeverity;
   code: DiagnosticCode;
   target: string;
@@ -68,7 +68,7 @@ export type SpecLinkDiagnostic = {
   message: string;
   location?: SourceLocation;
   /**
-   * Optional precise range for editor surfaces (LSP). `speclink check` ignores
+   * Optional precise range for editor surfaces (LSP). `docbridge check` ignores
    * it. Set to the annotation target range for link-target diagnostics or the
    * element range for declaration/heading diagnostics when available.
    */
@@ -81,7 +81,7 @@ export type Summary = {
 };
 
 export type CheckResult = {
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
   summary: Summary;
 };
 

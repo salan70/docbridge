@@ -12,9 +12,9 @@ test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", ()
   const path = clangModuleCachePath();
 
   expect(path.startsWith(tmpdir())).toBe(true);
-  expect(path).toContain("speclink-clang-module-cache");
+  expect(path).toContain("docbridge-clang-module-cache");
   // Not the world-shared, non-portable hardcoded location.
-  expect(path).not.toBe("/tmp/speclink-clang-module-cache");
+  expect(path).not.toBe("/tmp/docbridge-clang-module-cache");
   if (typeof process.getuid === "function") {
     expect(path).toContain(String(process.getuid()));
   }

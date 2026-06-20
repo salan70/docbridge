@@ -1,9 +1,9 @@
 # Diagnostics
 
-SpecLink v0.1 diagnostics have this JSON shape:
+DocBridge v0.1 diagnostics have this JSON shape:
 
 ```ts
-type SpecLinkDiagnostic = {
+type DocBridgeDiagnostic = {
   severity: "error" | "warning";
   code: DiagnosticCode;
   target: string;
@@ -66,7 +66,7 @@ Warning diagnostic codes:
 
 `undocumented_symbol` is endpoint-based. If at least one supported declaration for a `file#name` endpoint has `@doc`, that endpoint is documented. If multiple `@doc`-annotated declarations expose the same endpoint, `duplicate_code_symbol` is emitted instead.
 
-SpecLink sorts diagnostics deterministically:
+DocBridge sorts diagnostics deterministically:
 
 1. diagnostics without `location` first
 2. `location.filePath`
@@ -83,24 +83,24 @@ Exit code policy:
 <!-- @code src/lsp/diagnostics.ts#toLspDiagnostic -->
 ## LSP Diagnostics
 
-From v0.2, the Language Server (`speclink lsp`) publishes these same diagnostics
+From v0.2, the Language Server (`docbridge lsp`) publishes these same diagnostics
 through `textDocument/publishDiagnostics`. The diagnostic computation is
 unchanged. The diagnostic codes are identical; v0.2 adds no new codes.
 
-Each `SpecLinkDiagnostic` maps to the LSP `Diagnostic` shape:
+Each `DocBridgeDiagnostic` maps to the LSP `Diagnostic` shape:
 
 - `severity`: `error` maps to `1`, `warning` maps to `2`.
 - `range`: the annotation `targetRange` for link-target diagnostics; the element
   range (`nameRange` or `headingTextRange`) for declaration and heading
   diagnostics; the whole line as a fallback when no range is available.
-- `code`: the SpecLink diagnostic code string.
+- `code`: the DocBridge diagnostic code string.
 - `message`: the diagnostic message.
 
 The server publishes diagnostics for open documents. Because the whole-project
 link graph is held in memory, open documents receive correct cross-file
 diagnostics. See [LSP](./lsp.md) for the server's document model.
 
-The exit code policy above applies to `speclink check` only; the Language Server
+The exit code policy above applies to `docbridge check` only; the Language Server
 reports through `publishDiagnostics` and does not exit per check.
 
 <!-- @code src/core/diagnostics.ts#sortDiagnostics -->

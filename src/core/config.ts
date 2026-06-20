@@ -9,9 +9,9 @@ import {
   type CodeIncludeEntry,
 } from "./code-language";
 import { validateGlobPattern } from "./glob";
-import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
+import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
-export type SpecLinkConfig = {
+export type DocBridgeConfig = {
   include: {
     code: CodeInclude;
     docs: string[];
@@ -19,15 +19,15 @@ export type SpecLinkConfig = {
 };
 
 export type LoadConfigResult = {
-  config: SpecLinkConfig;
-  diagnostics: SpecLinkDiagnostic[];
+  config: DocBridgeConfig;
+  diagnostics: DocBridgeDiagnostic[];
   ok: boolean;
 };
 
-const CONFIG_FILE_NAME = "speclink.config.json";
+const CONFIG_FILE_NAME = "docbridge.config.json";
 
 // Config errors short-circuit scanning, so this placeholder is never scanned.
-const EMPTY_CONFIG: SpecLinkConfig = {
+const EMPTY_CONFIG: DocBridgeConfig = {
   include: { code: {}, docs: [] },
 };
 
@@ -48,7 +48,7 @@ const LANGUAGE_VISIBILITY: Record<CodeLanguage, readonly string[]> = {
 };
 
 /**
- * Load `speclink.config.json` from `projectRoot`, then validate it.
+ * Load `docbridge.config.json` from `projectRoot`, then validate it.
  *
  * The config file is required; a missing file is reported as an error rather
  * than silently falling back to a default. When the parsed config is otherwise
@@ -99,7 +99,7 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
         configDiagnostic(
           "config_file_invalid",
           CONFIG_FILE_NAME,
-          `${CONFIG_FILE_NAME} was not found. SpecLink requires a configuration file.`,
+          `${CONFIG_FILE_NAME} was not found. DocBridge requires a configuration file.`,
         ),
       ],
     };
@@ -123,7 +123,7 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
     };
   }
 
-  const diagnostics: SpecLinkDiagnostic[] = [];
+  const diagnostics: DocBridgeDiagnostic[] = [];
 
   if (!isPlainObject(parsed)) {
     diagnostics.push(
@@ -186,7 +186,7 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
   validatePatternArray(include.docs, "docs", ".md", false, diagnostics);
 
   const ok = diagnostics.length === 0;
-  const config: SpecLinkConfig = ok
+  const config: DocBridgeConfig = ok
     ? { include: { code, docs: include.docs as string[] } }
     : EMPTY_CONFIG;
 
@@ -200,7 +200,7 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
  */
 function validateCodeInclude(
   value: unknown,
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): CodeInclude {
   if (Array.isArray(value)) {
     diagnostics.push(
@@ -259,7 +259,7 @@ function validateCodeInclude(
 function validateCodeEntry(
   language: CodeLanguage,
   value: unknown,
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): CodeIncludeEntry | undefined {
   const target = `include.code.${language}`;
 
@@ -324,7 +324,7 @@ function validateVisibilityOptions(
   language: CodeLanguage,
   values: string[],
   target: string,
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): void {
   const allowed = LANGUAGE_VISIBILITY[language];
   if (allowed.length === 0) {
@@ -355,7 +355,7 @@ function validatePatternArray(
   field: string,
   requiredSuffix: string,
   excludeDeclarationFiles: boolean,
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): void {
   const target = `include.${field}`;
 
@@ -435,8 +435,8 @@ function checkSuffix(
 function detectLanguageOverlap(
   projectRoot: string,
   code: CodeInclude,
-): SpecLinkDiagnostic[] {
-  const diagnostics: SpecLinkDiagnostic[] = [];
+): DocBridgeDiagnostic[] {
+  const diagnostics: DocBridgeDiagnostic[] = [];
   for (const [relPath, owners] of codeFileOwners(projectRoot, code)) {
     if (owners.length > 1) {
       diagnostics.push(
@@ -452,10 +452,10 @@ function detectLanguageOverlap(
 }
 
 function configDiagnostic(
-  code: SpecLinkDiagnostic["code"],
+  code: DocBridgeDiagnostic["code"],
   target: string,
   message: string,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   return { severity: "error", code, target, message };
 }
 

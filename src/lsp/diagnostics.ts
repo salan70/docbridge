@@ -1,10 +1,10 @@
-import type { SpecLinkDiagnostic } from "../core/types";
+import type { DocBridgeDiagnostic } from "../core/types";
 import { toLspRange, type LspRange } from "./position";
 
-/** LSP diagnostic severities: error and warning are the only ones SpecLink uses. */
+/** LSP diagnostic severities: error and warning are the only ones DocBridge uses. */
 export type LspDiagnosticSeverity = 1 | 2;
 
-/** LSP `Diagnostic` shape (the subset SpecLink produces). */
+/** LSP `Diagnostic` shape (the subset DocBridge produces). */
 export type LspDiagnostic = {
   range: LspRange;
   severity: LspDiagnosticSeverity;
@@ -13,10 +13,10 @@ export type LspDiagnostic = {
   message: string;
 };
 
-const SOURCE = "speclink";
+const SOURCE = "docbridge";
 
 /**
- * Map a SpecLink diagnostic to the LSP `Diagnostic` shape. Severity maps
+ * Map a DocBridge diagnostic to the LSP `Diagnostic` shape. Severity maps
  * error -> 1, warning -> 2. The range is the diagnostic's own range when
  * present, otherwise the whole line at its location, otherwise the document
  * origin.
@@ -24,7 +24,7 @@ const SOURCE = "speclink";
  * @doc docs/specs/diagnostics.md#lsp-diagnostics
  */
 export function toLspDiagnostic(
-  diagnostic: SpecLinkDiagnostic,
+  diagnostic: DocBridgeDiagnostic,
   lineLengths: number[],
 ): LspDiagnostic {
   return {
@@ -42,7 +42,7 @@ export function toLspDiagnostic(
  * location (for example config errors) are not attached to any file.
  */
 export function diagnosticsForFile(
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
   filePath: string,
   content: string,
 ): LspDiagnostic[] {
@@ -57,7 +57,7 @@ export function diagnosticsForFile(
 }
 
 function rangeFor(
-  diagnostic: SpecLinkDiagnostic,
+  diagnostic: DocBridgeDiagnostic,
   lineLengths: number[],
 ): LspRange {
   if (diagnostic.range !== undefined) {

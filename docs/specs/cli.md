@@ -1,13 +1,13 @@
 # CLI
 
-SpecLink provides the `check`, `related`, `context`, and `graph` commands.
+DocBridge provides the `check`, `related`, `context`, and `graph` commands.
 
 ```sh
-speclink [--version] [--help]
-speclink check [--root <path>] [--json] [--audit]
-speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
-speclink context [--root <path>] [--json] [--stdin] [files...]
-speclink graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
+docbridge [--version] [--help]
+docbridge check [--root <path>] [--json] [--audit]
+docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
+docbridge context [--root <path>] [--json] [--stdin] [files...]
+docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
@@ -31,7 +31,7 @@ remaining options are specific to each command.
 
 `--audit` enables audit-only diagnostics. In v0.1, the only audit diagnostic is `undocumented_symbol`.
 
-`--version` (alias `-v`) prints the SpecLink version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
+`--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
 
 Human-readable output prints one diagnostic per line:
 
@@ -45,7 +45,7 @@ Summary: 1 error, 1 warning
 Diagnostics without a location use the target without line and column:
 
 ```text
-speclink.config.json error config_file_invalid - Failed to parse config file.
+docbridge.config.json error config_file_invalid - Failed to parse config file.
 ```
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
@@ -63,19 +63,19 @@ The related command is an informational command: given a set of changed files,
 it lists the linked counterparts of every linked endpoint in those files. By
 default it performs no validation and renders no judgment; deciding whether a
 counterpart also needs a change is left to the consumer (a human, an agent, or
-a CI script). The `--gate` flag opts into the one judgment SpecLink can make
+a CI script). The `--gate` flag opts into the one judgment DocBridge can make
 mechanically (see [Related Gate Mode](#related-gate-mode)). It is designed to
 sit behind `git`:
 
 ```sh
 # pre-commit
-git diff --name-only --cached | speclink related --stdin
+git diff --name-only --cached | docbridge related --stdin
 
 # CI (PR diff)
-git diff --name-only origin/main...HEAD | speclink related --stdin
+git diff --name-only origin/main...HEAD | docbridge related --stdin
 
 # manual
-speclink related src/core/graph.ts
+docbridge related src/core/graph.ts
 ```
 
 Changed files are passed as positional arguments, as newline-separated paths
@@ -94,7 +94,7 @@ missing. Changed files that are not in the managed set, do not exist, or have
 no linked endpoints are silently excluded from the report; they are only
 reflected in the summary count. As a consequence, links that a deleted file
 used to carry cannot be reported (the dangling annotations they leave behind
-are `speclink check`'s concern).
+are `docbridge check`'s concern).
 
 Human-readable output prints one block per changed file with links. Each line
 shows the endpoint fragment in the changed file, the counterpart endpoint, and
@@ -197,20 +197,20 @@ configuration errors exit with code `1` as usual.
 <!-- @code src/core/graph-output.ts#graph -->
 ## Graph Command
 
-The graph command prints the resolved SpecLink graph. It includes complete
+The graph command prints the resolved DocBridge graph. It includes complete
 bidirectional links and resolvable one-way links: an annotation contributes an
 edge when its target file and anchor/symbol exist, even if the backlink is
 missing. Broken targets remain diagnostics and do not become graph edges.
 
 ```sh
 # whole project
-speclink graph
+docbridge graph
 
 # a file plus directly linked counterparts
-speclink graph src/auth/login.ts
+docbridge graph src/auth/login.ts
 
 # machine-readable graph for tools and agents
-speclink graph --json --include-content
+docbridge graph --json --include-content
 ```
 
 Input files are optional. With no files and no `--stdin`, `graph` emits the
@@ -268,10 +268,10 @@ injection. It takes the same input forms as `related`:
 
 ```sh
 # before editing a file
-speclink context src/auth/login.ts
+docbridge context src/auth/login.ts
 
 # uncommitted changes
-git diff --name-only HEAD | speclink context --stdin
+git diff --name-only HEAD | docbridge context --stdin
 ```
 
 Input files are passed as positional arguments, as newline-separated paths on
@@ -303,7 +303,7 @@ when the project has broken links. Check diagnostics located in the input
 files are reported alongside the result — on stderr in human-readable mode, in
 the `diagnostics` field with `--json` — and never affect the exit code, so a
 temporarily broken tree still yields the context that does resolve. Validation
-verdicts remain `speclink check`'s and `related --gate`'s concern.
+verdicts remain `docbridge check`'s and `related --gate`'s concern.
 
 Human-readable output prints one block per counterpart, separated by
 horizontal rules, then the summary line, which is always printed. Doc sections

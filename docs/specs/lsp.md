@@ -1,10 +1,10 @@
 # LSP
 
-SpecLink v0.2 provides a Language Server, `speclink lsp`, that exposes the
-SpecLink link graph to editors over the Language Server Protocol.
+DocBridge v0.2 provides a Language Server, `docbridge lsp`, that exposes the
+DocBridge link graph to editors over the Language Server Protocol.
 
 The server is additive. It reuses the v0.1 scanners and resolver and does not
-change `speclink check`.
+change `docbridge check`.
 
 Rationale and scope decisions live in [v0.2 Decisions](../decisions/v0.2.md).
 
@@ -54,7 +54,7 @@ Declared server capabilities:
 
 The server uses a whole-project model.
 
-- On `initialized`, the server loads `speclink.config.json` from the resolved
+- On `initialized`, the server loads `docbridge.config.json` from the resolved
   root, collects every file matched by the include globs, scans them from disk,
   and resolves the full link graph.
 - Open documents overlay their on-disk content. For any open URI, the server uses
@@ -83,10 +83,10 @@ rapid edits before re-resolution.
 <!-- @code src/lsp/paths.ts#uriToRelativePath -->
 ### Positions and paths
 
-- Position encoding is LSP-default UTF-16 code units. SpecLink positions are
+- Position encoding is LSP-default UTF-16 code units. DocBridge positions are
   derived from JavaScript string indexing, which is UTF-16, so no conversion of
   units is required.
-- LSP `Position.line` and `Position.character` are 0-based. SpecLink `line` and
+- LSP `Position.line` and `Position.character` are 0-based. DocBridge `line` and
   `column` are 1-based. The server converts at the protocol boundary.
 - Document URIs are `file://` URIs. The server converts them to and from
   project-root-relative paths. Windows-specific path handling is out of scope for
@@ -188,10 +188,10 @@ in memory, open documents receive correct cross-file diagnostics.
 ## CLI
 
 ```sh
-speclink lsp
+docbridge lsp
 ```
 
 `lsp` runs the Language Server over stdio. It takes no options. The project root
 is taken from the `initialize` request, not from a flag.
 
-`speclink check` is unchanged.
+`docbridge check` is unchanged.

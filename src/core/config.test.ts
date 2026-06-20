@@ -25,7 +25,7 @@ test("resolveConfig rejects a missing config file", () => {
 test("resolveConfig accepts a language-keyed config", () => {
   const result = resolveConfig(
     JSON.stringify({
-      $schema: "./schemas/speclink.schema.json",
+      $schema: "./schemas/docbridge.schema.json",
       include: {
         code: { typescript: { patterns: ["src/**/*.ts"] } },
         docs: ["docs/specs/**/*.md"],
@@ -149,7 +149,7 @@ test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
   expect(result.diagnostics).toHaveLength(1);
   expect(result.diagnostics[0]).toMatchObject({
     code: "config_file_invalid",
-    target: "speclink.config.json",
+    target: "docbridge.config.json",
   });
 });
 
@@ -237,10 +237,10 @@ test.each([
   expect(codes(result)).toContain("config_invalid_value");
 });
 
-test("loadConfig reads speclink.config.json from project root", () => {
-  const root = mkdtempSync(join(tmpdir(), "speclink-config-"));
+test("loadConfig reads docbridge.config.json from project root", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
   try {
-    writeFileSync(join(root, "speclink.config.json"), JSON.stringify(TS_CONFIG));
+    writeFileSync(join(root, "docbridge.config.json"), JSON.stringify(TS_CONFIG));
     const result = loadConfig(root);
     expect(result.ok).toBe(true);
     expect(result.config).toEqual(TS_CONFIG);
@@ -250,7 +250,7 @@ test("loadConfig reads speclink.config.json from project root", () => {
 });
 
 test("loadConfig reports config_file_invalid when no config file exists", () => {
-  const root = mkdtempSync(join(tmpdir(), "speclink-config-"));
+  const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
   try {
     const result = loadConfig(root);
     expect(result.ok).toBe(false);
@@ -261,11 +261,11 @@ test("loadConfig reports config_file_invalid when no config file exists", () => 
 });
 
 test("loadConfig does not report a false overlap for a valid single-language config", () => {
-  const root = mkdtempSync(join(tmpdir(), "speclink-overlap-"));
+  const root = mkdtempSync(join(tmpdir(), "docbridge-overlap-"));
   try {
     mkdirSync(join(root, "src"), { recursive: true });
     writeFileSync(join(root, "src", "a.ts"), "export const a = 1;\n");
-    writeFileSync(join(root, "speclink.config.json"), JSON.stringify(TS_CONFIG));
+    writeFileSync(join(root, "docbridge.config.json"), JSON.stringify(TS_CONFIG));
     const result = loadConfig(root);
     expect(result.ok).toBe(true);
     expect(result.diagnostics).toEqual([]);

@@ -1,0 +1,15 @@
+{
+  "$schema": "./schemas/docbridge.schema.json",
+  "include": {
+    "code": {
+      "typescript": {
+        "patterns": [
+          "src/**/*.ts"
+        ]
+      }
+    },
+    "docs": [
+      "docs/specs/**/*.md"
+    ]
+  }
+}

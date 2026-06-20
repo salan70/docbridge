@@ -6,7 +6,7 @@ import {
   summarizeDiagnostics,
   sortDiagnostics,
 } from "./diagnostics";
-import type { DiagnosticCode, SpecLinkDiagnostic } from "./types";
+import type { DiagnosticCode, DocBridgeDiagnostic } from "./types";
 
 test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
   const codes = [
@@ -35,7 +35,7 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
 });
 
 test("sortDiagnostics orders diagnostics deterministically", () => {
-  const diagnostics: SpecLinkDiagnostic[] = [
+  const diagnostics: DocBridgeDiagnostic[] = [
     {
       severity: "error",
       code: "doc_anchor_not_found",
@@ -61,7 +61,7 @@ test("sortDiagnostics orders diagnostics deterministically", () => {
     {
       severity: "error",
       code: "config_file_invalid",
-      target: "speclink.config.json",
+      target: "docbridge.config.json",
       message: "Failed to parse config file.",
     },
     {
@@ -98,7 +98,7 @@ test("sortDiagnostics orders diagnostics deterministically", () => {
     "doc_anchor_not_found",
   ]);
   expect(sorted.map((diagnostic) => diagnostic.target)).toEqual([
-    "speclink.config.json",
+    "docbridge.config.json",
     "docs/specs/missing.md#a",
     "docs/specs/missing.md#z",
     "docs/specs/cli.md#check-command",
@@ -156,11 +156,11 @@ test("formatDiagnostic formats diagnostics with and without locations", () => {
     formatDiagnostic({
       severity: "error",
       code: "config_file_invalid",
-      target: "speclink.config.json",
+      target: "docbridge.config.json",
       message: "Failed to parse config file.",
     }),
   ).toBe(
-    "speclink.config.json error config_file_invalid - Failed to parse config file.",
+    "docbridge.config.json error config_file_invalid - Failed to parse config file.",
   );
 });
 

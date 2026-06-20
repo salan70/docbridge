@@ -5,7 +5,7 @@ import { sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { parseLinkTarget } from "./links";
-import type { CheckResult, LinkAnnotation, SpecLinkDiagnostic } from "./types";
+import type { CheckResult, LinkAnnotation, DocBridgeDiagnostic } from "./types";
 
 export type ResolveInput = {
   /** One per scanned code file, including files that hit a parse error. */
@@ -18,7 +18,7 @@ export type ResolveInput = {
    * `file_read_error` / `code_parse_error` entries are used to suppress derived
    * link diagnostics.
    */
-  scanDiagnostics: SpecLinkDiagnostic[];
+  scanDiagnostics: DocBridgeDiagnostic[];
   audit: boolean;
 };
 
@@ -33,8 +33,8 @@ export type ResolveInput = {
  *
  * @doc docs/specs/link-resolution.md#resolving-links
  */
-export function resolveLinks(input: ResolveInput): SpecLinkDiagnostic[] {
-  const diagnostics: SpecLinkDiagnostic[] = [];
+export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
+  const diagnostics: DocBridgeDiagnostic[] = [];
 
   const erroredFiles = collectErroredFiles(input.scanDiagnostics);
   const docFilePaths = new Set(input.docFiles.map((file) => file.filePath));
@@ -198,7 +198,7 @@ export function check(options: CheckOptions): CheckResult {
     return { diagnostics: sorted, summary: summarizeDiagnostics(sorted) };
   }
 
-  const scanDiagnostics: SpecLinkDiagnostic[] = [...configResult.diagnostics];
+  const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
 
   const codeScan = scanCodeFiles(
     projectRoot,
@@ -242,8 +242,8 @@ export function check(options: CheckOptions): CheckResult {
 function auditUndocumentedSymbols(
   input: ResolveInput,
   erroredFiles: Set<string>,
-): SpecLinkDiagnostic[] {
-  const diagnostics: SpecLinkDiagnostic[] = [];
+): DocBridgeDiagnostic[] {
+  const diagnostics: DocBridgeDiagnostic[] = [];
 
   for (const file of input.codeFiles) {
     if (erroredFiles.has(file.filePath)) {
@@ -264,7 +264,7 @@ function auditUndocumentedSymbols(
   return diagnostics;
 }
 
-function collectErroredFiles(diagnostics: SpecLinkDiagnostic[]): Set<string> {
+function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {
   const errored = new Set<string>();
   for (const diagnostic of diagnostics) {
     if (
@@ -278,7 +278,7 @@ function collectErroredFiles(diagnostics: SpecLinkDiagnostic[]): Set<string> {
   return errored;
 }
 
-function isFileScopedScannerDiagnostic(diagnostic: SpecLinkDiagnostic): boolean {
+function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean {
   return (
     (diagnostic.code === "code_scanner_unavailable" ||
       diagnostic.code === "code_scanner_failed") &&
@@ -303,13 +303,13 @@ function filePathOf(endpoint: string): string {
 }
 
 function relationshipDiagnostic(
-  code: SpecLinkDiagnostic["code"],
+  code: DocBridgeDiagnostic["code"],
   source: string,
   target: string,
   message: string,
   link: LinkAnnotation,
-): SpecLinkDiagnostic {
-  const diagnostic: SpecLinkDiagnostic = {
+): DocBridgeDiagnostic {
+  const diagnostic: DocBridgeDiagnostic = {
     severity: "error",
     code,
     source,

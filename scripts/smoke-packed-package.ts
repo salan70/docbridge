@@ -10,7 +10,7 @@ if (tarball === undefined) {
 }
 
 const tarballPath = resolve(tarball);
-const tempRoot = mkdtempSync(join(tmpdir(), "speclink-pack-smoke-"));
+const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-pack-smoke-"));
 
 try {
   writeFileSync(
@@ -18,13 +18,13 @@ try {
     JSON.stringify({ private: true, dependencies: {} }, null, 2),
   );
   run(["npm", "install", tarballPath], tempRoot);
-  run(["bun", "node_modules/.bin/speclink", "--version"], tempRoot);
-  run(["bun", "node_modules/.bin/speclink", "--help"], tempRoot);
+  run(["bun", "node_modules/.bin/docbridge", "--version"], tempRoot);
+  run(["bun", "node_modules/.bin/docbridge", "--help"], tempRoot);
 
   mkdirSync(join(tempRoot, "fixture/src"), { recursive: true });
   mkdirSync(join(tempRoot, "fixture/docs"), { recursive: true });
   writeFileSync(
-    join(tempRoot, "fixture/speclink.config.json"),
+    join(tempRoot, "fixture/docbridge.config.json"),
     JSON.stringify({
       include: {
         code: { typescript: { patterns: ["src/**/*.ts"] } },
@@ -43,7 +43,7 @@ try {
   run(
     [
       "bun",
-      join(tempRoot, "node_modules/.bin/speclink"),
+      join(tempRoot, "node_modules/.bin/docbridge"),
       "check",
       "--root",
       join(tempRoot, "fixture"),
@@ -67,7 +67,7 @@ try {
   run(
     [
       "bun",
-      join(tempRoot, "node_modules/.bin/speclink"),
+      join(tempRoot, "node_modules/.bin/docbridge"),
       "check",
       "--root",
       join(tempRoot, "swift-fixture"),
@@ -91,7 +91,7 @@ try {
   run(
     [
       "bun",
-      join(tempRoot, "node_modules/.bin/speclink"),
+      join(tempRoot, "node_modules/.bin/docbridge"),
       "check",
       "--root",
       join(tempRoot, "dart-fixture"),
@@ -109,7 +109,7 @@ function writeFixtureConfig(
   code: Record<string, { patterns: string[] }>,
 ): void {
   writeFileSync(
-    join(tempRoot, fixtureName, "speclink.config.json"),
+    join(tempRoot, fixtureName, "docbridge.config.json"),
     JSON.stringify({ include: { code, docs: ["docs/**/*.md"] } }),
   );
 }

@@ -1,6 +1,6 @@
 # Commit Message Convention
 
-SpecLink のコミットメッセージは英語で書き、Gitmoji と Conventional Commits style prefix を組み合わせます。
+DocBridge のコミットメッセージは英語で書き、Gitmoji と Conventional Commits style prefix を組み合わせます。
 
 ## Format
 

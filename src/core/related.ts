@@ -5,7 +5,7 @@ import { loadConfig } from "./config";
 import { collectFiles, readManagedFile } from "./glob";
 import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
-import type { SpecLinkDiagnostic } from "./types";
+import type { DocBridgeDiagnostic } from "./types";
 
 export type RelatedCounterpart = {
   endpoint: string;
@@ -127,12 +127,12 @@ export type RelatedOptions = {
 
 export type RelatedOutcome =
   | { ok: true; result: RelatedResult }
-  | { ok: false; diagnostics: SpecLinkDiagnostic[] };
+  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
 /**
- * Full orchestration for `speclink related`: load config, scan the managed
+ * Full orchestration for `docbridge related`: load config, scan the managed
  * files, build the link graph, and compute the counterparts of the changed
- * files. Unreadable files are skipped silently; `speclink check` is the
+ * files. Unreadable files are skipped silently; `docbridge check` is the
  * surface that reports them.
  *
  * @doc docs/specs/cli.md#related-command
@@ -143,7 +143,7 @@ export function related(options: RelatedOptions): RelatedOutcome {
     return { ok: false, diagnostics: configResult.diagnostics };
   }
 
-  // Unreadable files are skipped silently here; `speclink check` reports them.
+  // Unreadable files are skipped silently here; `docbridge check` reports them.
   const codeFiles = scanCodeFiles(
     options.projectRoot,
     collectCodeFiles(options.projectRoot, configResult.config.include.code),
@@ -165,7 +165,7 @@ export function related(options: RelatedOptions): RelatedOutcome {
 }
 
 /**
- * Render a `RelatedResult` as the human-readable `speclink related` report:
+ * Render a `RelatedResult` as the human-readable `docbridge related` report:
  * one block per changed file with links, one `fragment -> endpoint (mark)`
  * line per counterpart, then the summary line.
  */
@@ -187,7 +187,7 @@ export function formatRelatedResult(result: RelatedResult): string {
 }
 
 /**
- * Render gate violations as the human-readable `speclink related --gate`
+ * Render gate violations as the human-readable `docbridge related --gate`
  * report: one `changed -> counterpart` line per violation, then the summary.
  */
 export function formatGateResult(result: RelatedResult, violations: RelatedGateViolation[]): string {

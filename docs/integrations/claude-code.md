@@ -1,12 +1,12 @@
 # Claude Code integration
 
-How to wire SpecLink into [Claude Code](https://claude.com/claude-code) so the
+How to wire DocBridge into [Claude Code](https://claude.com/claude-code) so the
 agent reconciles its edits against the linked specification and triages
 unchanged counterparts before finishing a turn.
 
-Both recipes consume the SpecLink CLI. If `speclink` is not on `PATH`, the
-example scripts accept a `SPECLINK_CMD` override, for example
-`SPECLINK_CMD="bun run /path/to/spec-link/src/cli/index.ts"`.
+Both recipes consume the DocBridge CLI. If `docbridge` is not on `PATH`, the
+example scripts accept a `DOCBRIDGE_CMD` override, for example
+`DOCBRIDGE_CMD="bun run /path/to/docbridge/src/cli/index.ts"`.
 
 ## On-edit counterpart awareness
 
@@ -46,9 +46,9 @@ before moving on, is the documented behavior.
    ```
 
 The hook reads the target `file_path` from the tool input, runs
-`speclink context <file>`, and returns the Markdown output as
-`additionalContext`. Files SpecLink does not manage, and files without linked
-counterparts, inject nothing. `speclink context` is best-effort by design: a
+`docbridge context <file>`, and returns the Markdown output as
+`additionalContext`. Files DocBridge does not manage, and files without linked
+counterparts, inject nothing. `docbridge context` is best-effort by design: a
 temporarily broken link drops that block instead of failing the hook.
 
 ## Gate triage on Stop
@@ -80,10 +80,10 @@ unchanged in its final report.
    }
    ```
 
-The hook runs `speclink related --stdin --gate --json` over the uncommitted
+The hook runs `docbridge related --stdin --gate --json` over the uncommitted
 changes and, when counterparts were left unchanged, returns Stop
 `hookSpecificOutput` `additionalContext` that lists each violation and attaches
-the counterpart content fetched via `speclink context --stdin --json`. It uses
+the counterpart content fetched via `docbridge context --stdin --json`. It uses
 `additionalContext` (injected into the agent's context for it to act on) rather
 than `systemMessage` (a user-facing warning the model never sees), and never
 blocks the turn — the conversation continues with the context attached. Pair it
@@ -95,19 +95,19 @@ with the [CI recipe](ci.md) so the pull request remains the enforcement point.
 consume the same commands. Copy the skills you want into your repository's
 `.claude/skills/` directory:
 
-- `speclink-annotate` — create correct `@doc`/`@code` link pairs and verify
-  them with `speclink check`.
-- `speclink-sync` — triage `related --gate` findings using `speclink context`,
+- `docbridge-annotate` — create correct `@doc`/`@code` link pairs and verify
+  them with `docbridge check`.
+- `docbridge-sync` — triage `related --gate` findings using `docbridge context`,
   then update the counterpart or justify the divergence.
-- `speclink-adopt` — adopt SpecLink in an existing TypeScript, Swift, or Dart
+- `docbridge-adopt` — adopt DocBridge in an existing TypeScript, Swift, or Dart
   project by confirming docs/code scope and creating or improving config.
-- `speclink-link` — link existing docs sections to existing exported
+- `docbridge-link` — link existing docs sections to existing exported
   supported code declarations with section-level confirmation.
-- `speclink-review` — review all existing links for semantic validity using
-  `speclink graph --json --include-content`.
+- `docbridge-review` — review all existing links for semantic validity using
+  `docbridge graph --json --include-content`.
 
 Claude Code discovers project skills at `.claude/skills/<skill-name>/SKILL.md`.
-This repository keeps the distributable SpecLink skills canonical under
+This repository keeps the distributable DocBridge skills canonical under
 `templates/skills/` and dogfoods them as skill-level symlinks from
 `.claude/skills/`. External repositories should usually copy the skill
 directories so they are not tied to this repository's checkout path.

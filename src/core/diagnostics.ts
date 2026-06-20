@@ -1,16 +1,16 @@
-import type { SpecLinkDiagnostic, Summary } from "./types";
+import type { DocBridgeDiagnostic, Summary } from "./types";
 
 /**
  * @doc docs/specs/diagnostics.md#sorting-diagnostics
  */
 export function sortDiagnostics(
-  diagnostics: SpecLinkDiagnostic[],
-): SpecLinkDiagnostic[] {
+  diagnostics: DocBridgeDiagnostic[],
+): DocBridgeDiagnostic[] {
   return [...diagnostics].sort(compareDiagnostics);
 }
 
 export function summarizeDiagnostics(
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): Summary {
   return diagnostics.reduce<Summary>(
     (summary, diagnostic) => {
@@ -33,7 +33,7 @@ export function summarizeDiagnostics(
   );
 }
 
-export function formatDiagnostic(diagnostic: SpecLinkDiagnostic): string {
+export function formatDiagnostic(diagnostic: DocBridgeDiagnostic): string {
   const location = diagnostic.location;
   if (location === undefined) {
     return `${diagnostic.target} ${diagnostic.severity} ${diagnostic.code} - ${diagnostic.message}`;
@@ -48,8 +48,8 @@ export function formatSummary(summary: Summary): string {
 }
 
 function compareDiagnostics(
-  left: SpecLinkDiagnostic,
-  right: SpecLinkDiagnostic,
+  left: DocBridgeDiagnostic,
+  right: DocBridgeDiagnostic,
 ): number {
   const leftLocation = left.location;
   const rightLocation = right.location;

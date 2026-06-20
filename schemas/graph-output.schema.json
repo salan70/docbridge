@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "SpecLink Graph Output",
-  "description": "Shape of `speclink graph --json` output. See docs/specs/cli.md#graph-command.",
+  "title": "DocBridge Graph Output",
+  "description": "Shape of `docbridge graph --json` output. See docs/specs/cli.md#graph-command.",
   "type": "object",
   "additionalProperties": false,
   "required": ["nodes", "edges", "pairs", "diagnostics", "summary"],

@@ -67,7 +67,7 @@ test("run help documents global and check options separately", () => {
   const c = capture();
   run(["--help"], c.io);
 
-  expect(c.out).toContain("speclink [--version] [--help]");
+  expect(c.out).toContain("docbridge [--version] [--help]");
   expect(c.out).toContain("Global options:");
   expect(c.out).toContain("Check options:");
 });
@@ -119,7 +119,7 @@ test("run reports a missing --root value on stderr and exits 1", () => {
 
 test("run reports a non-existent root on stderr and exits 1", () => {
   const c = capture();
-  const code = run(["check", "--root", "/no/such/dir/speclink-test"], c.io);
+  const code = run(["check", "--root", "/no/such/dir/docbridge-test"], c.io);
 
   expect(code).toBe(1);
   expect(c.err.length).toBeGreaterThan(0);
@@ -127,7 +127,7 @@ test("run reports a non-existent root on stderr and exits 1", () => {
 });
 
 test("run reports a non-directory root on stderr and exits 1", () => {
-  const dir = mkdtempSync(join(tmpdir(), "speclink-cli-"));
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-cli-"));
   const filePath = join(dir, "not-a-dir.txt");
   writeFileSync(filePath, "x");
   try {
@@ -173,10 +173,10 @@ test("run emits a human-readable summary line for a clean project", () => {
 
 test("run exits 0 when only warnings exist", () => {
   // Audit on the clean example surfaces only undocumented_symbol warnings.
-  const errProject = mkdtempSync(join(tmpdir(), "speclink-warn-"));
+  const errProject = mkdtempSync(join(tmpdir(), "docbridge-warn-"));
   try {
     writeFileSync(
-      join(errProject, "speclink.config.json"),
+      join(errProject, "docbridge.config.json"),
       JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
     );
     // No source files: no diagnostics at all -> exit 0.
@@ -189,10 +189,10 @@ test("run exits 0 when only warnings exist", () => {
 });
 
 test("run exits 1 when check errors exist", () => {
-  const project = mkdtempSync(join(tmpdir(), "speclink-err-"));
+  const project = mkdtempSync(join(tmpdir(), "docbridge-err-"));
   try {
     writeFileSync(
-      join(project, "speclink.config.json"),
+      join(project, "docbridge.config.json"),
       JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
     );
     // A code file with a @doc link to a non-existent doc -> doc_file_not_found error.
@@ -240,7 +240,7 @@ test("run help documents the related command", () => {
   const c = capture();
   run(["--help"], c.io);
 
-  expect(c.out).toContain("speclink related");
+  expect(c.out).toContain("docbridge related");
   expect(c.out).toContain("Related options:");
 });
 
@@ -254,9 +254,9 @@ test("run related without files or --stdin errors on stderr and exits 1", () => 
 });
 
 function makeRelatedProject(): string {
-  const project = mkdtempSync(join(tmpdir(), "speclink-related-"));
+  const project = mkdtempSync(join(tmpdir(), "docbridge-related-"));
   writeFileSync(
-    join(project, "speclink.config.json"),
+    join(project, "docbridge.config.json"),
     JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
   );
   mkdirSync(join(project, "src", "auth"), { recursive: true });
@@ -462,9 +462,9 @@ test("run related --gate --json emits violations as machine-readable JSON", () =
 });
 
 test("run related reports config errors on stderr and exits 1", () => {
-  const project = mkdtempSync(join(tmpdir(), "speclink-related-badcfg-"));
+  const project = mkdtempSync(join(tmpdir(), "docbridge-related-badcfg-"));
   try {
-    writeFileSync(join(project, "speclink.config.json"), "{ not json");
+    writeFileSync(join(project, "docbridge.config.json"), "{ not json");
     const c = capture();
     const code = run(["related", "--root", project, "src/a.ts"], c.io);
 
@@ -493,7 +493,7 @@ test("run help documents the context command", () => {
   const c = capture();
   run(["--help"], c.io);
 
-  expect(c.out).toContain("speclink context");
+  expect(c.out).toContain("docbridge context");
   expect(c.out).toContain("Context options:");
 });
 
@@ -507,9 +507,9 @@ test("run context without files or --stdin errors on stderr and exits 1", () => 
 });
 
 function makeContextProject(): string {
-  const project = mkdtempSync(join(tmpdir(), "speclink-context-"));
+  const project = mkdtempSync(join(tmpdir(), "docbridge-context-"));
   writeFileSync(
-    join(project, "speclink.config.json"),
+    join(project, "docbridge.config.json"),
     JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
   );
   mkdirSync(join(project, "src", "auth"), { recursive: true });
@@ -918,9 +918,9 @@ test("run context omits diagnostics located outside the input files", () => {
 });
 
 test("run context reports config errors on stderr and exits 1", () => {
-  const project = mkdtempSync(join(tmpdir(), "speclink-context-badcfg-"));
+  const project = mkdtempSync(join(tmpdir(), "docbridge-context-badcfg-"));
   try {
-    writeFileSync(join(project, "speclink.config.json"), "{ not json");
+    writeFileSync(join(project, "docbridge.config.json"), "{ not json");
     const c = capture();
     const code = run(["context", "--root", project, "src/a.ts"], c.io);
 

@@ -51,7 +51,7 @@ test("matchGlob is case-sensitive", () => {
 });
 
 function makeTmp(): string {
-  return mkdtempSync(join(tmpdir(), "speclink-glob-"));
+  return mkdtempSync(join(tmpdir(), "docbridge-glob-"));
 }
 
 test("collectFiles returns sorted matching paths and excludes .d.ts for code patterns", () => {

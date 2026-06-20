@@ -1,4 +1,4 @@
-import type { LinkTarget, Range, SourceLocation, SpecLinkDiagnostic } from "./types";
+import type { LinkTarget, Range, SourceLocation, DocBridgeDiagnostic } from "./types";
 
 export type ParseLinkTargetOptions = {
   source?: string;
@@ -14,7 +14,7 @@ export type ParseLinkTargetResult =
     }
   | {
       ok: false;
-      diagnostic: SpecLinkDiagnostic;
+      diagnostic: DocBridgeDiagnostic;
     };
 
 const invalidLinkTargetMessage =
@@ -80,7 +80,7 @@ function invalidLinkTarget(
   rawTarget: string,
   options: ParseLinkTargetOptions,
 ): ParseLinkTargetResult {
-  const diagnostic: SpecLinkDiagnostic = {
+  const diagnostic: DocBridgeDiagnostic = {
     severity: "error",
     code: "invalid_link_target",
     target: rawTarget,

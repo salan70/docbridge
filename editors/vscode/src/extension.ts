@@ -26,19 +26,19 @@ function defaultCliPath(context: ExtensionContext): string {
 }
 
 /**
- * Activate the SpecLink client: launch `speclink lsp` over stdio and bind it to
+ * Activate the DocBridge client: launch `docbridge lsp` over stdio and bind it to
  * TypeScript and Markdown documents. The server is run through Bun from this
- * repository's CLI; configure `speclink.bunPath` if `bun` is not on `PATH`.
+ * repository's CLI; configure `docbridge.bunPath` if `bun` is not on `PATH`.
  */
 export function activate(context: ExtensionContext): void {
-  const output = window.createOutputChannel("SpecLink");
+  const output = window.createOutputChannel("DocBridge");
   context.subscriptions.push(output);
 
-  const configuredBun = workspace.getConfiguration("speclink").get<string>("bunPath");
-  const bun = nonEmpty(configuredBun) ?? process.env.SPECLINK_BUN_PATH ?? "bun";
-  const configuredCli = workspace.getConfiguration("speclink").get<string>("cliPath");
+  const configuredBun = workspace.getConfiguration("docbridge").get<string>("bunPath");
+  const bun = nonEmpty(configuredBun) ?? process.env.DOCBRIDGE_BUN_PATH ?? "bun";
+  const configuredCli = workspace.getConfiguration("docbridge").get<string>("cliPath");
   const cli = nonEmpty(configuredCli) ?? defaultCliPath(context);
-  output.appendLine(`Starting SpecLink language server: ${bun} run ${cli} lsp`);
+  output.appendLine(`Starting DocBridge language server: ${bun} run ${cli} lsp`);
 
   const executable: Executable = {
     command: bun,
@@ -56,12 +56,12 @@ export function activate(context: ExtensionContext): void {
     traceOutputChannel: output,
   };
 
-  client = new LanguageClient("speclink", "SpecLink", serverOptions, clientOptions);
+  client = new LanguageClient("docbridge", "DocBridge", serverOptions, clientOptions);
   context.subscriptions.push(client);
   void client.start().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
-    output.appendLine(`Failed to start SpecLink language server: ${message}`);
-    void window.showErrorMessage(`Failed to start SpecLink language server: ${message}`);
+    output.appendLine(`Failed to start DocBridge language server: ${message}`);
+    void window.showErrorMessage(`Failed to start DocBridge language server: ${message}`);
   });
 }
 

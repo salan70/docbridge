@@ -13,7 +13,7 @@ import {
   type ScannerWorkerRun,
 } from "./scanner-worker";
 import { typeScriptAdapter } from "./typescript";
-import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
+import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
 /**
  * A configured code language entry. Every entry is an object; shorthand pattern
@@ -57,7 +57,7 @@ type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
 
 type ScannerWorkerCommandResolution =
   | { ok: true; command: string[] }
-  | { ok: false; diagnostic: SpecLinkDiagnostic };
+  | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 export type ScannerWorkerResolutionOptions = {
   platformKey?: string;
@@ -225,11 +225,11 @@ export function collectCodeFiles(
 
 export type CodeFileRead =
   | { ok: true; content: string }
-  | { ok: false; diagnostic: SpecLinkDiagnostic };
+  | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 export type ScanCodeFilesResult = {
   codeFiles: CodeScanResult[];
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
 };
 
 /**
@@ -247,7 +247,7 @@ export function scanCodeFiles(
   onContent?: (relPath: string, content: string) => void,
 ): ScanCodeFilesResult {
   const codeFiles: CodeScanResult[] = [];
-  const diagnostics: SpecLinkDiagnostic[] = [];
+  const diagnostics: DocBridgeDiagnostic[] = [];
   for (const { language, relPath } of files) {
     const result = read(relPath);
     if (!result.ok) {
@@ -309,9 +309,9 @@ function emptyScan(language: CodeLanguage, filePath: string): CodeScanResult {
 }
 
 function fileScopedScannerDiagnostic(
-  diagnostic: SpecLinkDiagnostic,
+  diagnostic: DocBridgeDiagnostic,
   filePath: string,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   return { ...diagnostic, target: filePath };
 }
 
@@ -354,7 +354,7 @@ function isSupportedScannerPlatformKey(platformKey: string): boolean {
 /**
  * Resolve the dist and source roots from the URL of this module's file.
  *
- * npm installs the CLI as `node_modules/.bin/speclink`, a symlink to the
+ * npm installs the CLI as `node_modules/.bin/docbridge`, a symlink to the
  * packaged `dist/index.js`. The bundled scanner binaries live next to that real
  * file under `dist/bin/`, so the symlink must be resolved to its target before
  * deriving the roots. Bun resolves the bin symlink for `import.meta.url` on
@@ -392,7 +392,7 @@ function scannerExecutableName(language: ScannerWorkerLanguage): string {
 function scannerUnavailableDiagnostic(
   language: ScannerWorkerLanguage,
   reason: string,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   const label = language.charAt(0).toUpperCase() + language.slice(1);
   return {
     severity: "error",

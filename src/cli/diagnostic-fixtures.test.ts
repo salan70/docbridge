@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 
-import type { DiagnosticCode, SpecLinkDiagnostic } from "../core/types";
+import type { DiagnosticCode, DocBridgeDiagnostic } from "../core/types";
 import { run } from "./index";
 
 /**
@@ -48,7 +48,7 @@ function checkFixture(
     },
   });
   expect(err).toBe("");
-  const result = JSON.parse(out) as { diagnostics: SpecLinkDiagnostic[] };
+  const result = JSON.parse(out) as { diagnostics: DocBridgeDiagnostic[] };
   const diagnostics = result.diagnostics.map((diagnostic) => ({
     code: diagnostic.code,
     filePath: diagnostic.location?.filePath,

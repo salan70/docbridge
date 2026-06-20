@@ -1,20 +1,20 @@
 {
-  "name": "speclink",
+  "name": "docbridge",
   "version": "0.4.0",
   "description": "A Bun CLI that links Markdown specifications and code declarations.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "speclink": "./dist/index.js"
+    "docbridge": "./dist/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/salan70/spec-link.git"
+    "url": "git+https://github.com/salan70/docbridge.git"
   },
   "bugs": {
-    "url": "https://github.com/salan70/spec-link/issues"
+    "url": "https://github.com/salan70/docbridge/issues"
   },
-  "homepage": "https://github.com/salan70/spec-link#readme",
+  "homepage": "https://github.com/salan70/docbridge#readme",
   "keywords": [
     "documentation",
     "markdown",
@@ -35,7 +35,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "speclink": "bun run src/cli/index.ts",
+    "docbridge": "bun run src/cli/index.ts",
     "check": "bun run src/cli/index.ts check",
     "check:example": "bun run src/cli/index.ts check --root examples/typescript",
     "test": "bun test",

@@ -1,5 +1,5 @@
 /**
- * Markdown section extraction, shared by LSP hover and `speclink context`.
+ * Markdown section extraction, shared by LSP hover and `docbridge context`.
  *
  * Mirrors the heading and fence detection rules in `src/core/markdown.ts`: ATX
  * headings allow up to three leading spaces and one to six `#`, and fenced code

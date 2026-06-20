@@ -87,7 +87,7 @@ jobs:
       - name: npm pack dry-run
         run: npm pack --dry-run
 
-  # Informational, never required for merge: runs `speclink related --gate`
+  # Informational, never required for merge: runs `docbridge related --gate`
   # over the PR's whole change set and maintains one sticky comment so the
   # human approving the merge sees which linked counterparts were not updated.
   related-gate-report:
@@ -125,10 +125,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          marker='<!-- speclink-related-gate -->'
+          marker='<!-- docbridge-related-gate -->'
           {
             echo "$marker"
-            echo "## SpecLink related-gate"
+            echo "## DocBridge related-gate"
             echo
             if [ "$GATE_STATUS" = "0" ]; then
               echo "All linked counterparts of the changed files are part of this PR's change set."

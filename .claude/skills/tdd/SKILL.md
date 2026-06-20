@@ -1,19 +1,19 @@
 ---
 name: tdd
-description: Guides t-wada Red-Green-Refactor TDD for SpecLink. Use when implementing features, fixing bugs, or refactoring logic with strict test-first development.
+description: Guides t-wada Red-Green-Refactor TDD for DocBridge. Use when implementing features, fixing bugs, or refactoring logic with strict test-first development.
 ---
 
 # tdd
 
-Follow strict t-wada style Test-Driven Development for SpecLink code changes.
+Follow strict t-wada style Test-Driven Development for DocBridge code changes.
 All logic changes, including bug fixes, new features, and refactors, must follow
 Red-Green-Refactor.
 
-SpecLink is a Bun and TypeScript CLI. Prefer the repo-native commands from
+DocBridge is a Bun and TypeScript CLI. Prefer the repo-native commands from
 `justfile`:
 
 - `just test` for the Bun test suite
-- `just check` for the default SpecLink check command
+- `just check` for the default DocBridge check command
 - `just check-example` for the example project
 - `just check-example-json` for JSON CLI output
 - `just audit` for audit diagnostics
@@ -62,7 +62,7 @@ Repeat the cycle until the requested behavior is complete.
 6. Repeat until all behaviors are covered.
 7. Run final verification with the relevant `just` commands.
 
-## SpecLink Testing Guidance
+## DocBridge Testing Guidance
 
 - Parser and scanner changes should use small inline TypeScript or Markdown
   fixtures that make the annotation contract obvious.

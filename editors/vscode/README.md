@@ -1,7 +1,7 @@
-# SpecLink VS Code client
+# DocBridge VS Code client
 
-A minimal VS Code extension that launches the SpecLink language server
-(`speclink lsp`) and binds it to TypeScript and Markdown documents. Its only
+A minimal VS Code extension that launches the DocBridge language server
+(`docbridge lsp`) and binds it to TypeScript and Markdown documents. Its only
 purpose is to verify the server in a real editor; full editor integration
 (packaging, Marketplace) is deferred to v0.4.
 
@@ -19,9 +19,9 @@ Cursor uses the same client because it can run VS Code-compatible extensions.
    ```
 
    This installs editor client dependencies, compiles the extension, packages a
-   local VSIX with the SpecLink language server bundled inside, installs it into
+   local VSIX with the DocBridge language server bundled inside, installs it into
    VS Code, and opens the repository. It also writes the local workspace setting
-   `speclink.bunPath` to the current Bun executable so VS Code can start the
+   `docbridge.bunPath` to the current Bun executable so VS Code can start the
    language server even when the GUI environment has a different `PATH`.
 
    For Cursor, run:
@@ -30,10 +30,10 @@ Cursor uses the same client because it can run VS Code-compatible extensions.
    just cursor-lsp
    ```
 
-2. In Cursor or VS Code, open a project that uses SpecLink (for example the
+2. In Cursor or VS Code, open a project that uses DocBridge (for example the
    repository root, which contains `examples/typescript`). The extension runs
-   `speclink lsp` through Bun. If `bun` is not on your `PATH`, set the
-   `speclink.bunPath` setting to its absolute path.
+   `docbridge lsp` through Bun. If `bun` is not on your `PATH`, set the
+   `docbridge.bunPath` setting to its absolute path.
 
 3. Exercise the four features against a linked TypeScript/Markdown pair:
    - **Diagnostics** appear on link problems.
@@ -43,12 +43,12 @@ Cursor uses the same client because it can run VS Code-compatible extensions.
    - **Find All References** lists all linked counterparts.
 
 The server is launched from the CLI source bundled into the local VSIX. For
-development overrides, set `speclink.cliPath` to an absolute CLI entrypoint.
+development overrides, set `docbridge.cliPath` to an absolute CLI entrypoint.
 
-If nothing happens, open **Output: SpecLink**. It should show the Bun command
-used to start `speclink lsp`, or the startup error if the server could not be
+If nothing happens, open **Output: DocBridge**. It should show the Bun command
+used to start `docbridge lsp`, or the startup error if the server could not be
 launched. Diagnostics are published for open TypeScript, TSX, and Markdown files
-that are part of the workspace's `speclink.config.json` include patterns.
+that are part of the workspace's `docbridge.config.json` include patterns.
 
 ## Verify outside an editor
 
@@ -58,5 +58,5 @@ Run the editor-independent LSP smoke test from the repository root:
 just verify-lsp
 ```
 
-This drives `speclink lsp` over stdio and checks Hover, Definition, References,
+This drives `docbridge lsp` over stdio and checks Hover, Definition, References,
 and Diagnostics.

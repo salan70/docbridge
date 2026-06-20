@@ -1,6 +1,6 @@
 # config_unknown_key
 
-`speclink.config.json` contains the unknown top-level key `extra`, so SpecLink
+`docbridge.config.json` contains the unknown top-level key `extra`, so DocBridge
 reports `config_unknown_key` (error) and skips scanning. The `include` section
 is valid so no other config diagnostic fires.
 

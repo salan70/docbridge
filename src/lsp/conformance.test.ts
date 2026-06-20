@@ -41,7 +41,7 @@ async function collect(
   return messages;
 }
 
-describe("speclink lsp conformance", () => {
+describe("docbridge lsp conformance", () => {
   test(
     "drives initialize -> hover -> shutdown as a child process",
     async () => {

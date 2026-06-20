@@ -52,7 +52,7 @@ user explicitly asks for a local-only review or asks not to post comments.
 4. Run relevant verification:
    - Prefer repo-native `just` commands.
    - If `just` is not on `PATH`, use `nix develop -c just ...`.
-   - For SpecLink PRs, normally run `just check`, `just test`, and `just build`
+   - For DocBridge PRs, normally run `just check`, `just test`, and `just build`
      when the change is not documentation-only.
 5. Post inline comments on GitHub by default for confirmed findings:
    - Get the PR head SHA from `gh pr view <n> --json headRefOid`.
@@ -103,7 +103,7 @@ Create a comment review only when inline comments are not enough:
 gh pr review {pr} --comment --body '...'
 ```
 
-## SpecLink Notes
+## DocBridge Notes
 
 - Conversation with the user should follow the user's language.
 - Review comments posted to GitHub should be written in English.

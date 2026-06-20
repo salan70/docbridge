@@ -2,7 +2,7 @@
 set -euo pipefail
 
 read -r -d '' REMINDER <<'EOF' || true
-SpecLink repo reminder:
+DocBridge repo reminder:
 - Use repo-native `just` commands instead of shell-specific assumptions.
 - Runtime is Bun; keep dependencies minimal.
 - Before completion, changed work should pass `just check` and `just test`.
