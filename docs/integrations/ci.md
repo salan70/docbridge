@@ -1,6 +1,6 @@
 # CI integration
 
-How to run the SpecLink gate in CI so the pull request — not the agent
+How to run the DocBridge gate in CI so the pull request — not the agent
 session — is the enforcement point for linked counterparts.
 
 The local agent hooks ([Claude Code](claude-code.md), [Codex](codex.md)) are
@@ -13,16 +13,16 @@ merge approval enforces the outcome.
 Run the checker as a required status check:
 
 ```yaml
-- name: SpecLink check
-  run: speclink check
+- name: DocBridge check
+  run: docbridge check
 ```
 
-`speclink check` exits `1` on any error diagnostic, so a broken link fails the
+`docbridge check` exits `1` on any error diagnostic, so a broken link fails the
 job. Add `--json` when a later step consumes the diagnostics.
 
 ## Gate the PR change set
 
-Run `speclink related --gate` over the files the PR changes and report the
+Run `docbridge related --gate` over the files the PR changes and report the
 result. Use the PR file list (not a local diff) so the gate sees exactly what
 the reviewer sees:
 
@@ -34,7 +34,7 @@ the reviewer sees:
   run: |
     gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
       -q '.[].filename' > changed-files.txt
-    speclink related --stdin --gate < changed-files.txt
+    docbridge related --stdin --gate < changed-files.txt
 ```
 
 The gate exits `1` when a changed file has a linked counterpart that the PR
@@ -58,7 +58,7 @@ To let the reviewer judge divergence without opening files, enrich the gate
 report with the flagged counterparts' content:
 
 ```sh
-speclink context --stdin --json < changed-files.txt > context.json
+docbridge context --stdin --json < changed-files.txt > context.json
 ```
 
 Filter the `contexts` array to the endpoints reported as gate violations
@@ -73,6 +73,6 @@ shows the same filtering in ~20 lines of Bun.
 
 | Command | `0` | `1` |
 | --- | --- | --- |
-| `speclink check` | warnings or clean | any error diagnostic |
-| `speclink related --gate` | no violations | at least one violation |
-| `speclink context` | always on success | invocation/configuration errors only |
+| `docbridge check` | warnings or clean | any error diagnostic |
+| `docbridge related --gate` | no violations | at least one violation |
+| `docbridge context` | always on success | invocation/configuration errors only |

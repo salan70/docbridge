@@ -13,7 +13,7 @@ export type LspRange = {
 };
 
 /**
- * Convert a SpecLink 1-based position to an LSP 0-based position. Both encodings
+ * Convert a DocBridge 1-based position to an LSP 0-based position. Both encodings
  * count columns in UTF-16 code units, so only the index base changes.
  *
  * @doc docs/specs/lsp.md#positions-and-paths
@@ -22,18 +22,18 @@ export function toLspPosition(position: Position): LspPosition {
   return { line: position.line - 1, character: position.column - 1 };
 }
 
-/** Convert an LSP 0-based position to a SpecLink 1-based position. */
+/** Convert an LSP 0-based position to a DocBridge 1-based position. */
 export function fromLspPosition(position: LspPosition): Position {
   return { line: position.line + 1, column: position.character + 1 };
 }
 
-/** Convert a SpecLink 1-based range to an LSP 0-based range. */
+/** Convert a DocBridge 1-based range to an LSP 0-based range. */
 export function toLspRange(range: Range): LspRange {
   return { start: toLspPosition(range.start), end: toLspPosition(range.end) };
 }
 
 /**
- * Test whether a SpecLink 1-based `position` falls within `range`. The range end
+ * Test whether a DocBridge 1-based `position` falls within `range`. The range end
  * is exclusive, mirroring the LSP range model.
  */
 export function rangeContains(range: Range, position: Position): boolean {

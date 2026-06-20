@@ -15,7 +15,7 @@ import type {
   DocLinkAnnotation,
   Range,
   SourceLocation,
-  SpecLinkDiagnostic,
+  DocBridgeDiagnostic,
 } from "./types";
 
 export type GraphNode = {
@@ -69,7 +69,7 @@ export type GraphResult = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   pairs: GraphPair[];
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
   summary: GraphSummary;
 };
 
@@ -81,17 +81,17 @@ export type GraphOptions = {
 
 export type GraphOutcome =
   | { ok: true; result: GraphResult }
-  | { ok: false; diagnostics: SpecLinkDiagnostic[] };
+  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
 type ScanData = {
   codeFiles: CodeScanResult[];
   docFiles: MarkdownScanResult[];
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
   contentByFile: Map<string, string>;
 };
 
 /**
- * Build the machine-readable SpecLink graph for the project, optionally scoped
+ * Build the machine-readable DocBridge graph for the project, optionally scoped
  * to input files and their direct counterparts.
  *
  * @doc docs/specs/cli.md#graph-command
@@ -227,7 +227,7 @@ function scanManagedFiles(
   projectRoot: string,
   include: { code: CodeInclude; docs: string[] },
 ): ScanData {
-  const diagnostics: SpecLinkDiagnostic[] = [];
+  const diagnostics: DocBridgeDiagnostic[] = [];
   const contentByFile = new Map<string, string>();
 
   const codeScan = scanCodeFiles(
@@ -293,10 +293,10 @@ function filterEdges(edges: GraphEdge[], inputFiles: string[]): GraphEdge[] {
 }
 
 function filterDiagnostics(
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
   nodes: GraphNode[],
   inputFiles: string[],
-): SpecLinkDiagnostic[] {
+): DocBridgeDiagnostic[] {
   if (inputFiles.length === 0) {
     return diagnostics;
   }

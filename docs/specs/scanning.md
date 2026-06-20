@@ -1,17 +1,17 @@
 # Scanning
 
-SpecLink scans files matched by `include.code` and `include.docs`.
+DocBridge scans files matched by `include.code` and `include.docs`.
 
 File matching is case-sensitive on every platform.
 
-SpecLink ignores these paths even when they match an include glob:
+DocBridge ignores these paths even when they match an include glob:
 
 - `node_modules`
 - `.git`
 - any path segment that starts with `.`
 - symlink files and symlink directories
 
-SpecLink does not read `.gitignore`.
+DocBridge does not read `.gitignore`.
 
 Code files belong to a configured language: TypeScript `.ts` files (declaration
 files ending in `.d.ts` are excluded), Swift `.swift` files, and Dart `.dart`
@@ -19,9 +19,9 @@ files. Each code file is scanned by its language adapter.
 
 Markdown files are `.md` files.
 
-If a scan target cannot be read, SpecLink emits `file_read_error`. Config file read or parse failures use `config_file_invalid` instead.
+If a scan target cannot be read, DocBridge emits `file_read_error`. Config file read or parse failures use `config_file_invalid` instead.
 
-If a code file has syntactic parse errors, SpecLink emits `code_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned.
+If a code file has syntactic parse errors, DocBridge emits `code_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned.
 
 When a file has `file_read_error`, `code_parse_error`,
 `code_scanner_unavailable`, or `code_scanner_failed`, derived link diagnostics
@@ -44,10 +44,10 @@ language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
 does not affect stdout JSON parsing.
 
-If a configured worker cannot be started, SpecLink emits
+If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
 returns invalid JSON, or returns a response whose schema version, request ID, or
-language does not match the request, SpecLink emits `code_scanner_failed`.
+language does not match the request, DocBridge emits `code_scanner_failed`.
 Worker responses must contain exactly the requested file paths in request order;
 missing files, unexpected files, or reordered files are `code_scanner_failed`.
 
@@ -76,7 +76,7 @@ The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
 TypeScript and Markdown checks do not require scanner binaries. If a configured
 Swift or Dart project runs on any other platform, or the expected binary is not
-present for a supported platform, SpecLink emits `code_scanner_unavailable`
+present for a supported platform, DocBridge emits `code_scanner_unavailable`
 with the missing platform key and the supported keys.
 
 <!-- @code src/core/glob.ts#collectFiles -->

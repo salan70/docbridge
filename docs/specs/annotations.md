@@ -1,6 +1,6 @@
 # Annotations
 
-SpecLink v0.1 uses explicit annotations on both sides of a link.
+DocBridge v0.1 uses explicit annotations on both sides of a link.
 
 TypeScript uses JSDoc `@doc` tags attached to supported declarations:
 
@@ -34,7 +34,7 @@ Markdown uses standalone HTML comments with `@code` attached to the next heading
 ## Check Command
 ```
 
-Both `@doc` and `@code` allow optional text after the target. SpecLink treats the first whitespace-delimited token as the target and ignores the rest.
+Both `@doc` and `@code` allow optional text after the target. DocBridge treats the first whitespace-delimited token as the target and ignores the rest.
 
 ```ts
 /**
@@ -67,7 +67,7 @@ Unsupported examples include:
 - re-exports, including type-only re-exports
 - non-exported declarations with `@doc`
 
-SpecLink relies on the TypeScript Compiler API to associate JSDoc with declarations. Orphan `@doc` comments that are not associated with a declaration are not detected in v0.1.
+DocBridge relies on the TypeScript Compiler API to associate JSDoc with declarations. Orphan `@doc` comments that are not associated with a declaration are not detected in v0.1.
 
 Supported Swift declarations are listed in [Scanning](./scanning.md#swift-scanning).
 Swift member endpoints are type-qualified and include argument labels, so

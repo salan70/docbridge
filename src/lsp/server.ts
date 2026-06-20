@@ -35,7 +35,7 @@ const CAPABILITIES = {
 };
 
 /**
- * The SpecLink Language Server: JSON-RPC lifecycle plus the four link-graph
+ * The DocBridge Language Server: JSON-RPC lifecycle plus the four link-graph
  * features over a whole-project model. Transport-agnostic; `send` delivers
  * outgoing messages and `handle` consumes incoming ones.
  *

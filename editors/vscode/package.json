@@ -1,10 +1,10 @@
 {
-  "name": "speclink-vscode",
+  "name": "docbridge-vscode",
   "private": true,
-  "displayName": "SpecLink",
-  "description": "Minimal VS Code client that launches and exercises the SpecLink language server.",
+  "displayName": "DocBridge",
+  "description": "Minimal VS Code client that launches and exercises the DocBridge language server.",
   "version": "0.2.0",
-  "publisher": "speclink",
+  "publisher": "docbridge",
   "engines": {
     "vscode": "^1.84.0"
   },
@@ -19,16 +19,16 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "SpecLink",
+      "title": "DocBridge",
       "properties": {
-        "speclink.bunPath": {
+        "docbridge.bunPath": {
           "type": "string",
           "default": "bun",
-          "description": "Path to the Bun executable used to launch `speclink lsp`."
+          "description": "Path to the Bun executable used to launch `docbridge lsp`."
         },
-        "speclink.cliPath": {
+        "docbridge.cliPath": {
           "type": "string",
-          "description": "Optional absolute path to the SpecLink CLI entrypoint. Defaults to the server bundled with this extension."
+          "description": "Optional absolute path to the DocBridge CLI entrypoint. Defaults to the server bundled with this extension."
         }
       }
     }

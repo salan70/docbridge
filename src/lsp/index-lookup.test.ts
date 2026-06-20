@@ -15,7 +15,7 @@ const CODE_FILE = "src/auth/login.ts";
 const DOC_FILE = "docs/auth.md";
 
 describe("position conversions", () => {
-  test("round-trips between LSP 0-based and SpecLink 1-based", () => {
+  test("round-trips between LSP 0-based and DocBridge 1-based", () => {
     expect(toLspPosition({ line: 4, column: 17 })).toEqual({ line: 3, character: 16 });
     expect(fromLspPosition({ line: 3, character: 16 })).toEqual({ line: 4, column: 17 });
   });

@@ -19,8 +19,8 @@ try {
   }
 }
 
-settings["speclink.bunPath"] = bunPath;
-settings["speclink.trace.server"] = "verbose";
+settings["docbridge.bunPath"] = bunPath;
+settings["docbridge.trace.server"] = "verbose";
 
 mkdirSync(dirname(settingsPath), { recursive: true });
 writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);

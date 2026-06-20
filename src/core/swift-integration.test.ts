@@ -10,12 +10,12 @@ import { Project } from "../lsp/project";
 import { definition, references } from "../lsp/navigation";
 
 function withSwiftProject(run: (root: string) => void): void {
-  const root = mkdtempSync(join(tmpdir(), "speclink-swift-"));
+  const root = mkdtempSync(join(tmpdir(), "docbridge-swift-"));
   try {
     mkdirSync(join(root, "Sources"), { recursive: true });
     mkdirSync(join(root, "docs"), { recursive: true });
     writeFileSync(
-      join(root, "speclink.config.json"),
+      join(root, "docbridge.config.json"),
       JSON.stringify({
         include: {
           code: { swift: { patterns: ["Sources/**/*.swift"] } },

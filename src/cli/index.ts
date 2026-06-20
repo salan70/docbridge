@@ -35,15 +35,15 @@ export type CliIo = {
 /** Raised for CLI invocation errors that must go to stderr with exit code 1. */
 class CliError extends Error {}
 
-const HELP = `SpecLink
+const HELP = `DocBridge
 
 Usage:
-  speclink [--version] [--help]
-  speclink check [--root <path>] [--json] [--audit]
-  speclink related [--root <path>] [--json] [--stdin] [--gate] [files...]
-  speclink context [--root <path>] [--json] [--stdin] [files...]
-  speclink graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
-  speclink lsp
+  docbridge [--version] [--help]
+  docbridge check [--root <path>] [--json] [--audit]
+  docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
+  docbridge context [--root <path>] [--json] [--stdin] [files...]
+  docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
+  docbridge lsp
 
 Commands:
   check    Validate links between TypeScript and Markdown.
@@ -53,7 +53,7 @@ Commands:
   lsp      Run the Language Server over stdio.
 
 Global options:
-  --version, -v  Print the SpecLink version.
+  --version, -v  Print the DocBridge version.
   --help, -h     Print this help text.
 
 Check options:

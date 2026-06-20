@@ -1,11 +1,11 @@
 ---
 name: git-workflow
-description: SpecLink git workflow rules and procedures — branch naming, PR-based integration, merge commits, main branch protection, AI agent autonomy gates, and the semi-automated release process. Use when branching, committing, pushing, opening or merging a PR, or cutting a release.
+description: DocBridge git workflow rules and procedures — branch naming, PR-based integration, merge commits, main branch protection, AI agent autonomy gates, and the semi-automated release process. Use when branching, committing, pushing, opening or merging a PR, or cutting a release.
 ---
 
 # git-workflow
 
-SpecLink integrates every change through a pull request. `main` is protected and
+DocBridge integrates every change through a pull request. `main` is protected and
 cannot be pushed to directly. Follow these rules for all git work.
 
 ## Invariants
@@ -98,7 +98,7 @@ To cut release `vX.Y.Z`:
    release approval gate.
 4. **Release Publish** then runs automatically on the merge: it re-checks CI for
    the merge commit, builds the dist CLI with the platform scanner binaries,
-   publishes the `speclink` package to npm
+   publishes the `docbridge` package to npm
    (`npm publish --provenance --access public`, authenticated via the `NPM_TOKEN`
    secret), then extracts the matching `CHANGELOG.md` section and creates the
    `vX.Y.Z` tag plus a GitHub Release (`gh release create`, no separate tag push

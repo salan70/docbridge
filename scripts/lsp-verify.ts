@@ -1,5 +1,5 @@
-// Editor-independent verification of the SpecLink language server.
-// Drives `speclink lsp` over stdio and checks hover, definition, references,
+// Editor-independent verification of the DocBridge language server.
+// Drives `docbridge lsp` over stdio and checks hover, definition, references,
 // and diagnostics against the repo's own dogfooded links. Run with:
 //   bun run scripts/lsp-verify.ts
 import { spawn } from "node:child_process";

@@ -10,12 +10,12 @@ import { Project } from "../lsp/project";
 import { definition, references } from "../lsp/navigation";
 
 function withDartProject(run: (root: string) => void): void {
-  const root = mkdtempSync(join(tmpdir(), "speclink-dart-"));
+  const root = mkdtempSync(join(tmpdir(), "docbridge-dart-"));
   try {
     mkdirSync(join(root, "lib"), { recursive: true });
     mkdirSync(join(root, "docs"), { recursive: true });
     writeFileSync(
-      join(root, "speclink.config.json"),
+      join(root, "docbridge.config.json"),
       JSON.stringify({
         include: {
           code: { dart: { patterns: ["lib/**/*.dart"] } },

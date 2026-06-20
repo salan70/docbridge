@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { diagnosticsForFile, toLspDiagnostic } from "./diagnostics";
-import type { SpecLinkDiagnostic } from "../core/types";
+import type { DocBridgeDiagnostic } from "../core/types";
 import { CODE_FILE, stateOf } from "./fixtures";
 
 describe(diagnosticsForFile, () => {
@@ -13,7 +13,7 @@ describe(diagnosticsForFile, () => {
     const invalid = mapped.find((d) => d.code === "invalid_link_target");
 
     expect(invalid?.severity).toBe(1);
-    expect(invalid?.source).toBe("speclink");
+    expect(invalid?.source).toBe("docbridge");
     // `bad-target` begins at column 9 (0-based char 8) on line 2 (0-based 1).
     expect(invalid?.range).toEqual({
       start: { line: 1, character: 8 },
@@ -22,7 +22,7 @@ describe(diagnosticsForFile, () => {
   });
 
   test("maps a warning to severity 2 and falls back to the whole line", () => {
-    const diagnostic: SpecLinkDiagnostic = {
+    const diagnostic: DocBridgeDiagnostic = {
       severity: "warning",
       code: "unsupported_declaration",
       target: CODE_FILE,

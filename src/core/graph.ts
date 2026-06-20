@@ -5,7 +5,7 @@ import type { CodeSymbolEndpoint, DocAnchorEndpoint } from "./types";
 export type GraphEndpoint = CodeSymbolEndpoint | DocAnchorEndpoint;
 
 /**
- * The resolved SpecLink link graph: every scanned endpoint plus the symmetric
+ * The resolved DocBridge link graph: every scanned endpoint plus the symmetric
  * counterpart relation that navigation traverses.
  *
  * Navigation honors resolvable one-way links: an annotation contributes a

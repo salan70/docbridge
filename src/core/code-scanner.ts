@@ -2,7 +2,7 @@ import type {
   CodeLanguage,
   CodeSymbolEndpoint,
   DocLinkAnnotation,
-  SpecLinkDiagnostic,
+  DocBridgeDiagnostic,
 } from "./types";
 
 /**
@@ -23,7 +23,7 @@ export type CodeScanResult = {
    */
   undocumentedSymbols: CodeSymbolEndpoint[];
   links: DocLinkAnnotation[];
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
 };
 
 /** Per-language scan options sourced from the configured code include entry. */

@@ -4,17 +4,17 @@ This file provides guidance for Codex when working in this repository.
 
 ## Project Context
 
-SpecLink is a Bun and TypeScript CLI that creates bidirectional links between
+DocBridge is a Bun and TypeScript CLI that creates bidirectional links between
 TypeScript code and Markdown documentation. It parses `@doc` annotations in
 JSDoc and `@code` annotations in Markdown HTML comments, then reports
-diagnostics through `speclink check`.
+diagnostics through `docbridge check`.
 
 Core implementation lives under `src/`. Specifications live under `docs/specs/`,
 Japanese documentation lives under `docs/ja/`, AI integration recipes live
 under `docs/integrations/`, and implementation plans live under `docs/plans/`
 (see [Plans](#plans)).
 
-The `examples/` and `test-fixtures/` trees both hold small SpecLink projects but
+The `examples/` and `test-fixtures/` trees both hold small DocBridge projects but
 differ by intended audience:
 
 - `examples/` holds human-facing showcases meant to be read or copied: one per
@@ -68,7 +68,7 @@ hook and CI.
 
 The `SessionStart` hook injects a short repository reminder. The `PostToolUse`
 hook (Edit/Write) surfaces the linked counterpart content of the file just
-edited via `speclink context` so the change can be reconciled against it; it is
+edited via `docbridge context` so the change can be reconciled against it; it is
 `PostToolUse` rather than `PreToolUse` because a `PreToolUse` hook's additional
 context is delivered only after the edit runs, and files without linked
 counterparts inject nothing. The `Stop` hook runs `just check`, `just
@@ -77,7 +77,7 @@ completion with the failure output if any fails; on continuation turns it
 re-runs the checks and reports
 the result without blocking again. When those checks pass, it also reports
 `just related-gate` results over uncommitted changes as information, attaching
-the flagged counterparts' content fetched via `speclink context` and delivered
+the flagged counterparts' content fetched via `docbridge context` and delivered
 as Stop `additionalContext` (not a user-facing `systemMessage`): either update
 each listed counterpart or state explicitly in the final report why it needs no
 update. CI re-runs the gate over the whole PR change set and maintains a sticky

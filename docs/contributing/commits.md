@@ -1,6 +1,6 @@
 # Commit Message Convention
 
-SpecLink uses English commit messages with both Gitmoji and Conventional Commits style prefixes.
+DocBridge uses English commit messages with both Gitmoji and Conventional Commits style prefixes.
 
 ## Format
 

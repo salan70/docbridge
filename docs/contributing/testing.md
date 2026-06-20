@@ -1,6 +1,6 @@
 # Testing Convention
 
-SpecLink uses the Bun test runner (`bun test`, wrapped as `just test`).
+DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Test placement
 

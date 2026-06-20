@@ -1,6 +1,6 @@
 # Bun Test TDD Reference
 
-Use this reference with the `tdd` skill when writing or reviewing SpecLink tests.
+Use this reference with the `tdd` skill when writing or reviewing DocBridge tests.
 
 ## Running
 

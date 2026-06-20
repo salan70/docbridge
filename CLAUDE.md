@@ -9,17 +9,17 @@ Claude-specific instructions into Codex assets or vice versa.
 
 ## Project Context
 
-SpecLink is a Bun and TypeScript CLI that creates bidirectional links between
+DocBridge is a Bun and TypeScript CLI that creates bidirectional links between
 TypeScript code and Markdown documentation. It parses `@doc` annotations in
 JSDoc and `@code` annotations in Markdown HTML comments, then reports
-diagnostics through `speclink check`.
+diagnostics through `docbridge check`.
 
 Core implementation lives under `src/`. Specifications live under `docs/specs/`,
 Japanese documentation lives under `docs/ja/`, AI integration recipes live
 under `docs/integrations/`, and implementation plans live under `docs/plans/`
 (see [Plans](#plans)).
 
-The `examples/` and `test-fixtures/` trees both hold small SpecLink projects but
+The `examples/` and `test-fixtures/` trees both hold small DocBridge projects but
 differ by intended audience:
 
 - `examples/` holds human-facing showcases meant to be read or copied: one
@@ -55,7 +55,7 @@ Implementation plans live under `docs/plans/`. Each plan tracks its slices in a
 
 Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 
-- `just check` — run the default SpecLink check
+- `just check` — run the default DocBridge check
 - `just check-example` — check the `examples/typescript` project
 - `just check-example-json` — check the example with JSON output
 - `just audit` — run audit diagnostics
@@ -78,7 +78,7 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
 - The `SessionStart` hook injects a short repository reminder as additional
   context.
 - The `PostToolUse` hook (Edit/Write) surfaces the linked counterpart content
-  of the file just edited via `speclink context`, so the change can be
+  of the file just edited via `docbridge context`, so the change can be
   reconciled against the relevant specification or code. It is `PostToolUse`,
   not `PreToolUse`, because a `PreToolUse` hook's `additionalContext` is
   delivered only after the edit runs. Files without linked counterparts inject
@@ -92,10 +92,10 @@ Claude Code hooks are configured in `.claude/settings.json` and live under
 - When those checks pass, the `Stop` hook also runs `just related-gate` over
   uncommitted changes and reports linked counterparts that were not themselves
   changed, attaching the flagged counterparts' content fetched via
-  `speclink context`. It is delivered as Stop `additionalContext` (not a
+  `docbridge context`. It is delivered as Stop `additionalContext` (not a
   user-facing `systemMessage`) and is informational, never blocking: either
   update each listed counterpart or state explicitly in the final report why it
-  needs no update (use the `speclink-sync` skill for the triage). CI re-runs
+  needs no update (use the `docbridge-sync` skill for the triage). CI re-runs
   the gate over the whole PR change set and maintains a sticky PR comment; the
   human merge approval is the enforcement point.
 
@@ -110,7 +110,7 @@ mandatory guard.
 Project skills live in `.claude/skills/`. They are auto-discovered and can be
 invoked directly with `/<skill-name>`.
 
-- `tdd` — strict t-wada Red-Green-Refactor TDD for SpecLink. Use it when
+- `tdd` — strict t-wada Red-Green-Refactor TDD for DocBridge. Use it when
   implementing features, fixing bugs, or refactoring logic. All logic changes
   must be test-first. Invoke with `/tdd` or when the task calls for test-driven
   development.
@@ -130,16 +130,16 @@ invoked directly with `/<skill-name>`.
   or human reviewers), act or justify per comment, then reply to and resolve
   every thread. Use it with `/review-response`, or when a PR has review feedback
   to address.
-- `speclink-annotate` — create `@doc`/`@code` link pairs between TypeScript
-  declarations and Markdown sections and verify them with `speclink check`.
-  Use it with `/speclink-annotate`, or when linking code to its specification
+- `docbridge-annotate` — create `@doc`/`@code` link pairs between TypeScript
+  declarations and Markdown sections and verify them with `docbridge check`.
+  Use it with `/docbridge-annotate`, or when linking code to its specification
   or fixing link diagnostics.
-- `speclink-sync` — triage `related --gate` findings: judge divergence using
-  the counterpart content from `speclink context`, then update the counterpart
-  or justify leaving it unchanged. Use it with `/speclink-sync`, or when a
+- `docbridge-sync` — triage `related --gate` findings: judge divergence using
+  the counterpart content from `docbridge context`, then update the counterpart
+  or justify leaving it unchanged. Use it with `/docbridge-sync`, or when a
   Stop-hook message or CI comment flags unchanged counterparts.
 
-`speclink-annotate` and `speclink-sync` are installed copies; the distributable
+`docbridge-annotate` and `docbridge-sync` are installed copies; the distributable
 source of truth is `templates/skills/`. Apply edits there and copy them into
 `.claude/skills/`, keeping the two identical.
 

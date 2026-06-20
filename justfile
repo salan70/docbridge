@@ -72,7 +72,7 @@ pack-smoke tarball:
 verify-lsp:
     bun run scripts/lsp-verify.ts
 
-# Install the SpecLink editor extension into VS Code and open this workspace.
+# Install the DocBridge editor extension into VS Code and open this workspace.
 vscode-lsp:
     scripts/install-vscode-compatible-lsp.sh code
 

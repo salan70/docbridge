@@ -71,7 +71,7 @@ if [[ "$status" -ne 0 ]]; then
       const tail = log.split("\n").slice(-160).join("\n");
       console.log(JSON.stringify({
         systemMessage: [
-          "SpecLink Stop hook: `just check` / `just typecheck` / `just test` are STILL FAILING on this continuation turn.",
+          "DocBridge Stop hook: `just check` / `just typecheck` / `just test` are STILL FAILING on this continuation turn.",
           "",
           tail,
           "",
@@ -86,7 +86,7 @@ if [[ "$status" -ne 0 ]]; then
       console.log(JSON.stringify({
         decision: "block",
         reason: [
-          "SpecLink Stop hook found failing final checks.",
+          "DocBridge Stop hook found failing final checks.",
           "",
           tail,
           "",
@@ -102,7 +102,7 @@ rm -f "$log_file"
 
 pass_note=""
 if [[ "$stop_hook_active" == "true" ]]; then
-  pass_note="SpecLink Stop hook: \`just check\`, \`just typecheck\`, and \`just test\` passed on this continuation turn."
+  pass_note="DocBridge Stop hook: \`just check\`, \`just typecheck\`, and \`just test\` passed on this continuation turn."
 fi
 
 gate_log="$(mktemp)"
@@ -144,7 +144,7 @@ GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
     const log = await Bun.file(process.env.GATE_LOG).text();
     const tail = log.split("\n").slice(-80).join("\n");
     parts.push([
-      "SpecLink related-gate: uncommitted changes have linked counterparts that are not in the change set.",
+      "DocBridge related-gate: uncommitted changes have linked counterparts that are not in the change set.",
       "",
       tail,
       "",
@@ -171,7 +171,7 @@ GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
     });
     if (blocks.length > 0) {
       parts.push([
-        "Flagged counterpart content (via `speclink context`):",
+        "Flagged counterpart content (via `docbridge context`):",
         "",
         blocks.join("\n\n---\n\n")
       ].join("\n"));

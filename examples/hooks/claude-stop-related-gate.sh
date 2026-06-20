@@ -8,7 +8,7 @@
 # user-facing warning). It never blocks the turn — the conversation simply
 # continues with the context attached; put the enforcement point in CI or code
 # review. Wire it as a Stop hook in .claude/settings.json; see the README in
-# this directory. Requires bash, git, bun, and the SpecLink CLI.
+# this directory. Requires bash, git, bun, and the DocBridge CLI.
 set -euo pipefail
 
 # The Stop payload is not needed: this hook never blocks, so it does not need
@@ -18,10 +18,10 @@ cat >/dev/null || true
 repo_root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
 cd "$repo_root"
 
-# How to invoke SpecLink. Override with e.g.
-#   SPECLINK_CMD="bun run /path/to/spec-link/src/cli/index.ts"
+# How to invoke DocBridge. Override with e.g.
+#   DOCBRIDGE_CMD="bun run /path/to/docbridge/src/cli/index.ts"
 # Intentionally unquoted below so a multi-word command splits into words.
-speclink_cmd=(${SPECLINK_CMD:-speclink})
+docbridge_cmd=(${DOCBRIDGE_CMD:-docbridge})
 
 changed_files="$({ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
 if [[ -z "$changed_files" ]]; then
@@ -33,9 +33,9 @@ context_log="$(mktemp)"
 trap 'rm -f "$violations_log" "$context_log"' EXIT
 
 printf '%s\n' "$changed_files" |
-  "${speclink_cmd[@]}" related --stdin --gate --json >"$violations_log" 2>/dev/null || true
+  "${docbridge_cmd[@]}" related --stdin --gate --json >"$violations_log" 2>/dev/null || true
 printf '%s\n' "$changed_files" |
-  "${speclink_cmd[@]}" context --stdin --json >"$context_log" 2>/dev/null || true
+  "${docbridge_cmd[@]}" context --stdin --json >"$context_log" 2>/dev/null || true
 
 VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
   const parse = async (path) => {
@@ -65,7 +65,7 @@ VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
   });
   const parts = [
     [
-      "SpecLink related-gate: uncommitted changes have linked counterparts that are not in the change set.",
+      "DocBridge related-gate: uncommitted changes have linked counterparts that are not in the change set.",
       "",
       lines.join("\n"),
       "",
@@ -74,7 +74,7 @@ VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
   ];
   if (blocks.length > 0) {
     parts.push(
-      ["Flagged counterpart content (via `speclink context`):", "", blocks.join("\n\n---\n\n")].join("\n"),
+      ["Flagged counterpart content (via `docbridge context`):", "", blocks.join("\n\n---\n\n")].join("\n"),
     );
   }
   console.log(JSON.stringify({

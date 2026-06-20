@@ -1,6 +1,6 @@
 # Codex integration
 
-How to wire SpecLink into Codex with project-local hooks, mirroring the
+How to wire DocBridge into Codex with project-local hooks, mirroring the
 [Claude Code integration](claude-code.md) in intent.
 
 Codex loads project-local hooks only after they are reviewed and trusted with
@@ -17,43 +17,43 @@ scripts live in [`.codex/hooks/`](../../.codex/hooks/).
 - **On-edit counterpart awareness** —
   [`.codex/hooks/on-edit-context.sh`](../../.codex/hooks/on-edit-context.sh)
   runs on `PostToolUse` for the editing tools. It reads the target `file_path`
-  from the tool input, runs `speclink context <file>`, and returns the
+  from the tool input, runs `docbridge context <file>`, and returns the
   Markdown output as additional context so the agent reconciles the edit
-  against the counterpart. Files SpecLink does not manage, and files without
+  against the counterpart. Files DocBridge does not manage, and files without
   linked counterparts, inject nothing. (It mirrors the Claude Code hook, which
   is `PostToolUse` rather than `PreToolUse` because a `PreToolUse` hook's
   additional context is delivered only after the edit runs.)
 - **Gate triage on Stop** —
   [`.codex/hooks/stop-verify.sh`](../../.codex/hooks/stop-verify.sh) reports
-  `speclink related --gate` findings over uncommitted changes as information
+  `docbridge related --gate` findings over uncommitted changes as information
   and attaches the flagged counterpart content fetched via
-  `speclink context --stdin --json`. (In this repository the same script also
-  runs the project checks first; for a SpecLink-only Stop hook, start from
+  `docbridge context --stdin --json`. (In this repository the same script also
+  runs the project checks first; for a DocBridge-only Stop hook, start from
   [`examples/hooks/claude-stop-related-gate.sh`](../../examples/hooks/claude-stop-related-gate.sh)
   — the payload handling is shell-portable.)
 
 To adopt the integration in another repository, copy the scripts from
 [`examples/hooks/`](../../examples/hooks/) and register them in your Codex
 hook configuration the same way `.codex/hooks.json` does here. The scripts
-accept a `SPECLINK_CMD` override when `speclink` is not on `PATH`.
+accept a `DOCBRIDGE_CMD` override when `docbridge` is not on `PATH`.
 
 ## Skills
 
 [`templates/skills/`](../../templates/skills/) ships agent skills that also
 work as Codex-style project skills when copied to `.agents/skills/`:
 
-- `speclink-annotate` — create correct `@doc`/`@code` link pairs and verify
-  them with `speclink check`.
-- `speclink-sync` — triage `related --gate` findings using `speclink context`,
+- `docbridge-annotate` — create correct `@doc`/`@code` link pairs and verify
+  them with `docbridge check`.
+- `docbridge-sync` — triage `related --gate` findings using `docbridge context`,
   then update the counterpart or justify the divergence.
-- `speclink-adopt` — adopt SpecLink in an existing TypeScript, Swift, or Dart
+- `docbridge-adopt` — adopt DocBridge in an existing TypeScript, Swift, or Dart
   project by confirming docs/code scope and creating or improving config.
-- `speclink-link` — link existing docs sections to existing exported
+- `docbridge-link` — link existing docs sections to existing exported
   supported code declarations with section-level confirmation.
-- `speclink-review` — review all existing links for semantic validity using
-  `speclink graph --json --include-content`.
+- `docbridge-review` — review all existing links for semantic validity using
+  `docbridge graph --json --include-content`.
 
-This repository keeps the distributable SpecLink skills canonical under
+This repository keeps the distributable DocBridge skills canonical under
 `templates/skills/` and dogfoods them as skill-level symlinks from
 `.agents/skills/`. External repositories should usually copy the skill
 directories so they remain self-contained.

@@ -1,5 +1,5 @@
 {
-  description = "SpecLink development environment";
+  description = "DocBridge development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

@@ -4,14 +4,14 @@ import type {
   DocAnchorEndpoint,
   Range,
   SourceLocation,
-  SpecLinkDiagnostic,
+  DocBridgeDiagnostic,
 } from "./types";
 
 export type MarkdownScanResult = {
   filePath: string;
   anchors: DocAnchorEndpoint[];
   links: CodeLinkAnnotation[];
-  diagnostics: SpecLinkDiagnostic[];
+  diagnostics: DocBridgeDiagnostic[];
 };
 
 type PendingComment = {
@@ -36,7 +36,7 @@ const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
 export function scanMarkdown(filePath: string, content: string): MarkdownScanResult {
   const anchors: DocAnchorEndpoint[] = [];
   const links: CodeLinkAnnotation[] = [];
-  const diagnostics: SpecLinkDiagnostic[] = [];
+  const diagnostics: DocBridgeDiagnostic[] = [];
 
   const seenAnchors = new Set<string>();
   let pending: PendingComment[] = [];
@@ -231,7 +231,7 @@ function attachHeading(
   heading: HeadingMatch,
   anchors: DocAnchorEndpoint[],
   links: CodeLinkAnnotation[],
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
   seenAnchors: Set<string>,
   pending: PendingComment[],
   filePath: string,
@@ -252,7 +252,7 @@ function attachHeading(
   anchors.push(anchor);
 
   if (seenAnchors.has(heading.anchor)) {
-    const diagnostic: SpecLinkDiagnostic = {
+    const diagnostic: DocBridgeDiagnostic = {
       severity: "error",
       code: "duplicate_doc_anchor",
       target: endpoint,
@@ -278,7 +278,7 @@ function attachHeading(
 
     const target = comment.rawTarget;
     if (seenLinkTargets.has(target)) {
-      const diagnostic: SpecLinkDiagnostic = {
+      const diagnostic: DocBridgeDiagnostic = {
         severity: "warning",
         code: "duplicate_link",
         source: endpoint,
@@ -324,7 +324,7 @@ function parseOptions(
 
 function flushDangling(
   pending: PendingComment[],
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): void {
   flushDanglingWith(
     pending,
@@ -335,7 +335,7 @@ function flushDangling(
 
 function flushDanglingEmptyHeading(
   pending: PendingComment[],
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
 ): void {
   flushDanglingWith(
     pending,
@@ -346,7 +346,7 @@ function flushDanglingEmptyHeading(
 
 function flushDanglingWith(
   pending: PendingComment[],
-  diagnostics: SpecLinkDiagnostic[],
+  diagnostics: DocBridgeDiagnostic[],
   message: string,
 ): void {
   for (const comment of pending) {
@@ -357,7 +357,7 @@ function flushDanglingWith(
       continue;
     }
 
-    const diagnostic: SpecLinkDiagnostic = {
+    const diagnostic: DocBridgeDiagnostic = {
       severity: "warning",
       code: "dangling_code_annotation",
       target: comment.rawTarget,

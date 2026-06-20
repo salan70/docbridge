@@ -1,14 +1,14 @@
 # Configuration
 
-SpecLink reads a required `speclink.config.json` file from the project root.
+DocBridge reads a required `docbridge.config.json` file from the project root.
 
-The project root is the current working directory by default, or the value passed to `speclink check --root <path>`.
+The project root is the current working directory by default, or the value passed to `docbridge check --root <path>`.
 
-The configuration file is required. When it is absent, SpecLink reports `config_file_invalid` and does not scan project files. There is no implicit default configuration.
+The configuration file is required. When it is absent, DocBridge reports `config_file_invalid` and does not scan project files. There is no implicit default configuration.
 
 ```json
 {
-  "$schema": "./schemas/speclink.schema.json",
+  "$schema": "./schemas/docbridge.schema.json",
   "include": {
     "code": {
       "typescript": {
@@ -20,7 +20,7 @@ The configuration file is required. When it is absent, SpecLink reports `config_
 }
 ```
 
-`$schema` is optional. When present, it must be a string. SpecLink does not fetch or validate the schema URL.
+`$schema` is optional. When present, it must be a string. DocBridge does not fetch or validate the schema URL.
 
 Unknown top-level keys are errors, except `$schema`. Unknown keys under `include` are errors.
 
@@ -36,7 +36,7 @@ v0.1 glob syntax supports only `*` and `**`.
 - `**` is valid only as a full path segment.
 - `?`, `[]`, `{}`, negation, and brace expansion are unsupported.
 
-Invalid config files produce config diagnostics. If any config error exists, SpecLink does not scan project files.
+Invalid config files produce config diagnostics. If any config error exists, DocBridge does not scan project files.
 
 <!-- @code src/core/code-language.ts#CodeIncludeEntry -->
 ## Code Languages
@@ -80,7 +80,7 @@ to exactly one language.
 <!-- @code src/core/config.ts#loadConfig -->
 ## Loading Configuration
 
-Configuration loading reads `speclink.config.json` from the project root and
+Configuration loading reads `docbridge.config.json` from the project root and
 reports an error when the file is absent. When the parsed config is otherwise
 valid, the managed code files are collected to reject any file claimed by more
 than one configured language.

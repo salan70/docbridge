@@ -1,6 +1,6 @@
 # テスト規約
 
-SpecLink は Bun のテストランナー(`bun test`、ラッパーは `just test`)を
+DocBridge は Bun のテストランナー(`bun test`、ラッパーは `just test`)を
 使用します。
 
 ## テストの配置

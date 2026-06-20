@@ -1,6 +1,6 @@
 # Diagnostic Fixtures
 
-Each directory under `test-fixtures/diagnostics/` is a minimal SpecLink project that
+Each directory under `test-fixtures/diagnostics/` is a minimal DocBridge project that
 fires exactly one diagnostic code. The fixtures serve two roles:
 
 - Manual observation: run `just check-fixture <code>` to see the diagnostic in

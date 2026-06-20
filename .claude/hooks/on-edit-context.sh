@@ -27,7 +27,7 @@ file_path="$(
   '
 )"
 
-# SpecLink manages TypeScript and Markdown only; skip everything else without
+# DocBridge manages TypeScript and Markdown only; skip everything else without
 # paying for a project scan.
 case "$file_path" in
   *.ts | *.md) ;;
@@ -53,7 +53,7 @@ FILE_PATH="$file_path" CONTEXT_OUT="$context_out" run_bun -e '
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext: [
-        `SpecLink: linked counterpart content for ${process.env.FILE_PATH} (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:`,
+        `DocBridge: linked counterpart content for ${process.env.FILE_PATH} (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:`,
         "",
         process.env.CONTEXT_OUT,
       ].join("\n"),

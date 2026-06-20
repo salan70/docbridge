@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
-import type { CodeLanguage, SpecLinkDiagnostic } from "./types";
+import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
 export type ScannerWorkerFile = {
   filePath: string;
@@ -58,7 +58,7 @@ export type ScannerWorkerSuccess = {
 
 export type ScannerWorkerFailure = {
   ok: false;
-  diagnostic: SpecLinkDiagnostic;
+  diagnostic: DocBridgeDiagnostic;
   stderr: string;
 };
 
@@ -132,7 +132,7 @@ export function invokeScannerWorker(
  */
 export function clangModuleCachePath(): string {
   const owner = typeof process.getuid === "function" ? process.getuid() : "shared";
-  return join(tmpdir(), `speclink-clang-module-cache-${owner}`);
+  return join(tmpdir(), `docbridge-clang-module-cache-${owner}`);
 }
 
 function runScannerWorkerProcess(
@@ -227,7 +227,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function scannerUnavailableDiagnostic(
   language: CodeLanguage,
   error: unknown,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
     severity: "error",
@@ -241,7 +241,7 @@ function scannerUnavailableDiagnostic(
 function scannerFailedDiagnostic(
   language: CodeLanguage,
   reason: string,
-): SpecLinkDiagnostic {
+): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
     severity: "error",

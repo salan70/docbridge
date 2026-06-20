@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "SpecLink Context Output",
-  "description": "Shape of `speclink context --json` output. See docs/specs/cli.md#context-command.",
+  "title": "DocBridge Context Output",
+  "description": "Shape of `docbridge context --json` output. See docs/specs/cli.md#context-command.",
   "type": "object",
   "additionalProperties": false,
   "required": ["contexts", "diagnostics", "summary"],

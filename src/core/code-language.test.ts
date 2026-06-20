@@ -32,7 +32,7 @@ function withProject(
   files: Record<string, string>,
   run: (root: string) => void,
 ): void {
-  const root = mkdtempSync(join(tmpdir(), "speclink-lang-"));
+  const root = mkdtempSync(join(tmpdir(), "docbridge-lang-"));
   try {
     for (const [relPath, content] of Object.entries(files)) {
       const abs = join(root, relPath);
@@ -112,7 +112,7 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
     const realCli = join(root, "pkg/dist/index.js");
     const binDir = join(root, "node_modules/.bin");
     mkdirSync(binDir, { recursive: true });
-    const shim = join(binDir, "speclink");
+    const shim = join(binDir, "docbridge");
     symlinkSync(relative(binDir, realCli), shim);
 
     const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(
@@ -285,7 +285,7 @@ test("scanCodeFiles dispatches configured non-TypeScript files to a worker adapt
 test("check resolves links from a worker-backed language scan", () => {
   withProject(
     {
-      "speclink.config.json": JSON.stringify({
+      "docbridge.config.json": JSON.stringify({
         include: {
           code: { swift: { patterns: ["Sources/**/*.swift"] } },
           docs: ["docs/**/*.md"],
@@ -357,7 +357,7 @@ test("check resolves links from a worker-backed language scan", () => {
 test("check suppresses link diagnostics that depend on a failed worker scan", () => {
   withProject(
     {
-      "speclink.config.json": JSON.stringify({
+      "docbridge.config.json": JSON.stringify({
         include: {
           code: { swift: { patterns: ["Sources/**/*.swift"] } },
           docs: ["docs/**/*.md"],

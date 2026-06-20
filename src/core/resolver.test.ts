@@ -11,7 +11,7 @@ import type {
   DocAnchorEndpoint,
   DocLinkAnnotation,
   SourceLocation,
-  SpecLinkDiagnostic,
+  DocBridgeDiagnostic,
 } from "./types";
 
 const CODE_FILE = "src/auth/login.ts";
@@ -66,7 +66,7 @@ function codeFile(
   filePath: string,
   symbols: CodeSymbolEndpoint[],
   links: DocLinkAnnotation[],
-  diagnostics: SpecLinkDiagnostic[] = [],
+  diagnostics: DocBridgeDiagnostic[] = [],
   undocumentedSymbols: CodeSymbolEndpoint[] = [],
 ): CodeScanResult {
   return { language: "typescript", filePath, symbols, undocumentedSymbols, links, diagnostics };
@@ -76,12 +76,12 @@ function docFile(
   filePath: string,
   anchors: DocAnchorEndpoint[],
   links: CodeLinkAnnotation[],
-  diagnostics: SpecLinkDiagnostic[] = [],
+  diagnostics: DocBridgeDiagnostic[] = [],
 ): MarkdownScanResult {
   return { filePath, anchors, links, diagnostics };
 }
 
-function codes(diagnostics: SpecLinkDiagnostic[]): string[] {
+function codes(diagnostics: DocBridgeDiagnostic[]): string[] {
   return diagnostics.map((diagnostic) => diagnostic.code);
 }
 

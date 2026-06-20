@@ -1,12 +1,12 @@
 # Link Resolution
 
-SpecLink v0.1 uses `file#fragment` targets.
+DocBridge v0.1 uses `file#fragment` targets.
 
 The file path is project-root-relative. The fragment is required. Same-file targets, fragment-only targets, and file-only targets are invalid.
 
 Targets must use `/` path separators. `./`, `../`, absolute paths, whitespace inside the target, empty file paths, empty fragments, and multiple `#` characters are invalid.
 
-SpecLink compares target fragments as raw strings. It does not URL-decode fragments in v0.1.
+DocBridge compares target fragments as raw strings. It does not URL-decode fragments in v0.1.
 
 Markdown heading anchors are generated from ATX headings only.
 
@@ -30,7 +30,7 @@ Empty headings do not create linkable anchors and do not participate in duplicat
 
 Duplicate non-empty anchors inside the same Markdown file produce `duplicate_doc_anchor`. The same anchor in different Markdown files is allowed.
 
-SpecLink uses a pair-based model:
+DocBridge uses a pair-based model:
 
 - one code `@doc` tag creates one directed `code -> doc` link
 - one Markdown `@code` comment creates one directed `doc -> code` link
@@ -40,17 +40,17 @@ One-to-many and many-to-many relationships are represented as multiple independe
 
 Normal code endpoint resolution is annotation-first. Markdown `@code` resolution checks whether the target code file exists and whether a matching `@doc` pair exists in that file. It does not separately check for an unannotated exported symbol with the same name.
 
-If a code `@doc` target doc file does not exist in the managed docs set, SpecLink emits `doc_file_not_found`. If the file exists but the anchor does not, SpecLink emits `doc_anchor_not_found`. If the anchor exists but the matching `@code` is missing, SpecLink emits `doc_backlink_not_found`.
+If a code `@doc` target doc file does not exist in the managed docs set, DocBridge emits `doc_file_not_found`. If the file exists but the anchor does not, DocBridge emits `doc_anchor_not_found`. If the anchor exists but the matching `@code` is missing, DocBridge emits `doc_backlink_not_found`.
 
-If a Markdown `@code` target code file does not exist in the managed code set, SpecLink emits `code_file_not_found`. If the file exists but the matching `@doc` pair is missing, SpecLink emits `code_backlink_not_found`.
+If a Markdown `@code` target code file does not exist in the managed code set, DocBridge emits `code_file_not_found`. If the file exists but the matching `@doc` pair is missing, DocBridge emits `code_backlink_not_found`.
 
-If the target file had a read, parse, or scanner-worker failure, SpecLink
+If the target file had a read, parse, or scanner-worker failure, DocBridge
 suppresses relationship diagnostics that would otherwise be derived from that
 file's incomplete scan result.
 
 Duplicate `@doc` or `@code` annotations from the same source to the same target produce `duplicate_link`.
 
-If multiple `@doc`-annotated supported declarations in the same file expose the same code endpoint, SpecLink emits `duplicate_code_symbol`.
+If multiple `@doc`-annotated supported declarations in the same file expose the same code endpoint, DocBridge emits `duplicate_code_symbol`.
 
 <!-- @code src/core/links.ts#parseLinkTarget -->
 ## Parsing Link Targets

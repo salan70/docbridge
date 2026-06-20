@@ -1,11 +1,11 @@
-# SpecLink
+# DocBridge
 
 [![Japanese README](https://img.shields.io/badge/README-%E6%97%A5%E6%9C%AC%E8%AA%9E-blue)](docs/ja/README.md)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/salan70/spec-link)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/salan70/docbridge)
 
 Bring Markdown into the LSP world.
 
-SpecLink creates bidirectional links between TypeScript, Swift, or Dart code
+DocBridge creates bidirectional links between TypeScript, Swift, or Dart code
 and Markdown documentation, enabling LSP-like experiences such as Hover,
 Definition, References, and Diagnostics across implementation and specification
 files.
@@ -20,7 +20,7 @@ Modern software projects often suffer from a gap between implementation and docu
 - Difficulty finding which implementation relates to a given specification
 - AI coding agents missing relevant context during code modifications
 
-SpecLink makes relationships between code and documentation explicit, navigable, and machine-readable.
+DocBridge makes relationships between code and documentation explicit, navigable, and machine-readable.
 
 ## Concept
 
@@ -30,13 +30,13 @@ Traditional documentation tools often focus on one direction:
 Code -> Documentation
 ```
 
-SpecLink focuses on both directions:
+DocBridge focuses on both directions:
 
 ```text
 Code <-> Documentation
 ```
 
-SpecLink links supported code declarations to Markdown sections. TypeScript is
+DocBridge links supported code declarations to Markdown sections. TypeScript is
 scanned in-process; Swift and Dart are scanned through bundled first-party
 worker packages.
 
@@ -79,7 +79,7 @@ public struct AuthService {
 
 ## Scope
 
-SpecLink recognizes the following elements.
+DocBridge recognizes the following elements.
 
 Supported code declarations:
 
@@ -98,8 +98,8 @@ Supported Markdown elements:
 - HTML comments
 - `@code` annotations attached to the next heading
 
-Projects must define scan targets in `speclink.config.json`. There is no
-implicit default configuration; when the config file is missing, SpecLink
+Projects must define scan targets in `docbridge.config.json`. There is no
+implicit default configuration; when the config file is missing, DocBridge
 reports `config_file_invalid` and does not scan project files.
 
 Minimal TypeScript configuration:
@@ -139,11 +139,11 @@ before checking those languages. Run `just build-swift-scanner` for Swift and
 
 ## Installation
 
-SpecLink is distributed as the `speclink` npm package and is intended to run
+DocBridge is distributed as the `docbridge` npm package and is intended to run
 with Bun:
 
 ```sh
-bunx speclink check
+bunx docbridge check
 ```
 
 The npm package is Bun-only; Node.js runtime compatibility is not part of the
@@ -186,10 +186,10 @@ Audit diagnostics include:
 List the linked counterparts of changed files:
 
 ```sh
-git diff --name-only | speclink related --stdin
+git diff --name-only | docbridge related --stdin
 ```
 
-`speclink related` is informational: it reports each counterpart and whether it
+`docbridge related` is informational: it reports each counterpart and whether it
 is itself in the change set, and always exits `0` on success. Changed files can
 also be passed as positional arguments. Add `--gate` to report only the
 counterparts that are not themselves in the change set and exit `1` when any
@@ -200,10 +200,10 @@ details.
 Print the content of the linked counterparts of changed files:
 
 ```sh
-git diff --name-only | speclink context --stdin
+git diff --name-only | docbridge context --stdin
 ```
 
-`speclink context` answers "what do the linked counterparts say": full
+`docbridge context` answers "what do the linked counterparts say": full
 Markdown sections for doc counterparts, full declarations including JSDoc for
 code counterparts. The default output is Markdown suitable for direct
 injection into an agent prompt; `--json` follows
@@ -214,42 +214,42 @@ tree has broken links. See [docs/specs/cli.md](docs/specs/cli.md) for details.
 Inspect the resolved link graph:
 
 ```sh
-speclink graph
-speclink graph --json --include-content
+docbridge graph
+docbridge graph --json --include-content
 ```
 
-`speclink graph` prints the resolved endpoint graph, including resolvable
+`docbridge graph` prints the resolved endpoint graph, including resolvable
 one-way links. JSON output follows
 [schemas/graph-output.schema.json](schemas/graph-output.schema.json).
 
 ## AI agent integration
 
-SpecLink's link graph is built to be consumed by AI coding agents:
+DocBridge's link graph is built to be consumed by AI coding agents:
 
 - [docs/integrations](docs/integrations) — recipes for Claude Code, Codex,
-  and CI: on-edit counterpart awareness with `speclink context`, gate triage
-  with `speclink related --gate`, and PR reporting.
+  and CI: on-edit counterpart awareness with `docbridge context`, gate triage
+  with `docbridge related --gate`, and PR reporting.
 - [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
   those recipes.
 - [templates/skills](templates/skills) — distributable agent skills:
-  `speclink-annotate`, `speclink-sync`, `speclink-adopt`, `speclink-link`,
-  and `speclink-review`.
+  `docbridge-annotate`, `docbridge-sync`, `docbridge-adopt`, `docbridge-link`,
+  and `docbridge-review`.
 
 This repository dogfoods the hooks and skills in its own guardrails under
 `.claude/`, `.codex/`, and `.agents/`.
 
 ## Editor support
 
-SpecLink ships a language server that exposes the same link graph to editors:
+DocBridge ships a language server that exposes the same link graph to editors:
 
 ```sh
-speclink lsp
+docbridge lsp
 ```
 
-`speclink lsp` speaks LSP over stdio and provides Diagnostics, Hover,
+`docbridge lsp` speaks LSP over stdio and provides Diagnostics, Hover,
 Definition, and References across linked code and Markdown. It takes no
 options; the project root comes from the editor's `initialize` request.
-`speclink check` is unchanged.
+`docbridge check` is unchanged.
 
 A minimal VS Code-compatible client lives in [editors/vscode](editors/vscode);
 see its README to install it into VS Code or Cursor for local testing. Full
@@ -409,12 +409,12 @@ Completed v0.1–v0.3 capabilities are documented above and in
 
 v0.5:
 
-- MCP server exposing the link graph and `speclink context` output as tools
+- MCP server exposing the link graph and `docbridge context` output as tools
 - Editor and agent delivery channels built on it (Claude Code, Cursor, Zed,
   Codex)
 
 ## Vision
 
-SpecLink is not a documentation generator.
+DocBridge is not a documentation generator.
 
 Its purpose is to make relationships between code and documentation visible, navigable, and machine-readable so humans and AI agents can reach relevant context with minimal effort.
