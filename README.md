@@ -1,5 +1,6 @@
 # DocBridge
 
+[![npm version](https://img.shields.io/npm/v/docbridge.svg)](https://www.npmjs.com/package/docbridge)
 [![Japanese README](https://img.shields.io/badge/README-%E6%97%A5%E6%9C%AC%E8%AA%9E-blue)](docs/ja/README.md)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/salan70/docbridge)
 
@@ -10,9 +11,141 @@ and Markdown documentation, enabling LSP-like experiences such as Hover,
 Definition, References, and Diagnostics across implementation and specification
 files.
 
-## Motivation
+## Installation
 
-Modern software projects often suffer from a gap between implementation and documentation:
+DocBridge is distributed as the `docbridge` npm package and is intended to run
+with Bun:
+
+```sh
+bunx docbridge check
+```
+
+The current release is
+[v0.4.0](https://github.com/salan70/docbridge/releases/tag/v0.4.0), published
+as `docbridge@0.4.0` on npm.
+
+The npm package is Bun-only; Node.js runtime compatibility is not part of the
+initial distribution. The package includes prebuilt Swift and Dart scanner
+binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
+without scanner binaries. Configured Swift or Dart projects on unsupported
+platforms report `code_scanner_unavailable` and name the supported platform
+keys.
+
+## Quick Start
+
+Create `docbridge.config.json` in the project root:
+
+```json
+{
+  "include": {
+    "code": {
+      "typescript": {
+        "patterns": ["src/**/*.ts"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
+
+Link an exported TypeScript declaration to a Markdown section:
+
+```ts
+/**
+ * @doc docs/auth.md#login-spec
+ */
+export async function login() {
+  // ...
+}
+```
+
+Add the backlink in the Markdown file:
+
+```md
+<!-- @code src/auth/login.ts#login -->
+## Login Spec
+
+Login flow specification.
+```
+
+Check the project:
+
+```sh
+bunx docbridge check
+```
+
+## Usage
+
+Check links:
+
+```sh
+bunx docbridge check
+```
+
+Check another project root:
+
+```sh
+bunx docbridge check --root examples/typescript
+```
+
+Emit JSON:
+
+```sh
+bunx docbridge check --json
+```
+
+Run audit diagnostics:
+
+```sh
+bunx docbridge check --audit
+```
+
+Audit diagnostics include:
+
+- `undocumented_symbol`
+
+List the linked counterparts of changed files:
+
+```sh
+git diff --name-only | bunx docbridge related --stdin
+```
+
+`docbridge related` is informational: it reports each counterpart and whether it
+is itself in the change set, and always exits `0` on success. Changed files can
+also be passed as positional arguments. Add `--gate` to report only the
+counterparts that are not themselves in the change set and exit `1` when any
+exist. Both modes support `--root` and `--json`. See
+[docs/specs/cli.md](docs/specs/cli.md) for details.
+
+Print the content of the linked counterparts of changed files:
+
+```sh
+git diff --name-only | bunx docbridge context --stdin
+```
+
+`docbridge context` answers "what do the linked counterparts say": full
+Markdown sections for doc counterparts, full declarations including JSDoc for
+code counterparts. The default output is Markdown suitable for direct
+injection into an agent prompt; `--json` follows
+[schemas/context-output.schema.json](schemas/context-output.schema.json).
+Extraction is best-effort and the command exits `0` on success even when the
+tree has broken links. See [docs/specs/cli.md](docs/specs/cli.md) for details.
+
+Inspect the resolved link graph:
+
+```sh
+bunx docbridge graph
+bunx docbridge graph --json --include-content
+```
+
+`docbridge graph` prints the resolved endpoint graph, including resolvable
+one-way links. JSON output follows
+[schemas/graph-output.schema.json](schemas/graph-output.schema.json).
+
+## Why DocBridge
+
+Modern software projects often suffer from a gap between implementation and
+documentation:
 
 - Code changes without documentation updates
 - Documentation changes without implementation updates
@@ -20,7 +153,8 @@ Modern software projects often suffer from a gap between implementation and docu
 - Difficulty finding which implementation relates to a given specification
 - AI coding agents missing relevant context during code modifications
 
-DocBridge makes relationships between code and documentation explicit, navigable, and machine-readable.
+DocBridge makes relationships between code and documentation explicit,
+navigable, and machine-readable.
 
 ## Concept
 
@@ -40,44 +174,7 @@ DocBridge links supported code declarations to Markdown sections. TypeScript is
 scanned in-process; Swift and Dart are scanned through bundled first-party
 worker packages.
 
-## Example
-
-TypeScript:
-
-```ts
-/**
- * @doc docs/auth.md#login-spec
- */
-export async function login() {
-  // ...
-}
-```
-
-Markdown:
-
-```md
-<!-- @code src/auth/login.ts#login -->
-## Login Spec
-
-Login flow specification.
-```
-
-Swift and Dart use the same `@doc` and `@code` model. Their code fragments are
-the scanner-produced canonical IDs, so members are type-qualified:
-
-```swift
-/// @doc docs/auth.md#login-spec
-public struct AuthService {
-  public func login(email: String, password: String) {}
-}
-```
-
-```md
-<!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
-## Login Spec
-```
-
-## Scope
+## Supported Inputs
 
 DocBridge recognizes the following elements.
 
@@ -97,6 +194,21 @@ Supported Markdown elements:
 - ATX headings
 - HTML comments
 - `@code` annotations attached to the next heading
+
+Swift and Dart use the same `@doc` and `@code` model. Their code fragments are
+the scanner-produced canonical IDs, so members are type-qualified:
+
+```swift
+/// @doc docs/auth.md#login-spec
+public struct AuthService {
+  public func login(email: String, password: String) {}
+}
+```
+
+```md
+<!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+## Login Spec
+```
 
 Projects must define scan targets in `docbridge.config.json`. There is no
 implicit default configuration; when the config file is missing, DocBridge
@@ -136,91 +248,6 @@ shape is intentionally invalid; migrate it to a `typescript` entry:
 Swift and Dart projects must build their scanner workers in source checkouts
 before checking those languages. Run `just build-swift-scanner` for Swift and
 `just build-dart-scanner` for Dart, or use the native test recipes below.
-
-## Installation
-
-DocBridge is distributed as the `docbridge` npm package and is intended to run
-with Bun:
-
-```sh
-bunx docbridge check
-```
-
-The npm package is Bun-only; Node.js runtime compatibility is not part of the
-initial distribution. The package includes prebuilt Swift and Dart scanner
-binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
-without scanner binaries. Configured Swift or Dart projects on unsupported
-platforms report `code_scanner_unavailable` and name the supported platform
-keys.
-
-## CLI
-
-Check links:
-
-```sh
-just check
-```
-
-Check another root:
-
-```sh
-just check-example
-```
-
-Emit JSON:
-
-```sh
-just check-example-json
-```
-
-Run audit diagnostics:
-
-```sh
-just audit
-```
-
-Audit diagnostics include:
-
-- `undocumented_symbol`
-
-List the linked counterparts of changed files:
-
-```sh
-git diff --name-only | docbridge related --stdin
-```
-
-`docbridge related` is informational: it reports each counterpart and whether it
-is itself in the change set, and always exits `0` on success. Changed files can
-also be passed as positional arguments. Add `--gate` to report only the
-counterparts that are not themselves in the change set and exit `1` when any
-exist; `just related-gate` runs this over uncommitted changes. Both modes
-support `--root` and `--json`. See [docs/specs/cli.md](docs/specs/cli.md) for
-details.
-
-Print the content of the linked counterparts of changed files:
-
-```sh
-git diff --name-only | docbridge context --stdin
-```
-
-`docbridge context` answers "what do the linked counterparts say": full
-Markdown sections for doc counterparts, full declarations including JSDoc for
-code counterparts. The default output is Markdown suitable for direct
-injection into an agent prompt; `--json` follows
-[schemas/context-output.schema.json](schemas/context-output.schema.json).
-Extraction is best-effort and the command exits `0` on success even when the
-tree has broken links. See [docs/specs/cli.md](docs/specs/cli.md) for details.
-
-Inspect the resolved link graph:
-
-```sh
-docbridge graph
-docbridge graph --json --include-content
-```
-
-`docbridge graph` prints the resolved endpoint graph, including resolvable
-one-way links. JSON output follows
-[schemas/graph-output.schema.json](schemas/graph-output.schema.json).
 
 ## AI agent integration
 
@@ -404,7 +431,7 @@ inside their worker packages.
 
 ## Roadmap
 
-Completed v0.1–v0.3 capabilities are documented above and in
+Completed v0.1–v0.4 capabilities are documented above and in
 [CHANGELOG.md](CHANGELOG.md). The current roadmap tracks upcoming work only.
 
 v0.5:

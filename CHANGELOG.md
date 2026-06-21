@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-06-18
+## [0.4.0] - 2026-06-20
 
 ### Added
 
-- npm distribution support for the Bun-only `speclink` package, including
+- npm distribution support for the Bun-only `docbridge` package, including
   `dist/index.js` as the package binary, a runtime package allowlist, dist
   verification, packed-package smoke testing, and release workflow publishing.
 - Platform-staged Swift and Dart scanner binary layout under
@@ -28,21 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Worker-backed scanner protocol foundation for Swift and Dart adapters,
   including stdin/stdout JSON invocation and scanner availability/failure
   diagnostics.
-- `speclink graph`: prints the resolved link graph as human-readable output or
+- `docbridge graph`: prints the resolved link graph as human-readable output or
   as JSON following `schemas/graph-output.schema.json`, including resolvable
   one-way links, pair completeness, optional lightweight node content, and
   diagnostics that do not prevent graph construction.
-- Distributable adoption skills under `templates/skills/`: `speclink-adopt`
-  for existing-project setup, `speclink-link` for docs-first annotation
-  candidate confirmation, and `speclink-review` for whole-graph semantic
-  review using `speclink graph --json --include-content`.
+- Distributable adoption skills under `templates/skills/`: `docbridge-adopt`
+  for existing-project setup, `docbridge-link` for docs-first annotation
+  candidate confirmation, and `docbridge-review` for whole-graph semantic
+  review using `docbridge graph --json --include-content`.
 
 ### Changed
 
-- `speclink context` and `speclink graph --json` now carry code language
+- The project, package, command, configuration file, templates, and repository
+  URLs were renamed from SpecLink/`speclink` to DocBridge/`docbridge`.
+- `docbridge context` and `docbridge graph --json` now carry code language
   metadata for code blocks/nodes so Swift endpoints render and serialize as
   Swift.
-- SpecLink's distributable skills are now dogfooded from `.agents/skills/` and
+- DocBridge's distributable skills are now dogfooded from `.agents/skills/` and
   `.claude/skills/` as symlinks to the canonical `templates/skills/` entries.
 - TypeScript scanner endpoints now include `signatureRange` in addition to the
   existing full `declarationRange`, allowing graph consumers to read the
