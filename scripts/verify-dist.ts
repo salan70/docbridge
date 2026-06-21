@@ -12,7 +12,7 @@ const scannerExecutableNames = [
 ] as const;
 
 export type VerifyDistOptions = {
-  run?: (command: string[]) => void;
+  run?: (command: string[], cwd: string) => void;
 };
 
 export async function verifyDistPackage(
@@ -34,9 +34,9 @@ export async function verifyDistPackage(
   assertPackagedScannersExecutable(root);
 
   const runCommand = options.run ?? run;
-  runCommand([distCli, "--version"]);
-  runCommand([distCli, "--help"]);
-  runCommand([distCli, "check", "--root", "examples/typescript"]);
+  runCommand([distCli, "--version"], root);
+  runCommand([distCli, "--help"], root);
+  runCommand([distCli, "check", "--root", "examples/typescript"], root);
 }
 
 function assertPackagedScannersExecutable(root: string): void {
@@ -56,10 +56,10 @@ function assertExecutable(root: string, path: string): void {
   }
 }
 
-function run(command: string[]): void {
+function run(command: string[], cwd: string): void {
   const result = Bun.spawnSync({
     cmd: command,
-    cwd: repoRoot,
+    cwd,
     stdout: "pipe",
     stderr: "pipe",
   });

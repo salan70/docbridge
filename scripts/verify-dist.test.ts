@@ -31,3 +31,31 @@ test("verifyDistPackage rejects packaged scanner binaries without executable bit
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("verifyDistPackage runs dist checks from the inspected root", async () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-verify-dist-"));
+  try {
+    const distCli = join(root, "dist/index.js");
+    mkdirSync(join(distCli, ".."), { recursive: true });
+    writeFileSync(distCli, "#!/usr/bin/env bun\n");
+    chmodSync(distCli, 0o755);
+
+    const calls: { command: string[]; cwd: string | undefined }[] = [];
+    await verifyDistPackage(root, {
+      run: (command, cwd) => {
+        calls.push({ command, cwd });
+      },
+    });
+
+    expect(calls).toEqual([
+      { command: [distCli, "--version"], cwd: root },
+      { command: [distCli, "--help"], cwd: root },
+      {
+        command: [distCli, "check", "--root", "examples/typescript"],
+        cwd: root,
+      },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
