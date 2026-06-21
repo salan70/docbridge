@@ -55,6 +55,12 @@ const nonInteractivePrompts: InitPrompts = {
   select: (_message, _choices, defaultChoice) => defaultChoice,
 };
 
+const interactivePrompts: InitPrompts = {
+  isInteractive: true,
+  confirm: () => true,
+  select: (_message, _choices, defaultChoice) => defaultChoice,
+};
+
 test("parseInitOptions accepts shared init options", () => {
   expect(
     parseInitOptions(
@@ -172,6 +178,46 @@ test("runInitWithAgent --yes without an agent directory exits with a target-requ
 
     expect(code).toBe(1);
     expect(c.out).toContain("explicit agent target");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run enters interactive init setup without --yes", () => {
+  const project = makeProject({
+    ".agents/skills/.keep": "",
+    "docs/specs/cli.md": "# CLI\n",
+    "src/app.ts": "export const app = 1;\n",
+  });
+  try {
+    const c = capture();
+    const code = run(
+      ["init", "--root", project, "--dry-run", "--agent-target", "codex"],
+      c.io,
+      { prompts: interactivePrompts },
+    );
+
+    expect(code).toBe(0);
+    expect(c.out).toContain("would create docbridge.config.json");
+    expect(c.err).not.toContain("Interactive setup requires a TTY");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("runInitWithAgent enters interactive setup without confirming docs scope", () => {
+  const project = makeProject({ ".agents/skills/.keep": "" });
+  try {
+    const c = capture();
+    const code = runInitWithAgent(
+      { root: project, yes: false, dryRun: true, force: false, agentTarget: undefined },
+      c.io,
+      { prompts: interactivePrompts, packageRoot: resolvePackageRoot() },
+    );
+
+    expect(code).toBe(0);
+    expect(c.out).toContain(".agents/skills/docbridge-adopt/");
+    expect(c.out).not.toContain("Config:");
   } finally {
     rmSync(project, { recursive: true, force: true });
   }

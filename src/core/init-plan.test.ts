@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { discoverRepository } from "./init-discovery";
 import {
@@ -21,6 +22,34 @@ function makeProject(structure: Record<string, string>): string {
   }
   return project;
 }
+
+test("resolvePackageRoot finds templates/skills for source-layout execution", () => {
+  const repo = mkdtempSync(join(tmpdir(), "docbridge-pkg-src-"));
+  try {
+    mkdirSync(join(repo, "templates", "skills"), { recursive: true });
+    mkdirSync(join(repo, "src", "core"), { recursive: true });
+    const moduleFile = join(repo, "src", "core", "init-plan.ts");
+    writeFileSync(moduleFile, "");
+
+    expect(resolvePackageRoot(pathToFileURL(moduleFile).href)).toBe(realpathSync(repo));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("resolvePackageRoot finds templates/skills for dist-layout execution", () => {
+  const pkg = mkdtempSync(join(tmpdir(), "docbridge-pkg-dist-"));
+  try {
+    mkdirSync(join(pkg, "templates", "skills"), { recursive: true });
+    mkdirSync(join(pkg, "dist"), { recursive: true });
+    const moduleFile = join(pkg, "dist", "index.js");
+    writeFileSync(moduleFile, "");
+
+    expect(resolvePackageRoot(pathToFileURL(moduleFile).href)).toBe(realpathSync(pkg));
+  } finally {
+    rmSync(pkg, { recursive: true, force: true });
+  }
+});
 
 test("buildConfigFromScope uses the language-keyed include.code object", () => {
   const config = buildConfigFromScope({

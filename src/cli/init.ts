@@ -186,12 +186,17 @@ function runInitCommand(
 ): number {
   const projectRoot = resolveProjectRoot(options.root);
   const discovery = discoverRepository(projectRoot);
-  const confirmedScope = resolveConfirmedScope({
-    command,
-    discovery,
-    options,
-    prompts: runtime.prompts,
-  });
+  // init-with-agent never generates docbridge.config.json; scope confirmation
+  // is deferred to the docbridge-adopt skill, so skip it here.
+  const confirmedScope =
+    command === "init"
+      ? resolveConfirmedScope({
+          command,
+          discovery,
+          options,
+          prompts: runtime.prompts,
+        })
+      : undefined;
 
   const plan = planInitCommand({
     command,

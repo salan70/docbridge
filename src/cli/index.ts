@@ -16,7 +16,14 @@ import {
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
-import { InitCliError, parseInitOptions, runInit, runInitWithAgent } from "./init";
+import {
+  createDefaultPrompts,
+  InitCliError,
+  parseInitOptions,
+  runInit,
+  runInitWithAgent,
+  type InitRuntime,
+} from "./init";
 
 const VERSION = pkg.version;
 
@@ -449,6 +456,7 @@ export function run(
     stdout: (text) => process.stdout.write(text),
     stderr: (text) => process.stderr.write(text),
   },
+  initRuntime: InitRuntime = { prompts: createDefaultPrompts() },
 ): number {
   try {
     const [command, ...rest] = argv;
@@ -488,11 +496,11 @@ export function run(
     }
 
     if (command === "init") {
-      return runInit(parseInitOptions(rest, "init"), io);
+      return runInit(parseInitOptions(rest, "init"), io, initRuntime);
     }
 
     if (command === "init-with-agent") {
-      return runInitWithAgent(parseInitOptions(rest, "init-with-agent"), io);
+      return runInitWithAgent(parseInitOptions(rest, "init-with-agent"), io, initRuntime);
     }
 
     throw new CliError(`Unknown command: ${command}`);
