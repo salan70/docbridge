@@ -6,8 +6,9 @@ description: Adopt DocBridge in an existing TypeScript, Swift, or Dart project. 
 # docbridge-adopt
 
 Adopt DocBridge in an existing project. This skill assumes it is already
-installed in the agent environment; installing agent skills into another
-project is documented outside this skill.
+installed in the agent environment through `docbridge init-with-agent`,
+`docbridge init`, or a manual copy into `.agents/skills/` or
+`.claude/skills/`.
 
 The goal is to make the repository ready for DocBridge links, then continue
 into an initial docs-first link-candidate pass. Do not assume a pull request.

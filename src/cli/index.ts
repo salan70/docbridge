@@ -16,6 +16,14 @@ import {
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
+import {
+  createDefaultPrompts,
+  InitCliError,
+  parseInitOptions,
+  runInit,
+  runInitWithAgent,
+  type InitRuntime,
+} from "./init";
 
 const VERSION = pkg.version;
 
@@ -43,6 +51,8 @@ Usage:
   docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
   docbridge context [--root <path>] [--json] [--stdin] [files...]
   docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
+  docbridge init [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
+  docbridge init-with-agent [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
   docbridge lsp
 
 Commands:
@@ -50,6 +60,8 @@ Commands:
   related  List the linked counterparts of the given changed files.
   context  Print the content of the counterparts linked from the given files.
   graph    Print the resolved link graph.
+  init     Set up docbridge.config.json and install DocBridge agent skills.
+  init-with-agent  Install docbridge-adopt and print agent setup commands.
   lsp      Run the Language Server over stdio.
 
 Global options:
@@ -77,6 +89,13 @@ Graph options:
   --json              Emit machine-readable JSON.
   --include-content   Include lightweight node content. Requires --json.
   --stdin             Read newline-separated file paths from stdin.
+
+Init options:
+  --root <path>           Project root to set up. Defaults to current directory.
+  --yes                   Accept safe defaults without prompting.
+  --dry-run               Print planned file operations without writing files.
+  --force                 Overwrite existing installed skills.
+  --agent-target <target> Agent target: codex, claude, both, or none (init only).
 `;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
@@ -437,6 +456,7 @@ export function run(
     stdout: (text) => process.stdout.write(text),
     stderr: (text) => process.stderr.write(text),
   },
+  initRuntime: InitRuntime = { prompts: createDefaultPrompts() },
 ): number {
   try {
     const [command, ...rest] = argv;
@@ -475,8 +495,20 @@ export function run(
       return 0;
     }
 
+    if (command === "init") {
+      return runInit(parseInitOptions(rest, "init"), io, initRuntime);
+    }
+
+    if (command === "init-with-agent") {
+      return runInitWithAgent(parseInitOptions(rest, "init-with-agent"), io, initRuntime);
+    }
+
     throw new CliError(`Unknown command: ${command}`);
   } catch (error) {
+    if (error instanceof InitCliError || error instanceof CliError) {
+      io.stderr(`${error.message}\n`);
+      return 1;
+    }
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }

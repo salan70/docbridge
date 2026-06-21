@@ -1,6 +1,7 @@
 # CLI
 
-DocBridge provides the `check`, `related`, `context`, and `graph` commands.
+DocBridge provides the `check`, `related`, `context`, `graph`, `init`, and
+`init-with-agent` commands.
 
 ```sh
 docbridge [--version] [--help]
@@ -8,6 +9,8 @@ docbridge check [--root <path>] [--json] [--audit]
 docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
 docbridge context [--root <path>] [--json] [--stdin] [files...]
 docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
+docbridge init [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
+docbridge init-with-agent [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
@@ -346,3 +349,52 @@ The login flow.
 `context` exits with code `0` on success regardless of what it finds or which
 diagnostics it reports. Only CLI invocation errors and configuration errors
 exit with code `1`.
+
+<!-- @code src/cli/init.ts#runInit -->
+<!-- @code src/cli/init.ts#parseInitOptions -->
+<!-- @code src/core/init-discovery.ts#discoverRepository -->
+<!-- @code src/core/init-plan.ts#planInitCommand -->
+## Init Command
+
+The init command performs CLI-driven first-time setup for an existing
+repository. It discovers likely docs and code scope, creates
+`docbridge.config.json` only when scope is confirmed or unambiguous, and can
+install distributable DocBridge agent skills under `.agents/skills/` and/or
+`.claude/skills/`.
+
+Shared init options:
+
+- `--yes` accepts safe defaults without prompting. In non-interactive mode,
+  ambiguous docs or code scope stops config generation instead of falling back
+  to broad globs.
+- `--dry-run` prints intended file operations and generated config content
+  without writing files.
+- `--force` overwrites existing installed skills. It never replaces an existing
+  `docbridge.config.json`.
+- `--agent-target <target>` selects `codex`, `claude`, `both`, or `none`
+  (`none` is valid for `init` only).
+
+When no agent directory exists, `init --yes` defaults to config-only setup
+(`--agent-target none`). Interactive mode recommends Codex after confirmation.
+
+Human-readable output reports created, skipped, and would-write operations, then
+prints next steps such as reviewing `docbridge.config.json`, adding `@doc` /
+`@code` annotations, and optionally running `docbridge check`.
+
+Existing `docbridge.config.json` files are never overwritten. Valid config is
+summarized; invalid config is reported with repair guidance.
+
+<!-- @code src/cli/init.ts#runInitWithAgent -->
+## Init-With-Agent Command
+
+The init-with-agent command prepares agent-guided adoption. It installs only
+`docbridge-adopt` for the selected agent target, prints one-shot command
+examples, and prints fallback prompts that explicitly ask the agent to use
+`docbridge-adopt`. It does not launch an agent process and does not generate
+`docbridge.config.json`.
+
+When no `.agents/` or `.claude/` directory exists, `init-with-agent --yes`
+requires an explicit `--agent-target` other than `none`.
+
+Human-readable output distinguishes created, skipped, and would-create skill
+operations, then prints per-agent setup guidance for Codex and/or Claude Code.

@@ -40,7 +40,10 @@ accept a `DOCBRIDGE_CMD` override when `docbridge` is not on `PATH`.
 ## Skills
 
 [`templates/skills/`](../../templates/skills/) ships agent skills that also
-work as Codex-style project skills when copied to `.agents/skills/`:
+work as Codex-style project skills. Install them with `docbridge init` (all
+DocBridge skills) or `docbridge init-with-agent` (`docbridge-adopt` only), or
+copy individual skill directories to `.agents/skills/` when you prefer manual
+setup:
 
 - `docbridge-annotate` — create correct `@doc`/`@code` link pairs and verify
   them with `docbridge check`.

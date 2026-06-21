@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docbridge init` for CLI-driven first-time setup: repository scope discovery,
+  safe `docbridge.config.json` creation, and DocBridge agent skill installation.
+- `docbridge init-with-agent` for agent-guided adoption: installs
+  `docbridge-adopt` and prints one-shot setup commands without launching an
+  agent process.
+
 ## [0.4.0] - 2026-06-20
 
 ### Added
