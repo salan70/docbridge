@@ -390,7 +390,8 @@ summarized; invalid config is reported with repair guidance.
 The init-with-agent command prepares agent-guided adoption. It installs only
 `docbridge-adopt` for the selected agent target, prints one-shot command
 examples, and prints fallback prompts that explicitly ask the agent to use
-`docbridge-adopt`. It does not launch an agent process and does not generate
+`docbridge-adopt`, confirm scope, and install the companion DocBridge skills
+after adoption. It does not launch an agent process and does not generate
 `docbridge.config.json`.
 
 When no `.agents/` or `.claude/` directory exists, `init-with-agent --yes`

@@ -93,15 +93,17 @@ with the [CI recipe](ci.md) so the pull request remains the enforcement point.
 
 [`templates/skills/`](../../templates/skills/) ships Claude Code skills that
 consume the same commands. Install them with `docbridge init` (all DocBridge
-skills) or `docbridge init-with-agent` (`docbridge-adopt` only), or copy the
-skills you want into your repository's `.claude/skills/` directory:
+skills) or `docbridge init-with-agent` (`docbridge-adopt` first;
+`docbridge-adopt` installs the companion skills after scope is confirmed), or
+copy the skills you want into your repository's `.claude/skills/` directory:
 
 - `docbridge-annotate` — create correct `@doc`/`@code` link pairs and verify
   them with `docbridge check`.
 - `docbridge-sync` — triage `related --gate` findings using `docbridge context`,
   then update the counterpart or justify the divergence.
 - `docbridge-adopt` — adopt DocBridge in an existing TypeScript, Swift, or Dart
-  project by confirming docs/code scope and creating or improving config.
+  project by confirming docs/code scope, creating or improving config, and
+  installing the companion DocBridge skills.
 - `docbridge-link` — link existing docs sections to existing exported
   supported code declarations with section-level confirmation.
 - `docbridge-review` — review all existing links for semantic validity using

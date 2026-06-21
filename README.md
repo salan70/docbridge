@@ -39,7 +39,9 @@ Run first-time setup in the project root:
 bunx docbridge init
 ```
 
-For agent-guided adoption, install `docbridge-adopt` and print setup commands:
+For agent-guided adoption, install `docbridge-adopt` and print setup commands.
+The `docbridge-adopt` skill finishes adoption and installs the remaining
+DocBridge skills after scope is confirmed:
 
 ```sh
 bunx docbridge init-with-agent
@@ -277,7 +279,8 @@ DocBridge's link graph is built to be consumed by AI coding agents:
 - [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
   those recipes.
 - [templates/skills](templates/skills) — distributable agent skills installed by
-  `docbridge init` and `docbridge init-with-agent`:
+  `docbridge init`; `docbridge init-with-agent` installs `docbridge-adopt`
+  first, then `docbridge-adopt` installs the companion skills:
   `docbridge-annotate`, `docbridge-sync`, `docbridge-adopt`, `docbridge-link`,
   and `docbridge-review`.
 

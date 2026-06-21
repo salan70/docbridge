@@ -41,7 +41,8 @@ accept a `DOCBRIDGE_CMD` override when `docbridge` is not on `PATH`.
 
 [`templates/skills/`](../../templates/skills/) ships agent skills that also
 work as Codex-style project skills. Install them with `docbridge init` (all
-DocBridge skills) or `docbridge init-with-agent` (`docbridge-adopt` only), or
+DocBridge skills) or `docbridge init-with-agent` (`docbridge-adopt` first;
+`docbridge-adopt` installs the companion skills after scope is confirmed), or
 copy individual skill directories to `.agents/skills/` when you prefer manual
 setup:
 
@@ -50,7 +51,8 @@ setup:
 - `docbridge-sync` — triage `related --gate` findings using `docbridge context`,
   then update the counterpart or justify the divergence.
 - `docbridge-adopt` — adopt DocBridge in an existing TypeScript, Swift, or Dart
-  project by confirming docs/code scope and creating or improving config.
+  project by confirming docs/code scope, creating or improving config, and
+  installing the companion DocBridge skills.
 - `docbridge-link` — link existing docs sections to existing exported
   supported code declarations with section-level confirmation.
 - `docbridge-review` — review all existing links for semantic validity using

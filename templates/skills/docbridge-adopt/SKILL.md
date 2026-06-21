@@ -48,7 +48,24 @@ repo recipe such as `just check`, or
      improvement, and edit only after confirmation.
    - Never replace a user-authored config blindly.
 
-4. **Handle CI/hooks conservatively.**
+4. **Install companion DocBridge skills.**
+   - After scope is confirmed and `docbridge.config.json` exists or has been
+     intentionally left unchanged, install the rest of the distributable
+     DocBridge skills for the same agent target.
+   - Prefer the project-native DocBridge invocation. For example, run
+     `docbridge init --yes --agent-target codex`, `docbridge init --yes
+     --agent-target claude`, or `docbridge init --yes --agent-target both`
+     from the project root. Use the target that matches the existing
+     `.agents/` and/or `.claude/` setup.
+   - This command should leave an existing `docbridge.config.json` unchanged
+     and copy any missing `docbridge-annotate`, `docbridge-link`,
+     `docbridge-review`, and `docbridge-sync` skill directories. Do not use
+     `--force` unless the user explicitly asks to overwrite installed skills.
+   - If the command is unavailable, explain the blocker and provide the manual
+     copy target paths from `templates/skills/docbridge-*` instead of silently
+     skipping this step.
+
+5. **Handle CI/hooks conservatively.**
    - If the existing setup is simple and the user confirmed the mode, implement
      it.
    - If the setup is complex or ambiguous, provide a concrete patch plan or
@@ -56,11 +73,11 @@ repo recipe such as `just check`, or
    - Prefer non-blocking awareness early in adoption unless the user requests a
      hard gate.
 
-5. **Verify the setup.** Run `docbridge check` or the repository's equivalent.
+6. **Verify the setup.** Run `docbridge check` or the repository's equivalent.
    If the project intentionally has no links yet, a clean zero-link result is
    acceptable. Surface config or scanning diagnostics before proceeding.
 
-6. **Continue into initial candidate discovery.** After setup, inspect the
+7. **Continue into initial candidate discovery.** After setup, inspect the
    confirmed docs scope and present 5-10 high-value section candidates using
    the `docbridge-link` rules. Candidate discovery may continue in the same
    turn, but annotation edits still require section-level user confirmation.
