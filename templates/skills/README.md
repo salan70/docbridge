@@ -2,7 +2,9 @@
 
 Distributable agent skills for projects that use DocBridge. Prefer
 `docbridge init` for CLI-driven setup or `docbridge init-with-agent` for
-agent-guided adoption. Manual copy-based installation remains available: copy a
+agent-guided adoption. `init-with-agent` installs `docbridge-adopt` first;
+`docbridge-adopt` installs the companion skills after scope is confirmed.
+Manual copy-based installation remains available: copy a
 skill directory into your repository's skill location (`.claude/skills/` for
 Claude Code or `.agents/skills/` for Codex-style project skills) and adjust
 nothing unless your DocBridge invocation differs from the examples inside.
@@ -14,7 +16,8 @@ nothing unless your DocBridge invocation differs from the examples inside.
   then update the counterpart or justify leaving it unchanged.
 - [`docbridge-adopt`](docbridge-adopt/SKILL.md) — adopt DocBridge in an existing
   TypeScript, Swift, or Dart project by confirming docs/code scope, creating
-  or improving config, and handling simple CI/hook setup.
+  or improving config, installing companion skills, and handling simple CI/hook
+  setup.
 - [`docbridge-link`](docbridge-link/SKILL.md) — link existing docs sections to
   existing supported code declarations through docs-first candidate discovery
   and section-level confirmation.

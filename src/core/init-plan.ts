@@ -438,7 +438,7 @@ function buildFallbackPrompt(projectRoot: string, agent: "codex" | "claude"): st
     agent === "claude"
       ? "Use the docbridge-adopt skill"
       : "Use the docbridge-adopt skill from .agents/skills/docbridge-adopt";
-  return `${invocation} to adopt DocBridge in ${projectRoot}. Confirm docs and code scope, create or improve docbridge.config.json, and suggest the next linking steps.`;
+  return `${invocation} to adopt DocBridge in ${projectRoot}. Confirm docs and code scope, create or improve docbridge.config.json, install the companion DocBridge skills, and suggest the next linking steps.`;
 }
 
 function resolveInitAgentTarget(

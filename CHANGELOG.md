@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docbridge init-with-agent` for agent-guided adoption: installs
   `docbridge-adopt` and prints one-shot setup commands without launching an
   agent process.
+- `docbridge-adopt` now installs the companion DocBridge skills after adoption
+  scope is confirmed.
 
 ## [0.4.0] - 2026-06-20
 

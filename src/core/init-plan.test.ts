@@ -360,6 +360,7 @@ test("planInitCommand prints agent guidance for init-with-agent", () => {
     expect(plan.agentGuidance[0]?.destination).toBe(".agents/skills/docbridge-adopt/");
     expect(plan.agentGuidance[0]?.oneShotCommand).toContain(project);
     expect(plan.agentGuidance[0]?.fallbackPrompt).toContain("docbridge-adopt");
+    expect(plan.agentGuidance[0]?.fallbackPrompt).toContain("install the companion DocBridge skills");
     expect(plan.agentGuidance[1]?.destination).toBe(".claude/skills/docbridge-adopt/");
     expect(plan.agentGuidance[1]?.oneShotCommand).toContain("/docbridge-adopt");
   } finally {
