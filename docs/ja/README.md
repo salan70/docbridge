@@ -1,12 +1,141 @@
 # DocBridge
 
+[![npm version](https://img.shields.io/npm/v/docbridge.svg)](https://www.npmjs.com/package/docbridge)
 [![English README](https://img.shields.io/badge/README-English-blue)](../../README.md)
 
 Markdown を LSP の世界へ。
 
 DocBridge は TypeScript、Swift、Dart のコードと Markdown ドキュメントの間に双方向リンクを作るツールです。実装ファイルと仕様ファイルをまたいで、Hover、Definition、References、Diagnostics のような LSP 的体験を実現することを目指します。
 
-## 背景
+## インストール
+
+DocBridge は npm package `docbridge` として配布し、Bun で実行します。
+
+```sh
+bunx docbridge check
+```
+
+現在のリリースは
+[v0.4.0](https://github.com/salan70/docbridge/releases/tag/v0.4.0) で、npm では
+`docbridge@0.4.0` として公開されています。
+
+初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
+Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
+TypeScript と Markdown の check は scanner binary なしで実行できます。
+未対応 platform で Swift / Dart project を設定した場合は
+`code_scanner_unavailable` を報告し、対応 platform key を表示します。
+
+## クイックスタート
+
+プロジェクト root に `docbridge.config.json` を作成します。
+
+```json
+{
+  "include": {
+    "code": {
+      "typescript": {
+        "patterns": ["src/**/*.ts"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
+
+export された TypeScript 宣言を Markdown section にリンクします。
+
+```ts
+/**
+ * @doc docs/auth.md#login-spec
+ */
+export async function login() {
+  // ...
+}
+```
+
+Markdown file に backlink を追加します。
+
+```md
+<!-- @code src/auth/login.ts#login -->
+## Login Spec
+
+Login flow specification.
+```
+
+プロジェクトを検査します。
+
+```sh
+bunx docbridge check
+```
+
+## 使い方
+
+リンクを検査する:
+
+```sh
+bunx docbridge check
+```
+
+別 root を検査する:
+
+```sh
+bunx docbridge check --root examples/typescript
+```
+
+JSON を出力する:
+
+```sh
+bunx docbridge check --json
+```
+
+監査診断を有効にする:
+
+```sh
+bunx docbridge check --audit
+```
+
+監査診断には以下を含めます。
+
+- `undocumented_symbol`
+
+変更したファイルにリンクされたカウンターパートを一覧する:
+
+```sh
+git diff --name-only | bunx docbridge related --stdin
+```
+
+`docbridge related` は情報提供のためのコマンドです。各カウンターパートと、それ自身が
+変更セットに含まれるかどうかを報告し、成功時は常に `0` で終了します。変更ファイルは
+位置引数でも渡せます。`--gate` を付けると、変更セットに含まれていないカウンターパート
+のみを報告し、1 件以上あれば `1` で終了します。どちらのモードも `--root` と
+`--json` に対応します。詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
+
+変更したファイルにリンクされたカウンターパートの内容を出力する:
+
+```sh
+git diff --name-only | bunx docbridge context --stdin
+```
+
+`docbridge context` は「リンクされたカウンターパートに何が書かれているか」に答える
+コマンドです。ドキュメント側のカウンターパートは Markdown セクション全体、コード側の
+カウンターパートは JSDoc を含む宣言全体を出力します。デフォルト出力はエージェントの
+プロンプトへそのまま注入できる Markdown で、`--json` は
+[../../schemas/context-output.schema.json](../../schemas/context-output.schema.json)
+に従います。抽出はベストエフォートで、リンク切れがあっても成功時は `0` で終了します。
+詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
+
+解決済みリンクグラフを確認する:
+
+```sh
+bunx docbridge graph
+bunx docbridge graph --json --include-content
+```
+
+`docbridge graph` は解決可能な片方向リンクも含めた endpoint graph を出力します。
+JSON 出力は [../../schemas/graph-output.schema.json](../../schemas/graph-output.schema.json)
+に従います。
+
+## なぜ DocBridge か
 
 現代のソフトウェアプロジェクトでは、実装とドキュメントの間にずれが生まれがちです。
 
@@ -34,43 +163,7 @@ Code <-> Documentation
 
 DocBridge は、対応しているコード宣言と Markdown セクションをリンクします。TypeScript はプロセス内でスキャンし、Swift と Dart は同梱する first-party worker package でスキャンします。
 
-## 例
-
-TypeScript:
-
-```ts
-/**
- * @doc docs/auth.md#login-spec
- */
-export async function login() {
-  // ...
-}
-```
-
-Markdown:
-
-```md
-<!-- @code src/auth/login.ts#login -->
-## Login Spec
-
-Login flow specification.
-```
-
-Swift と Dart も同じ `@doc` / `@code` モデルを使います。コード側 fragment は scanner が生成する canonical ID で、member は型名で修飾されます。
-
-```swift
-/// @doc docs/auth.md#login-spec
-public struct AuthService {
-  public func login(email: String, password: String) {}
-}
-```
-
-```md
-<!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
-## Login Spec
-```
-
-## 範囲
+## 対応入力
 
 DocBridge は以下の要素を対象にします。
 
@@ -85,6 +178,21 @@ DocBridge は以下の要素を対象にします。
 - ATX 見出し
 - HTML コメント
 - 次の見出しに紐づく `@code` アノテーション
+
+Swift と Dart も同じ `@doc` / `@code` モデルを使います。コード側 fragment は
+scanner が生成する canonical ID で、member は型名で修飾されます。
+
+```swift
+/// @doc docs/auth.md#login-spec
+public struct AuthService {
+  public func login(email: String, password: String) {}
+}
+```
+
+```md
+<!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+## Login Spec
+```
 
 プロジェクトは `docbridge.config.json` でスキャン対象を定義する必要があります。
 暗黙のデフォルト設定はありません。設定ファイルがない場合、DocBridge は
@@ -121,88 +229,6 @@ TypeScript 向けの最小設定:
 ```
 
 source checkout から Swift / Dart project を検査するには、先に scanner worker を build します。Swift は `just build-swift-scanner`、Dart は `just build-dart-scanner` を使ってください。
-
-## インストール
-
-DocBridge は npm package `docbridge` として配布し、Bun で実行します。
-
-```sh
-bunx docbridge check
-```
-
-初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
-Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
-TypeScript と Markdown の check は scanner binary なしで実行できます。
-未対応 platform で Swift / Dart project を設定した場合は
-`code_scanner_unavailable` を報告し、対応 platform key を表示します。
-
-## CLI
-
-リンクを検査する:
-
-```sh
-just check
-```
-
-別 root を検査する:
-
-```sh
-just check-example
-```
-
-JSON を出力する:
-
-```sh
-just check-example-json
-```
-
-監査診断を有効にする:
-
-```sh
-just audit
-```
-
-監査診断には以下を含めます。
-
-- `undocumented_symbol`
-
-変更したファイルにリンクされたカウンターパートを一覧する:
-
-```sh
-git diff --name-only | docbridge related --stdin
-```
-
-`docbridge related` は情報提供のためのコマンドです。各カウンターパートと、それ自身が
-変更セットに含まれるかどうかを報告し、成功時は常に `0` で終了します。変更ファイルは
-位置引数でも渡せます。`--gate` を付けると、変更セットに含まれていないカウンターパート
-のみを報告し、1 件以上あれば `1` で終了します。`just related-gate` は未コミットの
-変更に対してこれを実行します。どちらのモードも `--root` と `--json` に対応します。
-詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
-
-変更したファイルにリンクされたカウンターパートの内容を出力する:
-
-```sh
-git diff --name-only | docbridge context --stdin
-```
-
-`docbridge context` は「リンクされたカウンターパートに何が書かれているか」に答える
-コマンドです。ドキュメント側のカウンターパートは Markdown セクション全体、コード側の
-カウンターパートは JSDoc を含む宣言全体を出力します。デフォルト出力はエージェントの
-プロンプトへそのまま注入できる Markdown で、`--json` は
-[../../schemas/context-output.schema.json](../../schemas/context-output.schema.json)
-に従います。抽出はベストエフォートで、リンク切れがあっても成功時は `0` で終了します。
-詳細は [../specs/cli.md](../specs/cli.md) を参照してください。
-
-解決済みリンクグラフを確認する:
-
-```sh
-docbridge graph
-docbridge graph --json --include-content
-```
-
-`docbridge graph` は解決可能な片方向リンクも含めた endpoint graph を出力します。
-JSON 出力は [../../schemas/graph-output.schema.json](../../schemas/graph-output.schema.json)
-に従います。
 
 ## AI エージェント統合
 
@@ -384,7 +410,7 @@ Environment loader:
 
 ## Roadmap
 
-完了済みの v0.1〜v0.3 の機能は、上記の説明と
+完了済みの v0.1〜v0.4 の機能は、上記の説明と
 [../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。現在の Roadmap では
 今後の作業のみを扱います。
 
