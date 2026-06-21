@@ -65,8 +65,8 @@ stage-scanner-binaries *ARGS:
 verify-dist:
     bun run scripts/verify-dist.ts
 
-pack-smoke tarball:
-    bun run scripts/smoke-packed-package.ts {{ tarball }}
+pack-smoke *ARGS:
+    bun run scripts/smoke-packed-package.ts {{ ARGS }}
 
 # Exercise the language server (hover, definition, references, diagnostics) over stdio.
 verify-lsp:

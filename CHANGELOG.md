@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The release publish workflow now restores executable bits on downloaded
+  Swift and Dart scanner artifacts before packing the npm tarball, and
+  smoke-tests the installed tarball before publishing.
+
 ## [0.4.1] - 2026-06-21
 
 ### Added

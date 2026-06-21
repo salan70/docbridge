@@ -187,6 +187,9 @@ jobs:
           name: scanner-darwin-arm64
           path: dist/bin/darwin-arm64
 
+      - name: Restore scanner executable bits
+        run: chmod 755 dist/bin/*/speclink-swift-scanner dist/bin/*/speclink_dart_scanner
+
       - name: Verify dist package
         run: nix develop -c just verify-dist
 
@@ -198,6 +201,9 @@ jobs:
         run: |
           tarball="$(npm pack)"
           echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke-test packed npm package
+        run: nix develop -c just pack-smoke "${{ steps.pack.outputs.tarball }}" --skip-scanner-fixtures
 
       - name: Configure npm authentication
         env:
