@@ -33,7 +33,25 @@ keys.
 
 ## Quick Start
 
-Create `docbridge.config.json` in the project root:
+Run first-time setup in the project root:
+
+```sh
+bunx docbridge init
+```
+
+For agent-guided adoption, install `docbridge-adopt` and print setup commands:
+
+```sh
+bunx docbridge init-with-agent
+```
+
+Preview planned file operations without writing:
+
+```sh
+bunx docbridge init --dry-run
+```
+
+You can also create `docbridge.config.json` manually:
 
 ```json
 {
@@ -258,7 +276,8 @@ DocBridge's link graph is built to be consumed by AI coding agents:
   with `docbridge related --gate`, and PR reporting.
 - [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
   those recipes.
-- [templates/skills](templates/skills) — distributable agent skills:
+- [templates/skills](templates/skills) — distributable agent skills installed by
+  `docbridge init` and `docbridge init-with-agent`:
   `docbridge-annotate`, `docbridge-sync`, `docbridge-adopt`, `docbridge-link`,
   and `docbridge-review`.
 

@@ -92,8 +92,9 @@ with the [CI recipe](ci.md) so the pull request remains the enforcement point.
 ## Skills
 
 [`templates/skills/`](../../templates/skills/) ships Claude Code skills that
-consume the same commands. Copy the skills you want into your repository's
-`.claude/skills/` directory:
+consume the same commands. Install them with `docbridge init` (all DocBridge
+skills) or `docbridge init-with-agent` (`docbridge-adopt` only), or copy the
+skills you want into your repository's `.claude/skills/` directory:
 
 - `docbridge-annotate` — create correct `@doc`/`@code` link pairs and verify
   them with `docbridge check`.

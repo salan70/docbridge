@@ -14,12 +14,12 @@ land:
 
 ## Status
 
-- [ ] Slice 1: Init Planning and Option Parsing
-- [ ] Slice 2: Repository Scope Discovery
-- [ ] Slice 3: Config Creation
-- [ ] Slice 4: Agent Skill Installation
-- [ ] Slice 5: Init-With-Agent Flow
-- [ ] Slice 6: Documentation and Release Readiness
+- [x] Slice 1: Init Planning and Option Parsing
+- [x] Slice 2: Repository Scope Discovery
+- [x] Slice 3: Config Creation
+- [x] Slice 4: Agent Skill Installation
+- [x] Slice 5: Init-With-Agent Flow
+- [x] Slice 6: Documentation and Release Readiness
 
 ## Goals
 

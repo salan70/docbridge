@@ -1,10 +1,11 @@
 # DocBridge skill templates
 
-Distributable agent skills for projects that use DocBridge. Installation is
-copy-based: copy a skill directory into your repository's skill location
-(`.claude/skills/` for Claude Code or `.agents/skills/` for Codex-style
-project skills) and adjust nothing unless your DocBridge invocation differs
-from the examples inside.
+Distributable agent skills for projects that use DocBridge. Prefer
+`docbridge init` for CLI-driven setup or `docbridge init-with-agent` for
+agent-guided adoption. Manual copy-based installation remains available: copy a
+skill directory into your repository's skill location (`.claude/skills/` for
+Claude Code or `.agents/skills/` for Codex-style project skills) and adjust
+nothing unless your DocBridge invocation differs from the examples inside.
 
 - [`docbridge-annotate`](docbridge-annotate/SKILL.md) — create correct
   `@doc`/`@code` link pairs and verify them with `docbridge check`.
