@@ -1,23 +1,73 @@
 #!/usr/bin/env bun
 
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-const tarball = Bun.argv[2];
-if (tarball === undefined) {
-  fail("Usage: bun run scripts/smoke-packed-package.ts <tarball>");
+const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
+const scannerExecutableNames = [
+  "speclink-swift-scanner",
+  "speclink_dart_scanner",
+] as const;
+
+type SmokeOptions = {
+  scannerFixtures: boolean;
+};
+
+export function smokePackedPackage(
+  tarball: string,
+  options: SmokeOptions = { scannerFixtures: true },
+): void {
+  const tarballPath = resolve(tarball);
+  const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-pack-smoke-"));
+
+  try {
+    installAndSmoke(tarballPath, tempRoot, options);
+    console.log(`Smoke-tested ${basename(tarballPath)} in ${tempRoot}`);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
 }
 
-const tarballPath = resolve(tarball);
-const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-pack-smoke-"));
+export function assertInstalledScannerExecutables(installRoot: string): void {
+  for (const platform of scannerPlatformKeys) {
+    for (const executable of scannerExecutableNames) {
+      const scannerPath = join(
+        installRoot,
+        "node_modules/docbridge/dist/bin",
+        platform,
+        executable,
+      );
+      if (
+        existsSync(scannerPath) &&
+        (statSync(scannerPath).mode & 0o111) === 0
+      ) {
+        throw new Error(
+          `${relativeToRoot(installRoot, scannerPath)} is not executable.`,
+        );
+      }
+    }
+  }
+}
 
-try {
+function installAndSmoke(
+  tarballPath: string,
+  tempRoot: string,
+  options: SmokeOptions,
+): void {
   writeFileSync(
     join(tempRoot, "package.json"),
     JSON.stringify({ private: true, dependencies: {} }, null, 2),
   );
   run(["npm", "install", tarballPath], tempRoot);
+  assertInstalledScannerExecutables(tempRoot);
   run(["bun", "node_modules/.bin/docbridge", "--version"], tempRoot);
   run(["bun", "node_modules/.bin/docbridge", "--help"], tempRoot);
 
@@ -50,6 +100,10 @@ try {
     ],
     tempRoot,
   );
+
+  if (!options.scannerFixtures) {
+    return;
+  }
 
   mkdirSync(join(tempRoot, "swift-fixture/Sources"), { recursive: true });
   mkdirSync(join(tempRoot, "swift-fixture/docs"), { recursive: true });
@@ -98,9 +152,6 @@ try {
     ],
     tempRoot,
   );
-  console.log(`Smoke-tested ${basename(tarballPath)} in ${tempRoot}`);
-} finally {
-  rmSync(tempRoot, { recursive: true, force: true });
 }
 
 function writeFixtureConfig(
@@ -131,4 +182,35 @@ function run(command: string[], cwd: string): void {
 function fail(message: string): never {
   console.error(message);
   process.exit(1);
+}
+
+function parseArgs(args: string[]): { tarball: string; options: SmokeOptions } {
+  const tarball = args[0];
+  if (tarball === undefined) {
+    fail(
+      "Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures]",
+    );
+  }
+  const options: SmokeOptions = { scannerFixtures: true };
+  for (const arg of args.slice(1)) {
+    if (arg === "--skip-scanner-fixtures") {
+      options.scannerFixtures = false;
+    } else {
+      fail(`Unknown argument: ${arg}`);
+    }
+  }
+  return { tarball, options };
+}
+
+function relativeToRoot(root: string, path: string): string {
+  return path.startsWith(`${root}/`) ? path.slice(root.length + 1) : path;
+}
+
+if (import.meta.main) {
+  const { tarball, options } = parseArgs(Bun.argv.slice(2));
+  try {
+    smokePackedPackage(tarball, options);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
 }
