@@ -300,9 +300,22 @@ Definition, and References across linked code and Markdown. It takes no
 options; the project root comes from the editor's `initialize` request.
 `docbridge check` is unchanged.
 
-A minimal VS Code-compatible client lives in [editors/vscode](editors/vscode);
-see its README to install it into VS Code or Cursor for local testing. Full
-behavior is specified in [docs/specs/lsp.md](docs/specs/lsp.md).
+A VS Code-compatible extension lives in [editors/vscode](editors/vscode). It
+packages the language server into a VSIX for VS Code, Cursor, and Open
+VSX-compatible editors. The same VSIX can be published manually to VS Code
+Marketplace and Open VSX after `editors/vscode/assets/icon.png` and the
+supported `dist/bin/darwin-arm64` and `dist/bin/linux-x64` scanner artifacts
+are staged:
+
+```sh
+just package-vsix
+just verify-vsix
+VSCE_PAT=<token> just publish-vscode-extension
+OVSX_PAT=<token> just publish-open-vsx-extension
+```
+
+The first publication is intentionally manual; release-workflow automation is a
+follow-up. Full behavior is specified in [docs/specs/lsp.md](docs/specs/lsp.md).
 
 ## Diagnostics
 
@@ -458,9 +471,12 @@ Completed v0.1–v0.4 capabilities are documented above and in
 
 v0.5:
 
-- MCP server exposing the link graph and `docbridge context` output as tools
-- Editor and agent delivery channels built on it (Claude Code, Cursor, Zed,
-  Codex)
+- VS Code-compatible extension packaging for VS Code, Cursor, and Open
+  VSX-compatible editors
+- Manual VS Code Marketplace and Open VSX publishing commands for the verified
+  VSIX artifact
+- Follow-up automation for GitHub Release VSIX attachment and registry
+  publishing after the manual flow is proven
 
 ## Vision
 

@@ -285,9 +285,21 @@ docbridge lsp
 受け取らず、プロジェクト root はエディタの `initialize` リクエストから決まります。
 `docbridge check` は変更ありません。
 
-最小の VS Code クライアントは [../../editors/vscode](../../editors/vscode) にあり、
-Extension Development Host での起動手順はその README を参照してください。詳細な
-挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
+VS Code 互換の extension は [../../editors/vscode](../../editors/vscode) に
+あります。Language Server を VSIX に同梱し、VS Code、Cursor、Open VSX 互換の
+エディタで使えます。`editors/vscode/assets/icon.png` と、対応済みの
+`dist/bin/darwin-arm64` / `dist/bin/linux-x64` scanner artifact を準備したあと、
+同じ VSIX を VS Code Marketplace と Open VSX へ手動で公開できます:
+
+```sh
+just package-vsix
+just verify-vsix
+VSCE_PAT=<token> just publish-vscode-extension
+OVSX_PAT=<token> just publish-open-vsx-extension
+```
+
+初回公開は意図的に手動です。release workflow の自動化は後続作業として扱います。
+詳細な挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
 
 ## Diagnostics
 
@@ -441,8 +453,9 @@ Environment loader:
 
 v0.5:
 
-- リンクグラフと `docbridge context` の出力をツールとして公開する MCP サーバー
-- それを基盤としたエディタ・エージェント連携(Claude Code、Cursor、Zed、Codex)
+- VS Code、Cursor、Open VSX 互換エディタ向けの VS Code 互換 extension packaging
+- 検証済み VSIX artifact を VS Code Marketplace と Open VSX へ手動公開するコマンド
+- 手動フローが安定したあとの GitHub Release VSIX 添付と registry publish の自動化
 
 ## Vision
 

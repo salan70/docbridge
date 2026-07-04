@@ -1,58 +1,138 @@
-# DocBridge VS Code client
+# DocBridge VS Code-Compatible Extension
 
-A minimal VS Code extension that launches the DocBridge language server
-(`docbridge lsp`) and binds it to TypeScript and Markdown documents. Its only
-purpose is to verify the server in a real editor; full editor integration
-(packaging, Marketplace) is deferred to v0.4.
+This package builds the VS Code-compatible DocBridge extension under the public
+extension ID `salan70.docbridge`. It launches the bundled DocBridge language
+server (`docbridge lsp`) and binds it to TypeScript, TSX, Swift, Dart, and
+Markdown documents.
 
-This package carries the only `vscode-languageclient` dependency in the
+The package carries the only `vscode-languageclient` dependency in the
 repository. The server and `src/core/` do not depend on it.
 
-## Run it in VS Code or Cursor
+## Install
 
-Cursor uses the same client because it can run VS Code-compatible extensions.
+Once the extension is published, install `salan70.docbridge` from VS Code
+Marketplace or from Open VSX-compatible editors.
 
-1. From the repository root, run:
+Until the first registry publish is complete, build and install the VSIX
+manually:
 
-   ```sh
-   just vscode-lsp
-   ```
+```sh
+just package-vsix
+just verify-vsix
+```
 
-   This installs editor client dependencies, compiles the extension, packages a
-   local VSIX with the DocBridge language server bundled inside, installs it into
-   VS Code, and opens the repository. It also writes the local workspace setting
-   `docbridge.bunPath` to the current Bun executable so VS Code can start the
-   language server even when the GUI environment has a different `PATH`.
+The VSIX is written to:
 
-   For Cursor, run:
+```text
+editors/vscode/.tmp/out/docbridge-<version>.vsix
+```
 
-   ```sh
-   just cursor-lsp
-   ```
+Install that file through **Extensions: Install from VSIX...** in VS Code or
+with a compatible editor CLI:
 
-2. In Cursor or VS Code, open a project that uses DocBridge (for example the
-   repository root, which contains `examples/typescript`). The extension runs
-   `docbridge lsp` through Bun. If `bun` is not on your `PATH`, set the
-   `docbridge.bunPath` setting to its absolute path.
+```sh
+code --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
+cursor --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
+```
 
-3. Exercise the four features against a linked TypeScript/Markdown pair:
-   - **Diagnostics** appear on link problems.
-   - **Hover** over a linked symbol shows the spec section; hover over a heading
-     shows the declaration signature.
-   - **Go to Definition** jumps between code and docs.
-   - **Find All References** lists all linked counterparts.
+## Requirements
 
-The server is launched from the CLI source bundled into the local VSIX. For
-development overrides, set `docbridge.cliPath` to an absolute CLI entrypoint.
+- Bun must be installed on the machine running the editor.
+- By default, the extension starts Bun as `bun`. If the GUI editor cannot find
+  Bun on `PATH`, set `docbridge.bunPath` to the absolute Bun executable path.
+- The bundled DocBridge server includes scanner binaries for the supported
+  package platforms that are staged before packaging. The initial universal
+  VSIX expects `darwin-arm64` and `linux-x64` scanner binaries.
 
-If nothing happens, open **Output: DocBridge**. It should show the Bun command
-used to start `docbridge lsp`, or the startup error if the server could not be
-launched. Diagnostics are published for open TypeScript, TSX, and Markdown files
-that are part of the workspace's `docbridge.config.json` include patterns.
+TypeScript, TSX, and Markdown support require only Bun. Swift and Dart editor
+support uses the bundled scanner binary for the user's platform.
 
-## Verify outside an editor
+## Features
 
-Run the editor-independent LSP smoke test from the repository root:
+For projects with `docbridge.config.json`, the extension provides:
+
+- Diagnostics for DocBridge link problems.
+- Hover from linked code symbols to Markdown sections and from headings to code
+  signatures.
+- Go to Definition between linked code and docs.
+- Find All References across linked counterparts.
+
+The language server behavior is specified in
+[../../docs/specs/lsp.md](../../docs/specs/lsp.md).
+
+## Configuration
+
+`docbridge.bunPath`
+
+: Path to the Bun executable used to launch the DocBridge language server.
+  Defaults to `bun`.
+
+`docbridge.cliPath`
+
+: Optional absolute path to a DocBridge CLI entrypoint. Defaults to the server
+  bundled with this extension. This is intended for source-checkout development
+  and must be absolute.
+
+If startup fails, open **Output: DocBridge**. It shows the Bun command used to
+start `docbridge lsp`, or the startup error.
+
+## Manual Publishing
+
+The first extension publication is intentionally manual. CI/CD publishing can be
+added after the registry flow is proven.
+
+Before packaging, place the extension icon at:
+
+```text
+editors/vscode/assets/icon.png
+```
+
+Also stage the supported scanner binaries under the root package layout:
+
+```text
+dist/bin/darwin-arm64/speclink-swift-scanner
+dist/bin/darwin-arm64/speclink_dart_scanner
+dist/bin/linux-x64/speclink-swift-scanner
+dist/bin/linux-x64/speclink_dart_scanner
+```
+
+`just package-vsix` preserves this pre-staged `dist/bin` directory while
+rebuilding `dist/index.js`, so stage scanner binaries after any standalone
+`just build` run.
+
+Build and verify the VSIX:
+
+```sh
+just package-vsix
+just verify-vsix
+```
+
+Publish the verified artifact to VS Code Marketplace:
+
+```sh
+VSCE_PAT=<token> just publish-vscode-extension
+```
+
+Publish the same artifact to Open VSX:
+
+```sh
+OVSX_PAT=<token> just publish-open-vsx-extension
+```
+
+Both publish commands accept an explicit VSIX path:
+
+```sh
+VSCE_PAT=<token> just publish-vscode-extension path/to/docbridge.vsix
+OVSX_PAT=<token> just publish-open-vsx-extension path/to/docbridge.vsix
+```
+
+Attach the generated VSIX to the GitHub Release manually for the initial
+delivery. Automated release attachment and registry publishing are follow-up
+work.
+
+## Development
+
+Run the local editor-independent LSP smoke test from the repository root:
 
 ```sh
 just verify-lsp
@@ -60,3 +140,21 @@ just verify-lsp
 
 This drives `docbridge lsp` over stdio and checks Hover, Definition, References,
 and Diagnostics.
+
+For local VS Code verification from a source checkout:
+
+```sh
+just vscode-lsp
+```
+
+For local Cursor verification:
+
+```sh
+just cursor-lsp
+```
+
+These commands install editor client dependencies, compile the extension,
+package a local development VSIX, install it into the chosen editor, and open
+the repository. They also write the local workspace setting `docbridge.bunPath`
+to the current Bun executable so GUI editors can start the language server even
+when their environment has a different `PATH`.

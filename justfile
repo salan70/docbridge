@@ -68,6 +68,22 @@ verify-dist:
 pack-smoke *ARGS:
     bun run scripts/smoke-packed-package.ts {{ ARGS }}
 
+# Build a release VSIX under editors/vscode/.tmp/out.
+package-vsix:
+    bun run scripts/vscode-extension.ts package
+
+# Verify a release VSIX. Pass a path to verify a non-default artifact.
+verify-vsix *ARGS:
+    bun run scripts/vscode-extension.ts verify {{ ARGS }}
+
+# Publish a verified VSIX to VS Code Marketplace. Requires VSCE_PAT.
+publish-vscode-extension *ARGS:
+    bun run scripts/vscode-extension.ts publish-vscode {{ ARGS }}
+
+# Publish a verified VSIX to Open VSX. Requires OVSX_PAT.
+publish-open-vsx-extension *ARGS:
+    bun run scripts/vscode-extension.ts publish-open-vsx {{ ARGS }}
+
 # Exercise the language server (hover, definition, references, diagnostics) over stdio.
 verify-lsp:
     bun run scripts/lsp-verify.ts

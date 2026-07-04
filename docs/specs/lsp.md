@@ -195,3 +195,18 @@ docbridge lsp
 is taken from the `initialize` request, not from a flag.
 
 `docbridge check` is unchanged.
+
+## VS Code-Compatible Client
+
+The VS Code-compatible extension is a thin LSP client. It starts the bundled
+`docbridge lsp` server through Bun and attaches to these VS Code language IDs:
+
+- `typescript`
+- `typescriptreact`
+- `swift`
+- `dart`
+- `markdown`
+
+The extension does not duplicate DocBridge include-pattern filtering. It only
+selects candidate document languages; the server decides which files are managed
+from `docbridge.config.json`.

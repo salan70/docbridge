@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- VS Code-compatible extension packaging and manual publishing support:
+  release VSIX generation, VSIX verification, Marketplace/Open VSX publish
+  commands, Swift/Dart document activation, and bundled `docbridge lsp`
+  startup from the extension package.
+
 ### Fixed
 
 - The release publish workflow now restores executable bits on downloaded
