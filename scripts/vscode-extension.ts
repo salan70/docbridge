@@ -339,7 +339,7 @@ function normalizeRepositoryUrl(url: string | undefined): string | undefined {
   if (url === undefined) {
     return undefined;
   }
-  return url.replace(/^git\+/, "").replace(/\.git$/, ".git");
+  return url.replace(/^git\+/, "");
 }
 
 function relativePath(root: string, path: string): string {
