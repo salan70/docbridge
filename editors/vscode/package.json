@@ -1,20 +1,46 @@
 {
-  "name": "docbridge-vscode",
-  "private": true,
+  "name": "docbridge",
   "displayName": "DocBridge",
-  "description": "Minimal VS Code client that launches and exercises the DocBridge language server.",
-  "version": "0.2.0",
-  "publisher": "docbridge",
+  "description": "Language Server support for DocBridge documentation links.",
+  "version": "0.4.1",
+  "publisher": "salan70",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salan70/docbridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/salan70/docbridge/issues"
+  },
+  "homepage": "https://github.com/salan70/docbridge#readme",
+  "keywords": [
+    "documentation",
+    "markdown",
+    "specification",
+    "lsp",
+    "language-server",
+    "typescript",
+    "swift",
+    "dart"
+  ],
   "engines": {
     "vscode": "^1.84.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages",
+    "Linters"
   ],
   "activationEvents": [
+    "workspaceContains:docbridge.config.json",
     "onLanguage:typescript",
     "onLanguage:typescriptreact",
+    "onLanguage:swift",
+    "onLanguage:dart",
     "onLanguage:markdown"
+  ],
+  "extensionKind": [
+    "workspace"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -24,11 +50,11 @@
         "docbridge.bunPath": {
           "type": "string",
           "default": "bun",
-          "description": "Path to the Bun executable used to launch `docbridge lsp`."
+          "description": "Path to the Bun executable used to launch the DocBridge language server."
         },
         "docbridge.cliPath": {
           "type": "string",
-          "description": "Optional absolute path to the DocBridge CLI entrypoint. Defaults to the server bundled with this extension."
+          "description": "Optional absolute path to a DocBridge CLI entrypoint. Defaults to the server bundled with this extension."
         }
       }
     }

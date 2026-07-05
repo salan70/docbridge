@@ -17,6 +17,11 @@ function nonEmpty(value: string | undefined): string | undefined {
 }
 
 function defaultCliPath(context: ExtensionContext): string {
+  const bundledDistCli = context.asAbsolutePath(path.join("server", "dist", "index.js"));
+  if (existsSync(bundledDistCli)) {
+    return bundledDistCli;
+  }
+
   const bundledCli = context.asAbsolutePath(path.join("server", "src", "cli", "index.ts"));
   if (existsSync(bundledCli)) {
     return bundledCli;
@@ -27,8 +32,8 @@ function defaultCliPath(context: ExtensionContext): string {
 
 /**
  * Activate the DocBridge client: launch `docbridge lsp` over stdio and bind it to
- * TypeScript and Markdown documents. The server is run through Bun from this
- * repository's CLI; configure `docbridge.bunPath` if `bun` is not on `PATH`.
+ * supported code and Markdown documents. The server is run through Bun from the
+ * bundled CLI; configure `docbridge.bunPath` if `bun` is not on `PATH`.
  */
 export function activate(context: ExtensionContext): void {
   const output = window.createOutputChannel("DocBridge");
@@ -37,12 +42,19 @@ export function activate(context: ExtensionContext): void {
   const configuredBun = workspace.getConfiguration("docbridge").get<string>("bunPath");
   const bun = nonEmpty(configuredBun) ?? process.env.DOCBRIDGE_BUN_PATH ?? "bun";
   const configuredCli = workspace.getConfiguration("docbridge").get<string>("cliPath");
-  const cli = nonEmpty(configuredCli) ?? defaultCliPath(context);
-  output.appendLine(`Starting DocBridge language server: ${bun} run ${cli} lsp`);
+  const configuredCliPath = nonEmpty(configuredCli);
+  const cli = configuredCliPath ?? defaultCliPath(context);
+  if (configuredCliPath !== undefined && !path.isAbsolute(configuredCliPath)) {
+    const message = "docbridge.cliPath must be an absolute path.";
+    output.appendLine(message);
+    void window.showErrorMessage(message);
+    return;
+  }
+  output.appendLine(`Starting DocBridge language server: ${bun} ${cli} lsp`);
 
   const executable: Executable = {
     command: bun,
-    args: ["run", cli, "lsp"],
+    args: [cli, "lsp"],
   };
   const serverOptions: ServerOptions = { run: executable, debug: executable };
 
@@ -50,6 +62,8 @@ export function activate(context: ExtensionContext): void {
     documentSelector: [
       { scheme: "file", language: "typescript" },
       { scheme: "file", language: "typescriptreact" },
+      { scheme: "file", language: "swift" },
+      { scheme: "file", language: "dart" },
       { scheme: "file", language: "markdown" },
     ],
     outputChannel: output,
