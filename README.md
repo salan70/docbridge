@@ -21,8 +21,8 @@ bunx docbridge check
 ```
 
 The current release is
-[v0.4.0](https://github.com/salan70/docbridge/releases/tag/v0.4.0), published
-as `docbridge@0.4.0` on npm.
+[v0.4.1](https://github.com/salan70/docbridge/releases/tag/v0.4.1), published
+as `docbridge@0.4.1` on npm.
 
 The npm package is Bun-only; Node.js runtime compatibility is not part of the
 initial distribution. The package includes prebuilt Swift and Dart scanner
@@ -301,21 +301,24 @@ options; the project root comes from the editor's `initialize` request.
 `docbridge check` is unchanged.
 
 A VS Code-compatible extension lives in [editors/vscode](editors/vscode). It
-packages the language server into a VSIX for VS Code, Cursor, and Open
-VSX-compatible editors. The same VSIX can be published manually to VS Code
-Marketplace and Open VSX after `editors/vscode/assets/icon.png` and the
-supported `dist/bin/darwin-arm64` and `dist/bin/linux-x64` scanner artifacts
-are staged:
+packages the language server into a VSIX for VS Code and Cursor. The extension
+has not yet been published to VS Code Marketplace or Open VSX. Until the first
+registry publication, stage the supported `dist/bin/darwin-arm64` and
+`dist/bin/linux-x64` scanner artifacts, then build and install the VSIX
+locally:
 
 ```sh
 just package-vsix
 just verify-vsix
-VSCE_PAT=<token> just publish-vscode-extension
-OVSX_PAT=<token> just publish-open-vsx-extension
 ```
 
-The first publication is intentionally manual; release-workflow automation is a
-follow-up. Full behavior is specified in [docs/specs/lsp.md](docs/specs/lsp.md).
+Install the generated file from `editors/vscode/.tmp/out/` with **Extensions:
+Install from VSIX...** in VS Code or Cursor. The first Marketplace and Open VSX
+publication is intentionally manual; the repository provides publish commands
+for that release process. Zed integration is tracked separately and is not yet
+implemented. MCP delivery is out of scope until a concrete consumer requires a
+long-lived tool server. Full LSP behavior is specified in
+[docs/specs/lsp.md](docs/specs/lsp.md).
 
 ## Diagnostics
 
@@ -467,16 +470,16 @@ inside their worker packages.
 ## Roadmap
 
 Completed v0.1–v0.4 capabilities are documented above and in
-[CHANGELOG.md](CHANGELOG.md). The current roadmap tracks upcoming work only.
+[CHANGELOG.md](CHANGELOG.md). The v0.5 extension packaging and verification work
+is implemented but not yet released.
 
-v0.5:
+Remaining editor delivery work:
 
-- VS Code-compatible extension packaging for VS Code, Cursor, and Open
-  VSX-compatible editors
-- Manual VS Code Marketplace and Open VSX publishing commands for the verified
-  VSIX artifact
+- Publish the first verified VSIX to VS Code Marketplace and Open VSX
+- Release the extension packaging work as v0.5
 - Follow-up automation for GitHub Release VSIX attachment and registry
   publishing after the manual flow is proven
+- Add a separate Zed integration path
 
 ## Vision
 
