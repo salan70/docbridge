@@ -12,6 +12,8 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
+// The packaged CLI must work for both npm/Node and Bun consumers.
+const cliRuntimes = ["node", "bun"] as const;
 const scannerExecutableNames = [
   "speclink-swift-scanner",
   "speclink_dart_scanner",
@@ -68,8 +70,10 @@ function installAndSmoke(
   );
   run(["npm", "install", tarballPath], tempRoot);
   assertInstalledScannerExecutables(tempRoot);
-  run(["bun", "node_modules/.bin/docbridge", "--version"], tempRoot);
-  run(["bun", "node_modules/.bin/docbridge", "--help"], tempRoot);
+  for (const runtime of cliRuntimes) {
+    run([runtime, "node_modules/.bin/docbridge", "--version"], tempRoot);
+    run([runtime, "node_modules/.bin/docbridge", "--help"], tempRoot);
+  }
 
   mkdirSync(join(tempRoot, "fixture/src"), { recursive: true });
   mkdirSync(join(tempRoot, "fixture/docs"), { recursive: true });
@@ -90,16 +94,18 @@ function installAndSmoke(
     join(tempRoot, "fixture/docs/auth.md"),
     "<!-- @code src/auth.ts#authService -->\n## Auth Service\n",
   );
-  run(
-    [
-      "bun",
-      join(tempRoot, "node_modules/.bin/docbridge"),
-      "check",
-      "--root",
-      join(tempRoot, "fixture"),
-    ],
-    tempRoot,
-  );
+  for (const runtime of cliRuntimes) {
+    run(
+      [
+        runtime,
+        join(tempRoot, "node_modules/.bin/docbridge"),
+        "check",
+        "--root",
+        join(tempRoot, "fixture"),
+      ],
+      tempRoot,
+    );
+  }
 
   if (!options.scannerFixtures) {
     return;
@@ -118,16 +124,18 @@ function installAndSmoke(
     join(tempRoot, "swift-fixture/docs/auth.md"),
     "<!-- @code Sources/AuthService.swift#AuthService -->\n## Auth Service\n",
   );
-  run(
-    [
-      "bun",
-      join(tempRoot, "node_modules/.bin/docbridge"),
-      "check",
-      "--root",
-      join(tempRoot, "swift-fixture"),
-    ],
-    tempRoot,
-  );
+  for (const runtime of cliRuntimes) {
+    run(
+      [
+        runtime,
+        join(tempRoot, "node_modules/.bin/docbridge"),
+        "check",
+        "--root",
+        join(tempRoot, "swift-fixture"),
+      ],
+      tempRoot,
+    );
+  }
 
   mkdirSync(join(tempRoot, "dart-fixture/lib"), { recursive: true });
   mkdirSync(join(tempRoot, "dart-fixture/docs"), { recursive: true });
@@ -142,16 +150,18 @@ function installAndSmoke(
     join(tempRoot, "dart-fixture/docs/auth.md"),
     "<!-- @code lib/auth_service.dart#AuthService -->\n## Auth Service\n",
   );
-  run(
-    [
-      "bun",
-      join(tempRoot, "node_modules/.bin/docbridge"),
-      "check",
-      "--root",
-      join(tempRoot, "dart-fixture"),
-    ],
-    tempRoot,
-  );
+  for (const runtime of cliRuntimes) {
+    run(
+      [
+        runtime,
+        join(tempRoot, "node_modules/.bin/docbridge"),
+        "check",
+        "--root",
+        join(tempRoot, "dart-fixture"),
+      ],
+      tempRoot,
+    );
+  }
 }
 
 function writeFixtureConfig(

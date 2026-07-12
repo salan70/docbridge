@@ -56,7 +56,7 @@ typecheck:
 
 build:
     rm -rf dist
-    bun build src/cli/index.ts --outdir dist --target bun
+    bun build src/cli/index.ts --outdir dist --target node
     chmod +x dist/index.js
 
 stage-scanner-binaries *ARGS:

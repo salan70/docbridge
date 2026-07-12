@@ -1,7 +1,7 @@
 {
   "name": "docbridge",
   "version": "0.5.2",
-  "description": "A Bun CLI that links Markdown specifications and code declarations.",
+  "description": "A CLI that links Markdown specifications and code declarations. Runs on Node.js and Bun.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -20,10 +20,12 @@
     "markdown",
     "specification",
     "cli",
+    "node",
     "bun",
     "lsp"
   ],
   "engines": {
+    "node": ">=22",
     "bun": ">=1.1.31"
   },
   "files": [

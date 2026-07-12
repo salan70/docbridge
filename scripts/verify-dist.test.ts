@@ -15,7 +15,7 @@ test("verifyDistPackage rejects packaged scanner binaries without executable bit
     );
     mkdirSync(join(distCli, ".."), { recursive: true });
     mkdirSync(join(scanner, ".."), { recursive: true });
-    writeFileSync(distCli, "#!/usr/bin/env bun\n");
+    writeFileSync(distCli, "#!/usr/bin/env node\n");
     chmodSync(distCli, 0o755);
     writeFileSync(scanner, "#!/bin/sh\n");
     chmodSync(scanner, 0o644);
@@ -37,7 +37,7 @@ test("verifyDistPackage runs dist checks from the inspected root", async () => {
   try {
     const distCli = join(root, "dist/index.js");
     mkdirSync(join(distCli, ".."), { recursive: true });
-    writeFileSync(distCli, "#!/usr/bin/env bun\n");
+    writeFileSync(distCli, "#!/usr/bin/env node\n");
     chmodSync(distCli, 0o755);
 
     const calls: { command: string[]; cwd: string | undefined }[] = [];

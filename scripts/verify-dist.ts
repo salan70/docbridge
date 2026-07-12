@@ -26,8 +26,8 @@ export async function verifyDistPackage(
   }
 
   const content = await readFile(distCli, "utf8");
-  if (!content.startsWith("#!/usr/bin/env bun\n")) {
-    throw new Error("dist/index.js does not preserve the Bun shebang.");
+  if (!content.startsWith("#!/usr/bin/env node\n")) {
+    throw new Error("dist/index.js does not preserve the Node shebang.");
   }
 
   assertExecutable(root, distCli);
