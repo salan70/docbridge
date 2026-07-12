@@ -13,10 +13,12 @@ files.
 
 ## Installation
 
-DocBridge is distributed as the `docbridge` npm package and is intended to run
-with Bun:
+DocBridge is distributed as the `docbridge` npm package and runs on Node.js
+(>= 22) and Bun:
 
 ```sh
+npx docbridge check
+# or
 bunx docbridge check
 ```
 
@@ -24,8 +26,7 @@ The current release is
 [v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0), published
 as `docbridge@0.5.0` on npm.
 
-The npm package is Bun-only; Node.js runtime compatibility is not part of the
-initial distribution. The package includes prebuilt Swift and Dart scanner
+The package includes prebuilt Swift and Dart scanner
 binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
 without scanner binaries. Configured Swift or Dart projects on unsupported
 platforms report `code_scanner_unavailable` and name the supported platform
