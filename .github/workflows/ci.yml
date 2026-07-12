@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ci:
     name: ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -30,6 +30,9 @@ jobs:
           # cached .build/swiftpm artifacts are compiled by this toolchain, so a
           # stale key would restore artifacts built by a different compiler.
           swift-version: "6.2"
+
+      - name: Install Dart
+        uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
@@ -67,13 +70,18 @@ jobs:
       - name: Test the Swift scanner
         run: swift test --package-path packages/swift-scanner
 
-      # The Dart integration test spawns the bundled Dart scanner binary. Dart
-      # comes from the Nix dev shell, so build through nix.
+      # Build with the official SDK outside Nix so the Linux scanner remains
+      # runnable on hosts without a Nix store.
       - name: Build the Dart scanner
-        run: nix develop -c just build-dart-scanner
+        run: |
+          cd packages/dart-scanner
+          dart pub get
+          dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
 
       - name: Test the Dart scanner
-        run: nix develop -c just test-dart-scanner
+        run: |
+          cd packages/dart-scanner
+          dart test
 
       - name: just test
         run: nix develop -c just test
@@ -81,11 +89,19 @@ jobs:
       - name: just build
         run: nix develop -c just build
 
+      - name: Stage scanner binaries
+        run: >-
+          nix develop -c just stage-scanner-binaries
+          --platform linux-x64
+          --swift packages/swift-scanner/.build/debug/speclink-swift-scanner
+
       - name: just verify-dist
         run: nix develop -c just verify-dist
 
-      - name: npm pack dry-run
-        run: npm pack --dry-run
+      - name: Pack and smoke-test npm package
+        run: |
+          tarball="$(npm pack)"
+          nix develop -c just pack-smoke "$tarball"
 
   # Informational, never required for merge: runs `docbridge related --gate`
   # over the PR's whole change set and maintains one sticky comment so the
