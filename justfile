@@ -80,10 +80,6 @@ verify-vsix *ARGS:
 publish-vscode-extension *ARGS:
     bun run scripts/vscode-extension.ts publish-vscode {{ ARGS }}
 
-# Publish a verified VSIX to Open VSX. Requires OVSX_PAT.
-publish-open-vsx-extension *ARGS:
-    bun run scripts/vscode-extension.ts publish-open-vsx {{ ARGS }}
-
 # Exercise the language server (hover, definition, references, diagnostics) over stdio.
 verify-lsp:
     bun run scripts/lsp-verify.ts

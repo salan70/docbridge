@@ -6,13 +6,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import {
   assertReleaseInputs,
   buildReleaseManifest,
   defaultVsixPath,
-  openVsxPublishCommand,
   verifyExpandedVsix,
   vscodeMarketplacePublishCommand,
 } from "./vscode-extension";
@@ -129,17 +128,20 @@ describe("publish command builders", () => {
       "secret",
     ]);
   });
+});
 
-  test("publishes the same VSIX to Open VSX with OVSX_PAT", () => {
-    expect(openVsxPublishCommand("/tmp/docbridge.vsix", "secret")).toEqual([
-      "bunx",
-      "ovsx",
-      "publish",
-      "/tmp/docbridge.vsix",
-      "-p",
-      "secret",
-    ]);
+test("rejects Open VSX as an unsupported publish target", () => {
+  const result = Bun.spawnSync({
+    cmd: ["bun", "run", "scripts/vscode-extension.ts", "publish-open-vsx"],
+    cwd: resolve(import.meta.dir, ".."),
+    stdout: "pipe",
+    stderr: "pipe",
   });
+
+  expect(result.exitCode).toBe(1);
+  expect(new TextDecoder().decode(result.stderr)).toContain(
+    "Usage: bun run scripts/vscode-extension.ts <package|verify|publish-vscode> [vsix]",
+  );
 });
 
 function createReleaseInputFixture(
