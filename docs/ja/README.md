@@ -16,16 +16,14 @@ bunx docbridge check
 ```
 
 現在のリリースは
-[v0.4.0](https://github.com/salan70/docbridge/releases/tag/v0.4.0) で、npm では
-`docbridge@0.4.0` として公開されています。
+[v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0) で、npm では
+`docbridge@0.5.0` として公開されています。
 
 初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
 Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
 TypeScript と Markdown の check は scanner binary なしで実行できます。
 未対応 platform で Swift / Dart project を設定した場合は
 `code_scanner_unavailable` を報告し、対応 platform key を表示します。
-
-## クイックスタート
 
 ## クイックスタート
 
@@ -286,20 +284,22 @@ docbridge lsp
 `docbridge check` は変更ありません。
 
 VS Code 互換の extension は [../../editors/vscode](../../editors/vscode) に
-あります。Language Server を VSIX に同梱し、VS Code、Cursor、Open VSX 互換の
-エディタで使えます。`editors/vscode/assets/icon.png` と、対応済みの
-`dist/bin/darwin-arm64` / `dist/bin/linux-x64` scanner artifact を準備したあと、
-同じ VSIX を VS Code Marketplace と Open VSX へ手動で公開できます:
+あります。Language Server を VS Code と Cursor 向けの VSIX に同梱します。
+現在、extension は VS Code Marketplace と Open VSX にはまだ公開されていません。
+初回の registry 公開までは、対応済みの `dist/bin/darwin-arm64` /
+`dist/bin/linux-x64` scanner artifact を準備し、VSIX をローカルで生成・検証します:
 
 ```sh
 just package-vsix
 just verify-vsix
-VSCE_PAT=<token> just publish-vscode-extension
-OVSX_PAT=<token> just publish-open-vsx-extension
 ```
 
-初回公開は意図的に手動です。release workflow の自動化は後続作業として扱います。
-詳細な挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
+生成した `editors/vscode/.tmp/out/` 下のファイルは、VS Code または
+Cursor の **Extensions: Install from VSIX...** からインストールできます。
+Marketplace と Open VSX への初回公開は意図的に手動で、リポジトリには
+その公開コマンドがあります。Zed 統合は別タスクで、まだ実装されていません。
+MCP 配信は、長時間動作する tool server を必要とする具体的な consumer が現れるまで
+対象外です。詳細な LSP の挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
 
 ## Diagnostics
 
@@ -447,15 +447,14 @@ Environment loader:
 
 ## Roadmap
 
-完了済みの v0.1〜v0.4 の機能は、上記の説明と
-[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。現在の Roadmap では
-今後の作業のみを扱います。
+完了済みの v0.1〜v0.5 の機能は、上記の説明と
+[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。
 
-v0.5:
+残っている editor 配信作業:
 
-- VS Code、Cursor、Open VSX 互換エディタ向けの VS Code 互換 extension packaging
-- 検証済み VSIX artifact を VS Code Marketplace と Open VSX へ手動公開するコマンド
+- 最初の検証済み VSIX を VS Code Marketplace と Open VSX へ公開する
 - 手動フローが安定したあとの GitHub Release VSIX 添付と registry publish の自動化
+- Zed 向けの独立した統合経路を追加する
 
 ## Vision
 
