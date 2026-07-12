@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Swift and Dart scanner artifacts before packing the npm tarball, and
   smoke-tests the installed tarball before publishing.
 
+### Changed
+
+- Clarified the current editor delivery state in the English and Japanese
+  READMEs, including local VSIX installation and the remaining first-publication
+  work for VS Code Marketplace and Open VSX.
+
 ## [0.4.1] - 2026-06-21
 
 ### Added
