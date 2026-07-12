@@ -34,7 +34,10 @@ jobs:
       matrix:
         include:
           - platform: linux-x64
-            os: ubuntu-latest
+            # Build against the oldest supported Ubuntu glibc instead of the
+            # newer glibc from the Nix dev shell. The packed-package smoke test
+            # below then runs the Dart scanner on this plain Linux host.
+            os: ubuntu-22.04
           - platform: darwin-arm64
             os: macos-15
     runs-on: ${{ matrix.os }}
@@ -49,6 +52,9 @@ jobs:
         uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
           swift-version: "6.2"
+
+      - name: Install Dart
+        uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
@@ -68,7 +74,13 @@ jobs:
         run: swift build --package-path packages/swift-scanner -c release
 
       - name: Build Dart scanner
-        run: nix develop -c just build-dart-scanner
+        # Deliberately run outside `nix develop`: a Nix-built Linux executable
+        # embeds a /nix/store ELF interpreter and is not portable to plain
+        # Ubuntu hosts.
+        run: |
+          cd packages/dart-scanner
+          dart pub get
+          dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
 
       - name: Build dist CLI
         run: nix develop -c just build

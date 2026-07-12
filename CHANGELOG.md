@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Linux x64 release packages now build the Dart scanner with the official Dart
+  SDK on Ubuntu 22.04, avoiding Nix store paths and newer glibc requirements
+  that made the scanner unavailable on plain Linux hosts.
+
 ## [0.5.1] - 2026-07-12
 
 ### Removed
