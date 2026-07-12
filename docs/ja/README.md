@@ -16,8 +16,8 @@ bunx docbridge check
 ```
 
 現在のリリースは
-[v0.4.1](https://github.com/salan70/docbridge/releases/tag/v0.4.1) で、npm では
-`docbridge@0.4.1` として公開されています。
+[v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0) で、npm では
+`docbridge@0.5.0` として公開されています。
 
 初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
 Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
@@ -447,14 +447,12 @@ Environment loader:
 
 ## Roadmap
 
-完了済みの v0.1〜v0.4 の機能は、上記の説明と
-[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。v0.5 の extension packaging と
-検証は実装済みですが、まだリリースされていません。
+完了済みの v0.1〜v0.5 の機能は、上記の説明と
+[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。
 
 残っている editor 配信作業:
 
 - 最初の検証済み VSIX を VS Code Marketplace と Open VSX へ公開する
-- extension packaging を v0.5 としてリリースする
 - 手動フローが安定したあとの GitHub Release VSIX 添付と registry publish の自動化
 - Zed 向けの独立した統合経路を追加する
 

@@ -21,8 +21,8 @@ bunx docbridge check
 ```
 
 The current release is
-[v0.4.1](https://github.com/salan70/docbridge/releases/tag/v0.4.1), published
-as `docbridge@0.4.1` on npm.
+[v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0), published
+as `docbridge@0.5.0` on npm.
 
 The npm package is Bun-only; Node.js runtime compatibility is not part of the
 initial distribution. The package includes prebuilt Swift and Dart scanner
@@ -469,14 +469,12 @@ inside their worker packages.
 
 ## Roadmap
 
-Completed v0.1–v0.4 capabilities are documented above and in
-[CHANGELOG.md](CHANGELOG.md). The v0.5 extension packaging and verification work
-is implemented but not yet released.
+Completed v0.1–v0.5 capabilities are documented above and in
+[CHANGELOG.md](CHANGELOG.md).
 
 Remaining editor delivery work:
 
 - Publish the first verified VSIX to VS Code Marketplace and Open VSX
-- Release the extension packaging work as v0.5
 - Follow-up automation for GitHub Release VSIX attachment and registry
   publishing after the manual flow is proven
 - Add a separate Zed integration path
