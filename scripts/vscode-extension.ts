@@ -211,16 +211,6 @@ export function publishVscodeExtension(
   run(vscodeMarketplacePublishCommand(resolve(vsixPath), token), repoRoot);
 }
 
-export function publishOpenVsxExtension(
-  vsixPath: string = defaultVsixPath(),
-): void {
-  const token = process.env.OVSX_PAT;
-  if (token === undefined || token.trim() === "") {
-    throw new Error("OVSX_PAT is required to publish to Open VSX.");
-  }
-  run(openVsxPublishCommand(resolve(vsixPath), token), repoRoot);
-}
-
 export function vscodeMarketplacePublishCommand(
   vsixPath: string,
   token: string,
@@ -234,10 +224,6 @@ export function vscodeMarketplacePublishCommand(
     "-p",
     token,
   ];
-}
-
-export function openVsxPublishCommand(vsixPath: string, token: string): string[] {
-  return ["bunx", "ovsx", "publish", vsixPath, "-p", token];
 }
 
 function stageExtension(
@@ -366,7 +352,7 @@ function run(command: string[], cwd: string): void {
 
 function usage(): never {
   throw new Error(
-    "Usage: bun run scripts/vscode-extension.ts <package|verify|publish-vscode|publish-open-vsx> [vsix]",
+    "Usage: bun run scripts/vscode-extension.ts <package|verify|publish-vscode> [vsix]",
   );
 }
 
@@ -379,8 +365,6 @@ if (import.meta.main) {
       verifyVsix(maybeVsix);
     } else if (command === "publish-vscode") {
       publishVscodeExtension(maybeVsix);
-    } else if (command === "publish-open-vsx") {
-      publishOpenVsxExtension(maybeVsix);
     } else {
       usage();
     }

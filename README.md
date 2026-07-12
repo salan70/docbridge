@@ -302,8 +302,8 @@ options; the project root comes from the editor's `initialize` request.
 
 A VS Code-compatible extension lives in [editors/vscode](editors/vscode). It
 packages the language server into a VSIX for VS Code and Cursor. The extension
-has not yet been published to VS Code Marketplace or Open VSX. Until the first
-registry publication, stage the supported `dist/bin/darwin-arm64` and
+has not yet been published to VS Code Marketplace. Until the first Marketplace
+publication, stage the supported `dist/bin/darwin-arm64` and
 `dist/bin/linux-x64` scanner artifacts, then build and install the VSIX
 locally:
 
@@ -313,11 +313,11 @@ just verify-vsix
 ```
 
 Install the generated file from `editors/vscode/.tmp/out/` with **Extensions:
-Install from VSIX...** in VS Code or Cursor. The first Marketplace and Open VSX
-publication is intentionally manual; the repository provides publish commands
-for that release process. Zed integration is tracked separately and is not yet
-implemented. MCP delivery is out of scope until a concrete consumer requires a
-long-lived tool server. Full LSP behavior is specified in
+Install from VSIX...** in VS Code or Cursor. The first Marketplace publication
+is intentionally manual; the repository provides a publish command for that
+release process. Open VSX delivery is out of scope. Zed integration is tracked
+separately and is not yet implemented. MCP delivery is out of scope until a
+concrete consumer requires a long-lived tool server. Full LSP behavior is specified in
 [docs/specs/lsp.md](docs/specs/lsp.md).
 
 ## Diagnostics
@@ -474,7 +474,7 @@ Completed v0.1–v0.5 capabilities are documented above and in
 
 Remaining editor delivery work:
 
-- Publish the first verified VSIX to VS Code Marketplace and Open VSX
+- Publish the first verified VSIX to VS Code Marketplace
 - Follow-up automation for GitHub Release VSIX attachment and registry
   publishing after the manual flow is proven
 - Add a separate Zed integration path

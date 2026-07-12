@@ -285,8 +285,8 @@ docbridge lsp
 
 VS Code 互換の extension は [../../editors/vscode](../../editors/vscode) に
 あります。Language Server を VS Code と Cursor 向けの VSIX に同梱します。
-現在、extension は VS Code Marketplace と Open VSX にはまだ公開されていません。
-初回の registry 公開までは、対応済みの `dist/bin/darwin-arm64` /
+現在、extension は VS Code Marketplace にはまだ公開されていません。
+初回の Marketplace 公開までは、対応済みの `dist/bin/darwin-arm64` /
 `dist/bin/linux-x64` scanner artifact を準備し、VSIX をローカルで生成・検証します:
 
 ```sh
@@ -296,8 +296,8 @@ just verify-vsix
 
 生成した `editors/vscode/.tmp/out/` 下のファイルは、VS Code または
 Cursor の **Extensions: Install from VSIX...** からインストールできます。
-Marketplace と Open VSX への初回公開は意図的に手動で、リポジトリには
-その公開コマンドがあります。Zed 統合は別タスクで、まだ実装されていません。
+Marketplace への初回公開は意図的に手動で、リポジトリにはその公開コマンドが
+あります。Open VSX 配信は対象外です。Zed 統合は別タスクで、まだ実装されていません。
 MCP 配信は、長時間動作する tool server を必要とする具体的な consumer が現れるまで
 対象外です。詳細な LSP の挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
 
@@ -452,7 +452,7 @@ Environment loader:
 
 残っている editor 配信作業:
 
-- 最初の検証済み VSIX を VS Code Marketplace と Open VSX へ公開する
+- 最初の検証済み VSIX を VS Code Marketplace へ公開する
 - 手動フローが安定したあとの GitHub Release VSIX 添付と registry publish の自動化
 - Zed 向けの独立した統合経路を追加する
 

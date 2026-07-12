@@ -11,7 +11,7 @@ repository. The server and `src/core/` do not depend on it.
 ## Install
 
 Once the extension is published, install `salan70.docbridge` from VS Code
-Marketplace or from Open VSX-compatible editors.
+Marketplace. Open VSX delivery is out of scope.
 
 Until the first registry publish is complete, build and install the VSIX
 manually:
@@ -113,17 +113,10 @@ Publish the verified artifact to VS Code Marketplace:
 VSCE_PAT=<token> just publish-vscode-extension
 ```
 
-Publish the same artifact to Open VSX:
-
-```sh
-OVSX_PAT=<token> just publish-open-vsx-extension
-```
-
-Both publish commands accept an explicit VSIX path:
+The publish command accepts an explicit VSIX path:
 
 ```sh
 VSCE_PAT=<token> just publish-vscode-extension path/to/docbridge.vsix
-OVSX_PAT=<token> just publish-open-vsx-extension path/to/docbridge.vsix
 ```
 
 Attach the generated VSIX to the GitHub Release manually for the initial

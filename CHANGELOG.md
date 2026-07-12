@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed Open VSX from the editor delivery scope and deleted its unused manual
+  publishing command; the supported registry target is VS Code Marketplace.
+
 ## [0.5.0] - 2026-07-05
 
 ### Added
