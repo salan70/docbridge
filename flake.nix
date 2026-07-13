@@ -33,6 +33,9 @@
             pkgs.direnv
             pkgs.git
             pkgs.just
+            # The npm package targets the Node.js runtime; verify-dist and
+            # pack-smoke execute the built CLI with Node.
+            pkgs.nodejs
           ];
         };
       });

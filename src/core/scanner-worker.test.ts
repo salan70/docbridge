@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import {
   clangModuleCachePath,
   invokeScannerWorker,
+  runScannerWorkerProcess,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
 import type { ScannerWorkerRequest } from "./scanner-worker";
@@ -17,6 +18,67 @@ test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", ()
   expect(path).not.toBe("/tmp/docbridge-clang-module-cache");
   if (typeof process.getuid === "function") {
     expect(path).toContain(String(process.getuid()));
+  }
+});
+
+test("runScannerWorkerProcess pipes stdin to the worker and captures stdout, stderr, and exit code", () => {
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", "cat; echo err >&2; exit 3"],
+    stdin: "ping",
+  });
+
+  expect(result).toEqual({
+    ok: true,
+    exitCode: 3,
+    stdout: "ping",
+    stderr: "err\n",
+  });
+});
+
+test("runScannerWorkerProcess reports ok: false when the command does not exist", () => {
+  const result = runScannerWorkerProcess({
+    command: ["docbridge-nonexistent-worker-command"],
+    stdin: "",
+  });
+
+  expect(result.ok).toBe(false);
+});
+
+test("runScannerWorkerProcess captures worker output larger than one megabyte", () => {
+  const bytes = 2 * 1024 * 1024;
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", `head -c ${bytes} /dev/zero | tr '\\0' a`],
+    stdin: "",
+  });
+
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.length).toBe(bytes);
+  }
+});
+
+test("runScannerWorkerProcess exposes the clang module cache path to the worker", () => {
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", 'printf "%s" "$CLANG_MODULE_CACHE_PATH"'],
+    stdin: "",
+  });
+
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.stdout).toBe(clangModuleCachePath());
+  }
+});
+
+test("runScannerWorkerProcess reports ok: false when the worker is killed by a signal", () => {
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", "kill -KILL $$"],
+    stdin: "",
+  });
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(String(result.error)).toContain("SIGKILL");
   }
 });
 

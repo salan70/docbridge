@@ -9,9 +9,12 @@ DocBridge は TypeScript、Swift、Dart のコードと Markdown ドキュメン
 
 ## インストール
 
-DocBridge は npm package `docbridge` として配布し、Bun で実行します。
+DocBridge は npm package `docbridge` として配布し、Node.js (>= 22) と Bun の
+どちらでも実行できます。
 
 ```sh
+npx docbridge check
+# または
 bunx docbridge check
 ```
 
@@ -19,7 +22,6 @@ bunx docbridge check
 [v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0) で、npm では
 `docbridge@0.5.0` として公開されています。
 
-初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
 Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
 TypeScript と Markdown の check は scanner binary なしで実行できます。
 未対応 platform で Swift / Dart project を設定した場合は

@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
@@ -515,5 +515,5 @@ export function run(
 }
 
 if (import.meta.main) {
-  process.exitCode = run(Bun.argv.slice(2));
+  process.exitCode = run(process.argv.slice(2));
 }

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The npm package now runs on Node.js (>= 22) in addition to Bun: the CLI is
+  built for the Node target with a `#!/usr/bin/env node` shebang, so
+  `npx docbridge` works without installing Bun. Packaging smoke tests exercise
+  the CLI under both runtimes.
+
 ## [0.5.2] - 2026-07-12
 
 ### Fixed

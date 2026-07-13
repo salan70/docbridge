@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -135,27 +136,43 @@ export function clangModuleCachePath(): string {
   return join(tmpdir(), `docbridge-clang-module-cache-${owner}`);
 }
 
-function runScannerWorkerProcess(
+/**
+ * Default worker process runner. Spawns via `node:child_process` so the
+ * bundled CLI runs under both Node.js and Bun. `maxBuffer` must exceed Node's
+ * 1 MiB default because worker responses embed scanned file contents.
+ */
+export function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
   try {
     const moduleCachePath = clangModuleCachePath();
     mkdirSync(moduleCachePath, { recursive: true });
-    const result = Bun.spawnSync({
-      cmd: input.command,
+    const [executable = "", ...args] = input.command;
+    const result = spawnSync(executable, args, {
       env: {
-        ...Bun.env,
+        ...process.env,
         CLANG_MODULE_CACHE_PATH: moduleCachePath,
       },
-      stdin: new TextEncoder().encode(input.stdin),
-      stdout: "pipe",
-      stderr: "pipe",
+      input: input.stdin,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024 * 1024,
     });
+    const stderr = result.stderr ?? "";
+    if (result.error !== undefined) {
+      return { ok: false, error: result.error, stderr };
+    }
+    if (result.status === null) {
+      return {
+        ok: false,
+        error: new Error(`worker terminated by signal ${result.signal ?? "unknown"}`),
+        stderr,
+      };
+    }
     return {
       ok: true,
-      exitCode: result.exitCode,
-      stdout: new TextDecoder().decode(result.stdout),
-      stderr: new TextDecoder().decode(result.stderr),
+      exitCode: result.status,
+      stdout: result.stdout ?? "",
+      stderr,
     };
   } catch (error) {
     return { ok: false, error, stderr: "" };
