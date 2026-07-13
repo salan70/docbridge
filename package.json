@@ -1,6 +1,6 @@
 {
   "name": "docbridge",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "A CLI that links Markdown specifications and code declarations. Runs on Node.js and Bun.",
   "license": "MIT",
   "type": "module",
