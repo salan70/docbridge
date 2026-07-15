@@ -1,10 +1,4 @@
-import {
-  cpSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { discoverRepository } from "../core/init-discovery";
@@ -42,10 +36,7 @@ const AGENT_TARGETS = new Set<AgentTarget>(["codex", "claude", "both", "none"]);
  *
  * @doc docs/specs/cli.md#init-command
  */
-export function parseInitOptions(
-  args: string[],
-  command: InitCommandKind,
-): InitSharedOptions {
+export function parseInitOptions(args: string[], command: InitCommandKind): InitSharedOptions {
   const options: InitSharedOptions = {
     root: ".",
     yes: false,
@@ -235,7 +226,9 @@ function resolveConfirmedScope(input: {
   }
 
   if (!input.prompts.isInteractive) {
-    throw new InitCliError("Interactive setup requires a TTY. Re-run with --yes for non-interactive mode.");
+    throw new InitCliError(
+      "Interactive setup requires a TTY. Re-run with --yes for non-interactive mode.",
+    );
   }
 
   if (input.discovery.docs.ambiguous) {
@@ -245,11 +238,7 @@ function resolveConfirmedScope(input: {
         "Docs scope is ambiguous and no candidates were detected. Create docbridge.config.json manually.",
       );
     }
-    const docsPattern = input.prompts.select(
-      "Choose docs scope:",
-      choices,
-      choices[0] ?? "",
-    );
+    const docsPattern = input.prompts.select("Choose docs scope:", choices, choices[0] ?? "");
     const languages = selectLanguages(input.discovery.code.languages, input.prompts);
     return { docsPattern, languages };
   }
@@ -259,12 +248,7 @@ function resolveConfirmedScope(input: {
   }
 
   let docsPattern = input.discovery.docs.recommended.pattern;
-  if (
-    !input.prompts.confirm(
-      `Use docs scope ${docsPattern}?`,
-      true,
-    )
-  ) {
+  if (!input.prompts.confirm(`Use docs scope ${docsPattern}?`, true)) {
     const choices = input.discovery.docs.candidates.map((candidate) => candidate.pattern);
     docsPattern = input.prompts.select("Choose docs scope:", choices, docsPattern);
   }

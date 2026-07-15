@@ -49,10 +49,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 const extensionRelativeRoot = "editors/vscode";
 const iconRelativePath = "editors/vscode/assets/icon.png";
 const requiredScannerPlatforms = ["darwin-arm64", "linux-x64"] as const;
-const scannerExecutableNames = [
-  "speclink-swift-scanner",
-  "speclink_dart_scanner",
-] as const;
+const scannerExecutableNames = ["speclink-swift-scanner", "speclink_dart_scanner"] as const;
 const activationEvents = [
   "workspaceContains:docbridge.config.json",
   "onLanguage:typescript",
@@ -73,13 +70,10 @@ export function buildReleaseManifest(
     publisher: "salan70",
     displayName: "DocBridge",
     description:
-      extensionPackage.description ??
-      "Language Server support for DocBridge documentation links.",
+      extensionPackage.description ?? "Language Server support for DocBridge documentation links.",
     version: rootPackage.version,
     icon: "assets/icon.png",
-    repository: repositoryUrl
-      ? { type: "git", url: repositoryUrl }
-      : extensionPackage.repository,
+    repository: repositoryUrl ? { type: "git", url: repositoryUrl } : extensionPackage.repository,
     bugs: rootPackage.bugs ?? extensionPackage.bugs,
     homepage: rootPackage.homepage ?? extensionPackage.homepage,
     license: rootPackage.license ?? extensionPackage.license,
@@ -109,8 +103,7 @@ export function assertReleaseInputs(root: string = repoRoot): void {
 }
 
 export function defaultVsixPath(root: string = repoRoot, version?: string): string {
-  const resolvedVersion =
-    version ?? readJson<RootPackage>(join(root, "package.json")).version;
+  const resolvedVersion = version ?? readJson<RootPackage>(join(root, "package.json")).version;
   return join(root, extensionRelativeRoot, ".tmp/out", `docbridge-${resolvedVersion}.vsix`);
 }
 
@@ -166,10 +159,7 @@ export function verifyVsix(vsixPath: string = defaultVsixPath()): void {
   }
 }
 
-export function verifyExpandedVsix(
-  expandedRoot: string,
-  options: VerifyOptions = {},
-): void {
+export function verifyExpandedVsix(expandedRoot: string, options: VerifyOptions = {}): void {
   const extensionRoot = join(expandedRoot, "extension");
   const manifest = readJson<ExtensionPackage>(join(extensionRoot, "package.json"));
 
@@ -195,15 +185,10 @@ export function verifyExpandedVsix(
   const runCommand = options.run ?? run;
   runCommand(["bun", "server/dist/index.js", "--version"], extensionRoot);
   runCommand(["bun", "server/dist/index.js", "--help"], extensionRoot);
-  runCommand(
-    ["bun", "server/dist/index.js", "check", "--root", ".verify-fixture"],
-    extensionRoot,
-  );
+  runCommand(["bun", "server/dist/index.js", "check", "--root", ".verify-fixture"], extensionRoot);
 }
 
-export function publishVscodeExtension(
-  vsixPath: string = defaultVsixPath(),
-): void {
+export function publishVscodeExtension(vsixPath: string = defaultVsixPath()): void {
   const token = process.env.VSCE_PAT;
   if (token === undefined || token.trim() === "") {
     throw new Error("VSCE_PAT is required to publish to VS Code Marketplace.");
@@ -211,19 +196,8 @@ export function publishVscodeExtension(
   run(vscodeMarketplacePublishCommand(resolve(vsixPath), token), repoRoot);
 }
 
-export function vscodeMarketplacePublishCommand(
-  vsixPath: string,
-  token: string,
-): string[] {
-  return [
-    "bunx",
-    "@vscode/vsce",
-    "publish",
-    "--packagePath",
-    vsixPath,
-    "-p",
-    token,
-  ];
+export function vscodeMarketplacePublishCommand(vsixPath: string, token: string): string[] {
+  return ["bunx", "@vscode/vsce", "publish", "--packagePath", vsixPath, "-p", token];
 }
 
 function stageExtension(

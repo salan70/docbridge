@@ -9,10 +9,7 @@ test("verifyDistPackage rejects packaged scanner binaries without executable bit
   const root = mkdtempSync(join(tmpdir(), "docbridge-verify-dist-"));
   try {
     const distCli = join(root, "dist/index.js");
-    const scanner = join(
-      root,
-      "dist/bin/darwin-arm64/speclink-swift-scanner",
-    );
+    const scanner = join(root, "dist/bin/darwin-arm64/speclink-swift-scanner");
     mkdirSync(join(distCli, ".."), { recursive: true });
     mkdirSync(join(scanner, ".."), { recursive: true });
     writeFileSync(distCli, "#!/usr/bin/env node\n");
@@ -24,9 +21,7 @@ test("verifyDistPackage rejects packaged scanner binaries without executable bit
       verifyDistPackage(root, {
         run: () => {},
       }),
-    ).rejects.toThrow(
-      "dist/bin/darwin-arm64/speclink-swift-scanner is not executable",
-    );
+    ).rejects.toThrow("dist/bin/darwin-arm64/speclink-swift-scanner is not executable");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

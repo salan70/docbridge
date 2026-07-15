@@ -29,6 +29,7 @@ that depend on that file are suppressed.
 
 <!-- @code src/core/code-scanner.ts#CodeScanResult -->
 <!-- @code src/core/code-language.ts#resolveScannerWorkerCommand -->
+
 ## Code Scanning
 
 Code scanning is language-aware but not language-specific. Every code language
@@ -80,18 +81,21 @@ present for a supported platform, DocBridge emits `code_scanner_unavailable`
 with the missing platform key and the supported keys.
 
 <!-- @code src/core/glob.ts#collectFiles -->
+
 ## File Collection
 
 File collection walks the project root, applies the ignore rules above, and
 returns the managed files for each include pattern.
 
 <!-- @code src/core/markdown.ts#scanMarkdown -->
+
 ## Markdown Scanning
 
 Markdown scanning extracts heading anchors and `@code` annotations from a
 single Markdown file.
 
 <!-- @code src/core/typescript.ts#scanTypeScript -->
+
 ## TypeScript Scanning
 
 TypeScript scanning extracts exported declarations and `@doc` annotations using

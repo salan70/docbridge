@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { definition } from "./navigation";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
+import { definition } from "./navigation";
 
 const CODE = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
 const DOC = "<!-- @code src/auth/login.ts#login -->\n## Login Spec\n";
@@ -30,7 +30,8 @@ describe(definition, () => {
   });
 
   test("one-to-many returns multiple locations", () => {
-    const code = "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";
+    const code =
+      "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";
     const doc = "## Login Spec\n\n## Flow\n";
 
     const result = definition(stateOf(code, doc), CODE_FILE, { line: 5, column: 18 });

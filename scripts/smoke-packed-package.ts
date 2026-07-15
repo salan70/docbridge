@@ -1,23 +1,13 @@
 #!/usr/bin/env bun
 
-import {
-  existsSync,
-  mkdtempSync,
-  mkdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
 // The packaged CLI must work for both npm/Node and Bun consumers.
 const cliRuntimes = ["node", "bun"] as const;
-const scannerExecutableNames = [
-  "speclink-swift-scanner",
-  "speclink_dart_scanner",
-] as const;
+const scannerExecutableNames = ["speclink-swift-scanner", "speclink_dart_scanner"] as const;
 
 type SmokeOptions = {
   scannerFixtures: boolean;
@@ -47,23 +37,14 @@ export function assertInstalledScannerExecutables(installRoot: string): void {
         platform,
         executable,
       );
-      if (
-        existsSync(scannerPath) &&
-        (statSync(scannerPath).mode & 0o111) === 0
-      ) {
-        throw new Error(
-          `${relativeToRoot(installRoot, scannerPath)} is not executable.`,
-        );
+      if (existsSync(scannerPath) && (statSync(scannerPath).mode & 0o111) === 0) {
+        throw new Error(`${relativeToRoot(installRoot, scannerPath)} is not executable.`);
       }
     }
   }
 }
 
-function installAndSmoke(
-  tarballPath: string,
-  tempRoot: string,
-  options: SmokeOptions,
-): void {
+function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOptions): void {
   writeFileSync(
     join(tempRoot, "package.json"),
     JSON.stringify({ private: true, dependencies: {} }, null, 2),
@@ -197,9 +178,7 @@ function fail(message: string): never {
 function parseArgs(args: string[]): { tarball: string; options: SmokeOptions } {
   const tarball = args[0];
   if (tarball === undefined) {
-    fail(
-      "Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures]",
-    );
+    fail("Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures]");
   }
   const options: SmokeOptions = { scannerFixtures: true };
   for (const arg of args.slice(1)) {

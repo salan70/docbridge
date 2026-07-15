@@ -1,7 +1,6 @@
+import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-
-import { describe, expect, test } from "bun:test";
 
 import { encodeMessage, MessageReader } from "./transport";
 
@@ -42,50 +41,46 @@ async function collect(
 }
 
 describe("docbridge lsp conformance", () => {
-  test(
-    "drives initialize -> hover -> shutdown as a child process",
-    async () => {
-      const proc = Bun.spawn(["bun", "run", "src/cli/index.ts", "lsp"], {
-        cwd: REPO_ROOT,
-        stdin: "pipe",
-        stdout: "pipe",
-        stderr: "inherit",
-      });
+  test("drives initialize -> hover -> shutdown as a child process", async () => {
+    const proc = Bun.spawn(["bun", "run", "src/cli/index.ts", "lsp"], {
+      cwd: REPO_ROOT,
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "inherit",
+    });
 
-      const writer = proc.stdin;
-      writer.write(
-        encodeMessage({ jsonrpc: "2.0", id: 1, method: "initialize", params: { rootUri: ROOT_URI } }),
-      );
-      writer.write(encodeMessage({ jsonrpc: "2.0", method: "initialized", params: {} }));
-      writer.write(
-        encodeMessage({
-          jsonrpc: "2.0",
-          id: 2,
-          method: "textDocument/hover",
-          // `login` name on line 4 (0-based 3), character 23.
-          params: { textDocument: { uri: CODE_URI }, position: { line: 3, character: 23 } },
-        }),
-      );
-      await writer.flush();
+    const writer = proc.stdin;
+    writer.write(
+      encodeMessage({ jsonrpc: "2.0", id: 1, method: "initialize", params: { rootUri: ROOT_URI } }),
+    );
+    writer.write(encodeMessage({ jsonrpc: "2.0", method: "initialized", params: {} }));
+    writer.write(
+      encodeMessage({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "textDocument/hover",
+        // `login` name on line 4 (0-based 3), character 23.
+        params: { textDocument: { uri: CODE_URI }, position: { line: 3, character: 23 } },
+      }),
+    );
+    await writer.flush();
 
-      const messages = await collect(proc.stdout, 2, 10_000);
+    const messages = await collect(proc.stdout, 2, 10_000);
 
-      const initialize = messages.find((m) => m.id === 1)?.result as
-        | { capabilities?: { hoverProvider?: boolean } }
-        | undefined;
-      expect(initialize?.capabilities?.hoverProvider).toBe(true);
+    const initialize = messages.find((m) => m.id === 1)?.result as
+      | { capabilities?: { hoverProvider?: boolean } }
+      | undefined;
+    expect(initialize?.capabilities?.hoverProvider).toBe(true);
 
-      const hover = messages.find((m) => m.id === 2)?.result as
-        | { contents?: { value?: string } }
-        | undefined;
-      expect(hover?.contents?.value).toContain("Login Spec");
+    const hover = messages.find((m) => m.id === 2)?.result as
+      | { contents?: { value?: string } }
+      | undefined;
+    expect(hover?.contents?.value).toContain("Login Spec");
 
-      writer.write(encodeMessage({ jsonrpc: "2.0", id: 3, method: "shutdown" }));
-      writer.write(encodeMessage({ jsonrpc: "2.0", method: "exit" }));
-      await writer.flush();
-      writer.end();
-      await proc.exited;
-    },
-    15_000,
-  );
+    writer.write(encodeMessage({ jsonrpc: "2.0", id: 3, method: "shutdown" }));
+    writer.write(encodeMessage({ jsonrpc: "2.0", method: "exit" }));
+    await writer.flush();
+    writer.end();
+    await proc.exited;
+  }, 15_000);
 });

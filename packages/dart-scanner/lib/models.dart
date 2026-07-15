@@ -104,7 +104,8 @@ class WorkerFileResponse {
   Map<String, dynamic> toJson() => {
         'filePath': filePath,
         'symbols': symbols.map((e) => e.toJson()).toList(),
-        'undocumentedSymbols': undocumentedSymbols.map((e) => e.toJson()).toList(),
+        'undocumentedSymbols':
+            undocumentedSymbols.map((e) => e.toJson()).toList(),
         'links': links.map((e) => e.toJson()).toList(),
         'diagnostics': diagnostics.map((e) => e.toJson()).toList(),
       };
@@ -194,7 +195,8 @@ class Diagnostic {
 }
 
 class SourceLocation {
-  SourceLocation({required this.filePath, required this.line, required this.column});
+  SourceLocation(
+      {required this.filePath, required this.line, required this.column});
 
   final String filePath;
   final int line;

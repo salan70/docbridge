@@ -1,12 +1,12 @@
 import { fileURLToPath } from "node:url";
 
-import { encodeMessage, MessageReader } from "./transport";
-import { definition, references, type Locator } from "./navigation";
 import { diagnosticsForFile } from "./diagnostics";
 import { hover } from "./hover";
+import { definition, references, type Locator } from "./navigation";
+import { relativePathToUri, uriToRelativePath } from "./paths";
 import { fromLspPosition, toLspRange } from "./position";
 import { Project } from "./project";
-import { relativePathToUri, uriToRelativePath } from "./paths";
+import { encodeMessage, MessageReader } from "./transport";
 
 /** Sends an outgoing JSON-RPC message to the client. */
 export type SendFn = (message: unknown) => void;
@@ -186,9 +186,10 @@ export class Server {
     root: string;
     position: ReturnType<typeof fromLspPosition>;
   } | null {
-    const record = params as
-      | { textDocument?: { uri?: unknown }; position?: { line?: unknown; character?: unknown } }
-      | null;
+    const record = params as {
+      textDocument?: { uri?: unknown };
+      position?: { line?: unknown; character?: unknown };
+    } | null;
     const uri = record?.textDocument?.uri;
     const rel = this.relPath(typeof uri === "string" ? uri : undefined);
     const position = record?.position;
@@ -267,9 +268,11 @@ export class Server {
 }
 
 function resolveRoot(params: unknown): string {
-  const record = params as
-    | { rootUri?: unknown; rootPath?: unknown; workspaceFolders?: Array<{ uri?: unknown }> }
-    | null;
+  const record = params as {
+    rootUri?: unknown;
+    rootPath?: unknown;
+    workspaceFolders?: Array<{ uri?: unknown }>;
+  } | null;
 
   const folderUri = record?.workspaceFolders?.[0]?.uri;
   if (typeof folderUri === "string") {
@@ -328,9 +331,7 @@ function toLocation(
   };
 }
 
-function textDocument(
-  params: unknown,
-): { uri?: string; text?: string } | undefined {
+function textDocument(params: unknown): { uri?: string; text?: string } | undefined {
   const record = params as { textDocument?: { uri?: unknown; text?: unknown } } | null;
   const doc = record?.textDocument;
   if (doc === undefined) {

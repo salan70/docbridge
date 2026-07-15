@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdtempSync,
-  mkdirSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -65,9 +60,7 @@ describe("assertReleaseInputs", () => {
   test("rejects a missing extension icon", () => {
     const root = createReleaseInputFixture({ icon: false });
 
-    expect(() => assertReleaseInputs(root)).toThrow(
-      "editors/vscode/assets/icon.png is required",
-    );
+    expect(() => assertReleaseInputs(root)).toThrow("editors/vscode/assets/icon.png is required");
   });
 
   test("rejects extension and root version drift", () => {

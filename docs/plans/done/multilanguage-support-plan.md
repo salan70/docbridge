@@ -179,6 +179,7 @@ Markdown backlinks remain language-neutral:
 
 ```md
 <!-- @code Sources/Auth/AuthService.swift#AuthService.login(email:password:) -->
+
 ## Login Flow
 ```
 

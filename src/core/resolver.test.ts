@@ -1,6 +1,5 @@
-import { join } from "node:path";
-
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 
 import type { CodeScanResult } from "./code-scanner";
 import type { MarkdownScanResult } from "./markdown";
@@ -91,19 +90,9 @@ describe(resolveLinks, () => {
     const docEndpoint = `${DOC_FILE}#login-spec`;
 
     const diagnostics = resolveLinks({
-      codeFiles: [
-        codeFile(
-          CODE_FILE,
-          [codeSymbol("login")],
-          [docLink(codeEndpoint, docEndpoint)],
-        ),
-      ],
+      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [
-        docFile(
-          DOC_FILE,
-          [docAnchor("login-spec")],
-          [codeLink(docEndpoint, codeEndpoint)],
-        ),
+        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],
       scanDiagnostics: [],
       audit: false,
@@ -117,9 +106,7 @@ describe(resolveLinks, () => {
     const docEndpoint = "docs/missing.md#login-spec";
 
     const diagnostics = resolveLinks({
-      codeFiles: [
-        codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)]),
-      ],
+      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [],
       scanDiagnostics: [],
       audit: false,
@@ -135,9 +122,7 @@ describe(resolveLinks, () => {
     const docEndpoint = `${DOC_FILE}#missing`;
 
     const diagnostics = resolveLinks({
-      codeFiles: [
-        codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)]),
-      ],
+      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [docFile(DOC_FILE, [docAnchor("login-spec")], [])],
       scanDiagnostics: [],
       audit: false,
@@ -151,9 +136,7 @@ describe(resolveLinks, () => {
     const docEndpoint = `${DOC_FILE}#login-spec`;
 
     const diagnostics = resolveLinks({
-      codeFiles: [
-        codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)]),
-      ],
+      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [docFile(DOC_FILE, [docAnchor("login-spec")], [])],
       scanDiagnostics: [],
       audit: false,
@@ -201,9 +184,7 @@ describe(resolveLinks, () => {
     const docEndpoint = `${DOC_FILE}#login-spec`;
 
     const diagnostics = resolveLinks({
-      codeFiles: [
-        codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)]),
-      ],
+      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [],
       scanDiagnostics: [
         {
@@ -254,9 +235,7 @@ describe(resolveLinks, () => {
 
     const diagnostics = resolveLinks({
       codeFiles: [],
-      docFiles: [
-        docFile(DOC_FILE, [], [codeLink(docEndpoint, codeEndpoint)]),
-      ],
+      docFiles: [docFile(DOC_FILE, [], [codeLink(docEndpoint, codeEndpoint)])],
       scanDiagnostics: [
         {
           severity: "error",
@@ -320,9 +299,7 @@ describe(resolveLinks, () => {
     const docEndpoint = `${DOC_FILE}#login-spec`;
 
     const diagnostics = resolveLinks({
-      codeFiles: [
-        codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)]),
-      ],
+      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [
         docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],

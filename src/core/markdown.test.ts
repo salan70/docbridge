@@ -3,9 +3,13 @@ import { expect, test } from "bun:test";
 import { scanMarkdown } from "./markdown";
 
 test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
-  const content = ["<!-- @code src/auth/login.ts#login -->", "## Login Spec", "", "Login flow specification.", ""].join(
-    "\n",
-  );
+  const content = [
+    "<!-- @code src/auth/login.ts#login -->",
+    "## Login Spec",
+    "",
+    "Login flow specification.",
+    "",
+  ].join("\n");
 
   const result = scanMarkdown("docs/auth.md", content);
 
@@ -157,11 +161,9 @@ test("scanMarkdown allows empty lines between pending comments and the heading",
 });
 
 test("scanMarkdown attaches multiple @code comments to one heading", () => {
-  const content = [
-    "<!-- @code src/a.ts#foo -->",
-    "<!-- @code src/b.ts#bar -->",
-    "# Heading",
-  ].join("\n");
+  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/b.ts#bar -->", "# Heading"].join(
+    "\n",
+  );
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toMatchObject([
@@ -193,8 +195,7 @@ test("scanMarkdown reports dangling annotation before normal text", () => {
       severity: "warning",
       code: "dangling_code_annotation",
       target: "src/a.ts#foo",
-      message:
-        "@code annotation is not attached to a following heading.",
+      message: "@code annotation is not attached to a following heading.",
       location: { filePath: "docs/a.md", line: 1, column: 1 },
     },
   ]);
@@ -247,7 +248,7 @@ test("scanMarkdown reports duplicate non-empty anchors in the same file", () => 
       severity: "error",
       code: "duplicate_doc_anchor",
       target: "docs/a.md#same-title",
-      message: "Duplicate doc anchor \"same-title\" in docs/a.md.",
+      message: 'Duplicate doc anchor "same-title" in docs/a.md.',
       location: { filePath: "docs/a.md", line: 2, column: 1 },
     },
   ]);
@@ -263,11 +264,9 @@ test("scanMarkdown does not treat empty headings as duplicates", () => {
 // --- duplicate links -------------------------------------------------------
 
 test("scanMarkdown reports duplicate links from the same heading to the same endpoint", () => {
-  const content = [
-    "<!-- @code src/a.ts#foo -->",
-    "<!-- @code src/a.ts#foo -->",
-    "# Heading",
-  ].join("\n");
+  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/a.ts#foo -->", "# Heading"].join(
+    "\n",
+  );
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toHaveLength(2);
@@ -278,19 +277,16 @@ test("scanMarkdown reports duplicate links from the same heading to the same end
       code: "duplicate_link",
       source: "docs/a.md#heading",
       target: "src/a.ts#foo",
-      message:
-        "Duplicate @code link from docs/a.md#heading to src/a.ts#foo.",
+      message: "Duplicate @code link from docs/a.md#heading to src/a.ts#foo.",
       location: { filePath: "docs/a.md", line: 2, column: 1 },
     },
   ]);
 });
 
 test("scanMarkdown does not report duplicate links to different endpoints", () => {
-  const content = [
-    "<!-- @code src/a.ts#foo -->",
-    "<!-- @code src/a.ts#bar -->",
-    "# Heading",
-  ].join("\n");
+  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/a.ts#bar -->", "# Heading"].join(
+    "\n",
+  );
   const result = scanMarkdown("docs/a.md", content);
   expect(result.diagnostics.filter((d) => d.code === "duplicate_link")).toEqual([]);
 });

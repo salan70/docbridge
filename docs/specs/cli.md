@@ -54,12 +54,14 @@ docbridge.config.json error config_file_invalid - Failed to parse config file.
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
 
 <!-- @code src/cli/index.ts#run -->
+
 ## Check Command
 
 The check command parses CLI options, runs the checker against the resolved
 project root, prints diagnostics, and returns the process exit code.
 
 <!-- @code src/core/related.ts#related -->
+
 ## Related Command
 
 The related command is an informational command: given a set of changed files,
@@ -147,10 +149,11 @@ it finds. Only CLI invocation errors and configuration errors exit with code
 `1`.
 
 <!-- @code src/core/related.ts#collectGateViolations -->
+
 ## Related Gate Mode
 
 `related --gate` turns the report into a verdict: it collects every
-counterpart whose file is not itself in the change set (a *violation*), prints
+counterpart whose file is not itself in the change set (a _violation_), prints
 only those, and exits with code `1` when at least one exists. The check is
 symmetric, mirroring the bidirectional link graph: a changed code file with an
 unchanged linked doc is a violation, and a changed doc with an unchanged
@@ -198,6 +201,7 @@ links — and `1` when at least one violation exists. CLI invocation errors and
 configuration errors exit with code `1` as usual.
 
 <!-- @code src/core/graph-output.ts#graph -->
+
 ## Graph Command
 
 The graph command prints the resolved DocBridge graph. It includes complete
@@ -260,9 +264,10 @@ worker, and link diagnostics are included in the output when possible; they do
 not by themselves make `graph` exit non-zero.
 
 <!-- @code src/core/context.ts#context -->
+
 ## Context Command
 
-The context command prints the *content* of the counterparts linked from a set
+The context command prints the _content_ of the counterparts linked from a set
 of input files: where `related` answers "which files are linked", `context`
 answers "what do they say". Its primary consumer is an agent hook that injects
 the linked specification (or the linked code) into the agent's context before
@@ -286,7 +291,7 @@ absolute-path relativization, `./` stripping, deduplication).
 Counterpart resolution follows the link graph semantics used by `related` and
 LSP navigation: direct links only (one hop), including resolvable one-way
 links. For every linked endpoint in the input files, each counterpart
-contributes one *context block*:
+contributes one _context block_:
 
 - A **doc counterpart** contributes its full Markdown section: the heading and
   its body up to the next heading at the same or a higher level, including
@@ -354,6 +359,7 @@ exit with code `1`.
 <!-- @code src/cli/init.ts#parseInitOptions -->
 <!-- @code src/core/init-discovery.ts#discoverRepository -->
 <!-- @code src/core/init-plan.ts#planInitCommand -->
+
 ## Init Command
 
 The init command performs CLI-driven first-time setup for an existing
@@ -385,6 +391,7 @@ Existing `docbridge.config.json` files are never overwritten. Valid config is
 summarized; invalid config is reported with repair guidance.
 
 <!-- @code src/cli/init.ts#runInitWithAgent -->
+
 ## Init-With-Agent Command
 
 The init-with-agent command prepares agent-guided adoption. It installs only

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { diagnosticsForFile, toLspDiagnostic } from "./diagnostics";
 import type { DocBridgeDiagnostic } from "../core/types";
+import { diagnosticsForFile, toLspDiagnostic } from "./diagnostics";
 import { CODE_FILE, stateOf } from "./fixtures";
 
 describe(diagnosticsForFile, () => {

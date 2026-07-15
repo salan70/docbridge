@@ -26,11 +26,7 @@ describe("scanTypeScript", () => {
 
   describe("supported declarations with @doc", () => {
     const cases: Array<[string, string, string]> = [
-      [
-        "exported function",
-        "export function login() {}",
-        "login",
-      ],
+      ["exported function", "export function login() {}", "login"],
       [
         "exported async function",
         "export async function login() { return { ok: true }; }",
@@ -43,11 +39,7 @@ describe("scanTypeScript", () => {
       ["exported const single declarator", "export const login = 1;", "login"],
       ["exported enum", "export enum Login { A }", "Login"],
       ["exported const enum", "export const enum Login { A }", "Login"],
-      [
-        "named default function",
-        "export default function login() {}",
-        "login",
-      ],
+      ["named default function", "export default function login() {}", "login"],
       ["named default class", "export default class Login {}", "Login"],
       ["declare function", "export declare function login(): void;", "login"],
       ["declare const", "export declare const login: number;", "login"],
@@ -215,8 +207,7 @@ describe("scanTypeScript", () => {
   });
 
   test("emits invalid_link_target for malformed @doc targets", () => {
-    const content =
-      "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
+    const content = "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
     const result = scan(content);
 
     const invalid = result.diagnostics.filter(
@@ -234,8 +225,7 @@ describe("scanTypeScript", () => {
 
   describe("parse errors", () => {
     test("emits code_parse_error and extracts nothing on syntactic errors", () => {
-      const content =
-        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login( {\n";
+      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login( {\n";
       const result = scan(content);
 
       expect(result.symbols).toEqual([]);
@@ -279,8 +269,7 @@ describe("scanTypeScript", () => {
     });
 
     test("treats an endpoint as documented when any declaration has @doc", () => {
-      const content =
-        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
+      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
       const result = scan(content);
 
       expect(result.symbols).toHaveLength(1);
@@ -292,12 +281,8 @@ describe("scanTypeScript", () => {
         "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\nexport function logout() {}\n";
       const result = scan(content);
 
-      expect(result.symbols.map((symbol) => symbol.symbolName)).toEqual([
-        "login",
-      ]);
-      expect(
-        result.undocumentedSymbols.map((symbol) => symbol.symbolName),
-      ).toEqual(["logout"]);
+      expect(result.symbols.map((symbol) => symbol.symbolName)).toEqual(["login"]);
+      expect(result.undocumentedSymbols.map((symbol) => symbol.symbolName)).toEqual(["logout"]);
     });
   });
 
@@ -354,9 +339,7 @@ describe("scanTypeScript", () => {
       const content = "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
       const result = scan(content);
 
-      const diagnostic = result.diagnostics.find(
-        (entry) => entry.code === "invalid_link_target",
-      );
+      const diagnostic = result.diagnostics.find((entry) => entry.code === "invalid_link_target");
       expect(diagnostic?.range).toEqual({
         start: { line: 2, column: 9 },
         end: { line: 2, column: 9 + "not-a-valid-target".length },
@@ -420,7 +403,7 @@ describe("scanTypeScript", () => {
 
     test("records the declaration range of an annotated exported const including its JSDoc", () => {
       const content =
-        "import x from \"./x\";\n\n/**\n * @doc docs/auth.md#token-spec\n */\nexport const token = \"abc\";\n";
+        'import x from "./x";\n\n/**\n * @doc docs/auth.md#token-spec\n */\nexport const token = "abc";\n';
       const result = scan(content);
 
       expect(result.symbols[0]?.declarationRange).toEqual({

@@ -226,9 +226,7 @@ test("invokeScannerWorker rejects responses with missing requested files", () =>
   expect(result.ok).toBe(false);
   if (!result.ok) {
     expect(result.diagnostic.code).toBe("code_scanner_failed");
-    expect(result.diagnostic.message).toContain(
-      "worker response files must match requested files",
-    );
+    expect(result.diagnostic.message).toContain("worker response files must match requested files");
   }
 });
 
@@ -267,9 +265,7 @@ test("invokeScannerWorker rejects responses with unexpected file paths", () => {
   expect(result.ok).toBe(false);
   if (!result.ok) {
     expect(result.diagnostic.code).toBe("code_scanner_failed");
-    expect(result.diagnostic.message).toContain(
-      "worker response files must match requested files",
-    );
+    expect(result.diagnostic.message).toContain("worker response files must match requested files");
   }
 });
 

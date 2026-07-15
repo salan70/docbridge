@@ -39,6 +39,7 @@ v0.1 glob syntax supports only `*` and `**`.
 Invalid config files produce config diagnostics. If any config error exists, DocBridge does not scan project files.
 
 <!-- @code src/core/code-language.ts#CodeIncludeEntry -->
+
 ## Code Languages
 
 `include.code` is a language-keyed object, not an array. Each key is a fixed
@@ -78,6 +79,7 @@ configuration is invalid (`config_invalid_value`): every code file must belong
 to exactly one language.
 
 <!-- @code src/core/config.ts#loadConfig -->
+
 ## Loading Configuration
 
 Configuration loading reads `docbridge.config.json` from the project root and

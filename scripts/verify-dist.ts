@@ -6,10 +6,7 @@ import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
-const scannerExecutableNames = [
-  "speclink-swift-scanner",
-  "speclink_dart_scanner",
-] as const;
+const scannerExecutableNames = ["speclink-swift-scanner", "speclink_dart_scanner"] as const;
 
 export type VerifyDistOptions = {
   run?: (command: string[], cwd: string) => void;

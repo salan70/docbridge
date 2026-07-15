@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { references } from "./navigation";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
+import { references } from "./navigation";
 
 describe(references, () => {
   test("from a heading lists every code symbol that links to it", () => {

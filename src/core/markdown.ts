@@ -20,8 +20,7 @@ type PendingComment = {
   targetRange?: Range;
 };
 
-const atxHeadingPattern =
-  /^(?<indent> {0,3})(?<hashes>#{1,6})(?:(?<gap>[ \t]+)(?<rest>.*))?$/;
+const atxHeadingPattern = /^(?<indent> {0,3})(?<hashes>#{1,6})(?:(?<gap>[ \t]+)(?<rest>.*))?$/;
 const fenceOpenPattern = /^ {0,3}(?:`{3,}|~{3,})/;
 const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
 
@@ -116,11 +115,7 @@ type HeadingMatch = {
   headingTextRange?: Range;
 };
 
-function matchHeading(
-  line: string,
-  filePath: string,
-  lineNumber: number,
-): HeadingMatch | null {
+function matchHeading(line: string, filePath: string, lineNumber: number): HeadingMatch | null {
   const match = atxHeadingPattern.exec(line);
   if (match?.groups === undefined) {
     return null;
@@ -308,10 +303,7 @@ function attachHeading(
 }
 
 /** Build parse options for a pending `@code` comment, carrying its target range. */
-function parseOptions(
-  comment: PendingComment,
-  source?: string,
-): ParseLinkTargetOptions {
+function parseOptions(comment: PendingComment, source?: string): ParseLinkTargetOptions {
   const options: ParseLinkTargetOptions = { location: comment.location };
   if (source !== undefined) {
     options.source = source;
@@ -322,10 +314,7 @@ function parseOptions(
   return options;
 }
 
-function flushDangling(
-  pending: PendingComment[],
-  diagnostics: DocBridgeDiagnostic[],
-): void {
+function flushDangling(pending: PendingComment[], diagnostics: DocBridgeDiagnostic[]): void {
   flushDanglingWith(
     pending,
     diagnostics,

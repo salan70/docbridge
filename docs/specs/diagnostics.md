@@ -81,6 +81,7 @@ Exit code policy:
 - exit `0` when diagnostics contain only warnings or no diagnostics
 
 <!-- @code src/lsp/diagnostics.ts#toLspDiagnostic -->
+
 ## LSP Diagnostics
 
 From v0.2, the Language Server (`docbridge lsp`) publishes these same diagnostics
@@ -104,6 +105,7 @@ The exit code policy above applies to `docbridge check` only; the Language Serve
 reports through `publishDiagnostics` and does not exit per check.
 
 <!-- @code src/core/diagnostics.ts#sortDiagnostics -->
+
 ## Sorting Diagnostics
 
 Diagnostics are sorted deterministically using the ordering above so output is
