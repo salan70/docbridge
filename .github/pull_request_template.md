@@ -2,6 +2,13 @@
 
 <!-- What changed and why. Link related specs or plans. -->
 
+## Contribution gate
+
+<!-- Complete exactly one line. Non-trivial external contributions require an issue with the `status: accepted` label before implementation. -->
+
+- Tracking issue: `Closes #`
+- Exemption: <!-- typo/small docs fix, automation, or maintainer-directed work; explain -->
+
 ## Test plan
 
 <!-- Commands run and their result, e.g. just verify / just build. -->

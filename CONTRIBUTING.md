@@ -54,17 +54,47 @@ just doctor
 The setup command configures `core.hooksPath` as `.githooks`. The pre-commit
 hook runs the read-only `just verify` gate and never modifies files.
 
+## Propose non-trivial changes first
+
+Non-trivial external contributions require a GitHub issue with the
+`status: accepted` label before implementation begins. This lets maintainers
+confirm that the problem, scope, and direction fit the project before either
+side spends time on a pull request.
+
+An issue is required for changes such as:
+
+- new features or user-visible behavior;
+- changes to public CLI, configuration, schema, or diagnostic contracts;
+- broad refactors or architectural changes;
+- new dependencies or substantial build, CI, or release changes;
+- significant specification or documentation restructuring.
+
+The following normally do not require prior acceptance:
+
+- typo, wording, formatting, or broken-link fixes;
+- small, clearly scoped documentation corrections;
+- automated dependency updates and release pull requests;
+- maintainer-requested or maintainer-directed maintenance.
+
+When uncertain, open an issue before writing code. Use the structured issue
+forms and wait for a maintainer to add `status: accepted`. Acceptance confirms
+the agreed scope, not that a future pull request is guaranteed to merge. A
+non-trivial pull request without a linked accepted issue may be closed without
+detailed review.
+
 ## Making a change
 
 1. Start from an up-to-date `main` branch and create a focused branch. Use the
    existing `feat/`, `fix/`, or `chore/` prefix that matches the change.
-2. Keep code, tests, specifications, and user documentation consistent. Use
+2. For a non-trivial external contribution, confirm that its issue has the
+   `status: accepted` label before implementation.
+3. Keep code, tests, specifications, and user documentation consistent. Use
    `just related-gate` to find linked counterparts that a change did not update.
-3. For logic changes, write the failing test first and follow the conventions
+4. For logic changes, write the failing test first and follow the conventions
    in [Testing](docs/contributing/testing.md).
-4. Apply deterministic formatting with `just format`. `just lint-fix` applies
+5. Apply deterministic formatting with `just format`. `just lint-fix` applies
    only Oxlint's safe fixes; review every resulting diff.
-5. Run the relevant focused checks while iterating, then run the shared gates
+6. Run the relevant focused checks while iterating, then run the shared gates
    before opening a pull request.
 
 Do not weaken a formatter, linter, complexity limit, or exclusion to make a
@@ -109,6 +139,9 @@ the Bun integration tests. Rebuild both after changing worker code with
 - Write commits in English using the repository's Gitmoji and Conventional
   Commits format. See [Commit messages](docs/contributing/commits.md).
 - Keep unrelated changes in separate commits and pull requests.
+- Link non-trivial external contributions to their accepted issue with
+  `Closes #123`. If the change is exempt, state the specific reason in the pull
+  request template.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
 - For every `just related-gate` finding, update the linked counterpart or
