@@ -39,6 +39,7 @@
             # pack-smoke execute the built CLI with Node.
             pkgs.nodejs
             pkgs.nixfmt
+            pkgs.ripgrep
             pkgs.rumdl
             pkgs.shellcheck
             pkgs.shfmt
