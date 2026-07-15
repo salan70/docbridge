@@ -18,12 +18,9 @@ stageBinary(options.dart, join(outputDir, "speclink_dart_scanner"));
 
 function parseArgs(args: string[]): Options {
   const platform = `${process.platform}-${process.arch}`;
-  const options: Options = {
+  const parsedOptions: Options = {
     platform,
-    swift: join(
-      repoRoot,
-      "packages/swift-scanner/.build/release/speclink-swift-scanner",
-    ),
+    swift: join(repoRoot, "packages/swift-scanner/.build/release/speclink-swift-scanner"),
     dart: join(repoRoot, "packages/dart-scanner/bin/speclink_dart_scanner"),
   };
 
@@ -31,20 +28,20 @@ function parseArgs(args: string[]): Options {
     const arg = args[index];
     const value = args[index + 1];
     if (arg === "--platform" && value !== undefined) {
-      options.platform = value;
+      parsedOptions.platform = value;
       index += 1;
     } else if (arg === "--swift" && value !== undefined) {
-      options.swift = resolve(value);
+      parsedOptions.swift = resolve(value);
       index += 1;
     } else if (arg === "--dart" && value !== undefined) {
-      options.dart = resolve(value);
+      parsedOptions.dart = resolve(value);
       index += 1;
     } else {
       fail(`Unknown or incomplete argument: ${arg}`);
     }
   }
 
-  return options;
+  return parsedOptions;
 }
 
 function stageBinary(source: string, destination: string): void {

@@ -2,18 +2,11 @@ import { existsSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type {
-  CodeLanguageAdapter,
-  CodeScanOptions,
-  CodeScanResult,
-} from "./code-scanner";
+import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
 import { collectFiles } from "./glob";
-import {
-  invokeScannerWorker,
-  type ScannerWorkerRun,
-} from "./scanner-worker";
-import { typeScriptAdapter } from "./typescript";
+import { invokeScannerWorker, type ScannerWorkerRun } from "./scanner-worker";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
+import { typeScriptAdapter } from "./typescript";
 
 /**
  * A configured code language entry. Every entry is an object; shorthand pattern
@@ -31,11 +24,7 @@ export type CodeIncludeEntry = {
 export type CodeInclude = Partial<Record<CodeLanguage, CodeIncludeEntry>>;
 
 /** Fixed, ordered set of supported code language IDs. */
-export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = [
-  "typescript",
-  "swift",
-  "dart",
-];
+export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = ["typescript", "swift", "dart"];
 
 export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
@@ -46,9 +35,7 @@ const ADAPTERS: Partial<Record<CodeLanguage, CodeLanguageAdapter>> = {
   swift: createScannerWorkerAdapter("swift", (_projectRoot) =>
     resolveScannerWorkerCommand("swift"),
   ),
-  dart: createScannerWorkerAdapter("dart", (_projectRoot) =>
-    resolveScannerWorkerCommand("dart"),
-  ),
+  dart: createScannerWorkerAdapter("dart", (_projectRoot) => resolveScannerWorkerCommand("dart")),
 };
 
 const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
@@ -84,12 +71,7 @@ export function resolveScannerWorkerCommand(
 ): ScannerWorkerCommandResolution {
   const platformKey = options.platformKey ?? scannerPlatformKey();
   const platformSupported = isSupportedScannerPlatformKey(platformKey);
-  const candidates = scannerExecutableCandidates(
-    language,
-    platformKey,
-    platformSupported,
-    options,
-  );
+  const candidates = scannerExecutableCandidates(language, platformKey, platformSupported, options);
   const found = candidates.find((candidate) => existsSync(candidate));
   if (found !== undefined) {
     return { ok: true, command: [found] };
@@ -115,9 +97,7 @@ export function resolveScannerWorkerCommand(
 }
 
 /** The registered adapter for a language, or `undefined` when none exists yet. */
-export function getCodeAdapter(
-  language: CodeLanguage,
-): CodeLanguageAdapter | undefined {
+export function getCodeAdapter(language: CodeLanguage): CodeLanguageAdapter | undefined {
   return ADAPTERS[language];
 }
 
@@ -142,9 +122,7 @@ export function createScannerWorkerAdapter(
       if (!commandResolution.ok) {
         return {
           ...emptyScan(language, filePath),
-          diagnostics: [
-            fileScopedScannerDiagnostic(commandResolution.diagnostic, filePath),
-          ],
+          diagnostics: [fileScopedScannerDiagnostic(commandResolution.diagnostic, filePath)],
         };
       }
       const result = invokeScannerWorker(
@@ -217,10 +195,18 @@ export function collectCodeFiles(
       collected.push({ language, relPath });
     }
   }
-  collected.sort((left, right) =>
-    left.relPath < right.relPath ? -1 : left.relPath > right.relPath ? 1 : 0,
-  );
+  collected.sort((left, right) => comparePaths(left.relPath, right.relPath));
   return collected;
+}
+
+function comparePaths(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
 }
 
 export type CodeFileRead =
@@ -334,16 +320,12 @@ function scannerExecutableCandidates(
     return [
       join(sourceRoot, "packages/swift-scanner/.build/release", executable),
       join(sourceRoot, "packages/swift-scanner/.build/debug", executable),
-      ...(platformSupported
-        ? [join(distRoot, "bin", platformKey, executable)]
-        : []),
+      ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
     ];
   }
   return [
     join(sourceRoot, "packages/dart-scanner/bin", executable),
-    ...(platformSupported
-      ? [join(distRoot, "bin", platformKey, executable)]
-      : []),
+    ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
   ];
 }
 
@@ -384,9 +366,7 @@ function distRootPath(): string {
 }
 
 function scannerExecutableName(language: ScannerWorkerLanguage): string {
-  return language === "swift"
-    ? "speclink-swift-scanner"
-    : "speclink_dart_scanner";
+  return language === "swift" ? "speclink-swift-scanner" : "speclink_dart_scanner";
 }
 
 function scannerUnavailableDiagnostic(

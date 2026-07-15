@@ -60,7 +60,7 @@ export function normalizeChangedPaths(projectRoot: string, paths: string[]): str
 export function computeRelated(graph: LinkGraph, changedFiles: string[]): RelatedResult {
   const changedSet = new Set(changedFiles);
 
-  const sortedPaths = [...changedSet].sort((left, right) => left.localeCompare(right));
+  const sortedPaths = [...changedSet].toSorted((left, right) => left.localeCompare(right));
   const endpointsByFile = indexEndpointsByFile(graph);
 
   const files: RelatedFile[] = [];
@@ -190,7 +190,10 @@ export function formatRelatedResult(result: RelatedResult): string {
  * Render gate violations as the human-readable `docbridge related --gate`
  * report: one `changed -> counterpart` line per violation, then the summary.
  */
-export function formatGateResult(result: RelatedResult, violations: RelatedGateViolation[]): string {
+export function formatGateResult(
+  result: RelatedResult,
+  violations: RelatedGateViolation[],
+): string {
   const lines: string[] = [];
   for (const violation of violations) {
     lines.push(

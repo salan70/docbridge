@@ -167,7 +167,7 @@ private func collectDeclarations(
   return collector.declarations
 }
 
-private let SUPPORTED_VISIBILITY_KEYWORDS: Set<String> = [
+private let supportedVisibilityKeywords: Set<String> = [
   "open", "public", "internal", "fileprivate", "private",
 ]
 
@@ -338,7 +338,7 @@ private struct DeclarationCollector {
       // determine the declaration's own access level.
       if modifier.detail != nil { continue }
       let name = modifier.name.text
-      if SUPPORTED_VISIBILITY_KEYWORDS.contains(name) {
+      if supportedVisibilityKeywords.contains(name) {
         return name
       }
     }
@@ -347,7 +347,9 @@ private struct DeclarationCollector {
 
   /// Extract `@doc` targets from the leading doc comments (`///` and `/** */`)
   /// of a node, with source positions for each target.
-  private func docTargets(for node: some SyntaxProtocol) -> (targets: [DocTarget], startOffset: Int?) {
+  private func docTargets(for node: some SyntaxProtocol) -> (
+    targets: [DocTarget], startOffset: Int?
+  ) {
     var targets: [DocTarget] = []
     var startOffset: Int? = nil
     var offset = node.position.utf8Offset
@@ -392,11 +394,17 @@ private struct DocMatch {
   let byteOffset: Int
 }
 
-private let DOC_REGEX = try! NSRegularExpression(pattern: #"@doc\s+(\S+)"#)
+private let docRegex: NSRegularExpression = {
+  do {
+    return try NSRegularExpression(pattern: #"@doc\s+(\S+)"#)
+  } catch {
+    preconditionFailure("Invalid static @doc regular expression: \(error)")
+  }
+}()
 
 private func docMatches(in text: String) -> [DocMatch] {
   let ns = text as NSString
-  let matches = DOC_REGEX.matches(in: text, range: NSRange(location: 0, length: ns.length))
+  let matches = docRegex.matches(in: text, range: NSRange(location: 0, length: ns.length))
   return matches.compactMap { match in
     let group = match.range(at: 1)
     guard group.location != NSNotFound else { return nil }
@@ -496,7 +504,8 @@ private func makeSymbol(filePath: String, declaration: Declaration) -> CodeSymbo
     symbolName: declaration.symbolName,
     canonicalId: declaration.canonicalId,
     endpoint: "\(filePath)#\(declaration.canonicalId)",
-    location: SourceLocation(filePath: filePath, line: declaration.line, column: declaration.column),
+    location: SourceLocation(
+      filePath: filePath, line: declaration.line, column: declaration.column),
     nameRange: declaration.nameRange,
     declarationRange: declaration.declarationRange,
     signatureRange: declaration.signatureRange

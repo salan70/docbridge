@@ -8,8 +8,8 @@ import {
 } from "../core/code-language";
 import { loadConfig } from "../core/config";
 import { sortDiagnostics } from "../core/diagnostics";
-import { buildLinkGraph, type LinkGraph } from "../core/graph";
 import { collectFiles, matchGlob, readManagedFile } from "../core/glob";
+import { buildLinkGraph, type LinkGraph } from "../core/graph";
 import { scanMarkdown, type MarkdownScanResult } from "../core/markdown";
 import { resolveLinks } from "../core/resolver";
 import type { DocBridgeDiagnostic } from "../core/types";
@@ -139,9 +139,7 @@ export class Project {
         }
       }
     }
-    return all.sort((left, right) =>
-      left.relPath < right.relPath ? -1 : left.relPath > right.relPath ? 1 : 0,
-    );
+    return all.toSorted((left, right) => comparePaths(left.relPath, right.relPath));
   }
 
   /** Resolve content for a code path: buffer overlay first, then on-disk. */
@@ -170,14 +168,11 @@ export class Project {
         paths.add(relPath);
       }
     }
-    return [...paths].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+    return [...paths].toSorted(comparePaths);
   }
 
   /** Resolve content for a path: buffer overlay first, then on-disk. */
-  private contentFor(
-    relPath: string,
-    scanDiagnostics: DocBridgeDiagnostic[],
-  ): string | undefined {
+  private contentFor(relPath: string, scanDiagnostics: DocBridgeDiagnostic[]): string | undefined {
     const overlaid = this.overlay.get(relPath);
     if (overlaid !== undefined) {
       return overlaid;
@@ -189,6 +184,16 @@ export class Project {
     }
     return read.content;
   }
+}
+
+function comparePaths(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
 }
 
 function emptyState(): ProjectState {

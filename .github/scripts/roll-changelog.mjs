@@ -13,8 +13,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const version = process.env.VERSION;
 const repository = process.env.REPOSITORY;
-if (!version) throw new Error("VERSION env var is required");
-if (!repository) throw new Error("REPOSITORY env var is required");
+if (!version) {
+  throw new Error("VERSION env var is required");
+}
+if (!repository) {
+  throw new Error("REPOSITORY env var is required");
+}
 
 const path = "CHANGELOG.md";
 const original = readFileSync(path, "utf8");
@@ -40,7 +44,10 @@ for (let i = unreleasedStart + 1; i < lines.length; i++) {
   }
 }
 
-const body = lines.slice(unreleasedStart + 1, bodyEnd).join("\n").trim();
+const body = lines
+  .slice(unreleasedStart + 1, bodyEnd)
+  .join("\n")
+  .trim();
 if (body === "") {
   throw new Error(
     "'## [Unreleased]' has no entries. Document user-facing changes before preparing a release.",
@@ -50,14 +57,9 @@ if (body === "") {
 const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
 
 // Rebuild the heading region: empty Unreleased, then the dated release section.
-const newHeadingBlock = [
-  "## [Unreleased]",
-  "",
-  `## [${version}] - ${today}`,
-  "",
-  body,
-  "",
-].join("\n");
+const newHeadingBlock = ["## [Unreleased]", "", `## [${version}] - ${today}`, "", body, ""].join(
+  "\n",
+);
 
 const before = lines.slice(0, unreleasedStart);
 const after = lines.slice(bodyEnd);
@@ -73,14 +75,18 @@ const versionRef = `[${version}]: ${base}/releases/tag/v${version}`;
 const firstRefIndex = rebuilt.findIndex(isLinkRef);
 if (firstRefIndex === -1) {
   // No link-reference block yet; append one separated by a blank line.
-  if (rebuilt[rebuilt.length - 1] !== "") rebuilt.push("");
+  if (rebuilt[rebuilt.length - 1] !== "") {
+    rebuilt.push("");
+  }
   rebuilt.push(unreleasedRef, versionRef);
 } else {
   rebuilt.splice(firstRefIndex, 0, unreleasedRef, versionRef);
 }
 
 let output = rebuilt.join("\n");
-if (!output.endsWith("\n")) output += "\n";
+if (!output.endsWith("\n")) {
+  output += "\n";
+}
 writeFileSync(path, output);
 
 writeFileSync("release-notes.md", `${body}\n`);

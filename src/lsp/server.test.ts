@@ -1,7 +1,7 @@
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-
-import { describe, expect, test } from "bun:test";
 
 import { Project } from "./project";
 import { Server, type SendFn } from "./server";
@@ -10,6 +10,15 @@ const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/typescript");
 const ROOT_URI = pathToFileURL(EXAMPLE_ROOT).href;
 const CODE_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "src/auth/login.ts")).href;
 const DOC_URI = pathToFileURL(resolve(EXAMPLE_ROOT, "docs/auth.md")).href;
+const DOC_LINES = readFileSync(resolve(EXAMPLE_ROOT, "docs/auth.md"), "utf8").split("\n");
+const DOC_HEADING_LINE = DOC_LINES.findIndex((line) => line.includes("Login Spec"));
+if (DOC_HEADING_LINE === -1) {
+  throw new Error("Expected the Login Spec heading in the TypeScript example");
+}
+const DOC_HEADING_POSITION = {
+  line: DOC_HEADING_LINE,
+  character: (DOC_LINES[DOC_HEADING_LINE]?.indexOf("Login Spec") ?? 0) + 2,
+};
 
 type Outgoing = {
   jsonrpc?: string;
@@ -37,7 +46,10 @@ function init(server: Server): void {
   server.handle({ method: "initialized", params: {} });
 }
 
-const tick = () => new Promise((done) => setTimeout(done, 10));
+const tick = () =>
+  new Promise<void>((done) => {
+    setTimeout(done, 10);
+  });
 
 describe(Server, () => {
   test("initialize returns the declared capabilities", () => {
@@ -135,11 +147,10 @@ describe(Server, () => {
   test("definition from a heading returns the code declaration location", () => {
     const { server, sent } = harness();
     init(server);
-    // `Login Spec` heading text on line 2 (0-based 1), character 5.
     server.handle({
       method: "textDocument/definition",
       id: 6,
-      params: { textDocument: { uri: DOC_URI }, position: { line: 1, character: 5 } },
+      params: { textDocument: { uri: DOC_URI }, position: DOC_HEADING_POSITION },
     });
 
     const result = sent.find((m) => m.id === 6)?.result as Array<{ uri: string }> | null;
@@ -154,7 +165,7 @@ describe(Server, () => {
       id: 7,
       params: {
         textDocument: { uri: DOC_URI },
-        position: { line: 1, character: 5 },
+        position: DOC_HEADING_POSITION,
         context: { includeDeclaration: false },
       },
     });
@@ -188,7 +199,7 @@ describe(Server, () => {
     server.handle({
       method: "textDocument/definition",
       id: 11,
-      params: { textDocument: { uri: DOC_URI }, position: { line: 1, character: 5 } },
+      params: { textDocument: { uri: DOC_URI }, position: DOC_HEADING_POSITION },
     });
     // Neither read-only request changed content, so no re-resolution happens.
     expect(resolveCount).toBe(1);

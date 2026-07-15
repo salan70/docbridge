@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { collectFiles } from "./glob";
 import type { CodeLanguage } from "./types";
@@ -140,7 +140,7 @@ export function discoverDocsScope(projectRoot: string): DocsScopeDiscovery {
       score: scoreDocsDirectory(directory),
       fileCount: files.length,
     }))
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       right.score !== left.score
         ? right.score - left.score
         : left.directory.localeCompare(right.directory),
@@ -313,7 +313,7 @@ function collectMarkdownFiles(projectRoot: string, currentDir = "."): string[] {
     }
   }
 
-  return files.sort();
+  return files.toSorted();
 }
 
 function isEligibleDocsFile(filePath: string): boolean {
@@ -336,7 +336,10 @@ function scoreDocsDirectory(directory: string): number {
 
   for (let index = 0; index < segments.length; index += 1) {
     const tail = segments.slice(index).join("/");
-    if (HIGH_CONFIDENCE_DIR_NAMES.has(tail) || HIGH_CONFIDENCE_DIR_NAMES.has(segments[index] ?? "")) {
+    if (
+      HIGH_CONFIDENCE_DIR_NAMES.has(tail) ||
+      HIGH_CONFIDENCE_DIR_NAMES.has(segments[index] ?? "")
+    ) {
       score = Math.max(score, 2);
     } else if (
       MEDIUM_CONFIDENCE_DIR_NAMES.has(tail) ||
@@ -355,11 +358,7 @@ function activeCodePatterns(projectRoot: string, language: CodeLanguage): string
   );
 }
 
-function countCodeFiles(
-  projectRoot: string,
-  patterns: string[],
-  language: CodeLanguage,
-): number {
+function countCodeFiles(projectRoot: string, patterns: string[], language: CodeLanguage): number {
   const seen = new Set<string>();
   for (const pattern of patterns) {
     for (const filePath of collectFiles(projectRoot, [pattern])) {
@@ -391,11 +390,7 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
   }
 
   if (language === "swift") {
-    if (
-      lower.endsWith("tests.swift") ||
-      segments.includes("Tests") ||
-      segments.includes("tests")
-    ) {
+    if (lower.endsWith("tests.swift") || segments.includes("Tests") || segments.includes("tests")) {
       return true;
     }
   }
