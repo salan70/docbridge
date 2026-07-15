@@ -34,6 +34,7 @@ Tests are colocated with the modules they cover as `*.test.ts` files under
 Use the repo-native commands in `justfile`:
 
 - `just setup`
+- `just doctor`
 - `just format`
 - `just format-check`
 - `just lint`

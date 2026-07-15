@@ -4,10 +4,15 @@
 
 ## Test plan
 
-<!-- Commands run and their result, e.g. just check / just test / just build. -->
+<!-- Commands run and their result, e.g. just verify / just build. -->
 
-- [ ] `just check`
-- [ ] `just test`
+- [ ] `just verify`
+- [ ] `just build`
+- [ ] Area-specific checks, when applicable
+
+## Linked counterparts
+
+<!-- Run just related-gate. Update each counterpart or explain why it is unchanged. -->
 
 ## Notes
 

@@ -3,11 +3,20 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 default:
     just --list
 
-# Install locked dependencies and configure this repository's Git hooks.
+# Install locked dependencies, build test scanner workers, and configure Git hooks.
 setup:
     bun install --frozen-lockfile
-    cd packages/dart-scanner && dart pub get --enforce-lockfile
+    just build-test-scanners
     just install-git-hooks
+
+# Print the contributor toolchain versions and validate the required Swift version.
+doctor:
+    bun --version
+    node --version
+    dart --version
+    swift --version | rg 'Swift version 6\.2\.1'
+    just --version
+    git --version
 
 # Run every formatter in write mode. This is always an explicit operation.
 format:
@@ -103,6 +112,11 @@ test:
 
 test-swift-scanner:
     swift test --package-path packages/swift-scanner
+
+# Build the debug Swift worker and compiled Dart worker required by `just test`.
+build-test-scanners:
+    swift build --package-path packages/swift-scanner
+    just build-dart-scanner
 
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release

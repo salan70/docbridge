@@ -55,7 +55,8 @@ Implementation plans live under `docs/plans/`. Each plan tracks its slices in a
 
 Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 
-- `just setup` — install locked dependencies and configure Git hooks
+- `just setup` — install dependencies, build test scanner workers, and configure Git hooks
+- `just doctor` — report tool versions and validate the required Swift version
 - `just format` — apply all repository formatters
 - `just format-check` — check formatting without modifying files
 - `just lint` — run all repository linters
