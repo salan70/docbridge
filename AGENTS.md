@@ -34,6 +34,7 @@ Tests are colocated with the modules they cover as `*.test.ts` files under
 Use the repo-native commands in `justfile`:
 
 - `just setup`
+- `just doctor`
 - `just format`
 - `just format-check`
 - `just lint`
@@ -80,6 +81,14 @@ Implementation plans live under `docs/plans/` and track their slices in a
 - The PR that lands a plan's final slice checks the last box and `git mv`-es the
   plan into `docs/plans/done/` in the same change, so the archive stays current
   without a separate sweep.
+
+## Issues
+
+The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
+When creating an issue, use the form that matches the work content and provide
+all of its fields. Non-trivial work begins only after the issue receives the
+`status: accepted` label; the author or implementer identity is not an
+exception.
 
 ## Local Guardrails
 

@@ -51,11 +51,20 @@ Implementation plans live under `docs/plans/`. Each plan tracks its slices in a
   box and `git mv`-ing the plan into `docs/plans/done/` in the same change, so
   the archive stays current without a separate sweep.
 
+## Issues
+
+The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
+When creating an issue, use the form that matches the work content and provide
+all of its fields. Non-trivial work begins only after the issue receives the
+`status: accepted` label; the author or implementer identity is not an
+exception.
+
 ## Commands
 
 Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 
-- `just setup` — install locked dependencies and configure Git hooks
+- `just setup` — install dependencies, build test scanner workers, and configure Git hooks
+- `just doctor` — report tool versions and validate the required Swift version
 - `just format` — apply all repository formatters
 - `just format-check` — check formatting without modifying files
 - `just lint` — run all repository linters

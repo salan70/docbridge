@@ -32,8 +32,8 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 - `just test` includes TypeScript, Swift, and Dart end-to-end integration
   tests. The Swift and Dart integration tests spawn the built worker binaries,
-  so build them first when running from a source checkout:
-  `just build-swift-scanner` and `just build-dart-scanner`.
+  which `just setup` builds for a fresh source checkout. Rebuild both after
+  changing worker code with `just build-test-scanners`.
 - `just test-swift-scanner` runs the SwiftPM test suite for
   `packages/swift-scanner`. It requires a Swift 6 toolchain on `PATH`; the Nix
   dev shell intentionally does not provide Swift, and CI installs it
