@@ -11,8 +11,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: ci
+  quality:
+    name: quality
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      - name: Install Swift
+        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
+        with:
+          swift-version: "6.2.1"
+
+      - name: Install dependencies
+        run: |
+          nix develop -c bun install --frozen-lockfile
+          nix develop -c dart pub get --directory packages/dart-scanner --enforce-lockfile
+
+      - name: just format-check
+        run: nix develop -c just format-check
+
+      - name: just lint
+        run: nix develop -c just lint
+
+      - name: just check
+        run: nix develop -c just check
+
+      - name: just typecheck
+        run: nix develop -c just typecheck
+
+  test-dist:
+    name: test-dist
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -29,19 +60,15 @@ jobs:
           # "Cache the Swift scanner build" key and restore-keys below. The
           # cached .build/swiftpm artifacts are compiled by this toolchain, so a
           # stale key would restore artifacts built by a different compiler.
-          swift-version: "6.2"
+          swift-version: "6.2.1"
 
       - name: Install Dart
         uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+        with:
+          sdk: "3.11.6"
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
-
-      - name: just check
-        run: nix develop -c just check
-
-      - name: just typecheck
-        run: nix develop -c just typecheck
 
       # Cache the SwiftPM build directory and dependency clones so swift-syntax
       # (the dominant compile cost) is reused across runs. The cache key is
@@ -55,9 +82,9 @@ jobs:
           path: |
             packages/swift-scanner/.build
             ~/.cache/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-swift6.2-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift6.2.1-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift6.2-
+            swiftpm-${{ runner.os }}-swift6.2.1-
 
       # The Swift integration test spawns the bundled Swift scanner binary, so
       # build it (with the setup-swift toolchain, not nix) before the suite.
@@ -75,7 +102,7 @@ jobs:
       - name: Build the Dart scanner
         run: |
           cd packages/dart-scanner
-          dart pub get
+          dart pub get --enforce-lockfile
           dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
 
       - name: Test the Dart scanner
@@ -102,6 +129,22 @@ jobs:
         run: |
           tarball="$(npm pack)"
           nix develop -c just pack-smoke "$tarball"
+
+  # Preserve the branch-protection check name while the expensive work runs in
+  # parallel. This job succeeds only when both required workloads succeed.
+  ci:
+    name: ci
+    if: always()
+    needs: [quality, test-dist]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all CI workloads
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          TEST_DIST_RESULT: ${{ needs.test-dist.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$TEST_DIST_RESULT" = success
 
   # Informational, never required for merge: runs `docbridge related --gate`
   # over the PR's whole change set and maintains one sticky comment so the

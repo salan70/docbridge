@@ -20,10 +20,13 @@ cd "$repo_root"
 
 # How to invoke DocBridge. Override with e.g.
 #   DOCBRIDGE_CMD="bun run /path/to/docbridge/src/cli/index.ts"
-# Intentionally unquoted below so a multi-word command splits into words.
-docbridge_cmd=(${DOCBRIDGE_CMD:-docbridge})
+# Split the override into an argv array without pathname expansion.
+read -r -a docbridge_cmd <<<"${DOCBRIDGE_CMD:-docbridge}"
 
-changed_files="$({ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
+changed_files="$({
+  git diff --name-only HEAD
+  git ls-files --others --exclude-standard
+} | sort -u)"
 if [[ -z "$changed_files" ]]; then
   exit 0
 fi
@@ -32,10 +35,10 @@ violations_log="$(mktemp)"
 context_log="$(mktemp)"
 trap 'rm -f "$violations_log" "$context_log"' EXIT
 
-printf '%s\n' "$changed_files" |
-  "${docbridge_cmd[@]}" related --stdin --gate --json >"$violations_log" 2>/dev/null || true
-printf '%s\n' "$changed_files" |
-  "${docbridge_cmd[@]}" context --stdin --json >"$context_log" 2>/dev/null || true
+printf '%s\n' "$changed_files" \
+  | "${docbridge_cmd[@]}" related --stdin --gate --json >"$violations_log" 2>/dev/null || true
+printf '%s\n' "$changed_files" \
+  | "${docbridge_cmd[@]}" context --stdin --json >"$context_log" 2>/dev/null || true
 
 VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
   const parse = async (path) => {
@@ -50,18 +53,18 @@ VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
     process.exit(0);
   }
   const lines = violations.map(
-    (v) => `${v.changedEndpoint} -> ${v.counterpartEndpoint} (counterpart not in change set)`,
+    (v) => v.changedEndpoint + " -> " + v.counterpartEndpoint + " (counterpart not in change set)",
   );
   const contexts = (await parse(process.env.CONTEXT_LOG))?.contexts ?? [];
   const flagged = new Set(violations.map((v) => v.counterpartEndpoint));
   const blocks = contexts.filter((c) => flagged.has(c.endpoint)).map((c) => {
-    const header = `${c.endpoint} (linked from ${c.linkedFrom.join(", ")})`;
+    const header = c.endpoint + " (linked from " + c.linkedFrom.join(", ") + ")";
     if (c.kind !== "code") {
-      return `${header}\n\n${c.content}`;
+      return header + "\n\n" + c.content;
     }
-    const longestRun = Math.max(2, ...(c.content.match(/`+/g) ?? []).map((r) => r.length));
-    const fence = "`".repeat(longestRun + 1);
-    return `${header}\n\n${fence}ts\n${c.content}\n${fence}`;
+    const longestRun = Math.max(2, ...(c.content.match(/\u0060+/g) ?? []).map((r) => r.length));
+    const fence = "\u0060".repeat(longestRun + 1);
+    return header + "\n\n" + fence + "ts\n" + c.content + "\n" + fence;
   });
   const parts = [
     [
@@ -74,7 +77,7 @@ VIOLATIONS_LOG="$violations_log" CONTEXT_LOG="$context_log" bun -e '
   ];
   if (blocks.length > 0) {
     parts.push(
-      ["Flagged counterpart content (via `docbridge context`):", "", blocks.join("\n\n---\n\n")].join("\n"),
+      ["Flagged counterpart content (via \u0060docbridge context\u0060):", "", blocks.join("\n\n---\n\n")].join("\n"),
     );
   }
   console.log(JSON.stringify({

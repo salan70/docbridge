@@ -84,6 +84,7 @@ Add the backlink in the Markdown file:
 
 ```md
 <!-- @code src/auth/login.ts#login -->
+
 ## Login Spec
 
 Login flow specification.
@@ -228,6 +229,7 @@ public struct AuthService {
 
 ```md
 <!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+
 ## Login Spec
 ```
 
@@ -366,6 +368,7 @@ The Nix development shell provides the tools used by this repository:
 - just
 - Git
 - Dart SDK
+- repository formatters and linters
 
 If you do not use Nix, install Bun and just locally before running the project
 commands. Swift scanner development also requires a Swift 6 toolchain on
@@ -385,25 +388,37 @@ Or enter the Nix development shell manually:
 nix develop
 ```
 
-Install dependencies:
+Install locked dependencies and configure repository Git hooks:
 
 ```sh
-bun install --frozen-lockfile
-```
-
-Install repository Git hooks:
-
-```sh
-just install-git-hooks
+just setup
 ```
 
 If `just` is not on `PATH` yet, run:
 
 ```sh
-nix develop -c just install-git-hooks
+nix develop -c just setup
 ```
 
-The pre-commit hook runs `just check` and `just test`.
+The pre-commit hook runs the read-only `just verify` gate. It never modifies
+files automatically.
+
+### Formatting and linting
+
+Apply deterministic formatting and Oxlint's safe fixes explicitly:
+
+```sh
+just format
+just lint-fix
+```
+
+Check the whole repository without modifying files:
+
+```sh
+just format-check
+just lint
+just verify
+```
 
 ### Common Tasks
 
@@ -411,6 +426,11 @@ Run common tasks with `just`:
 
 ```sh
 just --list
+just format
+just format-check
+just lint
+just lint-fix
+just verify
 just check
 just check-example
 just check-swift-example
@@ -425,7 +445,9 @@ just build
 just verify-dist
 ```
 
-`just check`, `just test`, and `just build` are the default local and CI gates.
+`just verify` is the common local, pre-commit, and agent Stop-hook gate. CI runs
+its format, lint, check, and type-check components in a `quality` job while the
+scanner, test, build, and distribution checks run in parallel in `test-dist`.
 `just test` includes TypeScript, Swift, and Dart end-to-end integration tests;
 the Swift and Dart scanner binaries must be built before those integration
 tests can spawn them. Scanner-native tests are mandatory in CI and are useful

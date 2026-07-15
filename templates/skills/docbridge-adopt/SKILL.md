@@ -52,11 +52,11 @@ repo recipe such as `just check`, or
    - After scope is confirmed and `docbridge.config.json` exists or has been
      intentionally left unchanged, install the rest of the distributable
      DocBridge skills for the same agent target.
-   - Prefer the project-native DocBridge invocation. For example, run
-     `docbridge init --yes --agent-target codex`, `docbridge init --yes
-     --agent-target claude`, or `docbridge init --yes --agent-target both`
-     from the project root. Use the target that matches the existing
-     `.agents/` and/or `.claude/` setup.
+   - Prefer the project-native DocBridge invocation. From the project root, run
+     `docbridge init --yes --agent-target codex` for Codex,
+     `docbridge init --yes --agent-target claude` for Claude Code, or
+     `docbridge init --yes --agent-target both` for both. Use the target that
+     matches the existing `.agents/` and/or `.claude/` setup.
    - This command should leave an existing `docbridge.config.json` unchanged
      and copy any missing `docbridge-annotate`, `docbridge-link`,
      `docbridge-review`, and `docbridge-sync` skill directories. Do not use

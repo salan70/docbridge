@@ -7,7 +7,7 @@ repo_root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
 cd "$repo_root"
 
 run_just() {
-  if command -v just >/dev/null 2>&1; then
+  if [[ -n "${IN_NIX_SHELL:-}" ]]; then
     just "$@"
   else
     nix develop -c just "$@"
@@ -17,7 +17,7 @@ run_just() {
 # bun handles all JSON parsing and serialization; fall back to the dev shell
 # like run_just so a missing PATH entry cannot silently kill the hook.
 run_bun() {
-  if command -v bun >/dev/null 2>&1; then
+  if [[ -n "${IN_NIX_SHELL:-}" ]]; then
     bun "$@"
   else
     nix develop -c bun "$@"
@@ -53,13 +53,7 @@ run_final_check() {
   run_just "$name" || return $?
 }
 
-{
-  run_final_check check || status=$?
-  echo
-  run_final_check typecheck || status=$?
-  echo
-  run_final_check test || status=$?
-} >"$log_file" 2>&1
+run_final_check verify >"$log_file" 2>&1 || status=$?
 
 if [[ "$status" -ne 0 ]]; then
   if [[ "$stop_hook_active" == "true" ]]; then
@@ -71,7 +65,7 @@ if [[ "$status" -ne 0 ]]; then
       const tail = log.split("\n").slice(-160).join("\n");
       console.log(JSON.stringify({
         systemMessage: [
-          "DocBridge Stop hook: `just check` / `just typecheck` / `just test` are STILL FAILING on this continuation turn.",
+          "DocBridge Stop hook: \u0060just verify\u0060 is STILL FAILING on this continuation turn.",
           "",
           tail,
           "",
@@ -90,7 +84,7 @@ if [[ "$status" -ne 0 ]]; then
           "",
           tail,
           "",
-          "Read the failure, fix it if it is caused by this change, then rerun `just check`, `just typecheck`, and `just test` before the final response. If the failure cannot be fixed in this turn, report it explicitly."
+          "Read the failure, fix it if it is caused by this change, then rerun \u0060just verify\u0060 before the final response. If the failure cannot be fixed in this turn, report it explicitly."
         ].join("\n")
       }));
     '
@@ -102,7 +96,7 @@ rm -f "$log_file"
 
 pass_note=""
 if [[ "$stop_hook_active" == "true" ]]; then
-  pass_note="DocBridge Stop hook: \`just check\`, \`just typecheck\`, and \`just test\` passed on this continuation turn."
+  pass_note="DocBridge Stop hook: \`just verify\` passed on this continuation turn."
 fi
 
 gate_log="$(mktemp)"
@@ -121,11 +115,14 @@ fi
 violations_log="$(mktemp)"
 context_log="$(mktemp)"
 if [[ "$gate_status" -ne 0 ]]; then
-  changed_files="$({ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
-  printf '%s\n' "$changed_files" |
-    run_bun run src/cli/index.ts related --stdin --gate --json >"$violations_log" 2>/dev/null || true
-  printf '%s\n' "$changed_files" |
-    run_bun run src/cli/index.ts context --stdin --json >"$context_log" 2>/dev/null || true
+  changed_files="$({
+    git diff --name-only HEAD
+    git ls-files --others --exclude-standard
+  } | sort -u)"
+  printf '%s\n' "$changed_files" \
+    | run_bun run src/cli/index.ts related --stdin --gate --json >"$violations_log" 2>/dev/null || true
+  printf '%s\n' "$changed_files" \
+    | run_bun run src/cli/index.ts context --stdin --json >"$context_log" 2>/dev/null || true
 fi
 
 # The related-gate result is informational, never blocking: judgment about
@@ -161,17 +158,17 @@ GATE_LOG="$gate_log" GATE_STATUS="$gate_status" PASS_NOTE="$pass_note" \
     const contexts = (await parse(process.env.CONTEXT_LOG))?.contexts ?? [];
     const flagged = new Set(violations.map((v) => v.counterpartEndpoint));
     const blocks = contexts.filter((c) => flagged.has(c.endpoint)).map((c) => {
-      const header = `${c.endpoint} (linked from ${c.linkedFrom.join(", ")})`;
+      const header = c.endpoint + " (linked from " + c.linkedFrom.join(", ") + ")";
       if (c.kind !== "code") {
-        return `${header}\n\n${c.content}`;
+        return header + "\n\n" + c.content;
       }
-      const longestRun = Math.max(2, ...(c.content.match(/`+/g) ?? []).map((r) => r.length));
-      const fence = "`".repeat(longestRun + 1);
-      return `${header}\n\n${fence}ts\n${c.content}\n${fence}`;
+      const longestRun = Math.max(2, ...(c.content.match(/\u0060+/g) ?? []).map((r) => r.length));
+      const fence = "\u0060".repeat(longestRun + 1);
+      return header + "\n\n" + fence + "ts\n" + c.content + "\n" + fence;
     });
     if (blocks.length > 0) {
       parts.push([
-        "Flagged counterpart content (via `docbridge context`):",
+        "Flagged counterpart content (via \u0060docbridge context\u0060):",
         "",
         blocks.join("\n\n---\n\n")
       ].join("\n"));

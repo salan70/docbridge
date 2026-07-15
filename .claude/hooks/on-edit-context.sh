@@ -9,7 +9,7 @@ cd "$repo_root"
 # bun handles all JSON parsing and serialization; fall back to the dev shell
 # so a missing PATH entry cannot silently kill the hook.
 run_bun() {
-  if command -v bun >/dev/null 2>&1; then
+  if [[ -n "${IN_NIX_SHELL:-}" ]]; then
     bun "$@"
   else
     nix develop -c bun "$@"
@@ -53,7 +53,7 @@ FILE_PATH="$file_path" CONTEXT_OUT="$context_out" run_bun -e '
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext: [
-        `DocBridge: linked counterpart content for ${process.env.FILE_PATH} (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:`,
+        "DocBridge: linked counterpart content for " + process.env.FILE_PATH + " (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:",
         "",
         process.env.CONTEXT_OUT,
       ].join("\n"),
