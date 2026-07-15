@@ -3,6 +3,70 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 default:
     just --list
 
+# Install locked dependencies and configure this repository's Git hooks.
+setup:
+    bun install --frozen-lockfile
+    cd packages/dart-scanner && dart pub get --enforce-lockfile
+    just install-git-hooks
+
+# Run every formatter in write mode. This is always an explicit operation.
+format:
+    bun run oxfmt .
+    swift format format --configuration .swift-format --in-place --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
+    dart format packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
+    git ls-files -z '*.sh' | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
+    nixfmt flake.nix
+
+# Check formatting without modifying the worktree.
+format-check: format-check-ox format-check-swift format-check-dart format-check-shell format-check-nix
+
+format-check-ox:
+    bun run oxfmt --check .
+
+format-check-swift:
+    swift --version | rg 'Swift version 6\.2\.1'
+    swift format lint --configuration .swift-format --strict --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
+
+format-check-dart:
+    dart format --output=none --set-exit-if-changed packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
+
+format-check-shell:
+    git ls-files -z '*.sh' | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
+
+format-check-nix:
+    nixfmt --check flake.nix
+
+# Run every linter over the whole repository.
+lint: lint-ox lint-markdown lint-swift lint-dart lint-shell lint-nix lint-actions
+
+lint-ox:
+    bun run oxlint . --deny-warnings
+
+lint-markdown:
+    rumdl check .
+
+lint-swift: format-check-swift
+
+lint-dart:
+    cd packages/dart-scanner && dart analyze --fatal-infos --fatal-warnings
+
+lint-shell:
+    git ls-files -z '*.sh' | xargs -0 shellcheck --severity=style
+
+lint-nix:
+    statix check flake.nix
+    deadnix --fail flake.nix
+
+lint-actions:
+    actionlint
+
+# Apply only Oxlint's safe fixes; suggestions and dangerous fixes stay opt-in.
+lint-fix:
+    bun run oxlint . --fix --deny-warnings
+
+# Offline, read-only common gate for local hooks and AI-agent Stop hooks.
+verify: format-check lint check typecheck test
+
 check:
     bun run src/cli/index.ts check
 
@@ -44,15 +108,15 @@ build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
 
 test-dart-scanner:
-    cd packages/dart-scanner && dart pub get && dart test
+    cd packages/dart-scanner && dart pub get --enforce-lockfile && dart test
 
 build-dart-scanner:
-    cd packages/dart-scanner && dart pub get && dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
+    cd packages/dart-scanner && dart pub get --enforce-lockfile && dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.
 typecheck:
-    bunx tsc --noEmit
+    bun run tsc --noEmit
 
 build:
     rm -rf dist

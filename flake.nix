@@ -5,7 +5,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { nixpkgs, ... }:
+  outputs =
+    { nixpkgs, ... }:
     let
       supportedSystems = [
         "aarch64-darwin"
@@ -14,9 +15,8 @@
         "x86_64-linux"
       ];
 
-      forAllSystems = function:
-        nixpkgs.lib.genAttrs supportedSystems
-          (system: function nixpkgs.legacyPackages.${system});
+      forAllSystems =
+        function: nixpkgs.lib.genAttrs supportedSystems (system: function nixpkgs.legacyPackages.${system});
     in
     {
       devShells = forAllSystems (pkgs: {
@@ -28,18 +28,25 @@
         # leaves those variables unset so the system Swift toolchain works.
         default = pkgs.mkShellNoCC {
           packages = [
+            pkgs.actionlint
             pkgs.bun
             pkgs.dart
+            pkgs.deadnix
             pkgs.direnv
             pkgs.git
             pkgs.just
             # The npm package targets the Node.js runtime; verify-dist and
             # pack-smoke execute the built CLI with Node.
             pkgs.nodejs
+            pkgs.nixfmt
+            pkgs.rumdl
+            pkgs.shellcheck
+            pkgs.shfmt
+            pkgs.statix
           ];
         };
       });
 
-      formatter = forAllSystems (pkgs: pkgs.nixpkgs-fmt);
+      formatter = forAllSystems (pkgs: pkgs.nixfmt);
     };
 }

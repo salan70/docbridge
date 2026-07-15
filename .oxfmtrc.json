@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "embeddedLanguageFormatting": "auto",
+  "endOfLine": "lf",
+  "ignorePatterns": ["test-fixtures/diagnostics/**", ".claude/skills/**"],
+  "insertFinalNewline": true,
+  "printWidth": 100,
+  "proseWrap": "preserve",
+  "semi": true,
+  "singleQuote": false,
+  "sortImports": true,
+  "sortPackageJson": true,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "useTabs": false
+}
