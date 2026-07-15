@@ -1,48 +1,45 @@
 {
   "name": "docbridge",
   "displayName": "DocBridge",
-  "description": "Language Server support for DocBridge documentation links.",
   "version": "0.4.1",
-  "publisher": "salan70",
+  "description": "Language Server support for DocBridge documentation links.",
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "dart",
+    "documentation",
+    "language-server",
+    "lsp",
+    "markdown",
+    "specification",
+    "swift",
+    "typescript"
+  ],
+  "homepage": "https://github.com/salan70/docbridge#readme",
+  "bugs": {
+    "url": "https://github.com/salan70/docbridge/issues"
+  },
   "license": "MIT",
-  "icon": "assets/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/salan70/docbridge.git"
   },
-  "bugs": {
-    "url": "https://github.com/salan70/docbridge/issues"
-  },
-  "homepage": "https://github.com/salan70/docbridge#readme",
-  "keywords": [
-    "documentation",
-    "markdown",
-    "specification",
-    "lsp",
-    "language-server",
-    "typescript",
-    "swift",
-    "dart"
-  ],
-  "engines": {
-    "vscode": "^1.84.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Linters"
-  ],
-  "activationEvents": [
-    "workspaceContains:docbridge.config.json",
-    "onLanguage:typescript",
-    "onLanguage:typescriptreact",
-    "onLanguage:swift",
-    "onLanguage:dart",
-    "onLanguage:markdown"
-  ],
-  "extensionKind": [
-    "workspace"
-  ],
+  "publisher": "salan70",
   "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.84.0",
+    "typescript": "^5.9.0"
+  },
   "contributes": {
     "configuration": {
       "title": "DocBridge",
@@ -59,16 +56,19 @@
       }
     }
   },
-  "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.84.0",
-    "typescript": "^5.9.0"
+  "activationEvents": [
+    "onLanguage:dart",
+    "onLanguage:markdown",
+    "onLanguage:swift",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact",
+    "workspaceContains:docbridge.config.json"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "icon": "assets/icon.png",
+  "engines": {
+    "vscode": "^1.84.0"
   }
 }

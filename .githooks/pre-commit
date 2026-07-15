@@ -5,18 +5,12 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 run_just() {
-  if command -v just >/dev/null 2>&1; then
+  if [[ -n "${IN_NIX_SHELL:-}" ]]; then
     just "$@"
   else
     nix develop -c just "$@"
   fi
 }
 
-echo "Running pre-commit guard: just check"
-run_just check
-
-echo "Running pre-commit guard: just typecheck"
-run_just typecheck
-
-echo "Running pre-commit guard: just test"
-run_just test
+echo "Running pre-commit guard: just verify"
+run_just verify

@@ -71,8 +71,8 @@ shows the same filtering in ~20 lines of Bun.
 
 ## Exit-code summary
 
-| Command | `0` | `1` |
-| --- | --- | --- |
-| `docbridge check` | warnings or clean | any error diagnostic |
-| `docbridge related --gate` | no violations | at least one violation |
-| `docbridge context` | always on success | invocation/configuration errors only |
+| Command                    | `0`               | `1`                                  |
+| -------------------------- | ----------------- | ------------------------------------ |
+| `docbridge check`          | warnings or clean | any error diagnostic                 |
+| `docbridge related --gate` | no violations     | at least one violation               |
+| `docbridge context`        | always on success | invocation/configuration errors only |

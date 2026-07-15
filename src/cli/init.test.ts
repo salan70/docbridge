@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { resolvePackageRoot } from "../core/init-plan";
 import { run } from "./index";
 import {
   InitCliError,
@@ -11,7 +12,6 @@ import {
   runInitWithAgent,
   type InitPrompts,
 } from "./init";
-import { resolvePackageRoot } from "../core/init-plan";
 
 type Captured = {
   out: string;
@@ -191,11 +191,9 @@ test("run enters interactive init setup without --yes", () => {
   });
   try {
     const c = capture();
-    const code = run(
-      ["init", "--root", project, "--dry-run", "--agent-target", "codex"],
-      c.io,
-      { prompts: interactivePrompts },
-    );
+    const code = run(["init", "--root", project, "--dry-run", "--agent-target", "codex"], c.io, {
+      prompts: interactivePrompts,
+    });
 
     expect(code).toBe(0);
     expect(c.out).toContain("would create docbridge.config.json");

@@ -3,8 +3,8 @@ import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { parseLinkTarget } from "./links";
+import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import type { CheckResult, LinkAnnotation, DocBridgeDiagnostic } from "./types";
 
 export type ResolveInput = {
@@ -280,8 +280,7 @@ function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {
 
 function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean {
   return (
-    (diagnostic.code === "code_scanner_unavailable" ||
-      diagnostic.code === "code_scanner_failed") &&
+    (diagnostic.code === "code_scanner_unavailable" || diagnostic.code === "code_scanner_failed") &&
     diagnostic.language !== undefined &&
     diagnostic.target !== diagnostic.language
   );

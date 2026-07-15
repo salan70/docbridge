@@ -129,7 +129,17 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
 
   walk("");
 
-  return [...matched].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+  return [...matched].toSorted(comparePaths);
+}
+
+function comparePaths(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
 }
 
 /**
@@ -139,9 +149,7 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
 export function readManagedFile(
   projectRoot: string,
   relativePath: string,
-):
-  | { ok: true; content: string }
-  | { ok: false; diagnostic: DocBridgeDiagnostic } {
+): { ok: true; content: string } | { ok: false; diagnostic: DocBridgeDiagnostic } {
   try {
     const content = readFileSync(join(projectRoot, relativePath), "utf8");
     return { ok: true, content };

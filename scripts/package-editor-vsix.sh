@@ -25,7 +25,7 @@ cp -R "$ROOT/src" "$WORK/extension/server/src"
 mkdir -p "$WORK/extension/server/node_modules"
 cp -R "$EDITOR_DIR/node_modules/typescript" "$WORK/extension/server/node_modules/typescript"
 
-cat > "$WORK/[Content_Types].xml" <<'XML'
+cat >"$WORK/[Content_Types].xml" <<'XML'
 <?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="json" ContentType="application/json"/>
@@ -38,7 +38,7 @@ cat > "$WORK/[Content_Types].xml" <<'XML'
 </Types>
 XML
 
-cat > "$WORK/extension.vsixmanifest" <<XML
+cat >"$WORK/extension.vsixmanifest" <<XML
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">
   <Metadata>

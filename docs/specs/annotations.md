@@ -31,6 +31,7 @@ Markdown uses standalone HTML comments with `@code` attached to the next heading
 
 ```md
 <!-- @code src/cli/index.ts#runCheck -->
+
 ## Check Command
 ```
 
@@ -75,6 +76,7 @@ Markdown backlinks must use the scanner-produced canonical ID exactly:
 
 ```md
 <!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+
 ## Login Flow
 ```
 
@@ -85,6 +87,7 @@ canonical ID exactly:
 
 ```md
 <!-- @code lib/auth_service.dart#AuthService.login -->
+
 ## Login Flow
 ```
 

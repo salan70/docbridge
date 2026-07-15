@@ -70,10 +70,7 @@ export function loadConfig(projectRoot: string): LoadConfigResult {
     return resolved;
   }
 
-  const overlapDiagnostics = detectLanguageOverlap(
-    projectRoot,
-    resolved.config.include.code,
-  );
+  const overlapDiagnostics = detectLanguageOverlap(projectRoot, resolved.config.include.code);
   if (overlapDiagnostics.length === 0) {
     return resolved;
   }
@@ -139,22 +136,14 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
   for (const key of Object.keys(parsed)) {
     if (!KNOWN_TOP_LEVEL_KEYS.has(key)) {
       diagnostics.push(
-        configDiagnostic(
-          "config_unknown_key",
-          key,
-          `Unknown top-level configuration key: ${key}`,
-        ),
+        configDiagnostic("config_unknown_key", key, `Unknown top-level configuration key: ${key}`),
       );
     }
   }
 
   if ("$schema" in parsed && typeof parsed.$schema !== "string") {
     diagnostics.push(
-      configDiagnostic(
-        "config_invalid_value",
-        "$schema",
-        "`$schema` must be a string.",
-      ),
+      configDiagnostic("config_invalid_value", "$schema", "`$schema` must be a string."),
     );
   }
 
@@ -198,16 +187,13 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
  * intentionally invalid. Returns the parsed map (empty when invalid; callers
  * gate on `ok`).
  */
-function validateCodeInclude(
-  value: unknown,
-  diagnostics: DocBridgeDiagnostic[],
-): CodeInclude {
+function validateCodeInclude(value: unknown, diagnostics: DocBridgeDiagnostic[]): CodeInclude {
   if (Array.isArray(value)) {
     diagnostics.push(
       configDiagnostic(
         "config_invalid_value",
         "include.code",
-        "`include.code` must be a language-keyed object such as `{ \"typescript\": { \"patterns\": [\"src/**/*.ts\"] } }`, not an array.",
+        '`include.code` must be a language-keyed object such as `{ "typescript": { "patterns": ["src/**/*.ts"] } }`, not an array.',
       ),
     );
     return {};
@@ -384,11 +370,7 @@ function validatePatternArray(
   for (const pattern of value) {
     if (typeof pattern !== "string") {
       diagnostics.push(
-        configDiagnostic(
-          "config_invalid_value",
-          target,
-          `\`${target}\` patterns must be strings.`,
-        ),
+        configDiagnostic("config_invalid_value", target, `\`${target}\` patterns must be strings.`),
       );
       continue;
     }
@@ -407,9 +389,7 @@ function validatePatternArray(
 
     const suffixError = checkSuffix(pattern, requiredSuffix, excludeDeclarationFiles);
     if (suffixError !== undefined) {
-      diagnostics.push(
-        configDiagnostic("config_invalid_value", pattern, suffixError),
-      );
+      diagnostics.push(configDiagnostic("config_invalid_value", pattern, suffixError));
     }
   }
 }
@@ -432,10 +412,7 @@ function checkSuffix(
  * Reject any code file matched by more than one configured language. Requires
  * the filesystem, so it runs in `loadConfig` rather than `resolveConfig`.
  */
-function detectLanguageOverlap(
-  projectRoot: string,
-  code: CodeInclude,
-): DocBridgeDiagnostic[] {
+function detectLanguageOverlap(projectRoot: string, code: CodeInclude): DocBridgeDiagnostic[] {
   const diagnostics: DocBridgeDiagnostic[] = [];
   for (const [relPath, owners] of codeFileOwners(projectRoot, code)) {
     if (owners.length > 1) {

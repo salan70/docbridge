@@ -28,10 +28,7 @@ import { readManagedFile } from "./glob";
 import { check } from "./resolver";
 import type { ScannerWorkerProcessResult } from "./scanner-worker";
 
-function withProject(
-  files: Record<string, string>,
-  run: (root: string) => void,
-): void {
+function withProject(files: Record<string, string>, run: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-lang-"));
   try {
     for (const [relPath, content] of Object.entries(files)) {
@@ -59,31 +56,24 @@ test("TypeScript has an in-process adapter and Swift/Dart have worker-backed ada
 });
 
 test("resolveScannerWorkerCommand selects the dist scanner for a supported platform", () => {
-  withProject(
-    { "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" },
-    (root) => {
-      const scannerPath = join(
-        root,
-        "dist/bin/darwin-arm64/speclink-swift-scanner",
-      );
-      chmodSync(scannerPath, 0o755);
+  withProject({ "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/darwin-arm64/speclink-swift-scanner");
+    chmodSync(scannerPath, 0o755);
 
-      const result = resolveScannerWorkerCommand("swift", {
-        platformKey: "darwin-arm64",
-        sourceRoot: join(root, "missing-source"),
-        distRoot: join(root, "dist"),
-      });
+    const result = resolveScannerWorkerCommand("swift", {
+      platformKey: "darwin-arm64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
 
-      expect(result).toEqual({ ok: true, command: [scannerPath] });
-    },
-  );
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+  });
 });
 
 test("resolveScannerWorkerCommand selects source scanners on unsupported dist platforms", () => {
   withProject(
     {
-      "packages/swift-scanner/.build/release/speclink-swift-scanner":
-        "#!/bin/sh\n",
+      "packages/swift-scanner/.build/release/speclink-swift-scanner": "#!/bin/sh\n",
     },
     (root) => {
       const scannerPath = join(
@@ -115,9 +105,7 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
     const shim = join(binDir, "docbridge");
     symlinkSync(relative(binDir, realCli), shim);
 
-    const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(
-      pathToFileURL(shim).href,
-    );
+    const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(pathToFileURL(shim).href);
 
     // Compare against the canonical root: realpath also normalizes symlinks in
     // the temp path itself (e.g. macOS /var -> /private/var).
@@ -161,11 +149,8 @@ test("scanCodeFiles reports scanner resolution diagnostics without starting a wo
     );
     try {
       const include: CodeInclude = { dart: { patterns: ["lib/**/*.dart"] } };
-      const result = scanCodeFiles(
-        root,
-        collectCodeFiles(root, include),
-        include,
-        (relPath) => readManagedFile(root, relPath),
+      const result = scanCodeFiles(root, collectCodeFiles(root, include), include, (relPath) =>
+        readManagedFile(root, relPath),
       );
 
       expect(result.diagnostics).toEqual([
@@ -264,18 +249,13 @@ test("scanCodeFiles dispatches configured non-TypeScript files to a worker adapt
     );
     try {
       const include: CodeInclude = { swift: { patterns: ["Sources/**/*.swift"] } };
-      const result = scanCodeFiles(
-        root,
-        collectCodeFiles(root, include),
-        include,
-        (relPath) => readManagedFile(root, relPath),
+      const result = scanCodeFiles(root, collectCodeFiles(root, include), include, (relPath) =>
+        readManagedFile(root, relPath),
       );
       expect(result.diagnostics).toEqual([]);
       expect(result.codeFiles).toHaveLength(1);
       expect(result.codeFiles[0]?.language).toBe("swift");
-      expect(result.codeFiles[0]?.symbols[0]?.endpoint).toBe(
-        "Sources/Auth.swift#AuthService",
-      );
+      expect(result.codeFiles[0]?.symbols[0]?.endpoint).toBe("Sources/Auth.swift#AuthService");
     } finally {
       restore();
     }

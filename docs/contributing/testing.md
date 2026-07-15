@@ -20,8 +20,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 - `just typecheck` runs `tsc --noEmit` over the whole project. `bun build`
   strips types without checking them, so this is the only gate that catches
-  type errors. It runs in CI, in the `pre-commit` hook, and in the agent `Stop`
-  hook alongside `just check` and `just test`.
+  type errors. `just verify` composes it with format checks, lint, `just check`,
+  and `just test` for pre-commit and agent Stop hooks; CI exposes the same
+  checks as separate steps for diagnosis.
 - The TypeScript toolchain is pinned through `bun.lock` (`typescript`,
   `@types/bun`, and the transitive `@types/node`). Run installs with
   `bun install --frozen-lockfile` so every machine resolves the same types; a

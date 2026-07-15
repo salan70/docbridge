@@ -33,7 +33,7 @@
             "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/stop-verify.sh\"",
             "timeout": 300,
-            "statusMessage": "Running DocBridge final checks"
+            "statusMessage": "Running DocBridge verification"
           }
         ]
       }

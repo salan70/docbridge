@@ -15,13 +15,7 @@ import { run } from "./index";
  * reproducible from checked-in files. It is covered by unit tests instead.
  */
 
-const FIXTURES_ROOT = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "test-fixtures",
-  "diagnostics",
-);
+const FIXTURES_ROOT = join(import.meta.dir, "..", "..", "test-fixtures", "diagnostics");
 
 type ObservedDiagnostic = {
   code: DiagnosticCode;
@@ -118,9 +112,7 @@ test("fixture doc_anchor_not_found fires exactly doc_anchor_not_found", () => {
 test("fixture code_file_not_found fires exactly code_file_not_found", () => {
   const { exitCode, diagnostics } = checkFixture("code_file_not_found");
 
-  expect(diagnostics).toEqual([
-    { code: "code_file_not_found", filePath: "docs/spec.md", line: 1 },
-  ]);
+  expect(diagnostics).toEqual([{ code: "code_file_not_found", filePath: "docs/spec.md", line: 1 }]);
   expect(exitCode).toBe(1);
 });
 
@@ -165,9 +157,7 @@ test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => 
 test("fixture code_parse_error fires exactly code_parse_error", () => {
   const { exitCode, diagnostics } = checkFixture("code_parse_error");
 
-  expect(diagnostics).toEqual([
-    { code: "code_parse_error", filePath: "src/example.ts", line: 1 },
-  ]);
+  expect(diagnostics).toEqual([{ code: "code_parse_error", filePath: "src/example.ts", line: 1 }]);
   expect(exitCode).toBe(1);
 });
 
@@ -176,9 +166,7 @@ test("fixture code_parse_error fires exactly code_parse_error", () => {
 test("fixture duplicate_link fires exactly duplicate_link", () => {
   const { exitCode, diagnostics } = checkFixture("duplicate_link");
 
-  expect(diagnostics).toEqual([
-    { code: "duplicate_link", filePath: "src/example.ts", line: 5 },
-  ]);
+  expect(diagnostics).toEqual([{ code: "duplicate_link", filePath: "src/example.ts", line: 5 }]);
   expect(exitCode).toBe(0);
 });
 

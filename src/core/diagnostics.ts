@@ -3,34 +3,20 @@ import type { DocBridgeDiagnostic, Summary } from "./types";
 /**
  * @doc docs/specs/diagnostics.md#sorting-diagnostics
  */
-export function sortDiagnostics(
-  diagnostics: DocBridgeDiagnostic[],
-): DocBridgeDiagnostic[] {
-  return [...diagnostics].sort(compareDiagnostics);
+export function sortDiagnostics(diagnostics: DocBridgeDiagnostic[]): DocBridgeDiagnostic[] {
+  return [...diagnostics].toSorted(compareDiagnostics);
 }
 
-export function summarizeDiagnostics(
-  diagnostics: DocBridgeDiagnostic[],
-): Summary {
-  return diagnostics.reduce<Summary>(
-    (summary, diagnostic) => {
-      if (diagnostic.severity === "error") {
-        return {
-          ...summary,
-          errors: summary.errors + 1,
-        };
-      }
-
-      return {
-        ...summary,
-        warnings: summary.warnings + 1,
-      };
-    },
-    {
-      errors: 0,
-      warnings: 0,
-    },
-  );
+export function summarizeDiagnostics(diagnostics: DocBridgeDiagnostic[]): Summary {
+  const summary: Summary = { errors: 0, warnings: 0 };
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.severity === "error") {
+      summary.errors += 1;
+    } else {
+      summary.warnings += 1;
+    }
+  }
+  return summary;
 }
 
 export function formatDiagnostic(diagnostic: DocBridgeDiagnostic): string {
@@ -47,10 +33,7 @@ export function formatSummary(summary: Summary): string {
   return `Summary: ${summary.errors} ${pluralize("error", summary.errors)}, ${summary.warnings} ${pluralize("warning", summary.warnings)}`;
 }
 
-function compareDiagnostics(
-  left: DocBridgeDiagnostic,
-  right: DocBridgeDiagnostic,
-): number {
+function compareDiagnostics(left: DocBridgeDiagnostic, right: DocBridgeDiagnostic): number {
   const leftLocation = left.location;
   const rightLocation = right.location;
 

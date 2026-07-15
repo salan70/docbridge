@@ -46,14 +46,14 @@ import { describe, expect, test } from "bun:test";
 import { scanTypeScriptDocs } from "./scanner";
 
 describe(scanTypeScriptDocs, () => {
-	test.todo("collects @doc targets from exported functions");
-	test.todo("reports a diagnostic for malformed @doc annotations");
+  test.todo("collects @doc targets from exported functions");
+  test.todo("reports a diagnostic for malformed @doc annotations");
 
-	test("ignores files without JSDoc @doc annotations", () => {
-		const source = "export function login() { return true; }";
+  test("ignores files without JSDoc @doc annotations", () => {
+    const source = "export function login() { return true; }";
 
-		expect(scanTypeScriptDocs(source)).toEqual([]);
-	});
+    expect(scanTypeScriptDocs(source)).toEqual([]);
+  });
 });
 ```
 
@@ -64,7 +64,7 @@ Assert the thrown error directly:
 
 ```typescript
 test("rejects invalid configuration JSON", async () => {
-	await expect(loadConfig("bad.json")).rejects.toThrow(Error);
+  await expect(loadConfig("bad.json")).rejects.toThrow(Error);
 });
 ```
 
@@ -75,15 +75,15 @@ tests:
 
 ```typescript
 test("prints diagnostics as human-readable text", () => {
-	const output = formatDiagnostics(diagnostics, { json: false });
+  const output = formatDiagnostics(diagnostics, { json: false });
 
-	expect(output).toContain("missing-doc-target");
+  expect(output).toContain("missing-doc-target");
 });
 
 test("prints diagnostics as JSON", () => {
-	const output = formatDiagnostics(diagnostics, { json: true });
+  const output = formatDiagnostics(diagnostics, { json: true });
 
-	expect(JSON.parse(output)).toEqual({ diagnostics });
+  expect(JSON.parse(output)).toEqual({ diagnostics });
 });
 ```
 
@@ -91,10 +91,10 @@ Use table tests only when each row proves the same behavior:
 
 ```typescript
 test.each([
-	["@doc docs/specs/cli.md#check", "docs/specs/cli.md"],
-	["@doc ./docs/specs/scanning.md", "./docs/specs/scanning.md"],
+  ["@doc docs/specs/cli.md#check", "docs/specs/cli.md"],
+  ["@doc ./docs/specs/scanning.md", "./docs/specs/scanning.md"],
 ])("extracts the documentation target from %s", (annotation, expectedTarget) => {
-	expect(parseDocAnnotation(annotation)?.target).toBe(expectedTarget);
+  expect(parseDocAnnotation(annotation)?.target).toBe(expectedTarget);
 });
 ```
 
@@ -105,14 +105,14 @@ setup in the test body:
 
 ```typescript
 test("reports missing code targets referenced from Markdown", () => {
-	const markdown = "<!-- @code src/core/missing.ts#missing -->";
+  const markdown = "<!-- @code src/core/missing.ts#missing -->";
 
-	expect(scanMarkdownCodeLinks(markdown)).toEqual([
-		{
-			kind: "missing-code-target",
-			target: "src/core/missing.ts#missing",
-		},
-	]);
+  expect(scanMarkdownCodeLinks(markdown)).toEqual([
+    {
+      kind: "missing-code-target",
+      target: "src/core/missing.ts#missing",
+    },
+  ]);
 });
 ```
 

@@ -3,13 +3,9 @@
   "include": {
     "code": {
       "typescript": {
-        "patterns": [
-          "src/**/*.ts"
-        ]
+        "patterns": ["src/**/*.ts"]
       }
     },
-    "docs": [
-      "docs/**/*.md"
-    ]
+    "docs": ["docs/**/*.md"]
   }
 }

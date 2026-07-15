@@ -3,11 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { check } from "./resolver";
+import { definition, references } from "../lsp/navigation";
+import { Project } from "../lsp/project";
 import { context, formatContextResult } from "./context";
 import { graph } from "./graph-output";
-import { Project } from "../lsp/project";
-import { definition, references } from "../lsp/navigation";
+import { check } from "./resolver";
 
 function withDartProject(run: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-dart-"));
@@ -35,11 +35,7 @@ function withDartProject(run: (root: string) => void): void {
     );
     writeFileSync(
       join(root, "docs", "auth.md"),
-      [
-        "<!-- @code lib/auth_service.dart#AuthService.login -->",
-        "## Login Flow",
-        "",
-      ].join("\n"),
+      ["<!-- @code lib/auth_service.dart#AuthService.login -->", "## Login Flow", ""].join("\n"),
     );
     run(root);
   } finally {

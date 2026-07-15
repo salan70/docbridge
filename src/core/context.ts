@@ -73,10 +73,10 @@ export function computeContext(
     }
   }
 
-  const contexts = [...blockByEndpoint.values()].sort(compareBlocks);
+  const contexts = [...blockByEndpoint.values()].toSorted(compareBlocks);
   for (const block of contexts) {
-    block.linkedFrom = [...(linkedFromByEndpoint.get(block.endpoint) ?? [])].sort((left, right) =>
-      left.localeCompare(right),
+    block.linkedFrom = [...(linkedFromByEndpoint.get(block.endpoint) ?? [])].toSorted(
+      (left, right) => left.localeCompare(right),
     );
   }
 
@@ -149,8 +149,7 @@ export function context(options: ContextOptions): ContextOutcome {
   });
   const inputSet = new Set(inputFiles);
   const diagnostics = sortDiagnostics([...scanDiagnostics, ...relationshipDiagnostics]).filter(
-    (diagnostic) =>
-      diagnostic.location !== undefined && inputSet.has(diagnostic.location.filePath),
+    (diagnostic) => diagnostic.location !== undefined && inputSet.has(diagnostic.location.filePath),
   );
 
   return { ok: true, result: { ...data, diagnostics } };

@@ -182,9 +182,9 @@ export function computeGraphResult(options: ComputeGraphOptions): GraphResult {
       return undefined;
     })
     .filter((node): node is GraphNode => node !== undefined)
-    .sort(compareNodes);
+    .toSorted(compareNodes);
 
-  const pairs = computePairs(includedEdges).sort(comparePairs);
+  const pairs = computePairs(includedEdges).toSorted(comparePairs);
   const diagnostics = filterDiagnostics(options.diagnostics, nodes, options.inputFiles);
 
   const bidirectionalPairs = pairs.filter((pair) => pair.hasDocEdge && pair.hasCodeEdge).length;
@@ -429,7 +429,7 @@ function computePairs(edges: GraphEdge[]): GraphPair[] {
 }
 
 function appendDocsOrientedLines(lines: string[], result: GraphResult): void {
-  const docs = result.nodes.filter((node) => node.kind === "doc").sort(compareNodes);
+  const docs = result.nodes.filter((node) => node.kind === "doc").toSorted(compareNodes);
   for (const doc of docs) {
     const pairs = result.pairs.filter((pair) => pair.docEndpoint === doc.endpoint);
     if (pairs.length === 0) {
@@ -442,19 +442,15 @@ function appendDocsOrientedLines(lines: string[], result: GraphResult): void {
       lines.push("");
     }
     lines.push(doc.filePath);
-    for (const pair of pairs.sort(comparePairs)) {
-      lines.push(
-        `  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`,
-      );
+    for (const pair of pairs.toSorted(comparePairs)) {
+      lines.push(`  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`);
     }
   }
 }
 
 function appendScopedLines(lines: string[], result: GraphResult, inputFiles: string[]): void {
   const inputSet = new Set(inputFiles);
-  const nodes = result.nodes
-    .filter((node) => inputSet.has(node.filePath))
-    .sort(compareNodes);
+  const nodes = result.nodes.filter((node) => inputSet.has(node.filePath)).toSorted(compareNodes);
   for (const node of nodes) {
     if (lines.length > 0) {
       lines.push("");
@@ -463,7 +459,7 @@ function appendScopedLines(lines: string[], result: GraphResult, inputFiles: str
     const pairs = result.pairs.filter(
       (pair) => pair.codeEndpoint === node.endpoint || pair.docEndpoint === node.endpoint,
     );
-    for (const pair of pairs.sort(comparePairs)) {
+    for (const pair of pairs.toSorted(comparePairs)) {
       if (node.kind === "doc") {
         lines.push(
           `  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`,

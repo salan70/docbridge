@@ -5,7 +5,13 @@ import { scanMarkdown } from "./markdown";
 import { collectGateViolations, computeRelated, normalizeChangedPaths } from "./related";
 import { scanTypeScript } from "./typescript";
 
-const LOGIN_TS = ["/**", " * @doc docs/auth.md#login-spec", " */", "export function login() {}", ""].join("\n");
+const LOGIN_TS = [
+  "/**",
+  " * @doc docs/auth.md#login-spec",
+  " */",
+  "export function login() {}",
+  "",
+].join("\n");
 
 const AUTH_MD = ["<!-- @code src/auth/login.ts#login -->", "## Login Spec", ""].join("\n");
 
@@ -74,7 +80,11 @@ test("computeRelated lists the code counterpart of a changed doc file", () => {
         {
           endpoint: "docs/auth.md#login-spec",
           counterparts: [
-            { endpoint: "src/auth/login.ts#login", filePath: "src/auth/login.ts", inChangeSet: false },
+            {
+              endpoint: "src/auth/login.ts#login",
+              filePath: "src/auth/login.ts",
+              inChangeSet: false,
+            },
           ],
         },
       ],
@@ -104,7 +114,13 @@ test("computeRelated dedupes repeated changed paths", () => {
 });
 
 test("computeRelated orders files by path and endpoints by position", () => {
-  const zTs = ["/**", " * @doc docs/auth.md#login-spec", " */", "export function zeta() {}", ""].join("\n");
+  const zTs = [
+    "/**",
+    " * @doc docs/auth.md#login-spec",
+    " */",
+    "export function zeta() {}",
+    "",
+  ].join("\n");
   const multiDoc = [
     "<!-- @code src/auth/login.ts#login -->",
     "## Login Spec",
@@ -123,7 +139,11 @@ test("computeRelated orders files by path and endpoints by position", () => {
 
   const result = computeRelated(graph, ["src/z.ts", "docs/auth.md", "src/auth/login.ts"]);
 
-  expect(result.files.map((file) => file.filePath)).toEqual(["docs/auth.md", "src/auth/login.ts", "src/z.ts"]);
+  expect(result.files.map((file) => file.filePath)).toEqual([
+    "docs/auth.md",
+    "src/auth/login.ts",
+    "src/z.ts",
+  ]);
   expect(result.files[0]?.endpoints.map((endpoint) => endpoint.endpoint)).toEqual([
     "docs/auth.md#login-spec",
     "docs/auth.md#another-spec",
@@ -169,7 +189,10 @@ test("collectGateViolations reports the unchanged code counterpart of a changed 
 });
 
 test("normalizeChangedPaths keeps root-relative paths as-is", () => {
-  expect(normalizeChangedPaths("/repo", ["src/a.ts", "docs/b.md"])).toEqual(["src/a.ts", "docs/b.md"]);
+  expect(normalizeChangedPaths("/repo", ["src/a.ts", "docs/b.md"])).toEqual([
+    "src/a.ts",
+    "docs/b.md",
+  ]);
 });
 
 test("normalizeChangedPaths relativizes absolute paths against the root", () => {
@@ -185,5 +208,7 @@ test("normalizeChangedPaths drops empty and whitespace-only entries", () => {
 });
 
 test("normalizeChangedPaths dedupes paths that normalize to the same file", () => {
-  expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual(["src/a.ts"]);
+  expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual([
+    "src/a.ts",
+  ]);
 });

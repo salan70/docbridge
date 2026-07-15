@@ -19,8 +19,8 @@ cd "$repo_root"
 
 # How to invoke DocBridge. Override with e.g.
 #   DOCBRIDGE_CMD="bun run /path/to/docbridge/src/cli/index.ts"
-# Intentionally unquoted below so a multi-word command splits into words.
-docbridge_cmd=(${DOCBRIDGE_CMD:-docbridge})
+# Split the override into an argv array without pathname expansion.
+read -r -a docbridge_cmd <<<"${DOCBRIDGE_CMD:-docbridge}"
 
 file_path="$(
   PAYLOAD="$payload" bun -e '
@@ -53,7 +53,7 @@ FILE_PATH="$file_path" CONTEXT_OUT="$context_out" bun -e '
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext: [
-        `DocBridge: linked counterpart content for ${process.env.FILE_PATH} (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:`,
+        "DocBridge: linked counterpart content for " + process.env.FILE_PATH + " (just edited). Reconcile the edit with it; if the change altered documented behavior, update the counterpart too:",
         "",
         process.env.CONTEXT_OUT,
       ].join("\n"),

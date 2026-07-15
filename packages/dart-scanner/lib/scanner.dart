@@ -31,7 +31,8 @@ class Scanner {
   }
 
   WorkerFileResponse _scanFile(WorkerFile file, List<String>? visibility) {
-    final parsed = parseString(content: file.content, throwIfDiagnostics: false);
+    final parsed =
+        parseString(content: file.content, throwIfDiagnostics: false);
     if (parsed.errors.isNotEmpty) {
       return WorkerFileResponse(
         filePath: file.filePath,
@@ -43,7 +44,8 @@ class Scanner {
             code: 'code_parse_error',
             target: file.filePath,
             message: 'Dart analyzer reported syntax errors.',
-            location: SourceLocation(filePath: file.filePath, line: 1, column: 1),
+            location:
+                SourceLocation(filePath: file.filePath, line: 1, column: 1),
           ),
         ],
       );
@@ -97,7 +99,8 @@ class Scanner {
             Diagnostic(
               code: 'duplicate_code_symbol',
               target: symbol.endpoint,
-              message: 'Duplicate Dart code symbol endpoint: ${symbol.endpoint}',
+              message:
+                  'Duplicate Dart code symbol endpoint: ${symbol.endpoint}',
               location: SourceLocation(
                 filePath: filePath,
                 line: declaration.line,
@@ -172,7 +175,8 @@ class _Declaration {
         symbolName: symbolName,
         canonicalId: canonicalId,
         endpoint: '$filePath#$canonicalId',
-        location: SourceLocation(filePath: filePath, line: line, column: column),
+        location:
+            SourceLocation(filePath: filePath, line: line, column: column),
         nameRange: nameRange,
         declarationRange: declarationRange,
         signatureRange: signatureRange,
@@ -272,7 +276,8 @@ class _Collector {
           nameToken: member.name,
           node: member,
           symbolName: name,
-          canonicalId: member.isSetter ? '$qualifier.$name=' : '$qualifier.$name',
+          canonicalId:
+              member.isSetter ? '$qualifier.$name=' : '$qualifier.$name',
           signatureEnd: member.body.offset,
         );
       } else if (member is FieldDeclaration) {
@@ -387,7 +392,8 @@ class _Collector {
     final targets = <_DocTarget>[];
     for (final match in RegExp(r'@doc\s+(\S+)').allMatches(text)) {
       final target = match.group(1)!;
-      final targetStartInText = match.start + (match.group(0)!.length - target.length);
+      final targetStartInText =
+          match.start + (match.group(0)!.length - target.length);
       final location = lineInfo.getLocation(comment.offset + targetStartInText);
       targets.add(
         _DocTarget(
@@ -395,7 +401,8 @@ class _Collector {
           line: location.lineNumber,
           column: location.columnNumber,
           range: SourceRange(
-            start: Position(line: location.lineNumber, column: location.columnNumber),
+            start: Position(
+                line: location.lineNumber, column: location.columnNumber),
             end: Position(
               line: location.lineNumber,
               column: location.columnNumber + target.length,

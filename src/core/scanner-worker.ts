@@ -47,9 +47,7 @@ export type ScannerWorkerProcessResult =
       stderr: string;
     };
 
-export type ScannerWorkerRun = (
-  input: ScannerWorkerProcessInput,
-) => ScannerWorkerProcessResult;
+export type ScannerWorkerRun = (input: ScannerWorkerProcessInput) => ScannerWorkerProcessResult;
 
 export type ScannerWorkerSuccess = {
   ok: true;
@@ -179,10 +177,7 @@ export function runScannerWorkerProcess(
   }
 }
 
-function validateWorkerResponse(
-  value: unknown,
-  request: ScannerWorkerRequest,
-): string | undefined {
+function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {
   if (!isRecord(value)) {
     return "worker response must be a JSON object";
   }
@@ -241,10 +236,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function scannerUnavailableDiagnostic(
-  language: CodeLanguage,
-  error: unknown,
-): DocBridgeDiagnostic {
+function scannerUnavailableDiagnostic(language: CodeLanguage, error: unknown): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
     severity: "error",
@@ -255,10 +247,7 @@ function scannerUnavailableDiagnostic(
   };
 }
 
-function scannerFailedDiagnostic(
-  language: CodeLanguage,
-  reason: string,
-): DocBridgeDiagnostic {
+function scannerFailedDiagnostic(language: CodeLanguage, reason: string): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
     severity: "error",

@@ -56,10 +56,7 @@ export function diagnosticsForFile(
   return result;
 }
 
-function rangeFor(
-  diagnostic: DocBridgeDiagnostic,
-  lineLengths: number[],
-): LspRange {
+function rangeFor(diagnostic: DocBridgeDiagnostic, lineLengths: number[]): LspRange {
   if (diagnostic.range !== undefined) {
     return toLspRange(diagnostic.range);
   }

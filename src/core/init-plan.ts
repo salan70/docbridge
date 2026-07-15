@@ -1,22 +1,10 @@
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  statSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { DocBridgeConfig } from "./config";
 import { resolveConfig } from "./config";
-import type {
-  AgentTarget,
-  CodeLanguageCandidate,
-  DocsScopeCandidate,
-  RepositoryDiscovery,
-} from "./init-discovery";
-import type { CodeLanguage } from "./types";
+import type { AgentTarget, CodeLanguageCandidate, RepositoryDiscovery } from "./init-discovery";
 
 export type InitCommandKind = "init" | "init-with-agent";
 
@@ -120,8 +108,14 @@ export function planInitCommand(input: {
         })
       : [];
 
-  if (configOps.some((operation) => operation.action === "create" || operation.action === "would-create")) {
-    nextSteps.push("Review docbridge.config.json and adjust include.docs or include.code if needed.");
+  if (
+    configOps.some(
+      (operation) => operation.action === "create" || operation.action === "would-create",
+    )
+  ) {
+    nextSteps.push(
+      "Review docbridge.config.json and adjust include.docs or include.code if needed.",
+    );
     nextSteps.push("Add @doc and @code annotations to link code and documentation.");
     nextSteps.push("Run docbridge check when links exist.");
   } else if (existingConfig.ok) {
@@ -151,7 +145,9 @@ export function planInitCommand(input: {
 
   if (input.command === "init-with-agent") {
     nextSteps.push("Run the printed one-shot command or fallback prompt in your agent.");
-    nextSteps.push("Let docbridge-adopt confirm scope and create or improve docbridge.config.json.");
+    nextSteps.push(
+      "Let docbridge-adopt confirm scope and create or improve docbridge.config.json.",
+    );
   }
 
   if (
@@ -233,7 +229,7 @@ export function listDistributableSkills(packageRoot: string): string[] {
   return entries
     .filter((entry) => entry.startsWith("docbridge-"))
     .filter((entry) => existsSync(join(skillsRoot, entry, "SKILL.md")))
-    .sort();
+    .toSorted();
 }
 
 export function formatInitPlan(plan: InitPlan): string {
@@ -426,7 +422,7 @@ function buildAgentGuidance(projectRoot: string, agentTarget: AgentTarget): Agen
   for (const entry of guidance) {
     entry.oneShotCommand = entry.oneShotCommand.replace(
       "$docbridge_adopt_prompt",
-      "codex --prompt \"Use the docbridge-adopt skill to adopt DocBridge in this repository.\"",
+      'codex --prompt "Use the docbridge-adopt skill to adopt DocBridge in this repository."',
     );
   }
 
@@ -529,12 +525,12 @@ function agentDestinations(agentTarget: AgentTarget): string[] {
 }
 
 function formatFileOp(operation: PlannedFileOp): string {
-  const label =
-    operation.action === "would-create"
-      ? "would create"
-      : operation.action === "would-overwrite"
-        ? "would overwrite"
-        : operation.action;
+  let label: string = operation.action;
+  if (operation.action === "would-create") {
+    label = "would create";
+  } else if (operation.action === "would-overwrite") {
+    label = "would overwrite";
+  }
   const reason = operation.reason ? ` (${operation.reason})` : "";
   return `- ${label} ${operation.path}${reason}`;
 }
@@ -547,7 +543,7 @@ export function collectSkillTemplateFiles(packageRoot: string, skillName: string
   const skillRoot = join(packageRoot, "templates", "skills", skillName);
   const files: string[] = [];
   walkSkillTree(skillRoot, skillRoot, files);
-  return files.sort();
+  return files.toSorted();
 }
 
 function walkSkillTree(root: string, currentDir: string, files: string[]): void {

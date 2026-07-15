@@ -1,10 +1,6 @@
 import ts from "typescript";
 
-import type {
-  CodeLanguageAdapter,
-  CodeScanOptions,
-  CodeScanResult,
-} from "./code-scanner";
+import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
 import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeSymbolEndpoint,
@@ -45,10 +41,7 @@ type SupportedDeclaration = {
 /**
  * @doc docs/specs/scanning.md#typescript-scanning
  */
-export function scanTypeScript(
-  filePath: string,
-  content: string,
-): CodeScanResult {
+export function scanTypeScript(filePath: string, content: string): CodeScanResult {
   const sourceFile = ts.createSourceFile(
     filePath,
     content,
@@ -81,21 +74,14 @@ export function scanTypeScript(
   for (const statement of sourceFile.statements) {
     const docTags = collectDocTags(filePath, sourceFile, statement);
 
-    const supported = describeSupportedDeclaration(
-      filePath,
-      sourceFile,
-      statement,
-      docTags,
-    );
+    const supported = describeSupportedDeclaration(filePath, sourceFile, statement, docTags);
 
     if (supported === null) {
       // Only annotated unsupported declarations are reported; bare ones are
       // ignored entirely.
       const firstDocTag = docTags[0];
       if (firstDocTag) {
-        diagnostics.push(
-          unsupportedDeclarationDiagnostic(filePath, firstDocTag.location),
-        );
+        diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
       }
       continue;
     }
@@ -147,11 +133,7 @@ export function scanTypeScript(
     if (endpointSeen.has(endpoint)) {
       if (!duplicateReported.has(endpoint)) {
         diagnostics.push(
-          duplicateCodeSymbolDiagnostic(
-            endpoint,
-            declaration.location,
-            declaration.nameRange,
-          ),
+          duplicateCodeSymbolDiagnostic(endpoint, declaration.location, declaration.nameRange),
         );
         duplicateReported.add(endpoint);
       }
@@ -191,12 +173,7 @@ export function scanTypeScript(
 
       if (linkTargetsSeen.has(docTag.rawTarget)) {
         diagnostics.push(
-          duplicateLinkDiagnostic(
-            endpoint,
-            docTag.rawTarget,
-            docTag.location,
-            docTag.targetRange,
-          ),
+          duplicateLinkDiagnostic(endpoint, docTag.rawTarget, docTag.location, docTag.targetRange),
         );
         continue;
       }
@@ -359,29 +336,17 @@ function hasDefaultModifier(statement: ts.Statement): boolean {
 }
 
 function hasModifier(statement: ts.Statement, kind: ts.SyntaxKind): boolean {
-  const modifiers = ts.canHaveModifiers(statement)
-    ? ts.getModifiers(statement)
-    : undefined;
+  const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
   return modifiers?.some((modifier) => modifier.kind === kind) ?? false;
 }
 
-function locationOf(
-  filePath: string,
-  sourceFile: ts.SourceFile,
-  node: ts.Node,
-): SourceLocation {
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(
-    node.getStart(sourceFile),
-  );
+function locationOf(filePath: string, sourceFile: ts.SourceFile, node: ts.Node): SourceLocation {
+  const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
   return { filePath, line: line + 1, column: character + 1 };
 }
 
 /** Build a 1-based, end-exclusive range from absolute UTF-16 offsets. */
-function rangeFromOffsets(
-  sourceFile: ts.SourceFile,
-  start: number,
-  end: number,
-): Range {
+function rangeFromOffsets(sourceFile: ts.SourceFile, start: number, end: number): Range {
   const startPos = sourceFile.getLineAndCharacterOfPosition(start);
   const endPos = sourceFile.getLineAndCharacterOfPosition(end);
   return {
@@ -500,9 +465,7 @@ function makeCodeSymbol(
   return symbol;
 }
 
-function commentText(
-  comment: string | ts.NodeArray<ts.JSDocComment> | undefined,
-): string {
+function commentText(comment: string | ts.NodeArray<ts.JSDocComment> | undefined): string {
   if (comment === undefined) {
     return "";
   }
@@ -526,14 +489,8 @@ function parseErrorDiagnostic(
   diagnostic: ts.Diagnostic | undefined,
 ): DocBridgeDiagnostic {
   const location: SourceLocation = { filePath, line: 1, column: 1 };
-  if (
-    diagnostic !== undefined &&
-    diagnostic.start !== undefined &&
-    diagnostic.file !== undefined
-  ) {
-    const { line, character } = sourceFile.getLineAndCharacterOfPosition(
-      diagnostic.start,
-    );
+  if (diagnostic !== undefined && diagnostic.start !== undefined && diagnostic.file !== undefined) {
+    const { line, character } = sourceFile.getLineAndCharacterOfPosition(diagnostic.start);
     location.line = line + 1;
     location.column = character + 1;
   }

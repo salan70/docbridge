@@ -90,7 +90,7 @@ test("discoverCodeScope proposes every supported language in mixed-language repo
   });
   try {
     const discovery = discoverCodeScope(project);
-    expect(discovery.languages.map((entry) => entry.language).sort()).toEqual([
+    expect(discovery.languages.map((entry) => entry.language).toSorted()).toEqual([
       "dart",
       "swift",
       "typescript",

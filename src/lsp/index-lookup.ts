@@ -61,11 +61,7 @@ export function endpointAt(
   return undefined;
 }
 
-function addTo(
-  map: Map<string, IndexedEndpoint[]>,
-  key: string,
-  value: IndexedEndpoint,
-): void {
+function addTo(map: Map<string, IndexedEndpoint[]>, key: string, value: IndexedEndpoint): void {
   const existing = map.get(key);
   if (existing === undefined) {
     map.set(key, [value]);

@@ -1,62 +1,67 @@
 import XCTest
+
 @testable import SpecLinkSwiftScanner
 
 final class ScannerTests: XCTestCase {
   func testScansSupportedTopLevelDeclarations() throws {
     let source = """
-    /// @doc docs/auth.md#auth-service
-    public struct AuthService {}
+      /// @doc docs/auth.md#auth-service
+      public struct AuthService {}
 
-    /// @doc docs/auth.md#auth-error
-    public enum AuthError {}
+      /// @doc docs/auth.md#auth-error
+      public enum AuthError {}
 
-    /// @doc docs/auth.md#login
-    public func login(email: String) {}
-    """
+      /// @doc docs/auth.md#login
+      public func login(email: String) {}
+      """
 
     let file = try scan(source)
 
     XCTAssertEqual(file.symbols.map(\.canonicalId), ["AuthService", "AuthError", "login(email:)"])
-    XCTAssertEqual(file.links.map(\.target), [
-      "docs/auth.md#auth-service",
-      "docs/auth.md#auth-error",
-      "docs/auth.md#login",
-    ])
+    XCTAssertEqual(
+      file.links.map(\.target),
+      [
+        "docs/auth.md#auth-service",
+        "docs/auth.md#auth-error",
+        "docs/auth.md#login",
+      ])
   }
 
   func testScansTypeMembersWithArgumentLabels() throws {
     let source = """
-    public struct AuthService {
-      /// @doc docs/auth.md#login
-      public func login(email: String, password: String) {}
+      public struct AuthService {
+        /// @doc docs/auth.md#login
+        public func login(email: String, password: String) {}
 
-      /// @doc docs/auth.md#refresh
-      public func refresh(_ token: String) {}
+        /// @doc docs/auth.md#refresh
+        public func refresh(_ token: String) {}
 
-      /// @doc docs/auth.md#init
-      public init(email: String, password: String) {}
-    }
-    """
+        /// @doc docs/auth.md#init
+        public init(email: String, password: String) {}
+      }
+      """
 
     let file = try scan(source)
 
-    XCTAssertEqual(file.symbols.map(\.canonicalId), [
-      "AuthService.login(email:password:)",
-      "AuthService.refresh(_:)",
-      "AuthService.init(email:password:)",
-    ])
+    XCTAssertEqual(
+      file.symbols.map(\.canonicalId),
+      [
+        "AuthService.login(email:password:)",
+        "AuthService.refresh(_:)",
+        "AuthService.init(email:password:)",
+      ])
   }
 
   func testCanonicalizesMembersWhenTheSignatureWrapsAcrossLines() throws {
     let source = """
-    public struct AuthService {
-      /// @doc docs/auth.md#login
-      public func login(
-        email: String,
-        password: String
-      ) {}
-    }
-    """
+      public struct AuthService {
+        /// @doc docs/auth.md#login
+        public func login(
+          email: String,
+          password: String
+        ) {}
+      }
+      """
 
     let file = try scan(source)
 
@@ -65,12 +70,12 @@ final class ScannerTests: XCTestCase {
 
   func testIgnoresBracesInsideCommentsWhenTrackingTypeScope() throws {
     let source = """
-    public struct AuthService {
-      // resets the state when the session ends }
-      /// @doc docs/auth.md#login
-      public func login(email: String) {}
-    }
-    """
+      public struct AuthService {
+        // resets the state when the session ends }
+        /// @doc docs/auth.md#login
+        public func login(email: String) {}
+      }
+      """
 
     let file = try scan(source)
 
@@ -79,13 +84,13 @@ final class ScannerTests: XCTestCase {
 
   func testIgnoresBracesInsideStringLiteralsWhenTrackingTypeScope() throws {
     let source = """
-    public struct AuthService {
-      private let closing = "}"
+      public struct AuthService {
+        private let closing = "}"
 
-      /// @doc docs/auth.md#login
-      public func login(email: String) {}
-    }
-    """
+        /// @doc docs/auth.md#login
+        public func login(email: String) {}
+      }
+      """
 
     let file = try scan(source)
 
@@ -94,11 +99,11 @@ final class ScannerTests: XCTestCase {
 
   func testCanonicalizesExtensionMembersAsMembersOfTheExtendedType() throws {
     let source = """
-    extension AuthService {
-      /// @doc docs/auth.md#logout
-      public func logout() {}
-    }
-    """
+      extension AuthService {
+        /// @doc docs/auth.md#logout
+        public func logout() {}
+      }
+      """
 
     let file = try scan(source)
 
@@ -107,14 +112,14 @@ final class ScannerTests: XCTestCase {
 
   func testReportsDuplicateCanonicalEndpoints() throws {
     let source = """
-    public struct AuthService {
-      /// @doc docs/auth.md#login
-      public func login(email: String) {}
+      public struct AuthService {
+        /// @doc docs/auth.md#login
+        public func login(email: String) {}
 
-      /// @doc docs/auth.md#login-again
-      public func login(email: String) {}
-    }
-    """
+        /// @doc docs/auth.md#login-again
+        public func login(email: String) {}
+      }
+      """
 
     let file = try scan(source)
 
@@ -125,9 +130,9 @@ final class ScannerTests: XCTestCase {
 
   func testReportsUnsupportedAnnotatedDeclarations() throws {
     let source = """
-    /// @doc docs/auth.md#import
-    import Foundation
-    """
+      /// @doc docs/auth.md#import
+      import Foundation
+      """
 
     let file = try scan(source)
 
@@ -146,9 +151,9 @@ final class ScannerTests: XCTestCase {
 
   func testUsesUtf16OneBasedEndExclusiveRanges() throws {
     let source = """
-    /// @doc docs/auth.md#smile
-    public func smile(_ value: String = "😀") {}
-    """
+      /// @doc docs/auth.md#smile
+      public func smile(_ value: String = "😀") {}
+      """
 
     let file = try scan(source)
     let symbol = try XCTUnwrap(file.symbols.first)
@@ -166,11 +171,11 @@ final class ScannerTests: XCTestCase {
 
   func testHonorsVisibilityOptions() throws {
     let source = """
-    /// @doc docs/auth.md#internal
-    internal struct InternalService {}
+      /// @doc docs/auth.md#internal
+      internal struct InternalService {}
 
-    public struct PublicService {}
-    """
+      public struct PublicService {}
+      """
 
     let defaultFile = try scan(source)
     let internalFile = try scan(source, visibility: ["public", "open", "internal"])

@@ -65,13 +65,13 @@ The language server behavior is specified in
 `docbridge.bunPath`
 
 : Path to the Bun executable used to launch the DocBridge language server.
-  Defaults to `bun`.
+Defaults to `bun`.
 
 `docbridge.cliPath`
 
 : Optional absolute path to a DocBridge CLI entrypoint. Defaults to the server
-  bundled with this extension. This is intended for source-checkout development
-  and must be absolute.
+bundled with this extension. This is intended for source-checkout development
+and must be absolute.
 
 If startup fails, open **Output: DocBridge**. It shows the Bun command used to
 start `docbridge lsp`, or the startup error.

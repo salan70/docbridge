@@ -16,11 +16,7 @@ export type Locator = {
  *
  * @doc docs/specs/lsp.md#definition
  */
-export function definition(
-  state: ProjectState,
-  filePath: string,
-  position: Position,
-): Locator[] {
+export function definition(state: ProjectState, filePath: string, position: Position): Locator[] {
   return counterpartLocators(state, filePath, position);
 }
 
@@ -31,19 +27,11 @@ export function definition(
  *
  * @doc docs/specs/lsp.md#references
  */
-export function references(
-  state: ProjectState,
-  filePath: string,
-  position: Position,
-): Locator[] {
+export function references(state: ProjectState, filePath: string, position: Position): Locator[] {
   return counterpartLocators(state, filePath, position);
 }
 
-function counterpartLocators(
-  state: ProjectState,
-  filePath: string,
-  position: Position,
-): Locator[] {
+function counterpartLocators(state: ProjectState, filePath: string, position: Position): Locator[] {
   const element = endpointAt(state.index, filePath, position);
   if (element === undefined) {
     return [];

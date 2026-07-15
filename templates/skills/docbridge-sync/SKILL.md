@@ -62,7 +62,7 @@ repo recipe such as `just related-gate`, or
   the link; that defeats the graph the gate protects.
 - Do not rubber-stamp: if the counterpart content was not read, the judgment
   has no basis.
-- Updating a spec section to match changed code is a *decision about the
-  contract*, not bookkeeping — when the change contradicts an explicit
+- Updating a spec section to match changed code is a _decision about the
+  contract_, not bookkeeping — when the change contradicts an explicit
   documented promise, surface it to the user instead of quietly rewriting the
   promise.

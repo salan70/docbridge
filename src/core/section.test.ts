@@ -1,17 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  MAX_SECTION_LENGTH,
-  capSectionLength,
-  extractDocSection,
-} from "./section";
+import { MAX_SECTION_LENGTH, capSectionLength, extractDocSection } from "./section";
 
 describe("extractDocSection", () => {
   test("includes deeper subsections and stops at the next same-or-higher heading", () => {
     const content = "## A\n\nintro\n\n### A.1\n\ndetail\n\n## B\n\nother";
-    expect(extractDocSection(content, 1)).toBe(
-      "## A\n\nintro\n\n### A.1\n\ndetail",
-    );
+    expect(extractDocSection(content, 1)).toBe("## A\n\nintro\n\n### A.1\n\ndetail");
   });
 
   test("a higher-level heading terminates a deeper section", () => {
