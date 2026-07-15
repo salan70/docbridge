@@ -2,12 +2,12 @@
 
 <!-- What changed and why. Link related specs or plans. -->
 
-## Contribution gate
+## Issue gate
 
-<!-- Complete exactly one line. Non-trivial external contributions require an issue with the `status: accepted` label before implementation. -->
+<!-- Keep exactly one line. Non-trivial work requires an issue with the `status: accepted` label, regardless of who creates or implements it. -->
 
 - Tracking issue: `Closes #`
-- Exemption: <!-- typo/small docs fix, automation, or maintainer-directed work; explain -->
+- Issue not required: <!-- typo, wording, formatting, broken link, automated dependency update, or release PR; explain -->
 
 ## Test plan
 

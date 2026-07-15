@@ -54,39 +54,36 @@ just doctor
 The setup command configures `core.hooksPath` as `.githooks`. The pre-commit
 hook runs the read-only `just verify` gate and never modifies files.
 
-## Propose non-trivial changes first
+## Start non-trivial work with an accepted issue
 
-Non-trivial external contributions require a GitHub issue with the
-`status: accepted` label before implementation begins. This lets maintainers
-confirm that the problem, scope, and direction fit the project before either
-side spends time on a pull request.
+Choose an issue form based only on the type of work, regardless of who creates
+the issue or implements it:
 
-An issue is required for changes such as:
+| Work                                                            | Issue form          |
+| --------------------------------------------------------------- | ------------------- |
+| Reproducible incorrect behavior or regression                   | Bug report          |
+| New capability or user-visible improvement                      | Feature proposal    |
+| API, architecture, refactor, build, CI, or dependency design    | Technical proposal  |
+| Incorrect, missing, or substantially restructured documentation | Documentation issue |
+| Routine upkeep with a concrete outcome                          | Maintenance task    |
 
-- new features or user-visible behavior;
-- changes to public CLI, configuration, schema, or diagnostic contracts;
-- broad refactors or architectural changes;
-- new dependencies or substantial build, CI, or release changes;
-- significant specification or documentation restructuring.
+Every issue must use the matching form and provide its required information.
+Non-trivial work begins only after the issue receives the `status: accepted`
+label. Acceptance confirms the agreed problem and scope; it does not guarantee
+that a future pull request will merge. A non-trivial pull request without a
+linked accepted issue may be closed without detailed review.
 
-The following normally do not require prior acceptance:
-
-- typo, wording, formatting, or broken-link fixes;
-- small, clearly scoped documentation corrections;
-- automated dependency updates and release pull requests;
-- maintainer-requested or maintainer-directed maintenance.
-
-When uncertain, open an issue before writing code. Use the structured issue
-forms and wait for a maintainer to add `status: accepted`. Acceptance confirms
-the agreed scope, not that a future pull request is guaranteed to merge. A
-non-trivial pull request without a linked accepted issue may be closed without
-detailed review.
+An issue is optional only for content-based exceptions: typo, wording,
+formatting, broken-link, or similarly small corrections, plus automated
+dependency updates and release pull requests. The identity of the issue author
+or implementer is never an exception. When uncertain, open the matching issue
+form and wait for acceptance before writing code.
 
 ## Making a change
 
 1. Start from an up-to-date `main` branch and create a focused branch. Use the
    existing `feat/`, `fix/`, or `chore/` prefix that matches the change.
-2. For a non-trivial external contribution, confirm that its issue has the
+2. For non-trivial work, confirm that its matching issue has the
    `status: accepted` label before implementation.
 3. Keep code, tests, specifications, and user documentation consistent. Use
    `just related-gate` to find linked counterparts that a change did not update.
@@ -139,9 +136,8 @@ the Bun integration tests. Rebuild both after changing worker code with
 - Write commits in English using the repository's Gitmoji and Conventional
   Commits format. See [Commit messages](docs/contributing/commits.md).
 - Keep unrelated changes in separate commits and pull requests.
-- Link non-trivial external contributions to their accepted issue with
-  `Closes #123`. If the change is exempt, state the specific reason in the pull
-  request template.
+- Link non-trivial work to its accepted issue with `Closes #123`. If an issue is
+  not required, state the content-based exception in the pull request template.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
 - For every `just related-gate` finding, update the linked counterpart or

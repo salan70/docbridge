@@ -82,6 +82,14 @@ Implementation plans live under `docs/plans/` and track their slices in a
   plan into `docs/plans/done/` in the same change, so the archive stays current
   without a separate sweep.
 
+## Issues
+
+The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
+When creating an issue, use the form that matches the work content and provide
+all of its fields. Non-trivial work begins only after the issue receives the
+`status: accepted` label; the author or implementer identity is not an
+exception.
+
 ## Local Guardrails
 
 Codex hooks live under `.codex/` (`hooks.json` plus scripts in
