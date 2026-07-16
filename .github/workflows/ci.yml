@@ -21,7 +21,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
       - name: Install Swift
-        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           swift-version: "6.2.1"
 
@@ -54,7 +54,7 @@ jobs:
       # nixpkgs only ships Swift 5.10 on Linux, which cannot build the scanner's
       # Swift 6 package, so the toolchain comes from setup-swift instead of nix.
       - name: Install Swift
-        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
+        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
         with:
           # When bumping this, also update the swift<version> segment in the
           # "Cache the Swift scanner build" key and restore-keys below. The
