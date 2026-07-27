@@ -81,8 +81,9 @@ form and wait for acceptance before writing code.
 
 ## Making a change
 
-1. Start from an up-to-date `main` branch and create a focused branch. Use the
-   existing `feat/`, `fix/`, or `chore/` prefix that matches the change.
+1. Start from an up-to-date `main` branch and create a focused branch. Name it
+   per [Pull requests](docs/contributing/pull-requests.md)
+   (`<feat|fix|chore>/#<issue>-<kebab-desc>`).
 2. For non-trivial work, confirm that its matching issue has the
    `status: accepted` label before implementation.
 3. Keep code, tests, specifications, and user documentation consistent. Use
@@ -135,6 +136,8 @@ the Bun integration tests. Rebuild both after changing worker code with
 
 - Write commits in English using the repository's Gitmoji and Conventional
   Commits format. See [Commit messages](docs/contributing/commits.md).
+- Write pull request titles as `<gitmoji> <type>: <summary>` describing the
+  whole PR. See [Pull requests](docs/contributing/pull-requests.md).
 - Keep unrelated changes in separate commits and pull requests.
 - Link non-trivial work to its accepted issue with `Closes #123`. If an issue is
   not required, state the content-based exception in the pull request template.
@@ -149,6 +152,7 @@ the Bun integration tests. Rebuild both after changing worker code with
 
 - [Testing](docs/contributing/testing.md)
 - [Commit messages](docs/contributing/commits.md)
+- [Pull requests](docs/contributing/pull-requests.md)
 - [Specifications](docs/specs)
 - [AI agent integrations](docs/integrations)
 - [Project guidance for AI agents](AGENTS.md)
