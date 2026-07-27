@@ -49,7 +49,13 @@ Error diagnostic codes:
 - [`duplicate_code_symbol`](../../test-fixtures/diagnostics/duplicate_code_symbol/)
 - [`code_parse_error`](../../test-fixtures/diagnostics/code_parse_error/)
 - `code_scanner_unavailable` — no fixture; scanner executable availability is
-  environment-dependent, so unit tests cover this code instead.
+  environment-dependent, so unit tests cover this code instead. The message
+  distinguishes three causes: the binary is missing or the platform is
+  unsupported; the binary is not executable and the executable bit could not be
+  restored (message names the path, its observed mode, and the error); or the
+  binary is executable but the filesystem refuses to execute it, as a `noexec`
+  mount does (message names the binary's directory). See
+  [Scanning](scanning.md#code-scanning).
 - `code_scanner_failed` — no fixture; worker protocol failures are covered by
   unit tests instead of a checked-in project fixture.
 - `file_read_error` — no fixture; I/O failures are not deterministically

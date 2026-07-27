@@ -13,15 +13,15 @@ rely on the mode surviving the trip through the registry and the installer.
 
 Normative behavior is reflected in:
 
-- [Scanning](../specs/scanning.md)
-- [Diagnostics](../specs/diagnostics.md)
+- [Scanning](../../specs/scanning.md)
+- [Diagnostics](../../specs/diagnostics.md)
 
 ## Status
 
-- [ ] Slice 1: Executability Probe and Repair at Resolution
-- [ ] Slice 2: Exec-Denied Classification and Remediation Text
-- [ ] Slice 3: Packed-Package Regression Coverage
-- [ ] Slice 4: Specification and Release Documentation
+- [x] Slice 1: Executability Probe and Repair at Resolution
+- [x] Slice 2: Exec-Denied Classification and Remediation Text
+- [x] Slice 3: Packed-Package Regression Coverage
+- [x] Slice 4: Specification and Release Documentation
 
 ## Goals
 
@@ -141,8 +141,12 @@ so `docbridge check` works without a caller-side `chmod`.
 Tasks:
 
 - Add an executability check for the resolved candidate in
-  `src/core/code-language.ts` (mode-based, via `statSync`; treat any of the
-  three execute bits as executable).
+  `src/core/code-language.ts`. Landed as an effective-permission probe
+  (`accessSync(path, X_OK)`) rather than the mode mask this plan first
+  proposed: a mode like `0011` carries execute bits that do not apply to the
+  owner, and only the effective-permission probe justifies Slice 2 attributing
+  a later spawn `EACCES` to the filesystem instead of the mode. `statSync` is
+  still used to compute the repaired mode and to report the observed one.
 - When the candidate is not executable, attempt `chmodSync(path, mode | 0o755)`
   and use the candidate on success.
 - When the repair fails, return `code_scanner_unavailable` with the failure-mode
@@ -256,10 +260,10 @@ their workaround.
 
 Tasks:
 
-- Update [Scanning](../specs/scanning.md#code-scanning) to state that DocBridge
+- Update [Scanning](../../specs/scanning.md#code-scanning) to state that DocBridge
   restores the executable bit on its own bundled scanner binaries when it finds
   them non-executable, and emits `code_scanner_unavailable` when it cannot.
-- Update [Diagnostics](../specs/diagnostics.md) with the distinguishable
+- Update [Diagnostics](../../specs/diagnostics.md) with the distinguishable
   `code_scanner_unavailable` causes.
 - Keep the `@doc`/`@code` pair on `resolveScannerWorkerCommand` accurate; run
   the `docbridge-sync` triage over the changed counterparts.
