@@ -158,7 +158,12 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      # fetch-depth: 0 is required: the primary changed-file derivation is
+      # `git diff BASE_SHA...HEAD_SHA`, which needs both commit objects. A
+      # shallow checkout is the one configuration that breaks this recipe.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
@@ -166,44 +171,182 @@ jobs:
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
 
-      - name: Run related-gate over the PR change set
+      - name: Derive the PR changed-file list
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
-            -q '.[].filename' > changed-files.txt
+          gh_api_with_retry() {
+            local attempt=1
+            local delay=2
+            local stderr_file
+            stderr_file="$(mktemp)"
+            while [ "$attempt" -le 3 ]; do
+              if gh api "$@" 2>"$stderr_file"; then
+                rm -f "$stderr_file"
+                return 0
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                cat "$stderr_file" >&2
+                rm -f "$stderr_file"
+                return 1
+              fi
+              sleep "$delay"
+              delay=$((delay * 2))
+              attempt=$((attempt + 1))
+            done
+          }
+
+          record_infra_error() {
+            local reason="$1"
+            {
+              echo "GATE_OUTCOME=infra-error"
+              echo "INFRA_REASON<<EOF"
+              printf '%s\n' "$reason"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          }
+
+          derived=0
+          if [ -n "${BASE_SHA:-}" ] && [ -n "${HEAD_SHA:-}" ] \
+            && git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null \
+            && git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            git_diff_err_file="$(mktemp)"
+            if git diff --name-only "${BASE_SHA}...${HEAD_SHA}" \
+              >changed-files.txt 2>"$git_diff_err_file"; then
+              if [ -s changed-files.txt ]; then
+                echo "CHANGED_FILES_SOURCE=git" >> "$GITHUB_ENV"
+                derived=1
+              fi
+            else
+              printf 'git diff failed: %s\n' "$(cat "$git_diff_err_file")" >&2
+            fi
+            rm -f "$git_diff_err_file"
+          fi
+
+          if [ "$derived" -ne 1 ]; then
+            rm -f changed-files.txt
+            api_err_file="$(mktemp)"
+            if gh_api_with_retry "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
+              -q '.[].filename' >changed-files.txt 2>"$api_err_file" \
+              && [ -s changed-files.txt ]; then
+              echo "CHANGED_FILES_SOURCE=api" >> "$GITHUB_ENV"
+              rm -f "$api_err_file"
+            else
+              api_err="$(cat "$api_err_file" 2>/dev/null || true)"
+              rm -f "$api_err_file" changed-files.txt
+              record_infra_error "changed-file list unobtainable (git derivation failed; gh api fallback failed): ${api_err:-no stderr}"
+            fi
+          fi
+
+      - name: Run related-gate over the PR change set
+        if: ${{ env.GATE_OUTCOME != 'infra-error' }}
+        run: |
           gate_status=0
           nix develop -c bun run src/cli/index.ts related --stdin --gate \
             < changed-files.txt > gate-output.txt 2>&1 || gate_status=$?
-          echo "GATE_STATUS=${gate_status}" >> "$GITHUB_ENV"
+          if [ "$gate_status" = "0" ]; then
+            echo "GATE_OUTCOME=clean" >> "$GITHUB_ENV"
+          elif [ "$gate_status" = "1" ]; then
+            echo "GATE_OUTCOME=violation" >> "$GITHUB_ENV"
+          else
+            {
+              echo "GATE_OUTCOME=infra-error"
+              echo "INFRA_REASON<<EOF"
+              echo "docbridge related --gate exited ${gate_status}"
+              tail -n 40 gate-output.txt
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
           cat gate-output.txt
 
       - name: Create or update the sticky PR comment
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          gh_api_with_retry() {
+            local attempt=1
+            local delay=2
+            local stderr_file
+            stderr_file="$(mktemp)"
+            while [ "$attempt" -le 3 ]; do
+              if gh api "$@" 2>"$stderr_file"; then
+                rm -f "$stderr_file"
+                return 0
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                cat "$stderr_file" >&2
+                rm -f "$stderr_file"
+                return 1
+              fi
+              sleep "$delay"
+              delay=$((delay * 2))
+              attempt=$((attempt + 1))
+            done
+          }
+
+          outcome="${GATE_OUTCOME:-infra-error}"
+          reason="${INFRA_REASON:-GATE_OUTCOME was unset; prior step likely aborted before recording an outcome}"
+
           marker='<!-- docbridge-related-gate -->'
           {
             echo "$marker"
             echo "## DocBridge related-gate"
             echo
-            if [ "$GATE_STATUS" = "0" ]; then
+            if [ "$outcome" = "clean" ]; then
               echo "All linked counterparts of the changed files are part of this PR's change set."
-            else
+            elif [ "$outcome" = "violation" ]; then
               echo "Changed files have linked counterparts that this PR does not update."
               echo "For each entry, either update the counterpart or make sure the PR explains why no update is needed."
               echo
               echo '```'
               cat gate-output.txt
               echo '```'
+            else
+              echo "DocBridge related-gate could not run — infrastructure failure."
+              echo
+              echo "Reason:"
+              echo '```'
+              printf '%s\n' "$reason"
+              echo '```'
             fi
           } > comment.md
-          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+
+          {
+            echo "## DocBridge related-gate"
+            echo
+            echo "Outcome: \`${outcome}\`"
+            if [ "$outcome" = "infra-error" ]; then
+              echo
+              echo "Reason:"
+              echo '```'
+              printf '%s\n' "$reason"
+              echo '```'
+            elif [ "$outcome" = "clean" ]; then
+              echo
+              echo "All linked counterparts of the changed files are part of this PR's change set."
+            else
+              echo
+              echo "Changed files have linked counterparts that this PR does not update."
+              echo
+              echo '```'
+              cat gate-output.txt
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          comment_id="$(gh_api_with_retry "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
             -q ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)"
           if [ -n "$comment_id" ]; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -F body=@comment.md
+            gh_api_with_retry -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -F body=@comment.md
           else
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@comment.md
+            gh_api_with_retry -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@comment.md
+          fi
+
+          if [ "$outcome" = "infra-error" ]; then
+            exit 1
           fi

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The related-gate CI recipe in `docs/integrations/ci.md` now derives the PR
+  changed-file list from the checkout (`git diff BASE...HEAD` with
+  `fetch-depth: 0`) and falls back to a retried GitHub API call. Outcomes are
+  reported as `clean`, `violation`, or `infra-error`, and the sticky comment
+  updates on every outcome (including infrastructure failure). Adopters who
+  copied the previous recipe must re-copy it and set `fetch-depth: 0` on the
+  checkout step; a shallow checkout breaks the new primary path.
 - Shipped Swift and Dart scanner executables are now named
   `docbridge-swift-scanner` and `docbridge_dart_scanner`. Paths under
   `dist/bin/<platform>/speclink-*` no longer exist; delete `chmod +x`
