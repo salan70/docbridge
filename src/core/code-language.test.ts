@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import {
+  accessSync,
   chmodSync,
+  constants,
   mkdtempSync,
   mkdirSync,
   realpathSync,
@@ -172,6 +174,31 @@ test("resolveScannerWorkerCommand leaves an already-executable scanner's mode un
 
     expect(result.ok).toBe(true);
     expect(statSync(scannerPath).mode & 0o7777).toBe(0o750);
+  });
+});
+
+// Slice 2 reports an EACCES at spawn time as a `noexec` mount on the grounds
+// that resolution already made the binary executable. That only holds if the
+// probe asks whether *this* process can execute the file, not whether any
+// execute bit is set somewhere in the mode. Root bypasses the distinction.
+const skipIfRoot =
+  typeof process.getuid === "function" && process.getuid() === 0 ? test.skip : test;
+
+skipIfRoot("resolveScannerWorkerCommand repairs a scanner the current user cannot execute", () => {
+  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+    // Executable for group and other but not for the owner, which is us: the
+    // mode has execute bits, yet this process still cannot run the file.
+    chmodSync(scannerPath, 0o011);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+    accessSync(scannerPath, constants.X_OK);
   });
 });
 

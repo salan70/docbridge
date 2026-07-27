@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, realpathSync, statSync } from "node:fs";
+import { accessSync, chmodSync, constants, existsSync, realpathSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -339,8 +339,6 @@ function scannerExecutableCandidates(
   ];
 }
 
-const EXECUTE_BITS = 0o111;
-
 type ExecutableRepair = { ok: true } | { ok: false; reason: string };
 
 /**
@@ -353,6 +351,11 @@ type ExecutableRepair = { ok: true } | { ok: false; reason: string };
  *
  * Repair is best-effort: on a read-only store `chmod` fails, and the caller
  * degrades to `code_scanner_unavailable` rather than throwing.
+ *
+ * The probe asks whether *this* process can execute the file rather than
+ * whether any execute bit is set, because a mode like `0011` carries execute
+ * bits that do not apply to the owner. That precision is what lets a later
+ * `EACCES` at spawn time be attributed to the filesystem instead of the mode.
  */
 function ensureExecutable(
   path: string,
@@ -364,7 +367,7 @@ function ensureExecutable(
   } catch (error) {
     return { ok: false, reason: `cannot stat ${path}: ${reasonOf(error)}` };
   }
-  if ((mode & EXECUTE_BITS) !== 0) {
+  if (isExecutableByThisProcess(path)) {
     return { ok: true };
   }
   try {
@@ -379,6 +382,15 @@ function ensureExecutable(
     };
   }
   return { ok: true };
+}
+
+function isExecutableByThisProcess(path: string): boolean {
+  try {
+    accessSync(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function formatMode(mode: number): string {

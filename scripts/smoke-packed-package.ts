@@ -1,6 +1,14 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdtempSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
@@ -22,13 +30,74 @@ export function smokePackedPackage(
 
   try {
     installAndSmoke(tarballPath, tempRoot, options);
+    if (options.scannerFixtures) {
+      smokeExecutableBitRepair(tarballPath, tempRoot);
+    }
     console.log(`Smoke-tested ${basename(tarballPath)} in ${tempRoot}`);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-export function assertInstalledScannerExecutables(installRoot: string): void {
+/**
+ * Regression coverage for issue #74: bundled scanners arrive non-executable.
+ *
+ * `npm install` preserves tarball modes, so the root above never reproduced the
+ * defect. `bun install` is the installer downstream adopters use and the one
+ * that drops the bit, so install that way as well. The bit is then stripped
+ * explicitly before every check so the repair path stays covered even if a
+ * future Bun release stops dropping it.
+ */
+function smokeExecutableBitRepair(tarballPath: string, tempRoot: string): void {
+  const installRoot = join(tempRoot, "bun-install");
+  mkdirSync(installRoot, { recursive: true });
+  writeFileSync(
+    join(installRoot, "package.json"),
+    JSON.stringify({ private: true, dependencies: {} }, null, 2),
+  );
+  run(["bun", "install", tarballPath], installRoot);
+  reportInstalledScannerModes(installRoot);
+
+  writeScannerFixtures(installRoot);
+  for (const runtime of cliRuntimes) {
+    for (const fixture of ["swift-fixture", "dart-fixture"] as const) {
+      stripInstalledScannerExecutableBits(installRoot);
+      run(
+        [
+          runtime,
+          join(installRoot, "node_modules/.bin/docbridge"),
+          "check",
+          "--root",
+          join(installRoot, fixture),
+        ],
+        installRoot,
+      );
+    }
+  }
+}
+
+/**
+ * Report, never gate: the bit being absent after `bun install` is the
+ * installer's behavior, not a DocBridge regression. The gate is that
+ * `docbridge check` succeeds anyway.
+ */
+function reportInstalledScannerModes(installRoot: string): void {
+  for (const scannerPath of installedScannerPaths(installRoot)) {
+    const mode = statSync(scannerPath).mode & 0o7777;
+    console.log(
+      `${relativeToRoot(installRoot, scannerPath)} installed with mode 0${mode.toString(8)}`,
+    );
+  }
+}
+
+function stripInstalledScannerExecutableBits(installRoot: string): void {
+  for (const scannerPath of installedScannerPaths(installRoot)) {
+    chmodSync(scannerPath, statSync(scannerPath).mode & ~0o111);
+  }
+}
+
+function installedScannerPaths(installRoot: string): string[] {
+  const paths: string[] = [];
   for (const platform of scannerPlatformKeys) {
     for (const executable of scannerExecutableNames) {
       const scannerPath = join(
@@ -37,9 +106,18 @@ export function assertInstalledScannerExecutables(installRoot: string): void {
         platform,
         executable,
       );
-      if (existsSync(scannerPath) && (statSync(scannerPath).mode & 0o111) === 0) {
-        throw new Error(`${relativeToRoot(installRoot, scannerPath)} is not executable.`);
+      if (existsSync(scannerPath)) {
+        paths.push(scannerPath);
       }
+    }
+  }
+  return paths;
+}
+
+export function assertInstalledScannerExecutables(installRoot: string): void {
+  for (const scannerPath of installedScannerPaths(installRoot)) {
+    if ((statSync(scannerPath).mode & 0o111) === 0) {
+      throw new Error(`${relativeToRoot(installRoot, scannerPath)} is not executable.`);
     }
   }
 }
@@ -92,57 +170,51 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
     return;
   }
 
-  mkdirSync(join(tempRoot, "swift-fixture/Sources"), { recursive: true });
-  mkdirSync(join(tempRoot, "swift-fixture/docs"), { recursive: true });
-  writeFixtureConfig(tempRoot, "swift-fixture", {
+  writeScannerFixtures(tempRoot);
+  for (const runtime of cliRuntimes) {
+    for (const fixture of ["swift-fixture", "dart-fixture"] as const) {
+      run(
+        [
+          runtime,
+          join(tempRoot, "node_modules/.bin/docbridge"),
+          "check",
+          "--root",
+          join(tempRoot, fixture),
+        ],
+        tempRoot,
+      );
+    }
+  }
+}
+
+function writeScannerFixtures(root: string): void {
+  mkdirSync(join(root, "swift-fixture/Sources"), { recursive: true });
+  mkdirSync(join(root, "swift-fixture/docs"), { recursive: true });
+  writeFixtureConfig(root, "swift-fixture", {
     swift: { patterns: ["Sources/**/*.swift"] },
   });
   writeFileSync(
-    join(tempRoot, "swift-fixture/Sources/AuthService.swift"),
+    join(root, "swift-fixture/Sources/AuthService.swift"),
     "/// @doc docs/auth.md#auth-service\npublic struct AuthService {}\n",
   );
   writeFileSync(
-    join(tempRoot, "swift-fixture/docs/auth.md"),
+    join(root, "swift-fixture/docs/auth.md"),
     "<!-- @code Sources/AuthService.swift#AuthService -->\n## Auth Service\n",
   );
-  for (const runtime of cliRuntimes) {
-    run(
-      [
-        runtime,
-        join(tempRoot, "node_modules/.bin/docbridge"),
-        "check",
-        "--root",
-        join(tempRoot, "swift-fixture"),
-      ],
-      tempRoot,
-    );
-  }
 
-  mkdirSync(join(tempRoot, "dart-fixture/lib"), { recursive: true });
-  mkdirSync(join(tempRoot, "dart-fixture/docs"), { recursive: true });
-  writeFixtureConfig(tempRoot, "dart-fixture", {
+  mkdirSync(join(root, "dart-fixture/lib"), { recursive: true });
+  mkdirSync(join(root, "dart-fixture/docs"), { recursive: true });
+  writeFixtureConfig(root, "dart-fixture", {
     dart: { patterns: ["lib/**/*.dart"] },
   });
   writeFileSync(
-    join(tempRoot, "dart-fixture/lib/auth_service.dart"),
+    join(root, "dart-fixture/lib/auth_service.dart"),
     "/// @doc docs/auth.md#auth-service\nclass AuthService {}\n",
   );
   writeFileSync(
-    join(tempRoot, "dart-fixture/docs/auth.md"),
+    join(root, "dart-fixture/docs/auth.md"),
     "<!-- @code lib/auth_service.dart#AuthService -->\n## Auth Service\n",
   );
-  for (const runtime of cliRuntimes) {
-    run(
-      [
-        runtime,
-        join(tempRoot, "node_modules/.bin/docbridge"),
-        "check",
-        "--root",
-        join(tempRoot, "dart-fixture"),
-      ],
-      tempRoot,
-    );
-  }
 }
 
 function writeFixtureConfig(
