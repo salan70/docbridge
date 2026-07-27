@@ -368,6 +368,7 @@ repository setup, testing matrix, commit convention, and pull request workflow.
 - v0.3 decisions: [docs/decisions/v0.3.md](docs/decisions/v0.3.md)
 - AI agent integration recipes: [docs/integrations](docs/integrations)
 - Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
+- Pull request convention: [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
 - Testing convention: [docs/contributing/testing.md](docs/contributing/testing.md)
 
 ## Roadmap

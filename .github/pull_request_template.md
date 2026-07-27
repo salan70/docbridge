@@ -5,8 +5,9 @@
 ## Issue gate
 
 <!-- Keep exactly one line. Non-trivial work requires an issue with the `status: accepted` label, regardless of who creates or implements it. -->
+<!-- Write Closes #NN as plain text below. Do not wrap it in backticks or a code fence; GitHub will not auto-close the issue otherwise. -->
 
-- Tracking issue: `Closes #`
+- Closes #
 - Issue not required: <!-- typo, wording, formatting, broken link, automated dependency update, or release PR; explain -->
 
 ## Test plan

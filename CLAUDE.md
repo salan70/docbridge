@@ -178,6 +178,9 @@ source of truth is `templates/skills/`. Apply edits there and copy them into
 
 - Write deliverables in English by default, including documentation, code
   comments, commit messages, PR titles, and PR descriptions.
+- PR titles follow
+  [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
+  (`<gitmoji> <type>: <summary>`, whole-PR summary, no scope, no issue number).
 - Use Japanese only when the path or context explicitly identifies the content
   as Japanese, such as files under `docs/ja/`.
 
@@ -204,8 +207,9 @@ Full rules and the release procedure live in the `git-workflow` skill
 - All changes land through a PR. Never push to `main` directly; GitHub blocks it
   for everyone, including administrators.
 - Before creating a branch, sync local `main`: run `git switch main`, then
-  `git pull --ff-only`. Never branch from a stale `main`. Name branches
-  `feat/`, `fix/`, `chore/`, or `release/vX.Y.Z`.
+  `git pull --ff-only`. Never branch from a stale `main`. Name branches per
+  [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
+  (`<feat|fix|chore>/#<issue>-<kebab-desc>`, or `release/vX.Y.Z`).
 - After a PR merges, return to `main`, run `git pull --ff-only`, and delete the
   local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in

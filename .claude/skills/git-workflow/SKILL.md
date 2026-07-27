@@ -14,37 +14,35 @@ cannot be pushed to directly. Follow these rules for all git work.
   this for everyone, including administrators.
 - Merge method is **Create a merge commit**. PR boundaries stay visible in
   `main` history; use `git log --first-parent main` for a PR-level view.
-- CI (`just check`, `just typecheck`, `just test`, `just build`) must pass
-  before a PR can merge.
+- CI (`just format-check`, `just lint`, `just check`, `just typecheck`,
+  `just test`, and `just build`) must pass before a PR can merge.
 - Commit messages follow
   [docs/contributing/commits.md](../../../docs/contributing/commits.md):
   `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated
   changes split into separate commits.
 
-## Branch naming
+## Branch naming and PR titles
 
-Use a small prefix set. The precise change type lives in the commit message, not
-the branch name.
-
-- `feat/<kebab-desc>` — new capability
-- `fix/<kebab-desc>` — bug fix
-- `chore/<kebab-desc>` — everything else (docs, refactor, ci, build, test,
-  dependencies, maintenance)
-- `release/vX.Y.Z` — release preparation only
-
-Examples: `feat/version-flag`, `fix/anchor-resolution`, `chore/git-workflow`,
-`release/v0.1.0`.
+Follow
+[docs/contributing/pull-requests.md](../../../docs/contributing/pull-requests.md)
+for branch names (`<feat|fix|chore>/#<issue>-<kebab-desc>`) and pull request
+titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
 
 ## Standard change flow
 
 1. Sync local `main` first: `git switch main && git pull --ff-only`. Never branch
    from a stale `main`.
-2. Create the branch from `main` using the naming above.
+2. Create the branch from `main` using the naming in
+   [pull-requests.md](../../../docs/contributing/pull-requests.md).
 3. Implement test-first. For logic changes, use the `tdd` skill.
-4. Commit in focused, logical commits. The `pre-commit` hook runs `just check`
-   and `just test`.
+4. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
+   read-only `just verify` gate.
 5. Push the branch and open a PR using the repository PR template. Write the PR
-   title and body in English (see the Language Policy).
+   title per
+   [pull-requests.md](../../../docs/contributing/pull-requests.md) and the body
+   in English (see the Language Policy). For tracked work, put a plain-text
+   `Closes #NN` in the Issue gate section — never wrap it in backticks, or
+   GitHub will not auto-close the issue.
 6. Wait for CI to pass.
 7. Merge with **Create a merge commit** once CI is green.
 8. After merge, return to an updated `main` and remove the local branch:

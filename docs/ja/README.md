@@ -351,6 +351,7 @@ Pull Request の流れは [CONTRIBUTING.md](../../CONTRIBUTING.md) を参照し�
 - AI エージェント統合レシピ: [../integrations](../integrations)
 - Commit message convention: [contributing/commits.md](contributing/commits.md)
 - English commit message convention: [../contributing/commits.md](../contributing/commits.md)
+- Pull Request 規約: [../contributing/pull-requests.md](../contributing/pull-requests.md)
 - テスト規約: [contributing/testing.md](contributing/testing.md)
 - English testing convention: [../contributing/testing.md](../contributing/testing.md)
 
