@@ -7,6 +7,6 @@ do {
   FileHandle.standardOutput.write(output)
   FileHandle.standardOutput.write(Data("\n".utf8))
 } catch {
-  FileHandle.standardError.write(Data("speclink-swift-scanner: \(error)\n".utf8))
+  FileHandle.standardError.write(Data("docbridge-swift-scanner: \(error)\n".utf8))
   exit(1)
 }

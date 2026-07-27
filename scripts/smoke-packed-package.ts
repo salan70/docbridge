@@ -15,7 +15,7 @@ import { basename, join, resolve } from "node:path";
 const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
 // The packaged CLI must work for both npm/Node and Bun consumers.
 const cliRuntimes = ["node", "bun"] as const;
-const scannerExecutableNames = ["speclink-swift-scanner", "speclink_dart_scanner"] as const;
+const scannerExecutableNames = ["docbridge-swift-scanner", "docbridge_dart_scanner"] as const;
 
 type SmokeOptions = {
   scannerFixtures: boolean;

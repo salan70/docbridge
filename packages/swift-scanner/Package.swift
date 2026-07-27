@@ -6,7 +6,7 @@ let package = Package(
   name: "SpecLinkSwiftScanner",
   platforms: [.macOS(.v13)],
   products: [
-    .executable(name: "speclink-swift-scanner", targets: ["SpecLinkSwiftScannerCLI"])
+    .executable(name: "docbridge-swift-scanner", targets: ["SpecLinkSwiftScannerCLI"])
   ],
   dependencies: [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0")

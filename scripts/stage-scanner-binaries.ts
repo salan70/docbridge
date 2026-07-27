@@ -13,15 +13,15 @@ const repoRoot = resolve(import.meta.dir, "..");
 const options = parseArgs(Bun.argv.slice(2));
 const outputDir = join(repoRoot, "dist/bin", options.platform);
 
-stageBinary(options.swift, join(outputDir, "speclink-swift-scanner"));
-stageBinary(options.dart, join(outputDir, "speclink_dart_scanner"));
+stageBinary(options.swift, join(outputDir, "docbridge-swift-scanner"));
+stageBinary(options.dart, join(outputDir, "docbridge_dart_scanner"));
 
 function parseArgs(args: string[]): Options {
   const platform = `${process.platform}-${process.arch}`;
   const parsedOptions: Options = {
     platform,
-    swift: join(repoRoot, "packages/swift-scanner/.build/release/speclink-swift-scanner"),
-    dart: join(repoRoot, "packages/dart-scanner/bin/speclink_dart_scanner"),
+    swift: join(repoRoot, "packages/swift-scanner/.build/release/docbridge-swift-scanner"),
+    dart: join(repoRoot, "packages/dart-scanner/bin/docbridge_dart_scanner"),
   };
 
   for (let index = 0; index < args.length; index += 1) {

@@ -49,7 +49,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 const extensionRelativeRoot = "editors/vscode";
 const iconRelativePath = "editors/vscode/assets/icon.png";
 const requiredScannerPlatforms = ["darwin-arm64", "linux-x64"] as const;
-const scannerExecutableNames = ["speclink-swift-scanner", "speclink_dart_scanner"] as const;
+const scannerExecutableNames = ["docbridge-swift-scanner", "docbridge_dart_scanner"] as const;
 const activationEvents = [
   "workspaceContains:docbridge.config.json",
   "onLanguage:typescript",

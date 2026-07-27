@@ -103,7 +103,7 @@ jobs:
         run: |
           cd packages/dart-scanner
           dart pub get --enforce-lockfile
-          dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
+          dart compile exe bin/docbridge_dart_scanner.dart -o bin/docbridge_dart_scanner
 
       - name: Test the Dart scanner
         run: |
@@ -120,7 +120,7 @@ jobs:
         run: >-
           nix develop -c just stage-scanner-binaries
           --platform linux-x64
-          --swift packages/swift-scanner/.build/debug/speclink-swift-scanner
+          --swift packages/swift-scanner/.build/debug/docbridge-swift-scanner
 
       - name: just verify-dist
         run: nix develop -c just verify-dist

@@ -441,7 +441,7 @@ function distRootPath(): string {
 }
 
 function scannerExecutableName(language: ScannerWorkerLanguage): string {
-  return language === "swift" ? "speclink-swift-scanner" : "speclink_dart_scanner";
+  return language === "swift" ? "docbridge-swift-scanner" : "docbridge_dart_scanner";
 }
 
 function scannerUnavailableDiagnostic(

@@ -59,8 +59,8 @@ test("TypeScript has an in-process adapter and Swift/Dart have worker-backed ada
 });
 
 test("resolveScannerWorkerCommand selects the dist scanner for a supported platform", () => {
-  withProject({ "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" }, (root) => {
-    const scannerPath = join(root, "dist/bin/darwin-arm64/speclink-swift-scanner");
+  withProject({ "dist/bin/darwin-arm64/docbridge-swift-scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/darwin-arm64/docbridge-swift-scanner");
     chmodSync(scannerPath, 0o755);
 
     const result = resolveScannerWorkerCommand("swift", {
@@ -76,12 +76,12 @@ test("resolveScannerWorkerCommand selects the dist scanner for a supported platf
 test("resolveScannerWorkerCommand selects source scanners on unsupported dist platforms", () => {
   withProject(
     {
-      "packages/swift-scanner/.build/release/speclink-swift-scanner": "#!/bin/sh\n",
+      "packages/swift-scanner/.build/release/docbridge-swift-scanner": "#!/bin/sh\n",
     },
     (root) => {
       const scannerPath = join(
         root,
-        "packages/swift-scanner/.build/release/speclink-swift-scanner",
+        "packages/swift-scanner/.build/release/docbridge-swift-scanner",
       );
       chmodSync(scannerPath, 0o755);
 
@@ -122,8 +122,8 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
 // on the bundled scanner binaries, so the CLI must restore it on its own
 // artifacts instead of requiring a caller-side `chmod +x`. See issue #74.
 test("resolveScannerWorkerCommand restores the executable bit on a bundled dist scanner", () => {
-  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
-    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
     chmodSync(scannerPath, 0o644);
 
     const result = resolveScannerWorkerCommand("dart", {
@@ -139,11 +139,11 @@ test("resolveScannerWorkerCommand restores the executable bit on a bundled dist 
 
 test("resolveScannerWorkerCommand restores the executable bit on a source-checkout scanner", () => {
   withProject(
-    { "packages/swift-scanner/.build/release/speclink-swift-scanner": "#!/bin/sh\n" },
+    { "packages/swift-scanner/.build/release/docbridge-swift-scanner": "#!/bin/sh\n" },
     (root) => {
       const scannerPath = join(
         root,
-        "packages/swift-scanner/.build/release/speclink-swift-scanner",
+        "packages/swift-scanner/.build/release/docbridge-swift-scanner",
       );
       chmodSync(scannerPath, 0o644);
 
@@ -160,8 +160,8 @@ test("resolveScannerWorkerCommand restores the executable bit on a source-checko
 });
 
 test("resolveScannerWorkerCommand leaves an already-executable scanner's mode untouched", () => {
-  withProject({ "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" }, (root) => {
-    const scannerPath = join(root, "dist/bin/darwin-arm64/speclink-swift-scanner");
+  withProject({ "dist/bin/darwin-arm64/docbridge-swift-scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/darwin-arm64/docbridge-swift-scanner");
     // Owner-and-group only: repair must not widen permissions it did not need
     // to touch, so this must not become 0755.
     chmodSync(scannerPath, 0o750);
@@ -185,8 +185,8 @@ const skipIfRoot =
   typeof process.getuid === "function" && process.getuid() === 0 ? test.skip : test;
 
 skipIfRoot("resolveScannerWorkerCommand repairs a scanner the current user cannot execute", () => {
-  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
-    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
     // Executable for group and other but not for the owner, which is us: the
     // mode has execute bits, yet this process still cannot run the file.
     chmodSync(scannerPath, 0o011);
@@ -203,8 +203,8 @@ skipIfRoot("resolveScannerWorkerCommand repairs a scanner the current user canno
 });
 
 test("resolveScannerWorkerCommand restores execution without widening read access", () => {
-  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
-    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
     // A restrictive umask can install the scanner owner-only. Repair restores
     // execution and nothing else: group and other must not gain read access.
     chmodSync(scannerPath, 0o600);
@@ -221,8 +221,8 @@ test("resolveScannerWorkerCommand restores execution without widening read acces
 });
 
 test("resolveScannerWorkerCommand reports an unrepairable executable bit", () => {
-  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
-    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
     chmodSync(scannerPath, 0o644);
 
     const result = resolveScannerWorkerCommand("dart", {
