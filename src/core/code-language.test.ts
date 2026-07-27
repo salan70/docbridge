@@ -5,6 +5,7 @@ import {
   mkdirSync,
   realpathSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -112,6 +113,90 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
     const realRoot = realpathSync(root);
     expect(distRoot).toBe(join(realRoot, "pkg/dist"));
     expect(sourceRoot).toBe(realRoot);
+  });
+});
+
+// Consumers install DocBridge with an installer that drops the executable bit
+// on the bundled scanner binaries, so the CLI must restore it on its own
+// artifacts instead of requiring a caller-side `chmod +x`. See issue #74.
+test("resolveScannerWorkerCommand restores the executable bit on a bundled dist scanner", () => {
+  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+    chmodSync(scannerPath, 0o644);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+    expect(statSync(scannerPath).mode & 0o111).not.toBe(0);
+  });
+});
+
+test("resolveScannerWorkerCommand restores the executable bit on a source-checkout scanner", () => {
+  withProject(
+    { "packages/swift-scanner/.build/release/speclink-swift-scanner": "#!/bin/sh\n" },
+    (root) => {
+      const scannerPath = join(
+        root,
+        "packages/swift-scanner/.build/release/speclink-swift-scanner",
+      );
+      chmodSync(scannerPath, 0o644);
+
+      const result = resolveScannerWorkerCommand("swift", {
+        platformKey: "darwin-arm64",
+        sourceRoot: root,
+        distRoot: join(root, "missing-dist"),
+      });
+
+      expect(result).toEqual({ ok: true, command: [scannerPath] });
+      expect(statSync(scannerPath).mode & 0o111).not.toBe(0);
+    },
+  );
+});
+
+test("resolveScannerWorkerCommand leaves an already-executable scanner's mode untouched", () => {
+  withProject({ "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/darwin-arm64/speclink-swift-scanner");
+    // Owner-and-group only: repair must not widen permissions it did not need
+    // to touch, so this must not become 0755.
+    chmodSync(scannerPath, 0o750);
+
+    const result = resolveScannerWorkerCommand("swift", {
+      platformKey: "darwin-arm64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(statSync(scannerPath).mode & 0o7777).toBe(0o750);
+  });
+});
+
+test("resolveScannerWorkerCommand reports an unrepairable executable bit", () => {
+  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+    chmodSync(scannerPath, 0o644);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+      chmod: () => {
+        throw new Error("EROFS: read-only file system");
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostic.code).toBe("code_scanner_unavailable");
+      expect(result.diagnostic.message).toContain(scannerPath);
+      expect(result.diagnostic.message).toContain("0644");
+      expect(result.diagnostic.message).toContain("EROFS");
+      expect(result.diagnostic.message).toContain(`chmod +x ${scannerPath}`);
+    }
   });
 });
 

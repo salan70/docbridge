@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
@@ -76,7 +76,7 @@ export function invokeScannerWorker(
   if (!processResult.ok) {
     return {
       ok: false,
-      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error),
+      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error, command[0]),
       stderr: processResult.stderr,
     };
   }
@@ -236,15 +236,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function scannerUnavailableDiagnostic(language: CodeLanguage, error: unknown): DocBridgeDiagnostic {
+function scannerUnavailableDiagnostic(
+  language: CodeLanguage,
+  error: unknown,
+  executable?: string,
+): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
     severity: "error",
     code: "code_scanner_unavailable",
     language,
     target: language,
-    message: `${label} scanner worker is unavailable: ${reasonOf(error)}`,
+    message: `${label} scanner worker is unavailable: ${spawnFailureReason(error, executable)}`,
   };
+}
+
+/**
+ * Explain a spawn failure the executable bit cannot account for.
+ *
+ * Scanner resolution restores the executable bit before spawning, so a
+ * permission error here is not about the mode: the filesystem refuses to
+ * execute the file at all, which is what a `noexec` mount does. `bunx` caches
+ * packages under the OS temp dir, which is `noexec` on some hosts.
+ */
+function spawnFailureReason(error: unknown, executable?: string): string {
+  const reason = reasonOf(error);
+  if (!isExecDenied(error) || executable === undefined) {
+    return reason;
+  }
+  return (
+    `${reason}; the scanner is executable but ${dirname(executable)} refuses to ` +
+    `execute it, which a \`noexec\` mount does. Install DocBridge as a project ` +
+    `dependency, or point the installer cache at an exec-capable directory, ` +
+    `instead of running through \`bunx\``
+  );
+}
+
+function isExecDenied(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const code = (error as { code?: unknown }).code;
+  return code === "EACCES" || code === "EPERM";
 }
 
 function scannerFailedDiagnostic(language: CodeLanguage, reason: string): DocBridgeDiagnostic {

@@ -300,6 +300,78 @@ test("invokeScannerWorker emits scanner unavailable when the process cannot star
   });
 });
 
+// Resolution already restores the executable bit, so a permission error at
+// spawn time means the mode is not the problem: the filesystem itself refuses
+// to execute, which is what a `noexec` mount does. On macOS that is where
+// `bunx` caches packages. See issue #74.
+test("invokeScannerWorker explains exec-denied spawn failures as a noexec mount", () => {
+  const error = Object.assign(new Error("spawn EACCES"), { code: "EACCES" });
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-noexec",
+      language: "dart",
+      projectRoot: "/project",
+      files: [{ filePath: "lib/auth.dart", content: "" }],
+      options: {},
+    },
+    ["/private/tmp/bunx-cache/docbridge/dist/bin/darwin-arm64/speclink_dart_scanner"],
+    (): ScannerWorkerProcessResult => ({ ok: false, error, stderr: "" }),
+  );
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.code).toBe("code_scanner_unavailable");
+    expect(result.diagnostic.message).toContain(
+      "/private/tmp/bunx-cache/docbridge/dist/bin/darwin-arm64",
+    );
+    expect(result.diagnostic.message).toContain("noexec");
+    expect(result.diagnostic.message).toContain("dependency");
+  }
+});
+
+test("invokeScannerWorker explains an EPERM spawn failure the same way", () => {
+  const error = Object.assign(new Error("spawn EPERM"), { code: "EPERM" });
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-eperm",
+      language: "swift",
+      projectRoot: "/project",
+      files: [{ filePath: "Sources/Auth.swift", content: "" }],
+      options: {},
+    },
+    ["/mnt/store/dist/bin/linux-x64/speclink-swift-scanner"],
+    (): ScannerWorkerProcessResult => ({ ok: false, error, stderr: "" }),
+  );
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.message).toContain("noexec");
+    expect(result.diagnostic.message).toContain("/mnt/store/dist/bin/linux-x64");
+  }
+});
+
+test("invokeScannerWorker renders a non-Error spawn rejection readably", () => {
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-nonerror",
+      language: "dart",
+      projectRoot: "/project",
+      files: [{ filePath: "lib/auth.dart", content: "" }],
+      options: {},
+    },
+    ["/dist/bin/linux-x64/speclink_dart_scanner"],
+    (): ScannerWorkerProcessResult => ({ ok: false, error: "spawn refused", stderr: "" }),
+  );
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.message).toBe("Dart scanner worker is unavailable: spawn refused");
+  }
+});
+
 test("invokeScannerWorker emits scanner failed for invalid stdout and preserves stderr", () => {
   const result = invokeScannerWorker(
     {

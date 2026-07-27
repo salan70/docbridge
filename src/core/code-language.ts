@@ -1,4 +1,4 @@
-import { existsSync, realpathSync } from "node:fs";
+import { chmodSync, existsSync, realpathSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,6 +50,12 @@ export type ScannerWorkerResolutionOptions = {
   platformKey?: string;
   sourceRoot?: string;
   distRoot?: string;
+  /**
+   * Seam for the executable-bit repair. Tests inject a failing implementation
+   * because a real `chmod` failure requires a read-only filesystem or a
+   * different file owner, neither of which is reproducible in a temp directory.
+   */
+  chmod?: (path: string, mode: number) => void;
 };
 
 export function supportedScannerPlatformKeys(): readonly string[] {
@@ -74,6 +80,10 @@ export function resolveScannerWorkerCommand(
   const candidates = scannerExecutableCandidates(language, platformKey, platformSupported, options);
   const found = candidates.find((candidate) => existsSync(candidate));
   if (found !== undefined) {
+    const repair = ensureExecutable(found, options.chmod ?? chmodSync);
+    if (!repair.ok) {
+      return { ok: false, diagnostic: scannerUnavailableDiagnostic(language, repair.reason) };
+    }
     return { ok: true, command: [found] };
   }
 
@@ -327,6 +337,56 @@ function scannerExecutableCandidates(
     join(sourceRoot, "packages/dart-scanner/bin", executable),
     ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
   ];
+}
+
+const EXECUTE_BITS = 0o111;
+
+type ExecutableRepair = { ok: true } | { ok: false; reason: string };
+
+/**
+ * Restore the executable bit on a resolved scanner binary.
+ *
+ * Installers drop the mode bits on the binaries DocBridge bundles under
+ * `dist/bin/`, so a packaged scanner routinely arrives non-executable. Every
+ * path handled here is a DocBridge build output or a DocBridge-packaged binary,
+ * never a path derived from user configuration.
+ *
+ * Repair is best-effort: on a read-only store `chmod` fails, and the caller
+ * degrades to `code_scanner_unavailable` rather than throwing.
+ */
+function ensureExecutable(
+  path: string,
+  chmod: (path: string, mode: number) => void,
+): ExecutableRepair {
+  let mode: number;
+  try {
+    mode = statSync(path).mode;
+  } catch (error) {
+    return { ok: false, reason: `cannot stat ${path}: ${reasonOf(error)}` };
+  }
+  if ((mode & EXECUTE_BITS) !== 0) {
+    return { ok: true };
+  }
+  try {
+    chmod(path, mode | 0o755);
+  } catch (error) {
+    return {
+      ok: false,
+      reason:
+        `${path} is not executable (mode ${formatMode(mode)}) and the executable ` +
+        `bit could not be restored: ${reasonOf(error)}; run \`chmod +x ${path}\` ` +
+        `or reinstall DocBridge into a writable location`,
+    };
+  }
+  return { ok: true };
+}
+
+function formatMode(mode: number): string {
+  return `0${(mode & 0o7777).toString(8).padStart(3, "0")}`;
+}
+
+function reasonOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function isSupportedScannerPlatformKey(platformKey: string): boolean {
