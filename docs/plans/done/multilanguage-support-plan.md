@@ -64,7 +64,7 @@ should follow in separate slices.
 
 ### Configuration
 
-The canonical configuration file remains `docbridge.config.json`.
+The canonical configuration file remains `speclink.config.json`.
 
 Configuration is explicit and language-keyed. The old `include.code` array form
 is intentionally invalid once this plan lands.
@@ -320,7 +320,7 @@ response on stdout. Persistent workers are a future performance optimization.
 The `requestId` exists now so the protocol can evolve without changing the
 payload shape.
 
-If a configured first-party worker cannot be executed, `docbridge check` should
+If a configured first-party worker cannot be executed, `speclink check` should
 fail with `code_scanner_unavailable` rather than silently skipping that
 language. A worker process that starts but returns invalid JSON, a mismatched
 `requestId`, or otherwise violates the protocol should produce
@@ -387,7 +387,7 @@ fixtures/
   diagnostics/
   multilanguage/
 schemas/
-  docbridge.schema.json
+  speclink.schema.json
   scanner-worker-request.schema.json
   scanner-worker-response.schema.json
 ```
@@ -400,7 +400,7 @@ current TypeScript behavior through a registry adapter.
 Tasks:
 
 - Replace `include.code: string[]` with language-keyed code include entries.
-- Require `docbridge.config.json`; do not silently fall back to a TypeScript
+- Require `speclink.config.json`; do not silently fall back to a TypeScript
   default config.
 - Add `CodeLanguage`, `CodeScanResult`, and `CodeLanguageAdapter`.
 - Register TypeScript as the first built-in adapter.
@@ -540,10 +540,10 @@ Tasks:
 
 Tests:
 
-- `docbridge check` passes on a bidirectional Swift/Markdown fixture.
+- `speclink check` passes on a bidirectional Swift/Markdown fixture.
 - Missing Swift doc anchors and missing Swift backlinks produce existing
   relationship diagnostics.
-- `docbridge context` renders Swift declaration blocks with a Swift code fence.
+- `speclink context` renders Swift declaration blocks with a Swift code fence.
 - `graph --json` includes `language: "swift"` on code nodes.
 - LSP definition/references can traverse between Markdown and Swift endpoints.
 
@@ -619,10 +619,10 @@ Tasks:
 
 Tests:
 
-- `docbridge check` passes on a bidirectional Dart/Markdown fixture.
+- `speclink check` passes on a bidirectional Dart/Markdown fixture.
 - Missing Dart doc anchors and missing Dart backlinks produce existing
   relationship diagnostics.
-- `docbridge context` renders Dart declaration blocks with a Dart code fence.
+- `speclink context` renders Dart declaration blocks with a Dart code fence.
 - `graph --json` includes `language: "dart"` on code nodes.
 - LSP definition/references can traverse between Markdown and Dart endpoints.
 
@@ -661,7 +661,7 @@ Tests:
 - Example projects cover TypeScript, Swift, and Dart.
 - Diagnostic fixtures include `code_parse_error`.
 - Config schema rejects old and ambiguous config shapes.
-- Documentation examples pass `docbridge check` where they are executable.
+- Documentation examples pass `speclink check` where they are executable.
 
 Verification:
 
