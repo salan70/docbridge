@@ -84,8 +84,10 @@ Installers do not reliably preserve the executable bit on the scanner binaries
 bundled under `dist/bin/`. When DocBridge resolves one of its own bundled
 scanners and the current process cannot execute it, DocBridge restores the
 executable bit itself and proceeds; callers never need to `chmod` a bundled
-scanner. Repair applies only to the resolved DocBridge build output or packaged
-binary, never to a path derived from configuration.
+scanner. Repair adds execute bits only and leaves the existing read and write
+bits alone, so a scanner installed owner-only stays owner-readable. Repair
+applies only to the resolved DocBridge build output or packaged binary, never to
+a path derived from configuration.
 
 Repair is best-effort. When the executable bit cannot be restored — a read-only
 store, for example — DocBridge emits `code_scanner_unavailable` naming the

@@ -202,6 +202,24 @@ skipIfRoot("resolveScannerWorkerCommand repairs a scanner the current user canno
   });
 });
 
+test("resolveScannerWorkerCommand restores execution without widening read access", () => {
+  withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");
+    // A restrictive umask can install the scanner owner-only. Repair restores
+    // execution and nothing else: group and other must not gain read access.
+    chmodSync(scannerPath, 0o600);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+    expect(statSync(scannerPath).mode & 0o7777).toBe(0o711);
+  });
+});
+
 test("resolveScannerWorkerCommand reports an unrepairable executable bit", () => {
   withProject({ "dist/bin/linux-x64/speclink_dart_scanner": "#!/bin/sh\n" }, (root) => {
     const scannerPath = join(root, "dist/bin/linux-x64/speclink_dart_scanner");

@@ -371,7 +371,10 @@ function ensureExecutable(
     return { ok: true };
   }
   try {
-    chmod(path, mode | 0o755);
+    // Execute bits only. Widening to `0o755` would also grant group and other
+    // read access to a scanner a restrictive umask installed as `0o600`, which
+    // is more than restoring execution.
+    chmod(path, mode | 0o111);
   } catch (error) {
     return {
       ok: false,

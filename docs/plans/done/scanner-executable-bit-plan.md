@@ -54,8 +54,8 @@ Normative behavior is reflected in:
 
 `resolveScannerWorkerCommand` in `src/core/code-language.ts` already probes each
 candidate path with `existsSync`. The repair belongs there: when the selected
-candidate exists but carries no execute bit, attempt
-`chmodSync(path, mode | 0o755)` and use the path when that succeeds.
+candidate exists but this process cannot execute it, attempt
+`chmodSync(path, mode | 0o111)` and use the path when that succeeds.
 
 The issue text describes "restore the bit and retry once", which implies
 repairing after a spawn failure. Resolution-time repair is preferred because:
@@ -93,8 +93,8 @@ distinguishes:
 
 1. **Missing** — no candidate exists, or the platform is unsupported. Existing
    messages, unchanged.
-2. **Not executable and unrepairable** — the binary exists, lacks the execute
-   bit, and `chmodSync` failed. The message names the path, the observed mode,
+2. **Not executable and unrepairable** — the binary exists, this process cannot
+   execute it, and `chmodSync` failed. The message names the path, the observed mode,
    and the chmod error, and states the remedy (`chmod +x <path>`, or reinstall
    into a writable location).
 3. **Exec denied** — the binary exists and is executable, but the spawn is
@@ -147,8 +147,10 @@ Tasks:
   owner, and only the effective-permission probe justifies Slice 2 attributing
   a later spawn `EACCES` to the filesystem instead of the mode. `statSync` is
   still used to compute the repaired mode and to report the observed one.
-- When the candidate is not executable, attempt `chmodSync(path, mode | 0o755)`
-  and use the candidate on success.
+- When the candidate is not executable, attempt `chmodSync(path, mode | 0o111)`
+  and use the candidate on success. Execute bits only: `mode | 0o755` would also
+  grant group and other read access to a scanner installed `0o600` under a
+  restrictive umask, which is more than restoring execution.
 - When the repair fails, return `code_scanner_unavailable` with the failure-mode
   2 message from [Decisions](#three-distinguishable-failure-modes).
 - Keep the resolution result shape (`ScannerWorkerCommandResolution`) unchanged
