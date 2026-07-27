@@ -55,15 +55,18 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
       local attempt=1
       local delay=2
       local stderr_file
+      local stdout_file
       stderr_file="$(mktemp)"
+      stdout_file="$(mktemp)"
       while [ "$attempt" -le 3 ]; do
-        if gh api "$@" 2>"$stderr_file"; then
-          rm -f "$stderr_file"
+        if gh api "$@" >"$stdout_file" 2>"$stderr_file"; then
+          cat "$stdout_file"
+          rm -f "$stderr_file" "$stdout_file"
           return 0
         fi
         if [ "$attempt" -eq 3 ]; then
           cat "$stderr_file" >&2
-          rm -f "$stderr_file"
+          rm -f "$stderr_file" "$stdout_file"
           return 1
         fi
         sleep "$delay"
@@ -89,10 +92,9 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
       git_diff_err_file="$(mktemp)"
       if git diff --name-only "${BASE_SHA}...${HEAD_SHA}" \
         >changed-files.txt 2>"$git_diff_err_file"; then
-        if [ -s changed-files.txt ]; then
-          echo "CHANGED_FILES_SOURCE=git" >> "$GITHUB_ENV"
-          derived=1
-        fi
+        echo "CHANGED_FILES_SOURCE=git" >> "$GITHUB_ENV"
+        echo "changed-file source: git"
+        derived=1
       else
         printf 'git diff failed: %s\n' "$(cat "$git_diff_err_file")" >&2
       fi
@@ -103,9 +105,9 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
       rm -f changed-files.txt
       api_err_file="$(mktemp)"
       if gh_api_with_retry "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
-        -q '.[].filename' >changed-files.txt 2>"$api_err_file" \
-        && [ -s changed-files.txt ]; then
+        -q '.[].filename' >changed-files.txt 2>"$api_err_file"; then
         echo "CHANGED_FILES_SOURCE=api" >> "$GITHUB_ENV"
+        echo "changed-file source: api"
         rm -f "$api_err_file"
       else
         api_err="$(cat "$api_err_file" 2>/dev/null || true)"
@@ -136,7 +138,7 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
     cat gate-output.txt
 
 - name: Create or update the sticky PR comment
-  if: always()
+  if: ${{ !cancelled() }}
   env:
     GH_TOKEN: ${{ github.token }}
     PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -145,15 +147,18 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
       local attempt=1
       local delay=2
       local stderr_file
+      local stdout_file
       stderr_file="$(mktemp)"
+      stdout_file="$(mktemp)"
       while [ "$attempt" -le 3 ]; do
-        if gh api "$@" 2>"$stderr_file"; then
-          rm -f "$stderr_file"
+        if gh api "$@" >"$stdout_file" 2>"$stderr_file"; then
+          cat "$stdout_file"
+          rm -f "$stderr_file" "$stdout_file"
           return 0
         fi
         if [ "$attempt" -eq 3 ]; then
           cat "$stderr_file" >&2
-          rm -f "$stderr_file"
+          rm -f "$stderr_file" "$stdout_file"
           return 1
         fi
         sleep "$delay"
@@ -193,6 +198,9 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
       echo "## DocBridge related-gate"
       echo
       echo "Outcome: \`${outcome}\`"
+      if [ -n "${CHANGED_FILES_SOURCE:-}" ]; then
+        echo "Source: \`${CHANGED_FILES_SOURCE}\`"
+      fi
       if [ "$outcome" = "infra-error" ]; then
         echo
         echo "Reason:"
@@ -231,9 +239,9 @@ must change; it means nobody has decided yet. Two reporting styles:
 
 - **Informational (recommended)** — set `continue-on-error: true` on the job so
   a `violation` or `infra-error` does not block merge, and post the outcome as
-  a sticky PR comment (`if: always()` so an infrastructure failure overwrites
-  a prior success). The three outcomes are distinguishable from the comment
-  alone.
+  a sticky PR comment (`if: ${{ !cancelled() }}` so an infrastructure failure
+  overwrites a prior success, while a cancelled superseded run stays silent).
+  The three outcomes are distinguishable from the comment alone.
 - **Blocking** — make the job required, forcing every PR to either update
   counterparts or carve them out of the gate. Only adopt this once the link
   graph is dense enough that violations are rare; with a sparse graph it
