@@ -24,8 +24,10 @@ Rules:
 
 - Use `feat/`, `fix/`, or `chore/` for ordinary work. The precise change type
   lives in the commit message and pull request title, not the branch prefix.
-- Include `#<issue>` so the resulting merge commit subject carries a clickable
-  issue link (GitHub autolinks `#NN` in commit messages).
+- Include `#<issue>` so a reader can tell at a glance that the branch is tied to
+  a tracked item in this repository — almost always an issue — rather than a
+  sequence number or a date. A bare `81` would avoid the percent-encoding cost
+  below, but would lose that issue-number cue; keep the `#`.
 - Omit `#<issue>` only when the change legitimately needs no issue under the
   content-based exceptions in [CONTRIBUTING.md](../../CONTRIBUTING.md).
 - Keep `release/vX.Y.Z` for release-preparation branches. Those names are

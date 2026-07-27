@@ -14,8 +14,8 @@ cannot be pushed to directly. Follow these rules for all git work.
   this for everyone, including administrators.
 - Merge method is **Create a merge commit**. PR boundaries stay visible in
   `main` history; use `git log --first-parent main` for a PR-level view.
-- CI (`just check`, `just typecheck`, `just test`, `just build`) must pass
-  before a PR can merge.
+- CI (`just format-check`, `just lint`, `just check`, `just typecheck`,
+  `just test`, and `just build`) must pass before a PR can merge.
 - Commit messages follow
   [docs/contributing/commits.md](../../../docs/contributing/commits.md):
   `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated
@@ -35,8 +35,8 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
 2. Create the branch from `main` using the naming in
    [pull-requests.md](../../../docs/contributing/pull-requests.md).
 3. Implement test-first. For logic changes, use the `tdd` skill.
-4. Commit in focused, logical commits. The `pre-commit` hook runs `just check`
-   and `just test`.
+4. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
+   read-only `just verify` gate.
 5. Push the branch and open a PR using the repository PR template. Write the PR
    title per
    [pull-requests.md](../../../docs/contributing/pull-requests.md) and the body
