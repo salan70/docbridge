@@ -80,6 +80,23 @@ Swift or Dart project runs on any other platform, or the expected binary is not
 present for a supported platform, DocBridge emits `code_scanner_unavailable`
 with the missing platform key and the supported keys.
 
+Installers do not reliably preserve the executable bit on the scanner binaries
+bundled under `dist/bin/`. When DocBridge resolves one of its own bundled
+scanners and the current process cannot execute it, DocBridge restores the
+executable bit itself and proceeds; callers never need to `chmod` a bundled
+scanner. Repair adds execute bits only and leaves the existing read and write
+bits alone, so a scanner installed owner-only stays owner-readable. Repair
+applies only to the resolved DocBridge build output or packaged binary, never to
+a path derived from configuration.
+
+Repair is best-effort. When the executable bit cannot be restored — a read-only
+store, for example — DocBridge emits `code_scanner_unavailable` naming the
+binary path, its observed mode, and the underlying error. When the binary is
+executable and the spawn is still refused with a permission error, the
+filesystem itself refuses execution, which is what a `noexec` mount does;
+DocBridge emits `code_scanner_unavailable` naming the binary's directory and
+that cause.
+
 <!-- @code src/core/glob.ts#collectFiles -->
 
 ## File Collection

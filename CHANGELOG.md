@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bundled Swift and Dart scanner binaries no longer have to be executable at
+  install time. Installers do not reliably preserve the executable bit on files
+  under `dist/bin/`, which made `docbridge check` fail on every Swift or Dart
+  project; DocBridge now restores the bit on its own bundled scanners when the
+  current process cannot execute them. Consumers can remove `chmod +x`
+  workarounds from their build recipes. When the bit cannot be restored, or when
+  the binary is executable but the filesystem refuses to execute it as a
+  `noexec` mount does, `code_scanner_unavailable` now names the cause and the
+  remedy instead of surfacing a bare spawn error.
+
 ## [0.6.0] - 2026-07-13
 
 ### Added
