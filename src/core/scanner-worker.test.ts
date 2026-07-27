@@ -315,7 +315,7 @@ test("invokeScannerWorker explains exec-denied spawn failures as a noexec mount"
       files: [{ filePath: "lib/auth.dart", content: "" }],
       options: {},
     },
-    ["/private/tmp/bunx-cache/docbridge/dist/bin/darwin-arm64/speclink_dart_scanner"],
+    ["/private/tmp/bunx-cache/docbridge/dist/bin/darwin-arm64/docbridge_dart_scanner"],
     (): ScannerWorkerProcessResult => ({ ok: false, error, stderr: "" }),
   );
 
@@ -341,7 +341,7 @@ test("invokeScannerWorker explains an EPERM spawn failure the same way", () => {
       files: [{ filePath: "Sources/Auth.swift", content: "" }],
       options: {},
     },
-    ["/mnt/store/dist/bin/linux-x64/speclink-swift-scanner"],
+    ["/mnt/store/dist/bin/linux-x64/docbridge-swift-scanner"],
     (): ScannerWorkerProcessResult => ({ ok: false, error, stderr: "" }),
   );
 
@@ -362,7 +362,7 @@ test("invokeScannerWorker renders a non-Error spawn rejection readably", () => {
       files: [{ filePath: "lib/auth.dart", content: "" }],
       options: {},
     },
-    ["/dist/bin/linux-x64/speclink_dart_scanner"],
+    ["/dist/bin/linux-x64/docbridge_dart_scanner"],
     (): ScannerWorkerProcessResult => ({ ok: false, error: "spawn refused", stderr: "" }),
   );
 

@@ -10,14 +10,14 @@ test("assertInstalledScannerExecutables rejects installed scanner binaries witho
   try {
     const scanner = join(
       root,
-      "node_modules/docbridge/dist/bin/darwin-arm64/speclink-swift-scanner",
+      "node_modules/docbridge/dist/bin/darwin-arm64/docbridge-swift-scanner",
     );
     mkdirSync(join(scanner, ".."), { recursive: true });
     writeFileSync(scanner, "#!/bin/sh\n");
     chmodSync(scanner, 0o644);
 
     expect(() => assertInstalledScannerExecutables(root)).toThrow(
-      "node_modules/docbridge/dist/bin/darwin-arm64/speclink-swift-scanner is not executable",
+      "node_modules/docbridge/dist/bin/darwin-arm64/docbridge-swift-scanner is not executable",
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

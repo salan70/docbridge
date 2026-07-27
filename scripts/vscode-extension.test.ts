@@ -72,10 +72,10 @@ describe("assertReleaseInputs", () => {
   });
 
   test("requires every supported scanner binary to be staged", () => {
-    const root = createReleaseInputFixture({ omitScanner: "linux-x64/speclink_dart_scanner" });
+    const root = createReleaseInputFixture({ omitScanner: "linux-x64/docbridge_dart_scanner" });
 
     expect(() => assertReleaseInputs(root)).toThrow(
-      "dist/bin/linux-x64/speclink_dart_scanner is required",
+      "dist/bin/linux-x64/docbridge_dart_scanner is required",
     );
   });
 });
@@ -170,7 +170,7 @@ function createReleaseInputFixture(
     writeFileSync(join(root, "editors/vscode/assets/icon.png"), "png");
   }
   for (const platform of ["darwin-arm64", "linux-x64"]) {
-    for (const executable of ["speclink-swift-scanner", "speclink_dart_scanner"]) {
+    for (const executable of ["docbridge-swift-scanner", "docbridge_dart_scanner"]) {
       const relative = `${platform}/${executable}`;
       if (relative === options.omitScanner) {
         continue;
@@ -210,7 +210,7 @@ function createExpandedVsixFixture(extensionRoot: string): void {
   writeFileSync(join(extensionRoot, "server/dist/index.js"), "#!/usr/bin/env bun\n");
   chmodSync(join(extensionRoot, "server/dist/index.js"), 0o755);
   for (const platform of ["darwin-arm64", "linux-x64"]) {
-    for (const executable of ["speclink-swift-scanner", "speclink_dart_scanner"]) {
+    for (const executable of ["docbridge-swift-scanner", "docbridge_dart_scanner"]) {
       const file = join(extensionRoot, "server/dist/bin", platform, executable);
       mkdirSync(join(file, ".."), { recursive: true });
       writeFileSync(file, "binary");

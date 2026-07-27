@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:speclink_dart_scanner/scanner.dart';
+import 'package:docbridge_dart_scanner/scanner.dart';
 import 'package:test/test.dart';
 
 Map<String, dynamic> scan(String source, {List<String>? visibility}) {

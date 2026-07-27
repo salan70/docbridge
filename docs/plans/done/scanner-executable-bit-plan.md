@@ -40,7 +40,7 @@ Normative behavior is reflected in:
   `noexec` mount. See [Rejected: Writable Cache Fallback](#rejected-writable-cache-fallback).
 - A `postinstall` lifecycle script. See
   [Rejected: Install-Time Repair](#rejected-install-time-repair).
-- Renaming the `speclink-swift-scanner` / `speclink_dart_scanner` executables.
+- Renaming the `docbridge-swift-scanner` / `docbridge_dart_scanner` executables.
   Tracked separately in issue #75; this plan must not change those names, so
   the fix stays independently backportable.
 - Changing scanner resolution order, supported platform keys, or the worker
@@ -293,7 +293,7 @@ Done when:
 
 - Remove the `chmod +x` workaround from `yodoku/justfile` and
   `share-expenses/flake.nix` once a release carrying this fix is pinned. Both
-  also hardcode the legacy `speclink-*` binary paths, so coordinate with
-  issue #75 to touch those recipes once.
+  also hardcode the pre-rename scanner binary paths; drop those recipes once a
+  release that includes issue #75 is pinned.
 - Revisit the writable-cache fallback only if a `noexec` reproduction surfaces
   through the Slice 2 diagnostic.

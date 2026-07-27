@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Shipped Swift and Dart scanner executables are now named
+  `docbridge-swift-scanner` and `docbridge_dart_scanner`. Paths under
+  `dist/bin/<platform>/speclink-*` no longer exist; delete `chmod +x`
+  workarounds that hard-coded those names rather than updating the paths.
+
 ### Fixed
 
 - Bundled Swift and Dart scanner binaries no longer have to be executable at

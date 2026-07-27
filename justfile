@@ -125,7 +125,7 @@ test-dart-scanner:
     cd packages/dart-scanner && dart pub get --enforce-lockfile && dart test
 
 build-dart-scanner:
-    cd packages/dart-scanner && dart pub get --enforce-lockfile && dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
+    cd packages/dart-scanner && dart pub get --enforce-lockfile && dart compile exe bin/docbridge_dart_scanner.dart -o bin/docbridge_dart_scanner
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.

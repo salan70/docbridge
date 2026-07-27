@@ -1,7 +1,7 @@
 # npm Distribution Plan
 
 This plan defines the first public npm distribution for SpecLink. The goal is
-to make the CLI runnable through `bunx speclink` while keeping the package
+to make the CLI runnable through `bunx docbridge` while keeping the package
 layout, binary support, and release workflow explicit enough for small,
 reviewable implementation slices.
 
@@ -25,8 +25,8 @@ land:
 
 ## Goals
 
-- Publish the public npm package as `speclink`.
-- Make `bunx speclink ...` the primary distribution path for the CLI.
+- Publish the public npm package as `docbridge`.
+- Make `bunx docbridge ...` the primary distribution path for the CLI.
 - Keep the first npm release Bun-only; Node.js runtime compatibility is not a
   requirement.
 - Ship `dist/` output rather than TypeScript source as the package executable.
@@ -44,22 +44,22 @@ land:
 - Single-file or single-binary CLI distribution.
 - Homebrew, Docker, system package manager, VS Code Marketplace, or PyPI
   distribution.
-- Optional platform packages such as `@speclink/scanner-darwin-arm64`.
+- Optional platform packages such as `@docbridge/scanner-darwin-arm64`.
 - Windows, `darwin-x64`, `linux-arm64`, or other platform support in the first
   npm release.
 - Building Swift or Dart scanners on the user's machine during `npm install`.
-- Publishing the package under a scoped name such as `@indee/speclink`, except
+- Publishing the package under a scoped name such as `@indee/docbridge`, except
   as a future fallback if the unscoped npm name becomes unavailable.
 
 ## Decisions
 
 ### Package Name and Command
 
-The public package name is `speclink`. The command name remains `speclink`.
+The public package name is `docbridge`. The command name remains `docbridge`.
 The primary install-free invocation is:
 
 ```sh
-bunx speclink check
+bunx docbridge check
 ```
 
 The name is intentionally optimized for CLI discoverability and directness. It
@@ -86,7 +86,7 @@ The package executable is the built dist file:
 ```json
 {
   "bin": {
-    "speclink": "./dist/index.js"
+    "docbridge": "./dist/index.js"
   }
 }
 ```
@@ -103,13 +103,13 @@ dist/
   index.js
   bin/
     darwin-arm64/
-      speclink-swift-scanner
-      speclink_dart_scanner
+      docbridge-swift-scanner
+      docbridge_dart_scanner
     linux-x64/
-      speclink-swift-scanner
-      speclink_dart_scanner
+      docbridge-swift-scanner
+      docbridge_dart_scanner
 schemas/
-  speclink.schema.json
+  docbridge.schema.json
   context-output.schema.json
   graph-output.schema.json
 templates/
@@ -195,7 +195,7 @@ Purpose: make `package.json` describe a publishable Bun-only npm package.
 Tasks:
 
 - Remove or flip `"private": true`.
-- Point `bin.speclink` at `./dist/index.js`.
+- Point `bin.docbridge` at `./dist/index.js`.
 - Add package metadata required for npm publication: description, license,
   repository, bugs, homepage, keywords, and runtime expectations.
 - Add a `files` allowlist that excludes source, tests, fixtures, and local
@@ -362,7 +362,7 @@ Purpose: make the public docs match the npm distribution behavior.
 
 Tasks:
 
-- Document `bunx speclink ...` in `README.md`.
+- Document `bunx docbridge ...` in `README.md`.
 - Document supported platforms and Bun runtime requirements.
 - Document Swift/Dart scanner support and unsupported-platform behavior.
 - Update Japanese docs under `docs/ja/` after the English docs settle.
@@ -383,8 +383,8 @@ The real tarball smoke must run from a temporary project directory that is not
 inside the SpecLink source checkout. It should install the generated tarball and
 exercise:
 
-- `speclink --version`
-- `speclink --help`
+- `docbridge --version`
+- `docbridge --help`
 - a TypeScript-only fixture
 - Swift and Dart fixtures on every supported scanner platform
 

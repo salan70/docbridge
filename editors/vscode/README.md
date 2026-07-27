@@ -90,10 +90,10 @@ editors/vscode/assets/icon.png
 Also stage the supported scanner binaries under the root package layout:
 
 ```text
-dist/bin/darwin-arm64/speclink-swift-scanner
-dist/bin/darwin-arm64/speclink_dart_scanner
-dist/bin/linux-x64/speclink-swift-scanner
-dist/bin/linux-x64/speclink_dart_scanner
+dist/bin/darwin-arm64/docbridge-swift-scanner
+dist/bin/darwin-arm64/docbridge_dart_scanner
+dist/bin/linux-x64/docbridge-swift-scanner
+dist/bin/linux-x64/docbridge_dart_scanner
 ```
 
 `just package-vsix` preserves this pre-staged `dist/bin` directory while
