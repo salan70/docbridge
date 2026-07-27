@@ -139,8 +139,12 @@ the Bun integration tests. Rebuild both after changing worker code with
 - Write pull request titles as `<gitmoji> <type>: <summary>` describing the
   whole PR. See [Pull requests](docs/contributing/pull-requests.md).
 - Keep unrelated changes in separate commits and pull requests.
-- Link non-trivial work to its accepted issue with `Closes #123`. If an issue is
-  not required, state the content-based exception in the pull request template.
+- Link non-trivial work to its accepted issue with a plain-text `Closes #123` in
+  the pull request body (not in backticks or a code fence; GitHub will not
+  auto-close otherwise). See
+  [Pull requests](docs/contributing/pull-requests.md#linking-issues). If an
+  issue is not required, state the content-based exception in the pull request
+  template instead.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
 - For every `just related-gate` finding, update the linked counterpart or

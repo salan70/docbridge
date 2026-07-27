@@ -47,7 +47,9 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
 5. Push the branch and open a PR using the repository PR template. Write the PR
    title per
    [pull-requests.md](../../../docs/contributing/pull-requests.md) and the body
-   in English (see the Language Policy).
+   in English (see the Language Policy). For tracked work, put a plain-text
+   `Closes #NN` in the Issue gate section — never wrap it in backticks, or
+   GitHub will not auto-close the issue.
 6. Wait for CI to pass.
 7. Merge with **Create a merge commit** once CI is green.
 8. After merge, return to an updated `main` and remove the local branch:

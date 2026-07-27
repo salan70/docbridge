@@ -61,7 +61,30 @@ Rules:
   `fix`, `docs`, and `test` commits still needs one title that covers the
   overall change.
 - Do **not** put the issue number in the title. GitHub does not autolink `#NN`
-  in titles, and the pull request body already carries `Closes #NN`.
+  in titles, and the pull request body already carries a plain-text closing
+  keyword (see [Linking issues](#linking-issues)).
+
+## Linking issues
+
+Non-trivial pull requests link their accepted issue with a GitHub closing
+keyword in the pull request body:
+
+```text
+Closes #123
+```
+
+Rules:
+
+- Write the keyword as **plain text** in the body (for example
+  `- Closes #123`). Do **not** wrap it in backticks or a fenced code block.
+  GitHub ignores closing keywords inside code spans, so `` `Closes #123` ``
+  will not auto-close the issue on merge.
+- Put the issue number in the body, not in the pull request title.
+- Prefer `Closes` for work that should close the issue. Other GitHub closing
+  keywords (`Fixes`, `Resolves`) are also accepted when they fit.
+- When an issue is not required under the content-based exceptions in
+  [CONTRIBUTING.md](../../CONTRIBUTING.md), leave the closing line unused and
+  state the exception in the pull request template instead.
 
 ## Documented exceptions
 
