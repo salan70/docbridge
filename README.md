@@ -124,7 +124,8 @@ bunx docbridge check --audit
 
 Audit diagnostics include:
 
-- `undocumented_symbol`
+- `undocumented_symbol` — in-scope code endpoints with no `@doc`
+- `unlinked_doc_section` — in-scope documentation sections with no `@code`
 
 List the linked counterparts of changed files:
 
@@ -347,6 +348,7 @@ Warnings:
 - `dangling_code_annotation`
 - `unsupported_declaration`
 - `undocumented_symbol` when `--audit` is enabled
+- `unlinked_doc_section` when `--audit` is enabled
 
 Exit code policy:
 

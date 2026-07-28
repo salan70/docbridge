@@ -111,6 +111,14 @@ returns the managed files for each include pattern.
 Markdown scanning extracts heading anchors and `@code` annotations from a
 single Markdown file.
 
+Each anchor records its ATX heading level and whether at least one `@code`
+comment is attached to the heading. The annotation flag is recorded
+independently of the extracted links, because an annotation whose target fails
+to parse produces `invalid_link_target` and never becomes a link, yet still
+counts as an attempted link for
+[`unlinked_doc_section`](diagnostics.md#unlinked-doc-sections). Empty headings
+create no anchor, so they carry neither.
+
 <!-- @code src/core/typescript.ts#scanTypeScript -->
 
 ## TypeScript Scanning

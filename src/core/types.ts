@@ -30,7 +30,8 @@ export type DiagnosticCode =
   | "duplicate_link"
   | "dangling_code_annotation"
   | "unsupported_declaration"
-  | "undocumented_symbol";
+  | "undocumented_symbol"
+  | "unlinked_doc_section";
 
 export type SourceLocation = {
   filePath: string;
@@ -122,6 +123,15 @@ export type DocAnchorEndpoint = {
   anchor: string;
   endpoint: string;
   headingText: string;
+  /** ATX heading level, 1–6. Used to reconstruct the document's heading tree. */
+  level: number;
+  /**
+   * Whether at least one `@code` annotation is attached to this heading,
+   * regardless of whether its target parses or resolves. Audit rules treat an
+   * attempted-but-broken annotation as a link attempt, so this cannot be
+   * derived from `MarkdownScanResult.links`, which drops unparsable targets.
+   */
+  hasCodeAnnotation: boolean;
   location: SourceLocation;
   /** Range of the heading text (excluding `#` and surrounding whitespace). */
   headingTextRange?: Range;

@@ -361,3 +361,41 @@ test("scanMarkdown records the @code target range on the comment line", () => {
     end: { line: 1, column: 12 + target.length },
   });
 });
+
+// --- heading level and annotation presence ---------------------------------
+
+test("scanMarkdown records the heading level on each anchor", () => {
+  const content = ["# Top", "### Deep", "## Middle"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.anchors.map((anchor) => [anchor.anchor, anchor.level])).toEqual([
+    ["top", 1],
+    ["deep", 3],
+    ["middle", 2],
+  ]);
+});
+
+test("scanMarkdown marks a heading with an attached @code annotation as annotated", () => {
+  const content = ["<!-- @code src/auth/login.ts#login -->", "## Linked", "", "## Plain"].join(
+    "\n",
+  );
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.anchors.map((anchor) => [anchor.anchor, anchor.hasCodeAnnotation])).toEqual([
+    ["linked", true],
+    ["plain", false],
+  ]);
+});
+
+test("scanMarkdown marks a heading annotated even when the @code target is invalid", () => {
+  // `src/auth/login.ts` has no `#fragment`, so the link never reaches
+  // `result.links`. The heading still carries an attempted annotation.
+  const content = ["<!-- @code src/auth/login.ts -->", "## Broken"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.links).toEqual([]);
+  expect(result.anchors[0]?.hasCodeAnnotation).toBe(true);
+});

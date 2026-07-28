@@ -111,6 +111,7 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
 type HeadingMatch = {
   anchor: string;
   headingText: string;
+  level: number;
   location: SourceLocation;
   headingTextRange?: Range;
 };
@@ -131,6 +132,7 @@ function matchHeading(line: string, filePath: string, lineNumber: number): Headi
   const heading: HeadingMatch = {
     anchor,
     headingText,
+    level: hashes.length,
     location: { filePath, line: lineNumber, column: indent.length + 1 },
   };
 
@@ -239,6 +241,8 @@ function attachHeading(
     anchor: heading.anchor,
     endpoint,
     headingText: heading.headingText,
+    level: heading.level,
+    hasCodeAnnotation: pending.length > 0,
     location: heading.location,
   };
   if (heading.headingTextRange !== undefined) {

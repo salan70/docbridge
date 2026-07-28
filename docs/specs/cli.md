@@ -32,7 +32,7 @@ remaining options are specific to each command.
 
 `summary` counts check diagnostics only. CLI invocation errors are not included.
 
-`--audit` enables audit-only diagnostics. In v0.1, the only audit diagnostic is `undocumented_symbol`.
+`--audit` enables audit-only diagnostics: `undocumented_symbol` for in-scope code endpoints with no `@doc`, and `unlinked_doc_section` for in-scope documentation sections with no `@code`. Both are warnings, so `--audit` does not change exit codes. See [Diagnostics](diagnostics.md).
 
 `--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
 

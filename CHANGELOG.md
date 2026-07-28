@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docbridge check --audit` reports `unlinked_doc_section`, a warning for
+  in-scope documentation sections that carry no `@code` annotation. It is the
+  documentation-side counterpart to `undocumented_symbol`, so the audit now
+  covers both directions of the link graph. Reporting is rolled up over the
+  heading tree: only the topmost heading of a fully unannotated subtree is
+  reported, and a heading is treated as annotated whenever a `@code` comment is
+  attached to it, even if that annotation fails to parse or resolve. Runs
+  without `--audit` are unaffected, and the diagnostic is a warning, so exit
+  codes do not change.
+
 ## [0.6.1] - 2026-07-27
 
 ### Changed
