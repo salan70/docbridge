@@ -849,6 +849,64 @@ test("run graph --json scopes output to input files and direct counterparts", ()
   }
 });
 
+function makeMemberProject(): string {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-member-"));
+  writeFileSync(
+    join(project, "docbridge.config.json"),
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  mkdirSync(join(project, "src", "auth"), { recursive: true });
+  writeFileSync(
+    join(project, "src", "auth", "service.ts"),
+    [
+      "export class AuthService {",
+      "  /**",
+      "   * @doc docs/auth.md#login-spec",
+      "   */",
+      "  login(email: string) {",
+      "    return email;",
+      "  }",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  mkdirSync(join(project, "docs"), { recursive: true });
+  writeFileSync(
+    join(project, "docs", "auth.md"),
+    "<!-- @code src/auth/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+  );
+  return project;
+}
+
+test("run graph --json --include-content dedents a member signature", () => {
+  const project = makeMemberProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/**\n * @doc docs/auth.md#login-spec\n */\nlogin(email: string)",
+    });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("run graph --json --include-content includes lightweight node content", () => {
   const project = makeContextProject();
   try {

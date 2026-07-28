@@ -243,3 +243,44 @@ test("formatContextResult prints only the summary when there are no blocks", () 
 
   expect(formatContextResult(result)).toBe("1 input file, 0 context blocks");
 });
+
+test("computeContext dedents a member declaration to its own indentation level", () => {
+  const sources: Sources = {
+    code: [
+      [
+        "src/auth/service.ts",
+        [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#login-spec",
+          "   */",
+          "  login() {",
+          "    return true;",
+          "  }",
+          "}",
+          "",
+        ].join("\n"),
+      ],
+    ],
+    docs: [
+      [
+        "docs/auth.md",
+        ["<!-- @code src/auth/service.ts#AuthService.login -->", "## Login Spec", ""].join("\n"),
+      ],
+    ],
+  };
+
+  const result = computeContext(graphFrom(sources), contentMap(sources), ["docs/auth.md"]);
+
+  expect(result.contexts[0]?.content).toBe(
+    ["/**", " * @doc docs/auth.md#login-spec", " */", "login() {", "  return true;", "}"].join(
+      "\n",
+    ),
+  );
+});
+
+test("computeContext leaves a top-level declaration unchanged", () => {
+  const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["docs/auth.md"]);
+
+  expect(result.contexts[0]?.content).toBe(LOGIN_TS.trimEnd());
+});

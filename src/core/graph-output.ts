@@ -3,6 +3,7 @@ import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { sortDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
+import { dedentBlockLines } from "./indent";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
@@ -396,7 +397,7 @@ function extractSignature(content: string | undefined, range: Range | undefined)
   if (last !== undefined && range.end.column > 1) {
     lines[lastIndex] = last.slice(0, range.end.column - 1);
   }
-  const declaration = lines.join("\n");
+  const declaration = dedentBlockLines(lines).join("\n");
   const bodyStart = declaration.indexOf("{");
   if (bodyStart === -1) {
     return declaration.trimEnd();

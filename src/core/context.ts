@@ -4,6 +4,7 @@ import { loadConfig } from "./config";
 import { sortDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
 import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
+import { dedentBlockLines } from "./indent";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
@@ -265,6 +266,7 @@ function extractBlock(
   if (firstLine !== undefined) {
     lines[0] = firstLine.slice(range.start.column - 1);
   }
+  const dedented = dedentBlockLines(lines);
   return {
     endpoint: counterpart.endpoint,
     kind: "code",
@@ -273,7 +275,7 @@ function extractBlock(
     startLine,
     endLine,
     linkedFrom: [],
-    content: lines.join("\n"),
+    content: dedented.join("\n"),
   };
 }
 
