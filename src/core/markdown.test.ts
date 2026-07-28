@@ -362,17 +362,32 @@ test("scanMarkdown records the @code target range on the comment line", () => {
   });
 });
 
-// --- heading level and annotation presence ---------------------------------
+// --- heading outline ------------------------------------------------------
 
-test("scanMarkdown records the heading level on each anchor", () => {
+test("scanMarkdown records the heading level of each outline entry", () => {
   const content = ["# Top", "### Deep", "## Middle"].join("\n");
 
   const result = scanMarkdown("docs/a.md", content);
 
-  expect(result.anchors.map((anchor) => [anchor.anchor, anchor.level])).toEqual([
+  expect(result.headings.map((heading) => [heading.anchor?.anchor, heading.level])).toEqual([
     ["top", 1],
     ["deep", 3],
     ["middle", 2],
+  ]);
+});
+
+test("scanMarkdown includes empty headings in the outline but not in the anchors", () => {
+  // An empty heading creates no anchor, yet it closes the preceding section, so
+  // consumers that rebuild the document nesting still need to see it.
+  const content = ["### Parent", "##", "#### Child"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.anchors.map((anchor) => anchor.anchor)).toEqual(["parent", "child"]);
+  expect(result.headings.map((heading) => [heading.level, heading.anchor?.anchor])).toEqual([
+    [3, "parent"],
+    [2, undefined],
+    [4, "child"],
   ]);
 });
 
@@ -383,7 +398,9 @@ test("scanMarkdown marks a heading with an attached @code annotation as annotate
 
   const result = scanMarkdown("docs/a.md", content);
 
-  expect(result.anchors.map((anchor) => [anchor.anchor, anchor.hasCodeAnnotation])).toEqual([
+  expect(
+    result.headings.map((heading) => [heading.anchor?.anchor, heading.hasCodeAnnotation]),
+  ).toEqual([
     ["linked", true],
     ["plain", false],
   ]);
@@ -397,5 +414,14 @@ test("scanMarkdown marks a heading annotated even when the @code target is inval
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toEqual([]);
-  expect(result.anchors[0]?.hasCodeAnnotation).toBe(true);
+  expect(result.headings[0]?.hasCodeAnnotation).toBe(true);
+});
+
+test("scanMarkdown never marks an empty heading as annotated", () => {
+  // The annotation becomes dangling instead of attaching to the empty heading.
+  const content = ["<!-- @code src/auth/login.ts#login -->", "##"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.headings).toEqual([{ level: 2, hasCodeAnnotation: false }]);
 });

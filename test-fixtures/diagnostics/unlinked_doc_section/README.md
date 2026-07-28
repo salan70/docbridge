@@ -9,8 +9,13 @@ so the roll-up rule suppresses it. This is the nesting rule the diagnostic is
 built around: only the topmost heading of a *fully* unannotated subtree is
 reported.
 
-Under `--audit`, DocBridge reports one `unlinked_doc_section` (warning).
-Without `--audit` the project is clean; this diagnostic only exists in audit
-mode.
+The empty `##` after `## Unlinked` is at the same level, so it closes that
+section. `### Below Empty` is therefore a separate unlinked region, not a
+suppressed descendant of `## Unlinked`. Empty headings create no anchor and can
+never be reported themselves, but they still shape the tree, matching the
+section boundaries `docbridge context` and LSP hover use.
+
+Under `--audit`, DocBridge reports two `unlinked_doc_section` warnings. Without
+`--audit` the project is clean; this diagnostic only exists in audit mode.
 
 Run: `just check-fixture unlinked_doc_section` (the recipe adds `--audit`)

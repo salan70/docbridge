@@ -5,7 +5,13 @@ import { pluralize, sortDiagnostics, summarizeDiagnostics } from "./diagnostics"
 import { collectFiles, readManagedFile } from "./glob";
 import { parseLinkTarget } from "./links";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
-import type { CheckResult, DocAnchorEndpoint, LinkAnnotation, DocBridgeDiagnostic } from "./types";
+import type {
+  CheckResult,
+  DocAnchorEndpoint,
+  DocHeadingOutline,
+  LinkAnnotation,
+  DocBridgeDiagnostic,
+} from "./types";
 
 export type ResolveInput = {
   /** One per scanned code file, including files that hit a parse error. */
@@ -265,9 +271,9 @@ function auditUndocumentedSymbols(
   return diagnostics;
 }
 
-/** A heading and the headings nested under it, reconstructed from anchor levels. */
+/** A heading and the headings nested under it, reconstructed from heading levels. */
 type HeadingNode = {
-  anchor: DocAnchorEndpoint;
+  heading: DocHeadingOutline;
   children: HeadingNode[];
 };
 
@@ -297,30 +303,33 @@ function auditUnlinkedDocSections(
     if (erroredFiles.has(file.filePath)) {
       continue;
     }
-    reportUnlinkedSections(buildHeadingTree(file.anchors), diagnostics);
+    reportUnlinkedSections(buildHeadingTree(file.headings), diagnostics);
   }
 
   return diagnostics;
 }
 
 /**
- * Rebuild the document's heading tree from anchors in document order, using the
- * same nesting rule as `extractDocSection` in `./section`: a heading's subtree
- * runs until the next heading whose level is less than or equal to its own.
+ * Rebuild the document's heading tree from the outline in document order, using
+ * the same nesting rule as `extractDocSection` in `./section`: a heading's
+ * subtree runs until the next heading whose level is less than or equal to its
+ * own.
  *
- * Empty headings produce no anchor during scanning, so they never appear here;
- * their children attach to the nearest enclosing heading instead.
+ * The outline is used rather than the anchors because empty headings create no
+ * anchor yet still close the preceding section. Dropping them would let a
+ * deeper heading after an empty one be absorbed into the section before it,
+ * which is not the region `extractDocSection` would return.
  */
-function buildHeadingTree(anchors: DocAnchorEndpoint[]): HeadingNode[] {
+function buildHeadingTree(headings: DocHeadingOutline[]): HeadingNode[] {
   const roots: HeadingNode[] = [];
   const openAncestors: HeadingNode[] = [];
 
-  for (const anchor of anchors) {
-    const node: HeadingNode = { anchor, children: [] };
+  for (const heading of headings) {
+    const node: HeadingNode = { heading, children: [] };
 
     while (
       openAncestors.length > 0 &&
-      (openAncestors[openAncestors.length - 1]?.anchor.level ?? 0) >= anchor.level
+      (openAncestors[openAncestors.length - 1]?.heading.level ?? 0) >= heading.level
     ) {
       openAncestors.pop();
     }
@@ -337,26 +346,36 @@ function buildHeadingTree(anchors: DocAnchorEndpoint[]): HeadingNode[] {
   return roots;
 }
 
-/** Walk the tree, reporting the topmost node of every fully unannotated subtree. */
+/**
+ * Walk the tree, reporting the topmost reportable node of every fully
+ * unannotated subtree.
+ *
+ * An empty heading has no anchor and so cannot be reported. It still shapes the
+ * tree, so reporting descends through it and reports its children instead.
+ */
 function reportUnlinkedSections(nodes: HeadingNode[], diagnostics: DocBridgeDiagnostic[]): void {
   for (const node of nodes) {
-    if (subtreeHasAnnotation(node)) {
+    const anchor = node.heading.anchor;
+    if (anchor === undefined || subtreeHasAnnotation(node)) {
       reportUnlinkedSections(node.children, diagnostics);
       continue;
     }
-    diagnostics.push(unlinkedDocSectionDiagnostic(node));
+    diagnostics.push(unlinkedDocSectionDiagnostic(node, anchor));
   }
 }
 
 function subtreeHasAnnotation(node: HeadingNode): boolean {
-  return node.anchor.hasCodeAnnotation || node.children.some(subtreeHasAnnotation);
+  return node.heading.hasCodeAnnotation || node.children.some(subtreeHasAnnotation);
 }
 
 function countDescendants(node: HeadingNode): number {
   return node.children.reduce((total, child) => total + 1 + countDescendants(child), 0);
 }
 
-function unlinkedDocSectionDiagnostic(node: HeadingNode): DocBridgeDiagnostic {
+function unlinkedDocSectionDiagnostic(
+  node: HeadingNode,
+  anchor: DocAnchorEndpoint,
+): DocBridgeDiagnostic {
   const suppressed = countDescendants(node);
   const suffix =
     suppressed === 0
@@ -366,12 +385,12 @@ function unlinkedDocSectionDiagnostic(node: HeadingNode): DocBridgeDiagnostic {
   const diagnostic: DocBridgeDiagnostic = {
     severity: "warning",
     code: "unlinked_doc_section",
-    target: node.anchor.endpoint,
-    message: `Doc section ${node.anchor.endpoint} has no @code annotation${suffix}.`,
-    location: node.anchor.location,
+    target: anchor.endpoint,
+    message: `Doc section ${anchor.endpoint} has no @code annotation${suffix}.`,
+    location: anchor.location,
   };
-  if (node.anchor.headingTextRange !== undefined) {
-    diagnostic.range = node.anchor.headingTextRange;
+  if (anchor.headingTextRange !== undefined) {
+    diagnostic.range = anchor.headingTextRange;
   }
   return diagnostic;
 }

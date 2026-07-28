@@ -106,7 +106,9 @@ Doc section docs/spec.md#overview has no @code annotation (12 descendant heading
 
 The count appears in the message only; the diagnostic carries no code-specific JSON field.
 
-Empty headings (`##` with no text) create no anchor, so they are never reported and are invisible to the tree; their children attach to the nearest enclosing heading instead. Content before the first heading has no anchor and is out of scope. Sections in doc files that failed to read are suppressed like every other derived diagnostic.
+Empty headings (`##` with no text) create no anchor, so they can never be reported. They do participate in the tree, because an empty heading still closes the section before it: in `### Parent`, `##`, `#### Child`, the empty `##` ends `Parent`, so `Child` is a separate region rather than a descendant of `Parent`, and both are reported. When an empty heading would itself be the reported node, reporting descends through it to its children.
+
+Content before the first heading has no anchor and is out of scope. Sections in doc files that failed to read are suppressed like every other derived diagnostic.
 
 <!-- @code src/lsp/diagnostics.ts#toLspDiagnostic -->
 

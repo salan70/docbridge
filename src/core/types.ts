@@ -123,18 +123,31 @@ export type DocAnchorEndpoint = {
   anchor: string;
   endpoint: string;
   headingText: string;
-  /** ATX heading level, 1–6. Used to reconstruct the document's heading tree. */
+  location: SourceLocation;
+  /** Range of the heading text (excluding `#` and surrounding whitespace). */
+  headingTextRange?: Range;
+};
+
+/**
+ * One ATX heading in document order, including empty headings that create no
+ * anchor. This is the document's structural outline: it preserves the heading
+ * levels needed to rebuild the nesting used by section extraction, which
+ * anchors alone cannot express because empty headings are missing from them.
+ */
+export type DocHeadingOutline = {
+  /** ATX heading level, 1–6. */
   level: number;
   /**
    * Whether at least one `@code` annotation is attached to this heading,
    * regardless of whether its target parses or resolves. Audit rules treat an
    * attempted-but-broken annotation as a link attempt, so this cannot be
    * derived from `MarkdownScanResult.links`, which drops unparsable targets.
+   * Always `false` for empty headings, whose annotations become
+   * `dangling_code_annotation`.
    */
   hasCodeAnnotation: boolean;
-  location: SourceLocation;
-  /** Range of the heading text (excluding `#` and surrounding whitespace). */
-  headingTextRange?: Range;
+  /** The anchor this heading created. Absent for empty headings. */
+  anchor?: DocAnchorEndpoint;
 };
 
 export type LinkAnnotationDirection = "code-to-doc" | "doc-to-code";

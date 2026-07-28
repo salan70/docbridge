@@ -8,6 +8,7 @@ import type {
   CodeLinkAnnotation,
   CodeSymbolEndpoint,
   DocAnchorEndpoint,
+  DocHeadingOutline,
   DocLinkAnnotation,
   SourceLocation,
   DocBridgeDiagnostic,
@@ -34,8 +35,6 @@ function codeSymbol(symbolName: string, filePath = CODE_FILE): CodeSymbolEndpoin
 
 type DocAnchorOptions = {
   filePath?: string;
-  level?: number;
-  hasCodeAnnotation?: boolean;
   line?: number;
 };
 
@@ -47,10 +46,27 @@ function docAnchor(anchor: string, options: DocAnchorOptions = {}): DocAnchorEnd
     anchor,
     endpoint: `${filePath}#${anchor}`,
     headingText: anchor,
-    level: options.level ?? 1,
-    hasCodeAnnotation: options.hasCodeAnnotation ?? false,
     location: { filePath, line: options.line ?? 1, column: 1 },
   };
+}
+
+type DocHeadingOptions = DocAnchorOptions & {
+  level?: number;
+  hasCodeAnnotation?: boolean;
+};
+
+/** An outline entry for a heading that creates an anchor. */
+function docHeading(anchor: string, options: DocHeadingOptions = {}): DocHeadingOutline {
+  return {
+    level: options.level ?? 1,
+    hasCodeAnnotation: options.hasCodeAnnotation ?? false,
+    anchor: docAnchor(anchor, options),
+  };
+}
+
+/** An outline entry for an empty heading, which creates no anchor. */
+function emptyHeading(level: number): DocHeadingOutline {
+  return { level, hasCodeAnnotation: false };
 }
 
 function docLink(source: string, target: string, filePath = CODE_FILE): DocLinkAnnotation {
@@ -87,7 +103,16 @@ function docFile(
   links: CodeLinkAnnotation[],
   diagnostics: DocBridgeDiagnostic[] = [],
 ): MarkdownScanResult {
-  return { filePath, anchors, links, diagnostics };
+  // Link resolution reads `anchors`; only the audit rule reads `headings`, and
+  // the tests that exercise it build the outline explicitly instead.
+  return { filePath, anchors, headings: [], links, diagnostics };
+}
+
+function docFileWithHeadings(filePath: string, headings: DocHeadingOutline[]): MarkdownScanResult {
+  const anchors = headings
+    .map((heading) => heading.anchor)
+    .filter((anchor): anchor is DocAnchorEndpoint => anchor !== undefined);
+  return { filePath, anchors, headings, links: [], diagnostics: [] };
 }
 
 function codes(diagnostics: DocBridgeDiagnostic[]): string[] {
@@ -102,11 +127,7 @@ describe(resolveLinks, () => {
     const diagnostics = resolveLinks({
       codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [
-        docFile(
-          DOC_FILE,
-          [docAnchor("login-spec", { hasCodeAnnotation: true })],
-          [codeLink(docEndpoint, codeEndpoint)],
-        ),
+        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],
       scanDiagnostics: [],
       audit: false,
@@ -166,11 +187,7 @@ describe(resolveLinks, () => {
     const diagnostics = resolveLinks({
       codeFiles: [],
       docFiles: [
-        docFile(
-          DOC_FILE,
-          [docAnchor("login-spec", { hasCodeAnnotation: true })],
-          [codeLink(docEndpoint, codeEndpoint)],
-        ),
+        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],
       scanDiagnostics: [],
       audit: false,
@@ -188,11 +205,7 @@ describe(resolveLinks, () => {
     const diagnostics = resolveLinks({
       codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [])],
       docFiles: [
-        docFile(
-          DOC_FILE,
-          [docAnchor("login-spec", { hasCodeAnnotation: true })],
-          [codeLink(docEndpoint, codeEndpoint)],
-        ),
+        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],
       scanDiagnostics: [],
       audit: false,
@@ -231,11 +244,7 @@ describe(resolveLinks, () => {
       // The errored code file is still in the managed set but exposes no symbols.
       codeFiles: [codeFile(CODE_FILE, [], [])],
       docFiles: [
-        docFile(
-          DOC_FILE,
-          [docAnchor("login-spec", { hasCodeAnnotation: true })],
-          [codeLink(docEndpoint, codeEndpoint)],
-        ),
+        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],
       scanDiagnostics: [
         {
@@ -327,11 +336,7 @@ describe(resolveLinks, () => {
     const diagnostics = resolveLinks({
       codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
       docFiles: [
-        docFile(
-          DOC_FILE,
-          [docAnchor("login-spec", { hasCodeAnnotation: true })],
-          [codeLink(docEndpoint, codeEndpoint)],
-        ),
+        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
       ],
       scanDiagnostics: [],
       audit: true,
@@ -342,10 +347,10 @@ describe(resolveLinks, () => {
 
   // --- unlinked_doc_section ------------------------------------------------
 
-  function unlinkedDocSectionAudit(anchors: DocAnchorEndpoint[]): DocBridgeDiagnostic[] {
+  function unlinkedDocSectionAudit(headings: DocHeadingOutline[]): DocBridgeDiagnostic[] {
     return resolveLinks({
       codeFiles: [],
-      docFiles: [docFile(DOC_FILE, anchors, [])],
+      docFiles: [docFileWithHeadings(DOC_FILE, headings)],
       scanDiagnostics: [],
       audit: true,
     }).filter((diagnostic) => diagnostic.code === "unlinked_doc_section");
@@ -354,7 +359,7 @@ describe(resolveLinks, () => {
   test("does not emit unlinked_doc_section when audit is disabled", () => {
     const diagnostics = resolveLinks({
       codeFiles: [],
-      docFiles: [docFile(DOC_FILE, [docAnchor("plain")], [])],
+      docFiles: [docFileWithHeadings(DOC_FILE, [docHeading("plain")])],
       scanDiagnostics: [],
       audit: false,
     });
@@ -363,7 +368,7 @@ describe(resolveLinks, () => {
   });
 
   test("emits unlinked_doc_section for a heading with no @code annotation", () => {
-    const diagnostics = unlinkedDocSectionAudit([docAnchor("plain", { level: 1, line: 4 })]);
+    const diagnostics = unlinkedDocSectionAudit([docHeading("plain", { level: 1, line: 4 })]);
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.severity).toBe("warning");
@@ -374,7 +379,7 @@ describe(resolveLinks, () => {
 
   test("does not emit unlinked_doc_section for an annotated heading", () => {
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("linked", { level: 1, hasCodeAnnotation: true }),
+      docHeading("linked", { level: 1, hasCodeAnnotation: true }),
     ]);
 
     expect(diagnostics).toEqual([]);
@@ -384,8 +389,8 @@ describe(resolveLinks, () => {
     // # Top (no @code) > ## Linked (@code). The subtree carries a link, so the
     // parent is not reported and neither is the annotated child.
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("top", { level: 1, line: 1 }),
-      docAnchor("linked", { level: 2, line: 2, hasCodeAnnotation: true }),
+      docHeading("top", { level: 1, line: 1 }),
+      docHeading("linked", { level: 2, line: 2, hasCodeAnnotation: true }),
     ]);
 
     expect(diagnostics).toEqual([]);
@@ -393,9 +398,9 @@ describe(resolveLinks, () => {
 
   test("reports only the topmost heading when a whole subtree is unannotated", () => {
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("top", { level: 1, line: 1 }),
-      docAnchor("child", { level: 2, line: 2 }),
-      docAnchor("grandchild", { level: 3, line: 3 }),
+      docHeading("top", { level: 1, line: 1 }),
+      docHeading("child", { level: 2, line: 2 }),
+      docHeading("grandchild", { level: 3, line: 3 }),
     ]);
 
     expect(diagnostics).toHaveLength(1);
@@ -404,9 +409,9 @@ describe(resolveLinks, () => {
 
   test("reports the suppressed descendant count in the message", () => {
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("top", { level: 1, line: 1 }),
-      docAnchor("child", { level: 2, line: 2 }),
-      docAnchor("grandchild", { level: 3, line: 3 }),
+      docHeading("top", { level: 1, line: 1 }),
+      docHeading("child", { level: 2, line: 2 }),
+      docHeading("grandchild", { level: 3, line: 3 }),
     ]);
 
     expect(diagnostics[0]?.message).toBe(
@@ -416,8 +421,8 @@ describe(resolveLinks, () => {
 
   test("uses the singular noun for a single suppressed descendant", () => {
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("top", { level: 1, line: 1 }),
-      docAnchor("child", { level: 2, line: 2 }),
+      docHeading("top", { level: 1, line: 1 }),
+      docHeading("child", { level: 2, line: 2 }),
     ]);
 
     expect(diagnostics[0]?.message).toBe(
@@ -426,7 +431,7 @@ describe(resolveLinks, () => {
   });
 
   test("omits the descendant count when the reported heading has no descendants", () => {
-    const diagnostics = unlinkedDocSectionAudit([docAnchor("plain", { level: 1, line: 1 })]);
+    const diagnostics = unlinkedDocSectionAudit([docHeading("plain", { level: 1, line: 1 })]);
 
     expect(diagnostics[0]?.message).toBe(`Doc section ${DOC_FILE}#plain has no @code annotation.`);
   });
@@ -434,9 +439,9 @@ describe(resolveLinks, () => {
   test("descends past an annotated heading to report its unannotated children", () => {
     // # Top (@code) > ## A (no @code), ## B (@code). Only A is reported.
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("top", { level: 1, line: 1, hasCodeAnnotation: true }),
-      docAnchor("a", { level: 2, line: 2 }),
-      docAnchor("b", { level: 2, line: 3, hasCodeAnnotation: true }),
+      docHeading("top", { level: 1, line: 1, hasCodeAnnotation: true }),
+      docHeading("a", { level: 2, line: 2 }),
+      docHeading("b", { level: 2, line: 3, hasCodeAnnotation: true }),
     ]);
 
     expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#a`]);
@@ -446,9 +451,9 @@ describe(resolveLinks, () => {
     // # Top, ### Deep, ## Middle. `Middle` closes `Deep`, so both are children
     // of `Top`; the annotation on `Middle` covers the whole `Top` subtree.
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("top", { level: 1, line: 1 }),
-      docAnchor("deep", { level: 3, line: 2 }),
-      docAnchor("middle", { level: 2, line: 3, hasCodeAnnotation: true }),
+      docHeading("top", { level: 1, line: 1 }),
+      docHeading("deep", { level: 3, line: 2 }),
+      docHeading("middle", { level: 2, line: 3, hasCodeAnnotation: true }),
     ]);
 
     expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#deep`]);
@@ -456,8 +461,8 @@ describe(resolveLinks, () => {
 
   test("treats sibling top-level headings as independent roots", () => {
     const diagnostics = unlinkedDocSectionAudit([
-      docAnchor("first", { level: 1, line: 1, hasCodeAnnotation: true }),
-      docAnchor("second", { level: 1, line: 2 }),
+      docHeading("first", { level: 1, line: 1, hasCodeAnnotation: true }),
+      docHeading("second", { level: 1, line: 2 }),
     ]);
 
     expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#second`]);
@@ -466,7 +471,7 @@ describe(resolveLinks, () => {
   test("suppresses unlinked_doc_section for doc files with a read error", () => {
     const diagnostics = resolveLinks({
       codeFiles: [],
-      docFiles: [docFile(DOC_FILE, [docAnchor("plain")], [])],
+      docFiles: [docFileWithHeadings(DOC_FILE, [docHeading("plain")])],
       scanDiagnostics: [
         {
           severity: "error",
@@ -517,19 +522,61 @@ describe(resolveLinks, () => {
     });
   });
 
-  test("reports the children of an empty heading, which carries no anchor", () => {
-    // An empty heading produces no anchor, so it is invisible to the tree and
-    // its unannotated child becomes the reported root.
-    const scan = scanMarkdown(DOC_FILE, ["#", "## Child"].join("\n"));
+  test("counts an empty heading among the suppressed descendants", () => {
+    // The empty heading is part of the unbridged region even though it can
+    // never be reported on its own.
+    const diagnostics = unlinkedDocSectionAudit([
+      docHeading("top", { level: 1, line: 1 }),
+      emptyHeading(2),
+      docHeading("deep", { level: 3, line: 3 }),
+    ]);
 
-    const diagnostics = resolveLinks({
+    expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#top`]);
+    expect(diagnostics[0]?.message).toBe(
+      `Doc section ${DOC_FILE}#top has no @code annotation (2 descendant headings suppressed).`,
+    );
+  });
+
+  function unlinkedDocSectionScan(content: string): DocBridgeDiagnostic[] {
+    const scan = scanMarkdown(DOC_FILE, content);
+
+    return resolveLinks({
       codeFiles: [],
       docFiles: [scan],
       scanDiagnostics: scan.diagnostics,
       audit: true,
     }).filter((diagnostic) => diagnostic.code === "unlinked_doc_section");
+  }
+
+  test("reports the children of an empty heading, which is never reportable itself", () => {
+    // An empty heading creates no anchor, so it cannot be reported. Reporting
+    // descends through it to its children instead.
+    const diagnostics = unlinkedDocSectionScan(["#", "## Child"].join("\n"));
 
     expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#child`]);
+  });
+
+  test("lets an empty heading close the section of a deeper preceding heading", () => {
+    // `extractDocSection` ends `### Parent` at the empty `##`, so `#### Child`
+    // is not inside Parent's section. The audit must agree and report the two
+    // as independent unlinked regions rather than rolling Child up into Parent.
+    const diagnostics = unlinkedDocSectionScan(["### Parent", "##", "#### Child"].join("\n"));
+
+    expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([
+      `${DOC_FILE}#parent`,
+      `${DOC_FILE}#child`,
+    ]);
+    expect(diagnostics[0]?.message).toBe(`Doc section ${DOC_FILE}#parent has no @code annotation.`);
+  });
+
+  test("an annotation below an empty heading does not cover a deeper heading above it", () => {
+    // The empty `##` closes `### Parent`, so the annotation on `#### Child`
+    // belongs to a sibling region and cannot suppress Parent.
+    const diagnostics = unlinkedDocSectionScan(
+      ["### Parent", "##", "<!-- @code src/example.ts#example -->", "#### Child"].join("\n"),
+    );
+
+    expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#parent`]);
   });
 });
 

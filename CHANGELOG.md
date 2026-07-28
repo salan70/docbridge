@@ -15,7 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covers both directions of the link graph. Reporting is rolled up over the
   heading tree: only the topmost heading of a fully unannotated subtree is
   reported, and a heading is treated as annotated whenever a `@code` comment is
-  attached to it, even if that annotation fails to parse or resolve. Runs
+  attached to it, even if that annotation fails to parse or resolve. Empty
+  headings create no anchor and are never reported, but they still close the
+  section before them, so a deeper heading following one is a separate region
+  rather than a suppressed descendant. Runs
   without `--audit` are unaffected, and the diagnostic is a warning, so exit
   codes do not change.
 
