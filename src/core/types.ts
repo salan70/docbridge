@@ -30,7 +30,8 @@ export type DiagnosticCode =
   | "duplicate_link"
   | "dangling_code_annotation"
   | "unsupported_declaration"
-  | "undocumented_symbol";
+  | "undocumented_symbol"
+  | "unlinked_doc_section";
 
 export type SourceLocation = {
   filePath: string;
@@ -125,6 +126,28 @@ export type DocAnchorEndpoint = {
   location: SourceLocation;
   /** Range of the heading text (excluding `#` and surrounding whitespace). */
   headingTextRange?: Range;
+};
+
+/**
+ * One ATX heading in document order, including empty headings that create no
+ * anchor. This is the document's structural outline: it preserves the heading
+ * levels needed to rebuild the nesting used by section extraction, which
+ * anchors alone cannot express because empty headings are missing from them.
+ */
+export type DocHeadingOutline = {
+  /** ATX heading level, 1–6. */
+  level: number;
+  /**
+   * Whether at least one `@code` annotation is attached to this heading,
+   * regardless of whether its target parses or resolves. Audit rules treat an
+   * attempted-but-broken annotation as a link attempt, so this cannot be
+   * derived from `MarkdownScanResult.links`, which drops unparsable targets.
+   * Always `false` for empty headings, whose annotations become
+   * `dangling_code_annotation`.
+   */
+  hasCodeAnnotation: boolean;
+  /** The anchor this heading created. Absent for empty headings. */
+  anchor?: DocAnchorEndpoint;
 };
 
 export type LinkAnnotationDirection = "code-to-doc" | "doc-to-code";

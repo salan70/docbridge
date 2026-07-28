@@ -203,3 +203,23 @@ test("fixture undocumented_symbol is clean without --audit", () => {
   expect(diagnostics).toEqual([]);
   expect(exitCode).toBe(0);
 });
+
+test("fixture unlinked_doc_section fires exactly unlinked_doc_section under --audit", () => {
+  const { exitCode, diagnostics } = checkFixture("unlinked_doc_section", { audit: true });
+
+  // `# Spec` is unannotated but its subtree carries a link, so it is suppressed.
+  // The empty `##` closes `## Unlinked`, making `### Below Empty` a separate
+  // region rather than a suppressed descendant.
+  expect(diagnostics).toEqual([
+    { code: "unlinked_doc_section", filePath: "docs/spec.md", line: 9 },
+    { code: "unlinked_doc_section", filePath: "docs/spec.md", line: 15 },
+  ]);
+  expect(exitCode).toBe(0);
+});
+
+test("fixture unlinked_doc_section is clean without --audit", () => {
+  const { exitCode, diagnostics } = checkFixture("unlinked_doc_section");
+
+  expect(diagnostics).toEqual([]);
+  expect(exitCode).toBe(0);
+});

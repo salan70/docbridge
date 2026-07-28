@@ -71,7 +71,8 @@ Global options:
 Check options:
   --root <path>  Project root to scan. Defaults to current directory.
   --json         Emit machine-readable JSON.
-  --audit        Include audit diagnostics such as undocumented_symbol.
+  --audit        Include audit diagnostics: undocumented_symbol and
+                 unlinked_doc_section.
 
 Related options:
   --root <path>  Project root to scan. Defaults to current directory.

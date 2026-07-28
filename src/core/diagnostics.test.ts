@@ -29,9 +29,10 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
     "dangling_code_annotation",
     "unsupported_declaration",
     "undocumented_symbol",
+    "unlinked_doc_section",
   ] satisfies DiagnosticCode[];
 
-  expect(codes).toHaveLength(19);
+  expect(codes).toHaveLength(20);
 });
 
 test("sortDiagnostics orders diagnostics deterministically", () => {

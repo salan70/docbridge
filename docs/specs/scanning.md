@@ -111,6 +111,20 @@ returns the managed files for each include pattern.
 Markdown scanning extracts heading anchors and `@code` annotations from a
 single Markdown file.
 
+Scanning also produces a heading outline: every ATX heading in document order,
+each with its level, whether at least one `@code` comment is attached to it,
+and the anchor it created. Empty headings appear in the outline with no anchor,
+because they create none yet still close the section before them. Consumers
+that need the document's nesting must use the outline rather than the anchors,
+which cannot express a section closed by an empty heading.
+
+The annotation flag is recorded independently of the extracted links, because
+an annotation whose target fails to parse produces `invalid_link_target` and
+never becomes a link, yet still counts as an attempted link for
+[`unlinked_doc_section`](diagnostics.md#unlinked-doc-sections). An empty
+heading is never annotated: a `@code` comment before one becomes
+`dangling_code_annotation`.
+
 <!-- @code src/core/typescript.ts#scanTypeScript -->
 
 ## TypeScript Scanning

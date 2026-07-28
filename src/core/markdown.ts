@@ -2,6 +2,7 @@ import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeLinkAnnotation,
   DocAnchorEndpoint,
+  DocHeadingOutline,
   Range,
   SourceLocation,
   DocBridgeDiagnostic,
@@ -10,6 +11,12 @@ import type {
 export type MarkdownScanResult = {
   filePath: string;
   anchors: DocAnchorEndpoint[];
+  /**
+   * Every heading in document order, including empty ones absent from
+   * `anchors`. Consumers that need the document's nesting must use this rather
+   * than `anchors`, which cannot express a section closed by an empty heading.
+   */
+  headings: DocHeadingOutline[];
   links: CodeLinkAnnotation[];
   diagnostics: DocBridgeDiagnostic[];
 };
@@ -34,6 +41,7 @@ const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
  */
 export function scanMarkdown(filePath: string, content: string): MarkdownScanResult {
   const anchors: DocAnchorEndpoint[] = [];
+  const headings: DocHeadingOutline[] = [];
   const links: CodeLinkAnnotation[] = [];
   const diagnostics: DocBridgeDiagnostic[] = [];
 
@@ -79,13 +87,24 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
     const heading = matchHeading(line, filePath, lineNumber);
     if (heading !== null) {
       if (heading.anchor === "") {
-        // Empty headings create no anchor and invalidate pending annotations.
+        // Empty headings create no anchor and invalidate pending annotations,
+        // but they still close the preceding section, so the outline keeps them.
         flushDanglingEmptyHeading(pending, diagnostics);
+        headings.push({ level: heading.level, hasCodeAnnotation: false });
         pending = [];
         continue;
       }
 
-      attachHeading(heading, anchors, links, diagnostics, seenAnchors, pending, filePath);
+      const anchor = attachHeading(
+        heading,
+        anchors,
+        links,
+        diagnostics,
+        seenAnchors,
+        pending,
+        filePath,
+      );
+      headings.push({ level: heading.level, hasCodeAnnotation: pending.length > 0, anchor });
       pending = [];
       continue;
     }
@@ -105,12 +124,13 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
   // Pending annotations at end of file never attach to a heading.
   flushDangling(pending, diagnostics);
 
-  return { filePath, anchors, links, diagnostics };
+  return { filePath, anchors, headings, links, diagnostics };
 }
 
 type HeadingMatch = {
   anchor: string;
   headingText: string;
+  level: number;
   location: SourceLocation;
   headingTextRange?: Range;
 };
@@ -131,6 +151,7 @@ function matchHeading(line: string, filePath: string, lineNumber: number): Headi
   const heading: HeadingMatch = {
     anchor,
     headingText,
+    level: hashes.length,
     location: { filePath, line: lineNumber, column: indent.length + 1 },
   };
 
@@ -230,7 +251,7 @@ function attachHeading(
   seenAnchors: Set<string>,
   pending: PendingComment[],
   filePath: string,
-): void {
+): DocAnchorEndpoint {
   const endpoint = `${filePath}#${heading.anchor}`;
 
   const anchor: DocAnchorEndpoint = {
@@ -300,6 +321,8 @@ function attachHeading(
     }
     links.push(link);
   }
+
+  return anchor;
 }
 
 /** Build parse options for a pending `@code` comment, carrying its target range. */

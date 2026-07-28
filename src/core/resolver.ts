@@ -1,11 +1,17 @@
 import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
-import { sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
+import { pluralize, sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
 import { collectFiles, readManagedFile } from "./glob";
 import { parseLinkTarget } from "./links";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
-import type { CheckResult, LinkAnnotation, DocBridgeDiagnostic } from "./types";
+import type {
+  CheckResult,
+  DocAnchorEndpoint,
+  DocHeadingOutline,
+  LinkAnnotation,
+  DocBridgeDiagnostic,
+} from "./types";
 
 export type ResolveInput = {
   /** One per scanned code file, including files that hit a parse error. */
@@ -173,6 +179,7 @@ export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
 
   if (input.audit) {
     diagnostics.push(...auditUndocumentedSymbols(input, erroredFiles));
+    diagnostics.push(...auditUnlinkedDocSections(input, erroredFiles));
   }
 
   return diagnostics;
@@ -262,6 +269,130 @@ function auditUndocumentedSymbols(
   }
 
   return diagnostics;
+}
+
+/** A heading and the headings nested under it, reconstructed from heading levels. */
+type HeadingNode = {
+  heading: DocHeadingOutline;
+  children: HeadingNode[];
+};
+
+/**
+ * Audit rule: emit `unlinked_doc_section` for documentation sections that have
+ * no `@code` annotation anywhere in their subtree.
+ *
+ * Reporting is rolled up: only the topmost heading of a fully unannotated
+ * subtree is reported, and its descendants are suppressed. A heading with no
+ * annotation of its own but an annotated descendant is not reported either,
+ * because the subtree is already bridged somewhere. This keeps the diagnostic
+ * proportional to the number of unbridged regions rather than to the number of
+ * headings, which is what makes it usable on a partially adopted repository.
+ *
+ * A heading counts as annotated whenever a `@code` comment is attached to it,
+ * even if that annotation is unparsable or unresolvable. Those cases already
+ * produce their own errors, and treating them as unlinked would wrongly collapse
+ * the surrounding subtree into a single roll-up.
+ */
+function auditUnlinkedDocSections(
+  input: ResolveInput,
+  erroredFiles: Set<string>,
+): DocBridgeDiagnostic[] {
+  const diagnostics: DocBridgeDiagnostic[] = [];
+
+  for (const file of input.docFiles) {
+    if (erroredFiles.has(file.filePath)) {
+      continue;
+    }
+    reportUnlinkedSections(buildHeadingTree(file.headings), diagnostics);
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Rebuild the document's heading tree from the outline in document order, using
+ * the same nesting rule as `extractDocSection` in `./section`: a heading's
+ * subtree runs until the next heading whose level is less than or equal to its
+ * own.
+ *
+ * The outline is used rather than the anchors because empty headings create no
+ * anchor yet still close the preceding section. Dropping them would let a
+ * deeper heading after an empty one be absorbed into the section before it,
+ * which is not the region `extractDocSection` would return.
+ */
+function buildHeadingTree(headings: DocHeadingOutline[]): HeadingNode[] {
+  const roots: HeadingNode[] = [];
+  const openAncestors: HeadingNode[] = [];
+
+  for (const heading of headings) {
+    const node: HeadingNode = { heading, children: [] };
+
+    while (
+      openAncestors.length > 0 &&
+      (openAncestors[openAncestors.length - 1]?.heading.level ?? 0) >= heading.level
+    ) {
+      openAncestors.pop();
+    }
+
+    const parent = openAncestors[openAncestors.length - 1];
+    if (parent === undefined) {
+      roots.push(node);
+    } else {
+      parent.children.push(node);
+    }
+    openAncestors.push(node);
+  }
+
+  return roots;
+}
+
+/**
+ * Walk the tree, reporting the topmost reportable node of every fully
+ * unannotated subtree.
+ *
+ * An empty heading has no anchor and so cannot be reported. It still shapes the
+ * tree, so reporting descends through it and reports its children instead.
+ */
+function reportUnlinkedSections(nodes: HeadingNode[], diagnostics: DocBridgeDiagnostic[]): void {
+  for (const node of nodes) {
+    const anchor = node.heading.anchor;
+    if (anchor === undefined || subtreeHasAnnotation(node)) {
+      reportUnlinkedSections(node.children, diagnostics);
+      continue;
+    }
+    diagnostics.push(unlinkedDocSectionDiagnostic(node, anchor));
+  }
+}
+
+function subtreeHasAnnotation(node: HeadingNode): boolean {
+  return node.heading.hasCodeAnnotation || node.children.some(subtreeHasAnnotation);
+}
+
+function countDescendants(node: HeadingNode): number {
+  return node.children.reduce((total, child) => total + 1 + countDescendants(child), 0);
+}
+
+function unlinkedDocSectionDiagnostic(
+  node: HeadingNode,
+  anchor: DocAnchorEndpoint,
+): DocBridgeDiagnostic {
+  const suppressed = countDescendants(node);
+  const suffix =
+    suppressed === 0
+      ? ""
+      : ` (${suppressed} descendant ${pluralize("heading", suppressed)} suppressed)`;
+
+  const diagnostic: DocBridgeDiagnostic = {
+    severity: "warning",
+    code: "unlinked_doc_section",
+    target: anchor.endpoint,
+    message: `Doc section ${anchor.endpoint} has no @code annotation${suffix}.`,
+    location: anchor.location,
+  };
+  if (anchor.headingTextRange !== undefined) {
+    diagnostic.range = anchor.headingTextRange;
+  }
+  return diagnostic;
 }
 
 function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {

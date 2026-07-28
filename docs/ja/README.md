@@ -119,7 +119,13 @@ bunx docbridge check --audit
 
 監査診断には以下を含めます。
 
-- `undocumented_symbol`
+- `undocumented_symbol` — 対象範囲のコードエンドポイントのうち `@doc` がないもの
+- `unlinked_doc_section` — 対象範囲のドキュメントセクションのうち `@code` がないもの
+
+`unlinked_doc_section` は見出しツリー単位でロールアップして報告します。`@code` を
+持たない見出しであっても、その配下のいずれかの見出しが `@code` を持つ場合は報告しま
+せん。報告するのは、自身と全子孫が `@code` を持たないサブツリーの最上位の見出しだけ
+です。
 
 変更したファイルにリンクされたカウンターパートを一覧する:
 
@@ -329,6 +335,7 @@ Warnings:
 - `dangling_code_annotation`
 - `unsupported_declaration`
 - `--audit` 有効時の `undocumented_symbol`
+- `--audit` 有効時の `unlinked_doc_section`
 
 終了コード:
 

@@ -65,6 +65,7 @@ function compareNumber(left: number, right: number): number {
   return left - right;
 }
 
-function pluralize(word: string, count: number): string {
+/** Append `s` to `word` unless `count` is exactly one. */
+export function pluralize(word: string, count: number): string {
   return count === 1 ? word : `${word}s`;
 }
