@@ -32,24 +32,33 @@ that PR, not separate PRs.
 
 ## Goals
 
-- `@doc` on a class method, class property, getter/setter, constructor,
-  interface member, or object type alias member produces a resolvable endpoint.
+- `@doc` on an identifier-named class method, class property, getter/setter,
+  constructor, interface member, or object type alias member produces a
+  resolvable endpoint.
 - The canonical ID is derivable by a TypeScript developer reading the source,
-  with no parameter signatures, modifiers, or ordinals in it.
-- Existing projects see no new diagnostics and no change in `check --audit`
-  output from this change alone.
-- `docbridge context` returns the member's own content and JSDoc, correctly
-  indented, rather than the enclosing type's.
+  with no parameter signatures, modifiers, or ordinals in it, and it is always
+  expressible in the `file#fragment` link grammar.
+- `check --audit` output is unchanged for existing projects. Total diagnostics
+  are not: an existing `@doc` on a member is collected for the first time and can
+  surface a link that was already broken.
+- `docbridge context` and `docbridge graph` return the member's own content and
+  JSDoc, dedented, rather than the enclosing type's.
 - This repository links `docs/specs/lsp.md` sections to the `Server` handlers
   that implement them, and `just verify` passes.
 
 ## Non-Goals
 
 - Adding a language, or changing the Swift or Dart canonical ID format.
+- Changing the `file#fragment` link target grammar in `src/core/links.ts`.
 - Namespace members, module augmentation, and declaration merging.
 - Object-literal properties as endpoints (`export const x = { foo() {} }`).
 - Members of union, intersection, mapped, or conditional type aliases.
 - Enum members, index signatures, and call/construct signatures.
+- Members whose name is not a plain identifier: string-literal, numeric,
+  computed, and private-identifier (`#secret`) names.
+- Constructor parameter properties (`constructor(private readonly x: T) {}`).
+- Anonymous default-exported classes as member containers; they are not
+  endpoints today either.
 - Detecting `@doc` comments that are not attached to a top-level declaration or
   one of its direct members. `docs/specs/annotations.md` already documents that
   orphan `@doc` comments are not detected; that limitation is unchanged.
@@ -60,9 +69,14 @@ that PR, not separate PRs.
 Full rationale is in the decisions document. Summarised here so the slices read
 without a second file open.
 
-### Canonical IDs Carry No Parameters
+### Canonical IDs Carry No Parameters and Stay Inside the Link Grammar
 
-A member endpoint is `Type.member`. TypeScript overloads are multiple signatures
+A member endpoint is `Type.member`. Only identifier-named members qualify: a
+link target is split on `#` into exactly two parts and its fragment may not
+contain whitespace (`src/core/links.ts:30`), so `Type.#secret` and
+`Type."space name"` are not expressible and are not endpoints.
+
+TypeScript overloads are multiple signatures
 of one implementation and always share a name within a type, so an overload
 group collapses to one endpoint — the existing "documented when any declaration
 carries `@doc`" rule in `scanTypeScript` already implements this. Parameter
@@ -76,6 +90,13 @@ TypeScript. Supporting one and not the other would replace the asymmetry this
 issue closes with a new one. Measured in this repository: 0 interfaces, 77
 exported object type aliases, 3 classes. Only a type alias whose type is
 _directly_ an object type literal is in scope.
+
+The container segment is the exported binding name, so `export const Public =
+class Internal { … }` yields `Public.member`, and an anonymous default-exported
+class has no container at all. "`const`" here follows the code rather than the
+specification's current wording: `src/core/typescript.ts:314` accepts any
+exported single-declarator variable statement regardless of `const`, `let`, or
+`var`, so `docs/specs/scanning.md` is corrected alongside.
 
 ### Members Are Exempt From Audit
 
@@ -91,11 +112,16 @@ breaking change.
 
 Static and instance members of the same name, and getter/setter pairs, share one
 canonical ID. When exactly one carries `@doc` the link resolves; when both do,
-`duplicate_code_symbol` fires. TypeScript's `get`/`set` pair is one property from
-the consumer's perspective, unlike Dart's separate library members, so it does
-not take Dart's trailing `=`. The constructor is `Type.constructor`, matching the
-keyword in the source, because canonical IDs are hand-written in Markdown and
-must be guessable from the code.
+`duplicate_code_symbol` fires. The scanner still emits the first annotated
+declaration and its links (`src/core/typescript.ts:133`), so navigation lands on
+it; what makes that acceptable is that the diagnostic is an **error** and
+`docbridge check` fails until the collision is resolved.
+
+TypeScript's `get`/`set` pair is one property from the consumer's perspective,
+unlike Dart's separate library members, so it does not take Dart's trailing `=`.
+The constructor is `Type.constructor`, matching the keyword in the source,
+because canonical IDs are hand-written in Markdown and must be guessable from
+the code.
 
 ### Visibility Is Configurable, Default Restrictive
 
@@ -118,27 +144,36 @@ This change adds no diagnostic codes:
 
 ## Slice 1: Member Scanning and Canonical IDs
 
-Descend one level from every top-level `class`, `interface`, object type alias,
-and class-expression `const` — exported or not, so that an annotated member of a
-non-exported class is diagnosed the same way an annotated non-exported top-level
-declaration already is.
+Descend one level from every top-level `class`, `interface`, `enum`, object type
+alias, and class-expression variable statement — exported or not, so that an
+annotated member of a non-exported class is diagnosed the same way an annotated
+non-exported top-level declaration already is. `enum` is visited only to make
+`unsupported_declaration` reachable on its members; enum members never become
+endpoints.
 
-Recorded members:
+Recorded members, identifier-named only:
 
 - class: methods, properties, getters, setters, constructors, static members
 - interface: property and method signatures
 - object type alias: property and method signatures
 
-Ranges follow the top-level rules with one addition: a member's
-`declarationRange.start.column` is fixed to `1`. `src/core/context.ts:250-268`
-slices only the first line by `start.column`, so an indented member would
-otherwise come back with its first line dedented and the rest indented.
-`signatureRange` includes the leading JSDoc and excludes the implementation
-body; members without a body use the whole declaration.
+Annotated but rejected, each producing `unsupported_declaration`: non-identifier
+names, index signatures, call and construct signatures, enum members, parameter
+properties, and members excluded by visibility once Slice 2 lands.
 
-Where an overload group or a `get`/`set` pair collapses, the ranges come from
-the first `@doc`-annotated declaration, which is what the existing endpoint
-dedup loop already selects.
+`signatureRange` includes the leading JSDoc and excludes the implementation body;
+members without a body use the whole declaration. Ranges keep the declaration's
+true start position — the earlier idea of forcing `start.column` to `1` is
+rejected, because for `class C { /** @doc … */ method() {} }` it drags `class C {`
+into the member's content and because it leaves `signatureRange` ragged.
+
+Where an overload group or a `get`/`set` pair collapses, the ranges come from the
+first `@doc`-annotated declaration, which is what the existing endpoint dedup
+loop already selects.
+
+Dedent extracted content in both extractors instead: `src/core/context.ts:250`
+and `src/core/graph-output.ts:328` strip the block's common leading indentation.
+This is a no-op for every existing top-level endpoint.
 
 Update the `unsupported_declaration` message to enumerate members.
 
@@ -151,8 +186,10 @@ just typecheck
 
 Done when:
 
-- `src/core/typescript.test.ts` covers each member kind, the collapse cases, the
-  collision cases, and the indentation fix, all written test-first.
+- `src/core/typescript.test.ts` covers each member kind, each rejection case, the
+  collapse cases, and the collision cases, all written test-first.
+- `src/core/context.test.ts` and the graph tests cover dedenting, including the
+  single-line class body, and show unchanged output for top-level declarations.
 
 ## Slice 2: TypeScript Visibility Configuration
 
@@ -189,6 +226,12 @@ the specification to move with the scanner.
   matching the Swift and Dart examples.
 - `docs/specs/configuration.md`: the new visibility key.
 - `docs/specs/diagnostics.md`: the reworded `unsupported_declaration`.
+- `docs/specs/scanning.md`: correct "supported `const` initializers" to
+  "single-declarator exported variable statement", which is what
+  `src/core/typescript.ts:314` has always implemented.
+- `CHANGELOG.md`: note that a previously ignored `@doc` on a member now
+  resolves, so existing projects can see link diagnostics they did not see
+  before.
 - `docs/decisions/typescript-member-endpoints.md`: the rationale, including the
   rejected canonical ID alternatives and why the audit exemption and the
   restrictive default are the safe direction.
@@ -247,9 +290,13 @@ Done when:
 
 ## Follow-up Work
 
-- Object-literal `const` properties as endpoints, if adopters ask for the
+- Object-literal properties as endpoints, if adopters ask for the
   `export const service = { ... }` shape.
 - Members of union and mapped type aliases.
+- Constructor parameter properties, which need a rule for whether the property
+  and the constructor are one endpoint or two.
+- Non-identifier member names, which need an escaping scheme in the
+  `file#fragment` grammar and therefore a cross-language decision.
 - Whole-file `@doc` detection, which would close the orphan-annotation gap
   documented in `docs/specs/annotations.md` for every language at once.
 - Including members in `--audit` behind a configuration key, once anyone wants
