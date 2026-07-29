@@ -69,6 +69,9 @@ links to this spec" cannot be derived from a single open file.
 
 Single-root only. Multi-root workspaces are out of scope for v0.2.
 
+<!-- @code src/lsp/project.ts#Project.setOverlay -->
+<!-- @code src/lsp/project.ts#Project.clearOverlay -->
+
 ### Document synchronization
 
 Full synchronization (`TextDocumentSyncKind.Full`).

@@ -15,10 +15,10 @@ the demand is now present in this repository's own dogfooding and in
 
 The design rationale — why the canonical ID format is what it is, and why
 members are exempt from audit — lives in
-[docs/decisions/typescript-member-endpoints.md](../decisions/typescript-member-endpoints.md).
-Normative behavior lives in [Scanning](../specs/scanning.md#typescript-scanning),
-[Annotations](../specs/annotations.md), and
-[Configuration](../specs/configuration.md).
+[docs/decisions/typescript-member-endpoints.md](../../decisions/typescript-member-endpoints.md).
+Normative behavior lives in [Scanning](../../specs/scanning.md#typescript-scanning),
+[Annotations](../../specs/annotations.md), and
+[Configuration](../../specs/configuration.md).
 
 The whole plan lands as a single pull request. Slices are commit units within
 that PR, not separate PRs.
@@ -28,7 +28,7 @@ that PR, not separate PRs.
 - [x] Slice 1: Member Scanning and Canonical IDs
 - [x] Slice 2: TypeScript Visibility Configuration
 - [x] Slice 3: Specifications, Decisions, and Fixtures
-- [ ] Slice 4: Dogfooding the LSP Specification
+- [x] Slice 4: Dogfooding the LSP Specification
 
 ## Goals
 
@@ -43,8 +43,8 @@ that PR, not separate PRs.
   surface a link that was already broken.
 - `docbridge context` and `docbridge graph` return the member's own content and
   JSDoc, dedented, rather than the enclosing type's.
-- This repository links `docs/specs/lsp.md` sections to the `Server` handlers
-  that implement them, and `just verify` passes.
+- This repository links a `docs/specs/lsp.md` section to the members that
+  implement it, and `just verify` passes.
 
 ## Non-Goals
 
@@ -130,7 +130,8 @@ the code.
 visibility rule — top-level declarations must be exported — and this extends it
 rather than inventing one. Swift already exposes the same knob, so adding it
 reduces the configuration asymmetry. The default leaves existing behavior
-unchanged; this repository opts into `private` for Slice 4.
+unchanged, and this repository dogfoods that default rather than opting into
+`private`.
 
 ### Diagnostics Reuse
 
@@ -260,22 +261,16 @@ Done when:
 
 ## Slice 4: Dogfooding the LSP Specification
 
-`docs/specs/lsp.md` has per-feature sections whose implementations are the
-`Server` handlers, which are `private`. Set
-`include.code.typescript.visibility` to include `private` in this repository's
-`docbridge.config.json`, then link:
+`docs/specs/lsp.md#document-synchronization` describes recording and dropping a
+document's buffer overlay. `Project.setOverlay` and `Project.clearOverlay`
+implement exactly that, and both are public, so this repository dogfoods member
+endpoints under the default visibility and sets no configuration.
 
-| Specification section             | Member                                          |
-| --------------------------------- | ----------------------------------------------- |
-| `lsp.md#hover`                    | `Server.onHover`                                |
-| `lsp.md#definition`               | `Server.onDefinition`                           |
-| `lsp.md#references`               | `Server.onReferences`                           |
-| `lsp.md#document-synchronization` | `Server.onDidOpen`, `onDidChange`, `onDidClose` |
-| `lsp.md#diagnostics`              | `Server.flush`                                  |
-
-The exact set is settled during the slice; what matters is that the links are at
-the specification's own granularity rather than pointing at `Server` or
-`Server.handle`.
+The `Server` handlers are not used. `lsp.md#hover`, `#definition`, and
+`#references` are already linked to the top-level `hover`, `definition`, and
+`references` functions; `Server.onHover` and its siblings are thin adapters that
+delegate to those, so pointing a specification section at one would be a coarser
+link dressed up as a finer one.
 
 - Check the final `## Status` box and `git mv` this plan into `docs/plans/done/`
   in the same change.
@@ -288,8 +283,9 @@ just verify
 
 Done when:
 
-- `docbridge context docs/specs/lsp.md` returns individual handler bodies, and
-  the repository's own audit output is unchanged apart from the new links.
+- `docbridge context docs/specs/lsp.md` returns the two overlay methods as their
+  own dedented blocks, and the repository's audit output is unchanged apart from
+  `document-synchronization` no longer being an unlinked section.
 
 ## Follow-up Work
 

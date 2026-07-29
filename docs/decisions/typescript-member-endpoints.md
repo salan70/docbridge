@@ -5,7 +5,7 @@ are. It is not normative: the behavior itself is specified in
 [Scanning](../specs/scanning.md#typescript-scanning),
 [Annotations](../specs/annotations.md), and
 [Configuration](../specs/configuration.md). Implementation sequencing lives in
-[the plan](../plans/typescript-member-endpoints-plan.md).
+[the plan](../plans/done/typescript-member-endpoints-plan.md).
 
 The trigger is [issue #76](https://github.com/salan70/docbridge/issues/76).
 Swift and Dart scan type members; TypeScript scanned only exported top-level
@@ -232,21 +232,28 @@ and `#private` by default. `protected` is included because it is part of the
 contract a subclass programs against.
 
 The initial position was a fixed rule with no configuration key, on the grounds
-that `private` is unambiguously internal and that no external demand existed.
-Examining this repository's LSP layer reversed that. `docs/specs/lsp.md` has
-per-feature sections — Hover, Definition, References, Diagnostics, Document
-synchronization — and every handler implementing them is `private` on `Server`.
-Its only public members are `handle` and the constructor. Under a fixed rule,
-this repository's most precisely matched specification-to-code links would be
-unwritable, and `lsp.md#hover` would have to point at either the whole `Server`
-class or the shared entry point for all LSP methods: the coarseness #76 exists
-to remove.
+that `private` is unambiguously internal and that no external demand existed. It
+was reversed on the belief that this repository could not otherwise dogfood the
+feature: `docs/specs/lsp.md` has per-feature sections and every `Server` handler
+implementing them is `private`.
 
-A configuration key resolves this without giving up the safe default. It also
-reduces asymmetry rather than adding it, since `include.code.swift.visibility`
-already exists and TypeScript was the language missing the knob. The default
-leaves every existing project's behavior unchanged, and this repository opts into
-`private` explicitly.
+That belief was wrong, and the record should say so. `lsp.md#hover`,
+`#definition`, and `#references` were already linked to `hover`, `definition`,
+and `references` — top-level exported functions in dedicated modules. The
+`Server` handlers are thin adapters that delegate to them, so linking a
+specification section to `Server.onHover` would have been a worse link, not a
+finer one. The section that genuinely needed a member,
+`lsp.md#document-synchronization`, is served by `Project.setOverlay` and
+`Project.clearOverlay`, both public.
+
+The key is kept anyway, on the two arguments that survive: `include.code.swift.visibility`
+already exists, so TypeScript was the language missing the knob rather than the
+one gaining a novelty; and the default is exactly the fixed rule it replaces, so
+nothing changes for anyone who does not set it. This repository sets nothing and
+dogfoods the default.
+
+What this episode argues for is checking the code before treating a motivating
+example as established.
 
 ## No New Diagnostic Codes
 
