@@ -12,16 +12,20 @@ import type {
 
 const LANGUAGE = "typescript" as const;
 
-/**
- * The in-process TypeScript code language adapter. Visibility options are not
- * used: TypeScript scope stays exported top-level declarations.
- */
+/** The in-process TypeScript code language adapter. */
 export const typeScriptAdapter: CodeLanguageAdapter = {
   language: LANGUAGE,
-  scanFile(filePath: string, content: string, _options: CodeScanOptions) {
-    return scanTypeScript(filePath, content);
+  scanFile(filePath: string, content: string, options: CodeScanOptions) {
+    return scanTypeScript(filePath, content, options);
   },
 };
+
+/**
+ * Member visibility included when the configuration does not say otherwise.
+ * `protected` is part of the contract a subclass programs against; `private` is
+ * opt-in. Top-level declarations are unaffected: they are scoped by `export`.
+ */
+const DEFAULT_MEMBER_VISIBILITY: readonly string[] = ["public", "protected"];
 
 type DocTag = {
   rawTarget: string;
@@ -48,7 +52,12 @@ type SupportedDeclaration = {
 /**
  * @doc docs/specs/scanning.md#typescript-scanning
  */
-export function scanTypeScript(filePath: string, content: string): CodeScanResult {
+export function scanTypeScript(
+  filePath: string,
+  content: string,
+  options: CodeScanOptions = {},
+): CodeScanResult {
+  const visibility = new Set(options.visibility ?? DEFAULT_MEMBER_VISIBILITY);
   const sourceFile = ts.createSourceFile(
     filePath,
     content,
@@ -97,7 +106,10 @@ export function scanTypeScript(filePath: string, content: string): CodeScanResul
     // Members are collected whether or not their container is itself an
     // endpoint, so an annotated member of a non-exported type is diagnosed the
     // same way an annotated non-exported top-level declaration already is.
-    collectMemberDeclarations(filePath, sourceFile, statement, declarations, diagnostics);
+    collectMemberDeclarations(filePath, sourceFile, statement, visibility, {
+      declarations,
+      diagnostics,
+    });
   }
 
   // An endpoint is documented when any of its declarations carries @doc.
@@ -274,9 +286,10 @@ function collectMemberDeclarations(
   filePath: string,
   sourceFile: ts.SourceFile,
   statement: ts.Statement,
-  declarations: SupportedDeclaration[],
-  diagnostics: DocBridgeDiagnostic[],
+  visibility: ReadonlySet<string>,
+  sink: { declarations: SupportedDeclaration[]; diagnostics: DocBridgeDiagnostic[] },
 ): void {
+  const { declarations, diagnostics } = sink;
   const container = describeContainer(statement);
   if (container === null) {
     return;
@@ -287,7 +300,7 @@ function collectMemberDeclarations(
 
     const docTags = collectDocTags(filePath, sourceFile, member);
     const described =
-      container.name === null
+      container.name === null || !isVisibleMember(member, visibility)
         ? null
         : describeMember(filePath, sourceFile, container.name, member, docTags);
 
@@ -417,6 +430,20 @@ function describeMember(
   };
 }
 
+/**
+ * A member's visibility tier. Members carry no `public` keyword in practice, so
+ * the absence of a modifier is what `public` means here.
+ */
+function isVisibleMember(member: ts.Node, visibility: ReadonlySet<string>): boolean {
+  if (hasModifier(member, ts.SyntaxKind.PrivateKeyword)) {
+    return visibility.has("private");
+  }
+  if (hasModifier(member, ts.SyntaxKind.ProtectedKeyword)) {
+    return visibility.has("protected");
+  }
+  return visibility.has("public");
+}
+
 type MemberIdentity = { name: string; nameRange: Range };
 
 /**
@@ -431,10 +458,6 @@ type MemberIdentity = { name: string; nameRange: Range };
  * endpoint.
  */
 function memberIdentity(sourceFile: ts.SourceFile, member: ts.Node): MemberIdentity | null {
-  if (hasModifier(member, ts.SyntaxKind.PrivateKeyword)) {
-    return null;
-  }
-
   if (ts.isConstructorDeclaration(member)) {
     const keyword = member
       .getChildren(sourceFile)

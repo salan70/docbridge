@@ -880,6 +880,49 @@ function makeMemberProject(): string {
   return project;
 }
 
+test("run check honors typescript visibility opting into private members", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-visibility-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: {
+            typescript: { patterns: ["src/**/*.ts"], visibility: ["public", "private"] },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "service.ts"),
+      [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  private login() {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(project, "docs"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "auth.md"),
+      "<!-- @code src/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+    );
+
+    const c = capture();
+    const code = run(["check", "--root", project], c.io);
+
+    expect(c.out).toContain("0 errors, 0 warnings");
+    expect(code).toBe(0);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("run graph --json --include-content dedents a member signature", () => {
   const project = makeMemberProject();
   try {

@@ -694,6 +694,58 @@ describe("scanTypeScript", () => {
         expect(result.diagnostics.map((d) => d.code)).toContain("unsupported_declaration");
       });
 
+      test("includes a private member when visibility opts into private", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  private refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scanTypeScript(FILE, content, {
+          visibility: ["public", "protected", "private"],
+        });
+
+        expect(result.symbols[0]?.canonicalId).toBe("AuthService.refresh");
+        expect(result.diagnostics).toEqual([]);
+      });
+
+      test("excludes a private member when visibility omits private", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  private refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scanTypeScript(FILE, content, { visibility: ["public"] });
+
+        expect(result.symbols).toEqual([]);
+        expect(result.diagnostics.map((d) => d.code)).toEqual(["unsupported_declaration"]);
+      });
+
+      test("excludes a protected member when visibility lists only public", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  protected refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scanTypeScript(FILE, content, { visibility: ["public"] });
+
+        expect(result.symbols).toEqual([]);
+      });
+
       test("keeps a protected member as an endpoint", () => {
         const content = [
           "export class AuthService {",
