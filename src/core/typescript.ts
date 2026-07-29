@@ -732,7 +732,7 @@ function unsupportedDeclarationDiagnostic(
     language: LANGUAGE,
     target: filePath,
     message:
-      "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class.",
+      "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class, plus the identifier-named members of a class, interface, or object type alias.",
     location,
   };
 }

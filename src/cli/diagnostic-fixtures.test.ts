@@ -150,6 +150,7 @@ test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => 
 
   expect(diagnostics).toEqual([
     { code: "duplicate_code_symbol", filePath: "src/example.ts", line: 11 },
+    { code: "duplicate_code_symbol", filePath: "src/member.ts", line: 12 },
   ]);
   expect(exitCode).toBe(1);
 });
@@ -184,6 +185,7 @@ test("fixture unsupported_declaration fires exactly unsupported_declaration", ()
 
   expect(diagnostics).toEqual([
     { code: "unsupported_declaration", filePath: "src/example.ts", line: 4 },
+    { code: "unsupported_declaration", filePath: "src/member.ts", line: 5 },
   ]);
   expect(exitCode).toBe(0);
 });

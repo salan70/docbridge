@@ -129,20 +129,64 @@ heading is never annotated: a `@code` comment before one becomes
 
 ## TypeScript Scanning
 
-TypeScript scanning extracts exported declarations and `@doc` annotations using
-the TypeScript Compiler API.
+TypeScript scanning extracts exported declarations, their type members, and
+`@doc` annotations using the TypeScript Compiler API.
 
 For each supported declaration the scanner records, alongside the name range
 used for navigation, a `declarationRange` covering the whole declaration
 including its leading JSDoc block. The
 [context command](cli.md#context-command) extracts declaration content from
-this range.
+this range, stripping the block's common leading indentation so a member reads
+at its own level rather than its enclosing type's.
 
 The scanner also records a `signatureRange` for the declaration's public
 surface. The signature range includes the leading JSDoc block but excludes
 implementation bodies when the syntax has one, including function bodies, class
-bodies, and supported `const` initializers with arrow-function, function,
-class, or object bodies.
+bodies, and supported variable initializers with arrow-function, function,
+class, or object bodies. A member without a body, such as a property or an
+interface signature, exposes its whole declaration.
+
+### TypeScript Members
+
+Scanning descends one level into every top-level `class`, `interface`, `enum`,
+object type alias, and variable statement whose initializer is a class
+expression. Containers are visited whether or not they are exported, so an
+annotated member of a non-exported type is reported rather than ignored.
+
+Supported TypeScript members are:
+
+- class methods, properties, getters, setters, constructors, and static members
+- interface property and method signatures
+- property and method signatures of a type alias written directly as an object
+  type literal
+
+TypeScript canonical IDs are type-qualified member names without parameter
+signatures, for example `AuthService.login`. Overload signatures and a
+getter/setter pair each collapse to one endpoint, because they describe one
+member; when two of them carry `@doc`, `duplicate_code_symbol` is emitted. A
+static member and an instance member of the same name share one canonical ID
+and collide the same way. The constructor is `AuthService.constructor`.
+
+The qualifier is the container's own top-level endpoint name, so
+`export const Public = class Internal {}` yields `Public.login`, and a container
+without one — an anonymous default-exported class, a non-exported class — hosts
+no member endpoints.
+
+A member is an endpoint only when its name is a plain identifier. Link targets
+are `file#fragment` with exactly one `#` and no whitespace in the fragment, so
+private identifiers (`#secret`), string-literal names, numeric names, and
+computed names cannot be expressed. These are `unsupported_declaration` when
+annotated, as are enum members, index signatures, call and construct signatures,
+constructor parameter properties, and members excluded by visibility.
+
+By default, `public` and `protected` members are included; `private` members are
+included only when configured through `include.code.typescript.visibility`.
+Members of a union, intersection, mapped, or conditional type alias are not
+visited at all, so an annotation on one is not detected.
+
+Members are never reported as `undocumented_symbol`. They are linkable, not
+required to be documented, so member scanning does not change
+[`check --audit`](diagnostics.md) output.
 
 ## Swift Scanning
 

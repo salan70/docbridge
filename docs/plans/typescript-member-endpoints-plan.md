@@ -25,9 +25,9 @@ that PR, not separate PRs.
 
 ## Status
 
-- [ ] Slice 1: Member Scanning and Canonical IDs
-- [ ] Slice 2: TypeScript Visibility Configuration
-- [ ] Slice 3: Specifications, Decisions, and Fixtures
+- [x] Slice 1: Member Scanning and Canonical IDs
+- [x] Slice 2: TypeScript Visibility Configuration
+- [x] Slice 3: Specifications, Decisions, and Fixtures
 - [ ] Slice 4: Dogfooding the LSP Specification
 
 ## Goals
@@ -159,7 +159,10 @@ Recorded members, identifier-named only:
 
 Annotated but rejected, each producing `unsupported_declaration`: non-identifier
 names, index signatures, call and construct signatures, enum members, parameter
-properties, and members excluded by visibility once Slice 2 lands.
+properties, and members excluded by visibility. The default scope
+(`public` and `protected`) ships here rather than in Slice 2, so no commit
+leaves `private` members addressable; Slice 2 only makes the scope
+configurable.
 
 `signatureRange` includes the leading JSDoc and excludes the implementation body;
 members without a body use the whole declaration. Ranges keep the declaration's

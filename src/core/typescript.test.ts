@@ -746,6 +746,14 @@ describe("scanTypeScript", () => {
         expect(result.symbols).toEqual([]);
       });
 
+      test("names members in the unsupported_declaration message", () => {
+        const content = "export class C {\n  /**\n   * @doc docs/a.md#s\n   */\n  #m() {}\n}\n";
+
+        const result = scan(content);
+
+        expect(result.diagnostics[0]?.message).toContain("member");
+      });
+
       test("keeps a protected member as an endpoint", () => {
         const content = [
           "export class AuthService {",
