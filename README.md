@@ -22,9 +22,9 @@ npx docbridge check
 bunx docbridge check
 ```
 
-The current release is
-[v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0), published
-as `docbridge@0.5.0` on npm.
+See the npm badge above or
+[Releases](https://github.com/salan70/docbridge/releases) for the current
+version.
 
 The package includes prebuilt Swift and Dart scanner
 binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
@@ -284,9 +284,9 @@ DocBridge's link graph is built to be consumed by AI coding agents:
   those recipes.
 - [templates/skills](templates/skills) — distributable agent skills installed by
   `docbridge init`; `docbridge init-with-agent` installs `docbridge-adopt`
-  first, then `docbridge-adopt` installs the companion skills:
-  `docbridge-annotate`, `docbridge-sync`, `docbridge-adopt`, `docbridge-link`,
-  and `docbridge-review`.
+  alone, then `docbridge-adopt` installs the companion skills:
+  `docbridge-annotate`, `docbridge-link`, `docbridge-review`, and
+  `docbridge-sync`.
 
 This repository dogfoods the hooks and skills in its own guardrails under
 `.claude/`, `.codex/`, and `.agents/`.
@@ -340,6 +340,8 @@ Errors:
 - `duplicate_doc_anchor`
 - `duplicate_code_symbol`
 - `code_parse_error`
+- `code_scanner_unavailable`
+- `code_scanner_failed`
 - `file_read_error`
 
 Warnings:
@@ -375,7 +377,7 @@ repository setup, testing matrix, commit convention, and pull request workflow.
 
 ## Roadmap
 
-Completed v0.1–v0.5 capabilities are documented above and in
+Completed v0.1–v0.6 capabilities are documented above and in
 [CHANGELOG.md](CHANGELOG.md).
 
 Remaining editor delivery work:

@@ -18,9 +18,8 @@ npx docbridge check
 bunx docbridge check
 ```
 
-現在のリリースは
-[v0.5.0](https://github.com/salan70/docbridge/releases/tag/v0.5.0) で、npm では
-`docbridge@0.5.0` として公開されています。
+現在のバージョンは、冒頭の npm バッジまたは
+[Releases](https://github.com/salan70/docbridge/releases) を参照してください。
 
 Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
 TypeScript と Markdown の check は scanner binary なしで実行できます。
@@ -272,10 +271,10 @@ DocBridge のリンクグラフは、AI コーディングエージェントか�
   エージェントフックスクリプト。
 - [../../templates/skills](../../templates/skills) — `docbridge init` が
   インストールする配布用エージェントスキル。`docbridge init-with-agent` は
-  まず `docbridge-adopt` をインストールし、`docbridge-adopt` が残りの
+  `docbridge-adopt` のみをインストールし、`docbridge-adopt` が残りの
   スキルをインストールします:
-  `docbridge-annotate`、`docbridge-sync`、`docbridge-adopt`、`docbridge-link`、
-  `docbridge-review`。
+  `docbridge-annotate`、`docbridge-link`、`docbridge-review`、
+  `docbridge-sync`。
 
 このリポジトリ自身も、`.claude/`、`.codex/`、`.agents/` のガードレールで
 これらをドッグフーディングしています。
@@ -327,6 +326,8 @@ Errors:
 - `duplicate_doc_anchor`
 - `duplicate_code_symbol`
 - `code_parse_error`
+- `code_scanner_unavailable`
+- `code_scanner_failed`
 - `file_read_error`
 
 Warnings:
@@ -364,7 +365,7 @@ Pull Request の流れは [CONTRIBUTING.md](../../CONTRIBUTING.md) を参照し�
 
 ## Roadmap
 
-完了済みの v0.1〜v0.5 の機能は、上記の説明と
+完了済みの v0.1〜v0.6 の機能は、上記の説明と
 [../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。
 
 残っている editor 配信作業:
