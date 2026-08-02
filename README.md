@@ -206,6 +206,8 @@ Supported code declarations:
 - TypeScript top-level exported declarations: `function`, `class`,
   `abstract class`, `interface`, `type`, `const`, `enum`, and supported
   `declare` / named default forms
+- TypeScript type members: class methods, properties, accessors, constructors,
+  and static members, plus interface and object-type-alias signatures
 - Swift public/open declarations and configured internal declarations:
   top-level and member types, functions, variables, constants, initializers,
   and extension members
@@ -218,8 +220,29 @@ Supported Markdown elements:
 - HTML comments
 - `@code` annotations attached to the next heading
 
-Swift and Dart use the same `@doc` and `@code` model. Their code fragments are
-the scanner-produced canonical IDs, so members are type-qualified:
+All three languages use the same `@doc` and `@code` model. Code fragments are
+the scanner-produced canonical IDs, so members are type-qualified.
+
+TypeScript member IDs carry no parameter signature; overload signatures and a
+getter/setter pair each collapse to one endpoint, and the constructor is
+`<Type>.constructor`. By default `public` and `protected` members are scanned;
+`private` members require `include.code.typescript.visibility`. Members are
+linkable but are never reported by `check --audit`.
+
+```ts
+export class AuthService {
+  /** @doc docs/auth.md#login-spec */
+  login(email: string, password: string): void {}
+}
+```
+
+```md
+<!-- @code src/auth/service.ts#AuthService.login -->
+
+## Login Spec
+```
+
+Swift and Dart canonical IDs follow their own conventions:
 
 ```swift
 /// @doc docs/auth.md#login-spec

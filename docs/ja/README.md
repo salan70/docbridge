@@ -198,6 +198,7 @@ DocBridge は以下の要素を対象にします。
 対象にするコード宣言:
 
 - TypeScript のトップレベル export 宣言: `function`、`class`、`abstract class`、`interface`、`type`、`const`、`enum`、および対応する `declare` / 名前付き default 形式
+- TypeScript の型 member: class の method、property、accessor、constructor、static member、および interface と object 型 alias の signature
 - Swift の `public` / `open` 宣言と、設定で含めた `internal` 宣言: トップレベルと member の型、関数、変数、定数、initializer、extension member
 - Dart の public 宣言: トップレベル関数/変数、class、enum、mixin、constructor、field、accessor、method、extension member
 
@@ -207,8 +208,29 @@ DocBridge は以下の要素を対象にします。
 - HTML コメント
 - 次の見出しに紐づく `@code` アノテーション
 
-Swift と Dart も同じ `@doc` / `@code` モデルを使います。コード側 fragment は
+3 言語とも同じ `@doc` / `@code` モデルを使います。コード側 fragment は
 scanner が生成する canonical ID で、member は型名で修飾されます。
+
+TypeScript の member ID は引数シグネチャを持ちません。overload signature と
+getter/setter のペアはそれぞれ 1 つのエンドポイントに集約され、constructor は
+`<型名>.constructor` になります。既定では `public` と `protected` の member を
+対象にし、`private` を含めるには `include.code.typescript.visibility` の設定が
+必要です。member はリンク可能ですが、`check --audit` の報告対象にはなりません。
+
+```ts
+export class AuthService {
+  /** @doc docs/auth.md#login-spec */
+  login(email: string, password: string): void {}
+}
+```
+
+```md
+<!-- @code src/auth/service.ts#AuthService.login -->
+
+## Login Spec
+```
+
+Swift と Dart の canonical ID はそれぞれの慣習に従います。
 
 ```swift
 /// @doc docs/auth.md#login-spec
