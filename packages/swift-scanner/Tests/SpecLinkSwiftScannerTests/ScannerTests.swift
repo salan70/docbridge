@@ -128,6 +128,62 @@ final class ScannerTests: XCTestCase {
     XCTAssertEqual(file.diagnostics.first?.language, "swift")
   }
 
+  func testReportsDuplicateDocLinks() throws {
+    let source = """
+      /// @doc docs/auth.md#login
+      /// @doc docs/auth.md#login
+      public func login() {}
+      """
+
+    let file = try scan(source)
+
+    XCTAssertEqual(file.links.map(\.target), ["docs/auth.md#login"])
+    XCTAssertEqual(file.diagnostics.map(\.code), ["duplicate_link"])
+    XCTAssertEqual(file.diagnostics.first?.severity, "warning")
+    XCTAssertEqual(file.diagnostics.first?.source, "Sources/AuthService.swift#login()")
+    XCTAssertEqual(file.diagnostics.first?.target, "docs/auth.md#login")
+  }
+
+  func testReportsInvalidDocLinkTargets() throws {
+    let source = """
+      /// @doc not-a-valid-target
+      public func login() {}
+      """
+
+    let file = try scan(source)
+
+    XCTAssertEqual(file.symbols.map(\.canonicalId), ["login()"])
+    XCTAssertEqual(file.links, [])
+    XCTAssertEqual(file.diagnostics.map(\.code), ["invalid_link_target"])
+    XCTAssertEqual(file.diagnostics.first?.severity, "error")
+    XCTAssertEqual(file.diagnostics.first?.source, "Sources/AuthService.swift#login()")
+    XCTAssertEqual(file.diagnostics.first?.target, "not-a-valid-target")
+  }
+
+  func testRejectsInvalidLinkTargetForms() {
+    let targets = [
+      "#check-command",
+      "docs/specs/cli.md",
+      "docs/specs/cli.md#",
+      "#anchor",
+      "/docs/specs/cli.md#check-command",
+      "./docs/specs/cli.md#check-command",
+      "../docs/specs/cli.md#check-command",
+      "docs/../specs/cli.md#check-command",
+      "docs\\specs\\cli.md#check-command",
+      "docs/specs/cli.md#check command",
+      "docs/specs/cli.md#check#command",
+      "docs/specs/cli.md#check-command",
+    ]
+
+    for target in targets {
+      XCTAssertFalse(
+        isValidLinkTarget(target, sourceFilePath: "docs/specs/cli.md"),
+        target
+      )
+    }
+  }
+
   func testReportsUnsupportedAnnotatedDeclarations() throws {
     let source = """
       /// @doc docs/auth.md#import

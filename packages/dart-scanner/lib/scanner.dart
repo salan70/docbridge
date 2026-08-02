@@ -118,7 +118,44 @@ class Scanner {
 
       final seenTargets = <String>{};
       for (final docTarget in declaration.docTargets) {
-        if (seenTargets.contains(docTarget.target)) continue;
+        if (!isValidLinkTarget(docTarget.target, filePath)) {
+          diagnostics.add(
+            Diagnostic(
+              code: 'invalid_link_target',
+              target: docTarget.target,
+              source: symbol.endpoint,
+              message:
+                  'Link target must be a project-root-relative file path and fragment in file#fragment form.',
+              location: SourceLocation(
+                filePath: filePath,
+                line: docTarget.line,
+                column: docTarget.column,
+              ),
+              range: docTarget.range,
+            ),
+          );
+          continue;
+        }
+
+        if (seenTargets.contains(docTarget.target)) {
+          diagnostics.add(
+            Diagnostic(
+              code: 'duplicate_link',
+              target: docTarget.target,
+              source: symbol.endpoint,
+              severity: 'warning',
+              message:
+                  'Duplicate @doc link from ${symbol.endpoint} to ${docTarget.target}.',
+              location: SourceLocation(
+                filePath: filePath,
+                line: docTarget.line,
+                column: docTarget.column,
+              ),
+              range: docTarget.range,
+            ),
+          );
+          continue;
+        }
         seenTargets.add(docTarget.target);
         links.add(
           DocLink(
@@ -143,6 +180,25 @@ class Scanner {
       diagnostics: diagnostics,
     );
   }
+}
+
+/// Returns whether [target] is a valid DocBridge link target for [sourceFilePath].
+bool isValidLinkTarget(String target, String sourceFilePath) {
+  final parts = target.split('#');
+  if (parts.length != 2) return false;
+
+  final filePath = parts[0];
+  final fragment = parts[1];
+  return filePath.isNotEmpty &&
+      !filePath.startsWith('/') &&
+      !filePath.startsWith('./') &&
+      !filePath.startsWith('../') &&
+      !filePath.contains(r'\') &&
+      !RegExp(r'\s').hasMatch(filePath) &&
+      !filePath.split('/').contains('..') &&
+      filePath != sourceFilePath &&
+      fragment.isNotEmpty &&
+      !RegExp(r'\s').hasMatch(fragment);
 }
 
 class _Declaration {

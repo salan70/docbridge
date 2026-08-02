@@ -173,21 +173,26 @@ class Diagnostic {
     required this.code,
     required this.target,
     required this.message,
+    this.severity = 'error',
+    this.source,
     this.location,
     this.range,
   });
 
+  final String severity;
   final String code;
   final String target;
+  final String? source;
   final String message;
   final SourceLocation? location;
   final SourceRange? range;
 
   Map<String, dynamic> toJson() => _pruneNulls({
-        'severity': 'error',
+        'severity': severity,
         'code': code,
         'target': target,
         'language': 'dart',
+        'source': source,
         'message': message,
         'location': location?.toJson(),
         'range': range?.toJson(),
