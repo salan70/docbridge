@@ -568,7 +568,7 @@ private func diagnostic(
   )
 }
 
-private func isValidLinkTarget(_ target: String, sourceFilePath: String) -> Bool {
+func isValidLinkTarget(_ target: String, sourceFilePath: String) -> Bool {
   let parts = target.split(separator: "#", omittingEmptySubsequences: false)
   guard parts.count == 2 else { return false }
 

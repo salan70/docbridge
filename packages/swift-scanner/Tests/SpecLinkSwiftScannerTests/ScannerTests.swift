@@ -160,6 +160,30 @@ final class ScannerTests: XCTestCase {
     XCTAssertEqual(file.diagnostics.first?.target, "not-a-valid-target")
   }
 
+  func testRejectsInvalidLinkTargetForms() {
+    let targets = [
+      "#check-command",
+      "docs/specs/cli.md",
+      "docs/specs/cli.md#",
+      "#anchor",
+      "/docs/specs/cli.md#check-command",
+      "./docs/specs/cli.md#check-command",
+      "../docs/specs/cli.md#check-command",
+      "docs/../specs/cli.md#check-command",
+      "docs\\specs\\cli.md#check-command",
+      "docs/specs/cli.md#check command",
+      "docs/specs/cli.md#check#command",
+      "docs/specs/cli.md#check-command",
+    ]
+
+    for target in targets {
+      XCTAssertFalse(
+        isValidLinkTarget(target, sourceFilePath: "docs/specs/cli.md"),
+        target
+      )
+    }
+  }
+
   func testReportsUnsupportedAnnotatedDeclarations() throws {
     let source = """
       /// @doc docs/auth.md#import

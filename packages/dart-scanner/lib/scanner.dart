@@ -118,7 +118,7 @@ class Scanner {
 
       final seenTargets = <String>{};
       for (final docTarget in declaration.docTargets) {
-        if (!_isValidLinkTarget(docTarget.target, filePath)) {
+        if (!isValidLinkTarget(docTarget.target, filePath)) {
           diagnostics.add(
             Diagnostic(
               code: 'invalid_link_target',
@@ -182,7 +182,8 @@ class Scanner {
   }
 }
 
-bool _isValidLinkTarget(String target, String sourceFilePath) {
+/// Returns whether [target] is a valid DocBridge link target for [sourceFilePath].
+bool isValidLinkTarget(String target, String sourceFilePath) {
   final parts = target.split('#');
   if (parts.length != 2) return false;
 

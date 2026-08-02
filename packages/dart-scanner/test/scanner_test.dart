@@ -150,6 +150,31 @@ void login() {}
     );
   });
 
+  test('rejects invalid link target forms', () {
+    final targets = [
+      '#check-command',
+      'docs/specs/cli.md',
+      'docs/specs/cli.md#',
+      '#anchor',
+      '/docs/specs/cli.md#check-command',
+      './docs/specs/cli.md#check-command',
+      '../docs/specs/cli.md#check-command',
+      'docs/../specs/cli.md#check-command',
+      r'docs\specs\cli.md#check-command',
+      'docs/specs/cli.md#check command',
+      'docs/specs/cli.md#check#command',
+      'docs/specs/cli.md#check-command',
+    ];
+
+    for (final target in targets) {
+      expect(
+        isValidLinkTarget(target, 'docs/specs/cli.md'),
+        isFalse,
+        reason: target,
+      );
+    }
+  });
+
   test('reports unsupported annotated declarations', () {
     final file = scan('''
 /// @doc docs/auth.md#callback
