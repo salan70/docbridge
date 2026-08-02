@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { resolvePackageRoot } from "../core/init-plan";
+import { scanMarkdown } from "../core/markdown";
 import { CliError, commandHelpGuidance } from "./errors";
 import type { CliIo } from "./index";
 
@@ -18,8 +19,44 @@ export type DocumentationReader = {
 export type DocsCommand = { kind: "list"; json: boolean } | { kind: "show"; name: string };
 
 const SHOW_HELP = "Run `docbridge docs show <name>` to read a document.";
+const DOCUMENTATION_UNAVAILABLE = "Documentation is unavailable in this installation.";
+const DOCUMENTATION_REINSTALL_GUIDANCE = [
+  "Reinstall DocBridge so the packaged documentation is restored, then retry:",
+  "",
+  "  npm install docbridge",
+].join("\n");
 
 type ParsedDocument = DocumentationSummary & { content: string };
+
+function documentationUnavailableError(): CliError {
+  return new CliError(DOCUMENTATION_UNAVAILABLE, DOCUMENTATION_REINSTALL_GUIDANCE);
+}
+
+function parseDescription(name: string, frontmatter: string): string {
+  const rawDescription = frontmatter.match(/^description:\s*(.+)$/m)?.[1]?.trim();
+  if (rawDescription === undefined || rawDescription.length === 0) {
+    throw new Error(`Documentation file ${name}.md is missing a description.`);
+  }
+
+  if (rawDescription.startsWith('"') && rawDescription.endsWith('"')) {
+    const description = JSON.parse(rawDescription) as unknown;
+    if (typeof description === "string" && description.length > 0) {
+      return description;
+    }
+  }
+
+  return rawDescription;
+}
+
+function hideLinkAnnotations(name: string, content: string): string {
+  const annotationLines = new Set(
+    scanMarkdown(`docs/user/${name}.md`, content).links.map((link) => link.location.line),
+  );
+  return content
+    .split("\n")
+    .filter((_, index) => !annotationLines.has(index + 1))
+    .join("\n");
+}
 
 function parseDocument(name: string, source: string): ParsedDocument {
   if (!source.startsWith("---\n")) {
@@ -32,10 +69,7 @@ function parseDocument(name: string, source: string): ParsedDocument {
   }
 
   const frontmatter = source.slice(4, frontmatterEnd);
-  const description = frontmatter.match(/^description:\s*(.+)$/m)?.[1]?.trim();
-  if (description === undefined || description.length === 0) {
-    throw new Error(`Documentation file ${name}.md is missing a description.`);
-  }
+  const description = parseDescription(name, frontmatter);
 
   const contentAfterFrontmatter = source.slice(frontmatterEnd + "\n---\n".length);
   const content = contentAfterFrontmatter.startsWith("\n")
@@ -45,7 +79,7 @@ function parseDocument(name: string, source: string): ParsedDocument {
   return {
     name,
     description,
-    content,
+    content: hideLinkAnnotations(name, content),
   };
 }
 
@@ -58,13 +92,23 @@ export function createFileDocumentationReader(
   const docsRoot = join(packageRoot, "docs", "user");
 
   function documents(): ParsedDocument[] {
-    return readdirSync(docsRoot)
-      .filter((fileName) => fileName.endsWith(".md"))
-      .toSorted()
-      .map((fileName) => {
-        const name = fileName.slice(0, -".md".length);
-        return parseDocument(name, readFileSync(join(docsRoot, fileName), "utf8"));
-      });
+    let fileNames: string[];
+    try {
+      fileNames = readdirSync(docsRoot)
+        .filter((fileName) => fileName.endsWith(".md"))
+        .toSorted();
+    } catch {
+      throw documentationUnavailableError();
+    }
+
+    if (fileNames.length === 0) {
+      throw documentationUnavailableError();
+    }
+
+    return fileNames.map((fileName) => {
+      const name = fileName.slice(0, -".md".length);
+      return parseDocument(name, readFileSync(join(docsRoot, fileName), "utf8"));
+    });
   }
 
   return {

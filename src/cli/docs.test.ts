@@ -70,6 +70,25 @@ test("file documentation reader lists documents by name with their descriptions"
   );
 });
 
+test("file documentation reader decodes a quoted YAML description", () => {
+  withUserDocs(
+    {
+      "configuration.md":
+        '---\ndescription: "Configure docbridge.config.json: roots and languages."\n---\n# Configuration\n',
+    },
+    (packageRoot) => {
+      const reader = createFileDocumentationReader(packageRoot);
+
+      expect(reader.list()).toEqual([
+        {
+          name: "configuration",
+          description: "Configure docbridge.config.json: roots and languages.",
+        },
+      ]);
+    },
+  );
+});
+
 test("file documentation reader returns the Markdown body without frontmatter", () => {
   withUserDocs(
     { "commands.md": "---\ndescription: Choose a command.\n---\n\n# Commands\n\nUse check.\n" },
@@ -87,6 +106,54 @@ test("file documentation reader rejects a document without a description", () =>
 
     expect(() => reader.list()).toThrow("description");
   });
+});
+
+test("file documentation reader reports unavailable documentation when the directory is missing", () => {
+  const packageRoot = mkdtempSync(join(tmpdir(), "docbridge-docs-missing-"));
+  try {
+    const reader = createFileDocumentationReader(packageRoot);
+
+    expect(() => reader.list()).toThrow("Documentation is unavailable in this installation.");
+  } finally {
+    rmSync(packageRoot, { recursive: true, force: true });
+  }
+});
+
+test("file documentation reader reports unavailable documentation when no documents are packaged", () => {
+  withUserDocs({}, (packageRoot) => {
+    const reader = createFileDocumentationReader(packageRoot);
+
+    expect(() => reader.list()).toThrow("Documentation is unavailable in this installation.");
+  });
+});
+
+test("file documentation reader hides link annotations but preserves fenced examples", () => {
+  withUserDocs(
+    {
+      "annotations.md": [
+        "---",
+        "description: Write links.",
+        "---",
+        "# Annotations",
+        "",
+        "<!-- @code src/core/markdown.ts#scanMarkdown -->",
+        "",
+        "## Documentation to code",
+        "",
+        "```md",
+        "<!-- @code src/auth.ts#login -->",
+        "## Login Flow",
+        "```",
+        "",
+      ].join("\n"),
+    },
+    (packageRoot) => {
+      const reader = createFileDocumentationReader(packageRoot);
+
+      expect(reader.show("annotations")).not.toContain("src/core/markdown.ts#scanMarkdown");
+      expect(reader.show("annotations")).toContain("<!-- @code src/auth.ts#login -->");
+    },
+  );
 });
 
 test("parseDocsCommand accepts list with JSON output", () => {

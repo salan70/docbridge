@@ -54,8 +54,9 @@ single-line `description` field. The filename without `.md` is its command
 name. Listing fails rather than silently publishing a document without a valid
 description.
 
-`docs show` removes the frontmatter and its separating blank line, then writes
-the remaining Markdown body verbatim. Document ordering is deterministic by
+`docs show` removes the frontmatter, its separating blank line, and DocBridge
+link-annotation comments outside fenced code blocks, then writes the remaining
+Markdown body without further changes. Document ordering is deterministic by
 name.
 
 ### CLI Contract

@@ -492,11 +492,16 @@ Run `docbridge docs show <name>` to read a document.
 }
 ```
 
-`docbridge docs show <name>` removes the YAML frontmatter and its single
-separating blank line, then writes the remaining Markdown body to stdout
-verbatim. Every name returned by `docs list` must be readable. An unknown name
+`docbridge docs show <name>` removes the YAML frontmatter, its single separating
+blank line, and DocBridge link-annotation comments outside fenced code blocks.
+It writes the remaining Markdown body to stdout without modifying other
+content. Every name returned by `docs list` must be readable. An unknown name
 writes an error plus all available names to stderr, leaves stdout empty, and
 exits with code `1`.
+
+If `docs/user` is missing or contains no Markdown documents, both operations
+report that documentation is unavailable, direct the user to reinstall
+DocBridge, and exit with code `1`.
 
 The package allowlist contains `docs/user` and excludes the developer-facing
 `docs/specs`, `docs/decisions`, `docs/contributing`, `docs/plans`, and `docs/ja`

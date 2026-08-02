@@ -1,5 +1,5 @@
 ---
-description: Configure docbridge.config.json: roots, includes, excludes, languages.
+description: "Configure docbridge.config.json: roots, includes, excludes, languages."
 ---
 
 # Configuration
