@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -146,6 +146,59 @@ test("missing check configuration sends setup guidance to stderr", () => {
     expect(c.err).toContain("docbridge init");
     expect(c.err).toContain("docbridge init --dry-run");
     expect(c.err).toContain("docbridge init-with-agent");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("malformed check configuration points to manual repair instead of init", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-malformed-config-"));
+  try {
+    writeFileSync(join(project, "docbridge.config.json"), '{ "docs": [');
+    const c = capture();
+    const code = run(["check", "--root", project], c.io);
+
+    expect(code).toBe(1);
+    expect(c.out).toContain("config_file_invalid");
+    expect(c.err).toBe("Repair or delete docbridge.config.json, then re-run `docbridge check`.\n");
+    expect(c.err).not.toContain("docbridge init");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("guidance-free init failures keep the Error prefix", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-init-error-"));
+  try {
+    const c = capture();
+    const code = run(["init", "--root", project], c.io, {
+      prompts: {
+        isInteractive: false,
+        confirm: () => true,
+        select: (_message, _choices, defaultChoice) => defaultChoice,
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(c.err).toBe(
+      "Error: Interactive setup requires a TTY. Re-run with --yes for non-interactive mode.\n",
+    );
+    expect(c.out).toBe("");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("core diagnostic failures remain unprefixed", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-context-diagnostic-"));
+  try {
+    const c = capture();
+    const code = run(["context", "--root", project, "src/auth.ts"], c.io);
+
+    expect(code).toBe(1);
+    expect(c.err).toStartWith("docbridge.config.json error config_file_invalid -");
+    expect(c.err).not.toStartWith("Error:");
+    expect(c.out).toBe("");
   } finally {
     rmSync(project, { recursive: true, force: true });
   }

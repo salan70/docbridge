@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import pkg from "../../package.json";
+import { CONFIG_FILE_NAME } from "../core/config";
 import { context as runContextCore, formatContextResult } from "../core/context";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import { formatGraphResult, graph as runGraphCore } from "../core/graph-output";
@@ -19,7 +20,9 @@ import { runLspServer } from "../lsp/server";
 import {
   CliError,
   commandHelpGuidance,
+  configRepairGuidance,
   configSetupGuidance,
+  DiagnosticOutputError,
   formatCliError,
   includeContentGuidance,
   missingInputGuidance,
@@ -291,7 +294,10 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
     const body = lines.length > 0 ? `${lines.join("\n")}\n\n` : "";
     io.stdout(`${body}${formatSummary(result.summary)}\n`);
     if (result.diagnostics.some((diagnostic) => diagnostic.code === "config_file_invalid")) {
-      io.stderr(`${configSetupGuidance()}\n`);
+      const guidance = existsSync(join(projectRoot, CONFIG_FILE_NAME))
+        ? configRepairGuidance()
+        : configSetupGuidance();
+      io.stderr(`${guidance}\n`);
     }
   }
 
@@ -313,7 +319,7 @@ function runRelated(options: CliRelatedOptions, io: CliIo): number {
 
   const outcome = runRelatedCore({ projectRoot, changedFiles });
   if (!outcome.ok) {
-    throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
   }
 
   if (options.gate) {
@@ -357,7 +363,7 @@ function runContext(options: CliContextOptions, io: CliIo): number {
 
   const outcome = runContextCore({ projectRoot, inputFiles });
   if (!outcome.ok) {
-    throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
   }
 
   if (options.json) {
@@ -389,7 +395,7 @@ function runGraph(options: CliGraphOptions, io: CliIo): number {
     includeContent: options.includeContent,
   });
   if (!outcome.ok) {
-    throw new CliError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
   }
 
   if (options.json) {
@@ -441,7 +447,7 @@ function nearestSubcommand(input: string): Subcommand | undefined {
   }
 
   const closeEnough = best.distance <= Math.max(1, Math.floor(best.command.length / 2));
-  return closeEnough || isOrderedAbbreviation(input, best.command) ? best.command : undefined;
+  return closeEnough ? best.command : undefined;
 }
 
 function isOrderedAbbreviation(input: string, command: string): boolean {

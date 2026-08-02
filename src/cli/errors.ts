@@ -17,6 +17,14 @@ export class InitCliError extends CliError {
   }
 }
 
+/** A core diagnostic dump that must remain byte-for-byte free of CLI decoration. */
+export class DiagnosticOutputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DiagnosticOutputError";
+  }
+}
+
 export function commandHelpGuidance(command: string): string {
   return `Run \`docbridge ${command} --help\` for command usage.`;
 }
@@ -78,14 +86,18 @@ export function configSetupGuidance(): string {
   ].join("\n");
 }
 
-/** Render a CLI invocation error while leaving non-CLI diagnostic text intact. */
+export function configRepairGuidance(): string {
+  return "Repair or delete docbridge.config.json, then re-run `docbridge check`.";
+}
+
+/** Render a CLI invocation error with its stable first-line prefix. */
 export function formatCliError(error: unknown): string {
   if (!(error instanceof CliError)) {
     return error instanceof Error ? error.message : String(error);
   }
 
   if (error.guidance === undefined) {
-    return error.message;
+    return `Error: ${error.message}`;
   }
 
   return [`Error: ${error.message}`, "", error.guidance].join("\n");

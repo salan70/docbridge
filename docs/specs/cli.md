@@ -94,8 +94,8 @@ Or read newline-separated paths from stdin:
 Run `docbridge context --help` for command usage.
 ```
 
-When human-readable `check` output reports `config_file_invalid`, setup
-guidance is written to stderr:
+When human-readable `check` output reports a missing configuration as
+`config_file_invalid`, setup guidance is written to stderr:
 
 ```text
 Run one of:
@@ -109,6 +109,8 @@ For agent-guided adoption:
 ```
 
 The diagnostic and summary remain in the normal human-readable check output.
+If `docbridge.config.json` exists but cannot be parsed, stderr instead directs
+the user to repair or delete it before re-running `docbridge check`.
 The `--json` path emits the same JSON as before and does not include human
 guidance.
 
