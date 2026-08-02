@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { capture, makeProject } from "../../test/helpers";
 import { resolvePackageRoot } from "../core/init-plan";
+import { makeProject } from "../core/test-support";
 import { run } from "./index";
 import {
   InitCliError,
@@ -12,6 +12,7 @@ import {
   runInitWithAgent,
   type InitPrompts,
 } from "./init";
+import { capture } from "./test-support";
 
 const nonInteractivePrompts: InitPrompts = {
   isInteractive: false,

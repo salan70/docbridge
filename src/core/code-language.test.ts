@@ -15,7 +15,6 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { setCodeAdapterForTest } from "../../test/code-language";
 import {
   codeFileOwners,
   collectCodeFiles,
@@ -27,6 +26,7 @@ import {
   scannerRootsFromModuleUrl,
   type CodeInclude,
 } from "./code-language";
+import { setCodeAdapterForTest } from "./code-language.test-support";
 import { readManagedFile } from "./glob";
 import { check } from "./resolver";
 import type { ScannerWorkerProcessResult } from "./scanner-worker";

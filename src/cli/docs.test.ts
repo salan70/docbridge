@@ -3,7 +3,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { capture } from "../../test/helpers";
 import {
   createFileDocumentationReader,
   parseDocsCommand,
@@ -12,6 +11,7 @@ import {
 } from "./docs";
 import { CliError } from "./errors";
 import { run } from "./index";
+import { capture } from "./test-support";
 
 function withUserDocs(
   files: Record<string, string>,

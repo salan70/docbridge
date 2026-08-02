@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 
-import { makeProject } from "../../test/helpers";
 import {
   discoverAgentTarget,
   discoverCodeScope,
@@ -10,6 +9,7 @@ import {
   resolveAgentTargetForInit,
   resolveAgentTargetForInitWithAgent,
 } from "./init-discovery";
+import { makeProject } from "./test-support";
 
 test("discoverDocsScope recommends a strong docs directory", () => {
   const project = makeProject({

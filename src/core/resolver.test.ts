@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
-import { codes } from "../../test/helpers";
 import type { CodeScanResult } from "./code-scanner";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { check, resolveLinks } from "./resolver";
+import { codes } from "./test-support";
 import type {
   CodeSymbolEndpoint,
   DocAnchorEndpoint,

@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { capture } from "../../test/helpers";
 import { run } from "./index";
+import { capture } from "./test-support";
 
 test("unknown commands list available commands and suggest a close match", () => {
   const c = capture();

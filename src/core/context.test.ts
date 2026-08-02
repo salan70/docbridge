@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { graphFrom, type GraphSources } from "../../test/helpers";
 import { computeContext, formatContextResult } from "./context";
+import { graphFrom, type GraphSources } from "./test-support";
 
 const LOGIN_TS = [
   "/**",

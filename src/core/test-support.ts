@@ -2,37 +2,10 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { CliIo } from "../src/cli/index";
-import { buildLinkGraph, type LinkGraph } from "../src/core/graph";
-import { scanMarkdown } from "../src/core/markdown";
-import type { DocBridgeDiagnostic } from "../src/core/types";
-import { scanTypeScript } from "../src/core/typescript";
-
-export type Captured = {
-  readonly out: string;
-  readonly err: string;
-  io: CliIo;
-};
-
-export function capture(): Captured {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text) => {
-        state.out += text;
-      },
-      stderr: (text) => {
-        state.err += text;
-      },
-    },
-  };
-}
+import { buildLinkGraph, type LinkGraph } from "./graph";
+import { scanMarkdown } from "./markdown";
+import type { DocBridgeDiagnostic } from "./types";
+import { scanTypeScript } from "./typescript";
 
 export function makeProject(
   structure: Record<string, string>,
@@ -56,11 +29,7 @@ export type GraphSources = {
   docs: Array<[string, string]>;
 };
 
-export function graphFrom(
-  sourcesOrCode: GraphSources | Array<[string, string]>,
-  docs: Array<[string, string]> = [],
-): LinkGraph {
-  const sources = Array.isArray(sourcesOrCode) ? { code: sourcesOrCode, docs } : sourcesOrCode;
+export function graphFrom(sources: GraphSources): LinkGraph {
   return buildLinkGraph(
     sources.code.map(([filePath, content]) => scanTypeScript(filePath, content)),
     sources.docs.map(([filePath, content]) => scanMarkdown(filePath, content)),

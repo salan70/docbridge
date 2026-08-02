@@ -1,6 +1,6 @@
-import { codeAdapters } from "../src/core/code-adapter-registry";
-import type { CodeLanguageAdapter } from "../src/core/code-scanner";
-import type { CodeLanguage } from "../src/core/types";
+import { codeAdapters } from "./code-adapter-registry";
+import type { CodeLanguageAdapter } from "./code-scanner";
+import type { CodeLanguage } from "./types";
 
 /** Temporarily replace a code adapter for one test and return its restore callback. */
 export function setCodeAdapterForTest(

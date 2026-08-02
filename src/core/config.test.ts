@@ -3,8 +3,8 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { codes } from "../../test/helpers";
 import { loadConfig, resolveConfig } from "./config";
+import { codes } from "./test-support";
 
 const TS_CONFIG = {
   include: {

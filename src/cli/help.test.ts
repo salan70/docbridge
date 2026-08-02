@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { capture } from "../../test/helpers";
 import { run } from "./index";
+import { capture } from "./test-support";
 
 const COMMANDS = [
   "check",

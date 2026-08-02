@@ -2,7 +2,7 @@ import { accessSync, chmodSync, constants, existsSync, realpathSync, statSync } 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { codeAdapters, getCodeAdapter } from "./code-adapter-registry";
+import { codeAdapters } from "./code-adapter-registry";
 import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
 import { reasonOf } from "./error";
 import { collectFiles } from "./glob";
@@ -109,7 +109,10 @@ export function resolveScannerWorkerCommand(
   };
 }
 
-export { getCodeAdapter } from "./code-adapter-registry";
+/** The registered adapter for a language, or `undefined` when none exists yet. */
+export function getCodeAdapter(language: CodeLanguage): CodeLanguageAdapter | undefined {
+  return codeAdapters[language];
+}
 
 type ScannerWorkerCommandFactory = (
   projectRoot: string,

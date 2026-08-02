@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import pkg from "../../package.json";
-import { capture } from "../../test/helpers";
 import {
   parseCheckOptions,
   parseContextOptions,
@@ -12,6 +11,7 @@ import {
   parseRelatedOptions,
   run,
 } from "./index";
+import { capture } from "./test-support";
 
 test("parseCheckOptions reads root, json, and audit flags", () => {
   expect(parseCheckOptions(["--root", "examples/typescript", "--json", "--audit"])).toEqual({

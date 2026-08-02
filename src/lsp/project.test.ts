@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
-import { codes } from "../../test/helpers";
 import { counterpartsOf } from "../core/graph";
+import { codes } from "../core/test-support";
 import { Project } from "./project";
 
 const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/typescript");

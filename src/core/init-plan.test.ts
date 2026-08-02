@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { makeProject } from "../../test/helpers";
 import { resolveConfig } from "./config";
 import { discoverRepository } from "./init-discovery";
 import {
@@ -13,6 +12,7 @@ import {
   planInitCommand,
   resolvePackageRoot,
 } from "./init-plan";
+import { makeProject } from "./test-support";
 
 test("resolvePackageRoot finds templates/skills for source-layout execution", () => {
   const repo = mkdtempSync(join(tmpdir(), "docbridge-pkg-src-"));

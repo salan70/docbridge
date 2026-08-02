@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import { CODE_FILE, stateOf } from "../../test/lsp/fixtures";
 import type { DocBridgeDiagnostic } from "../core/types";
 import { diagnosticsForFile, toLspDiagnostic } from "./diagnostics";
+import { CODE_FILE, stateOf } from "./fixtures";
 
 describe(diagnosticsForFile, () => {
   test("maps a link-target diagnostic with severity, code, and target range", () => {
