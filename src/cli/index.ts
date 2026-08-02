@@ -16,6 +16,7 @@ import {
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
+import { commandHelp, GLOBAL_HELP, hasHelpFlag, isSubcommand } from "./help";
 import {
   createDefaultPrompts,
   InitCliError,
@@ -42,62 +43,6 @@ export type CliIo = {
 
 /** Raised for CLI invocation errors that must go to stderr with exit code 1. */
 class CliError extends Error {}
-
-const HELP = `DocBridge
-
-Usage:
-  docbridge [--version] [--help]
-  docbridge check [--root <path>] [--json] [--audit]
-  docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
-  docbridge context [--root <path>] [--json] [--stdin] [files...]
-  docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
-  docbridge init [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
-  docbridge init-with-agent [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
-  docbridge lsp
-
-Commands:
-  check    Validate links between TypeScript and Markdown.
-  related  List the linked counterparts of the given changed files.
-  context  Print the content of the counterparts linked from the given files.
-  graph    Print the resolved link graph.
-  init     Set up docbridge.config.json and install DocBridge agent skills.
-  init-with-agent  Install docbridge-adopt and print agent setup commands.
-  lsp      Run the Language Server over stdio.
-
-Global options:
-  --version, -v  Print the DocBridge version.
-  --help, -h     Print this help text.
-
-Check options:
-  --root <path>  Project root to scan. Defaults to current directory.
-  --json         Emit machine-readable JSON.
-  --audit        Include audit diagnostics: undocumented_symbol and
-                 unlinked_doc_section.
-
-Related options:
-  --root <path>  Project root to scan. Defaults to current directory.
-  --json         Emit machine-readable JSON.
-  --stdin        Read newline-separated file paths from stdin.
-  --gate         Report counterparts that are not in the change set and exit 1 if any.
-
-Context options:
-  --root <path>  Project root to scan. Defaults to current directory.
-  --json         Emit machine-readable JSON.
-  --stdin        Read newline-separated file paths from stdin.
-
-Graph options:
-  --root <path>       Project root to scan. Defaults to current directory.
-  --json              Emit machine-readable JSON.
-  --include-content   Include lightweight node content. Requires --json.
-  --stdin             Read newline-separated file paths from stdin.
-
-Init options:
-  --root <path>           Project root to set up. Defaults to current directory.
-  --yes                   Accept safe defaults without prompting.
-  --dry-run               Print planned file operations without writing files.
-  --force                 Overwrite existing installed skills.
-  --agent-target <target> Agent target: codex, claude, both, or none (init only).
-`;
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
   const options: CliCheckOptions = {
@@ -463,7 +408,12 @@ export function run(
     const [command, ...rest] = argv;
 
     if (command === undefined || command === "--help" || command === "-h") {
-      io.stdout(HELP);
+      io.stdout(GLOBAL_HELP);
+      return 0;
+    }
+
+    if (isSubcommand(command) && hasHelpFlag(rest)) {
+      io.stdout(commandHelp(command));
       return 0;
     }
 

@@ -98,6 +98,16 @@ bunx docbridge check
 
 ## Usage
 
+Discover a command:
+
+```sh
+bunx docbridge --help
+bunx docbridge context --help
+```
+
+Every command accepts `--help` (alias `-h`) and prints its usage, when to use
+it, and its options on stdout.
+
 Check links:
 
 ```sh

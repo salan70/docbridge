@@ -34,7 +34,7 @@ remaining options are specific to each command.
 
 `--audit` enables audit-only diagnostics: `undocumented_symbol` for in-scope code endpoints with no `@doc`, and `unlinked_doc_section` for in-scope documentation sections with no `@code`. Both are warnings, so `--audit` does not change exit codes. See [Diagnostics](diagnostics.md).
 
-`--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
+`--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`. See [Help](#help) for per-command help.
 
 Human-readable output prints one diagnostic per line:
 
@@ -52,6 +52,48 @@ docbridge.config.json error config_file_invalid - Failed to parse config file.
 ```
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
+
+<!-- @code src/cli/help.ts#commandHelp -->
+
+## Help
+
+Every command supports `--help` (alias `-h`). `docbridge <command> --help`
+prints that command's help on stdout and exits with code `0`, for all of
+`check`, `related`, `context`, `graph`, `init`, `init-with-agent`, and `lsp`.
+Nothing is written to stderr.
+
+The help flag is honored before any other option is validated, so
+`docbridge context --nonexistent --help` prints help instead of an
+unknown-option error, and `docbridge lsp --help` prints help instead of
+starting the server. The flag is recognized anywhere in the argument list.
+
+Per-command help has three sections:
+
+```text
+Usage:
+  docbridge context [options] [files...]
+
+Description:
+  Print the content of the counterparts linked from the given files.
+  Use it before modifying a linked code or Markdown file, so the change can be
+  reconciled against its counterpart. The default Markdown output is suitable
+  for inclusion in an agent prompt.
+
+Options:
+  --root <path>  Project root to scan. Defaults to current directory.
+  --json         Emit machine-readable JSON.
+  --stdin        Read newline-separated file paths from stdin.
+  --help, -h     Print this help text.
+```
+
+The description states _when_ to use the command, not only what it prints, so
+that commands with adjacent purposes — `related`, `context`, and `graph` — can
+be told apart without running them. Every option the command's parser accepts
+appears in its help text; the global help lists the same option tables and one
+`when to use` summary per command, and points at `docbridge <command> --help`
+for the full description.
+
+`docbridge --version` output is unaffected: it stays exactly `<version>\n`.
 
 <!-- @code src/cli/index.ts#run -->
 
