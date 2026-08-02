@@ -71,7 +71,7 @@ const INIT_OPTIONS: OptionDoc[] = [
 const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   check: {
     usage: "[options]",
-    summary: "Validate links between code and Markdown.",
+    summary: "Use before committing or in CI to validate every link.",
     description: [
       "Validate every @doc and @code annotation in the project and report the",
       "diagnostics.",
@@ -89,7 +89,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   },
   related: {
     usage: "[options] [files...]",
-    summary: "List the linked counterparts of the given changed files.",
+    summary: "Use after changing files to list their linked counterparts.",
     description: [
       "List which files are linked to the given files, without printing their",
       "content.",
@@ -109,7 +109,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   },
   context: {
     usage: "[options] [files...]",
-    summary: "Print the content of the counterparts linked from the given files.",
+    summary: "Use before editing a linked file to read its counterpart content.",
     description: [
       "Print the content of the counterparts linked from the given files.",
       "Use it before modifying a linked code or Markdown file, so the change can be",
@@ -120,7 +120,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   },
   graph: {
     usage: "[options] [files...]",
-    summary: "Print the resolved link graph.",
+    summary: "Use to inspect the whole link structure, or to feed it to a tool.",
     description: [
       "Print the resolved link graph: endpoints and the links between them.",
       "Use it to inspect the link structure as a whole, or to feed link data to a",
@@ -138,7 +138,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   },
   init: {
     usage: "[options]",
-    summary: "Set up docbridge.config.json and install DocBridge agent skills.",
+    summary: "Use once per project to set up config and agent skills.",
     description: [
       "Create docbridge.config.json and install the DocBridge agent skills.",
       "Use it once per project, when adopting DocBridge. Run it with --dry-run",
@@ -154,7 +154,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   },
   "init-with-agent": {
     usage: "[options]",
-    summary: "Install docbridge-adopt and print agent setup commands.",
+    summary: "Use to let a coding agent decide the setup instead of `init`.",
     description: [
       "Install the docbridge-adopt skill and print the commands that let a coding",
       "agent finish the setup.",
@@ -171,7 +171,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
   },
   lsp: {
     usage: "",
-    summary: "Run the Language Server over stdio.",
+    summary: "Use from an editor to get link navigation and diagnostics.",
     description: [
       "Run the DocBridge Language Server over stdio.",
       "Use it from an editor or LSP client configuration, not interactively. The",

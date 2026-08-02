@@ -103,15 +103,32 @@ test("run keeps global help for --help without a command", () => {
   expect(c.out).toContain("docbridge graph");
 });
 
-test("global help distinguishes related, context, and graph by when to use them", () => {
+function globalCommandSummary(out: string, command: string): string {
+  const commands = out.split("Commands:")[1]?.split("Run `docbridge")[0] ?? "";
+  const line = commands.split("\n").find((entry) => entry.trim().startsWith(`${command} `));
+  return (line ?? "").trim().slice(command.length).trim();
+}
+
+for (const command of COMMANDS) {
+  test(`global help says when to use ${command}`, () => {
+    const c = capture();
+    run(["--help"], c.io);
+
+    expect(globalCommandSummary(c.out, command)).toStartWith("Use ");
+  });
+}
+
+test("global help gives related, context, and graph distinct when-to-use summaries", () => {
   const c = capture();
   run(["--help"], c.io);
 
-  const commands = c.out.split("Commands:")[1]?.split("Global options:")[0] ?? "";
-  for (const command of ["related", "context", "graph"]) {
-    const line = commands.split("\n").find((entry) => entry.trim().startsWith(`${command} `));
-    expect(line).toBeDefined();
-    expect((line ?? "").length).toBeGreaterThan(command.length + 20);
+  const summaries = ["related", "context", "graph"].map((command) =>
+    globalCommandSummary(c.out, command),
+  );
+
+  expect(new Set(summaries).size).toBe(3);
+  for (const summary of summaries) {
+    expect(summary.length).toBeGreaterThan(20);
   }
 });
 

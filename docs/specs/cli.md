@@ -1,7 +1,7 @@
 # CLI
 
-DocBridge provides the `check`, `related`, `context`, `graph`, `init`, and
-`init-with-agent` commands.
+DocBridge provides the `check`, `related`, `context`, `graph`, `init`,
+`init-with-agent`, and `lsp` commands.
 
 ```sh
 docbridge [--version] [--help]
@@ -11,6 +11,7 @@ docbridge context [--root <path>] [--json] [--stdin] [files...]
 docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
 docbridge init [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
 docbridge init-with-agent [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
+docbridge lsp
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
