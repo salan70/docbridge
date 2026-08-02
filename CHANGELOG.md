@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CLI invocation errors now list valid commands, suggest close command names,
+  and include runnable command-specific recovery guidance. Missing check
+  configuration also points to `docbridge init` and `docbridge init-with-agent`.
 - TypeScript type members can be link endpoints, closing the last functional
   asymmetry with Swift and Dart. `@doc` on a class method, property, getter,
   setter, constructor, or static member, on an interface member, or on a member

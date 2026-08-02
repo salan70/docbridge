@@ -16,10 +16,25 @@ import {
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
-import { commandHelp, GLOBAL_HELP, hasHelpFlag, isSubcommand } from "./help";
+import {
+  CliError,
+  commandHelpGuidance,
+  configSetupGuidance,
+  formatCliError,
+  includeContentGuidance,
+  missingInputGuidance,
+  rootPathGuidance,
+} from "./errors";
+import {
+  commandHelp,
+  GLOBAL_HELP,
+  hasHelpFlag,
+  isSubcommand,
+  SUBCOMMANDS,
+  type Subcommand,
+} from "./help";
 import {
   createDefaultPrompts,
-  InitCliError,
   parseInitOptions,
   runInit,
   runInitWithAgent,
@@ -40,9 +55,6 @@ export type CliIo = {
   /** Read all of stdin; injectable for tests. Used by `related --stdin`. */
   stdin?: () => string;
 };
-
-/** Raised for CLI invocation errors that must go to stderr with exit code 1. */
-class CliError extends Error {}
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
   const options: CliCheckOptions = {
@@ -67,14 +79,14 @@ export function parseCheckOptions(args: string[]): CliCheckOptions {
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new CliError("--root requires a path.");
+        throw new CliError("--root requires a path.", rootPathGuidance("check"));
       }
       options.root = root;
       index += 1;
       continue;
     }
 
-    throw new CliError(`Unknown option: ${arg ?? ""}`);
+    throw new CliError(`Unknown option: ${arg ?? ""}`, commandHelpGuidance("check"));
   }
 
   return options;
@@ -121,7 +133,7 @@ export function parseRelatedOptions(args: string[]): CliRelatedOptions {
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new CliError("--root requires a path.");
+        throw new CliError("--root requires a path.", rootPathGuidance("related"));
       }
       options.root = root;
       index += 1;
@@ -129,7 +141,7 @@ export function parseRelatedOptions(args: string[]): CliRelatedOptions {
     }
 
     if (arg.startsWith("--")) {
-      throw new CliError(`Unknown option: ${arg}`);
+      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance("related"));
     }
 
     options.files.push(arg);
@@ -172,7 +184,7 @@ export function parseContextOptions(args: string[]): CliContextOptions {
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new CliError("--root requires a path.");
+        throw new CliError("--root requires a path.", rootPathGuidance("context"));
       }
       options.root = root;
       index += 1;
@@ -180,7 +192,7 @@ export function parseContextOptions(args: string[]): CliContextOptions {
     }
 
     if (arg.startsWith("--")) {
-      throw new CliError(`Unknown option: ${arg}`);
+      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance("context"));
     }
 
     options.files.push(arg);
@@ -230,7 +242,7 @@ export function parseGraphOptions(args: string[]): CliGraphOptions {
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new CliError("--root requires a path.");
+        throw new CliError("--root requires a path.", rootPathGuidance("graph"));
       }
       options.root = root;
       index += 1;
@@ -238,38 +250,38 @@ export function parseGraphOptions(args: string[]): CliGraphOptions {
     }
 
     if (arg.startsWith("--")) {
-      throw new CliError(`Unknown option: ${arg}`);
+      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance("graph"));
     }
 
     options.files.push(arg);
   }
 
   if (options.includeContent && !options.json) {
-    throw new CliError("--include-content requires --json.");
+    throw new CliError("--include-content requires --json.", includeContentGuidance());
   }
 
   return options;
 }
 
-function resolveProjectRoot(root: string): string {
+function resolveProjectRoot(root: string, command: Subcommand): string {
   const projectRoot = resolve(root);
 
   let stats;
   try {
     stats = statSync(projectRoot);
   } catch {
-    throw new CliError(`Root path does not exist: ${root}`);
+    throw new CliError(`Root path does not exist: ${root}`, rootPathGuidance(command));
   }
 
   if (!stats.isDirectory()) {
-    throw new CliError(`Root path is not a directory: ${root}`);
+    throw new CliError(`Root path is not a directory: ${root}`, rootPathGuidance(command));
   }
 
   return projectRoot;
 }
 
 function runCheck(options: CliCheckOptions, io: CliIo): number {
-  const projectRoot = resolveProjectRoot(options.root);
+  const projectRoot = resolveProjectRoot(options.root, "check");
   const result = runChecker({ projectRoot, audit: options.audit });
 
   if (options.json) {
@@ -278,6 +290,9 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
     const lines = result.diagnostics.map(formatDiagnostic);
     const body = lines.length > 0 ? `${lines.join("\n")}\n\n` : "";
     io.stdout(`${body}${formatSummary(result.summary)}\n`);
+    if (result.diagnostics.some((diagnostic) => diagnostic.code === "config_file_invalid")) {
+      io.stderr(`${configSetupGuidance()}\n`);
+    }
   }
 
   return result.summary.errors > 0 ? 1 : 0;
@@ -285,10 +300,10 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
 
 function runRelated(options: CliRelatedOptions, io: CliIo): number {
   if (!options.stdin && options.files.length === 0) {
-    throw new CliError("Provide file paths as arguments or use --stdin.");
+    throw new CliError("No input files were provided.", missingInputGuidance("related"));
   }
 
-  const projectRoot = resolveProjectRoot(options.root);
+  const projectRoot = resolveProjectRoot(options.root, "related");
 
   const changedFiles = [...options.files];
   if (options.stdin) {
@@ -329,10 +344,10 @@ function runRelated(options: CliRelatedOptions, io: CliIo): number {
 
 function runContext(options: CliContextOptions, io: CliIo): number {
   if (!options.stdin && options.files.length === 0) {
-    throw new CliError("Provide file paths as arguments or use --stdin.");
+    throw new CliError("No input files were provided.", missingInputGuidance("context"));
   }
 
-  const projectRoot = resolveProjectRoot(options.root);
+  const projectRoot = resolveProjectRoot(options.root, "context");
 
   const inputFiles = [...options.files];
   if (options.stdin) {
@@ -359,7 +374,7 @@ function runContext(options: CliContextOptions, io: CliIo): number {
 }
 
 function runGraph(options: CliGraphOptions, io: CliIo): number {
-  const projectRoot = resolveProjectRoot(options.root);
+  const projectRoot = resolveProjectRoot(options.root, "graph");
 
   const inputFiles = [...options.files];
   if (options.stdin) {
@@ -389,6 +404,81 @@ function runGraph(options: CliGraphOptions, io: CliIo): number {
   return 0;
 }
 
+function unknownCommandGuidance(command: string): string {
+  const suggestion = nearestSubcommand(command);
+  const lines = ["Available commands:", `  ${SUBCOMMANDS.join(", ")}`];
+
+  if (suggestion !== undefined) {
+    lines.push("", `Did you mean \`${suggestion}\`?`);
+  }
+
+  lines.push("", "Run `docbridge --help` for usage.");
+  return lines.join("\n");
+}
+
+function nearestSubcommand(input: string): Subcommand | undefined {
+  const abbreviation = SUBCOMMANDS.map((command, index) => ({
+    command,
+    distance: editDistance(input, command),
+    index,
+  }))
+    .filter(({ command }) => isOrderedAbbreviation(input, command))
+    .toSorted((left, right) => left.distance - right.distance || left.index - right.index)[0];
+  if (abbreviation !== undefined) {
+    return abbreviation.command;
+  }
+
+  const ranked = SUBCOMMANDS.map((command, index) => ({
+    command,
+    distance: editDistance(input, command),
+    index,
+  }));
+  ranked.sort((left, right) => left.distance - right.distance || left.index - right.index);
+
+  const best = ranked[0];
+  if (best === undefined) {
+    return undefined;
+  }
+
+  const closeEnough = best.distance <= Math.max(1, Math.floor(best.command.length / 2));
+  return closeEnough || isOrderedAbbreviation(input, best.command) ? best.command : undefined;
+}
+
+function isOrderedAbbreviation(input: string, command: string): boolean {
+  if (input.length < 3 || input.length >= command.length) {
+    return false;
+  }
+
+  let commandIndex = 0;
+  for (const character of input) {
+    const matchIndex = command.indexOf(character, commandIndex);
+    if (matchIndex === -1) {
+      return false;
+    }
+    commandIndex = matchIndex + 1;
+  }
+  return true;
+}
+
+function editDistance(left: string, right: string): number {
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    const current = [leftIndex];
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      current[rightIndex] = Math.min(
+        (current[rightIndex - 1] ?? Number.POSITIVE_INFINITY) + 1,
+        (previous[rightIndex] ?? Number.POSITIVE_INFINITY) + 1,
+        (previous[rightIndex - 1] ?? Number.POSITIVE_INFINITY) + substitutionCost,
+      );
+    }
+    previous = current;
+  }
+
+  return previous[right.length] ?? 0;
+}
+
 /**
  * Execute the CLI for the given argv (without the `bun` / script prefix) and
  * return the process exit code. Output is written through the injected IO so the
@@ -404,9 +494,9 @@ export function run(
   },
   initRuntime: InitRuntime = { prompts: createDefaultPrompts() },
 ): number {
-  try {
-    const [command, ...rest] = argv;
+  const [command, ...rest] = argv;
 
+  try {
     if (command === undefined || command === "--help" || command === "-h") {
       io.stdout(GLOBAL_HELP);
       return 0;
@@ -440,7 +530,7 @@ export function run(
 
     if (command === "lsp") {
       if (rest.length > 0) {
-        throw new CliError("lsp takes no options.");
+        throw new CliError("lsp takes no options.", commandHelpGuidance("lsp"));
       }
       runLspServer();
       return 0;
@@ -454,10 +544,10 @@ export function run(
       return runInitWithAgent(parseInitOptions(rest, "init-with-agent"), io, initRuntime);
     }
 
-    throw new CliError(`Unknown command: ${command}`);
+    throw new CliError(`Unknown command: ${command}`, unknownCommandGuidance(command));
   } catch (error) {
-    if (error instanceof InitCliError || error instanceof CliError) {
-      io.stderr(`${error.message}\n`);
+    if (error instanceof CliError) {
+      io.stderr(`${formatCliError(error)}\n`);
       return 1;
     }
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
