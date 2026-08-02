@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- TypeScript type members can be link endpoints, closing the last functional
+  asymmetry with Swift and Dart. `@doc` on a class method, property, getter,
+  setter, constructor, or static member, on an interface member, or on a member
+  of a type alias written directly as an object type literal resolves to a
+  type-qualified endpoint such as `AuthService.login`. Canonical IDs carry no
+  parameter signatures: overload groups and getter/setter pairs each describe
+  one member and collapse to one endpoint, and a collision — including a static
+  and an instance member of the same name — reports `duplicate_code_symbol`.
+  Only identifier-named members qualify, because a link target is
+  `file#fragment` with one `#` and no whitespace.
+- `include.code.typescript.visibility` accepts `public`, `protected`, and
+  `private`, defaulting to `public` and `protected`. It scopes type members
+  only; top-level declarations remain scoped by `export`.
+
+### Changed
+
+- `docbridge context` and `docbridge graph --include-content` strip the common
+  leading indentation from an extracted declaration, so a type member reads at
+  its own level. Output for top-level declarations is unchanged.
+- A `@doc` on a TypeScript type member was previously collected by nothing and
+  silently ignored. It is now a real annotation, so an existing one can surface
+  link diagnostics — `invalid_link_target`, `doc_file_not_found`,
+  `doc_anchor_not_found`, `doc_backlink_not_found` — that were always latent,
+  and an annotation on a `private` member becomes `unsupported_declaration`.
+  `check --audit` output is unchanged: members never count as
+  `undocumented_symbol`.
 - `docbridge check --audit` reports `unlinked_doc_section`, a warning for
   in-scope documentation sections that carry no `@code` annotation. It is the
   documentation-side counterpart to `undocumented_symbol`, so the audit now
@@ -21,6 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rather than a suppressed descendant. Runs
   without `--audit` are unaffected, and the diagnostic is a warning, so exit
   codes do not change.
+
+### Fixed
+
+- `docbridge graph --include-content` no longer truncates a signature at an
+  object type. It cut the rendered text at the first `{`, which for
+  `login(options: { verbose: boolean })` produced `login(options: {}`. A
+  `signatureRange` already ends where the implementation body begins in every
+  language, so no body has to be cut out of it.
 
 ## [0.6.1] - 2026-07-27
 

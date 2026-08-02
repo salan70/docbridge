@@ -71,8 +71,13 @@ with the language extension: `.ts` for `typescript` (but not `.d.ts`), `.swift`
 for `swift`, and `.dart` for `dart`. An optional `visibility` array narrows the
 audited public surface; allowed values are validated per language adapter.
 Swift accepts `public`, `open`, and `internal`; omitting `visibility` scans
-`public` and `open`. Dart accepts `public`. TypeScript does not accept
-`visibility` and keeps its exported top-level declaration rules.
+`public` and `open`. Dart accepts `public`. TypeScript accepts `public`,
+`protected`, and `private`; omitting `visibility` scans `public` and
+`protected`.
+
+TypeScript `visibility` applies only to type members. Top-level declarations are
+scoped by `export` and are unaffected by it. A member excluded by visibility is
+not an endpoint, and a `@doc` on one is `unsupported_declaration`.
 
 If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong

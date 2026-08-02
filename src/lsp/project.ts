@@ -46,12 +46,20 @@ export class Project {
     return this.current;
   }
 
-  /** Record (or replace) the buffer overlay for an open document. */
+  /**
+   * Record (or replace) the buffer overlay for an open document.
+   *
+   * @doc docs/specs/lsp.md#document-synchronization
+   */
   setOverlay(relPath: string, content: string): void {
     this.overlay.set(relPath, content);
   }
 
-  /** Drop a buffer overlay; the file reverts to its on-disk version. */
+  /**
+   * Drop a buffer overlay; the file reverts to its on-disk version.
+   *
+   * @doc docs/specs/lsp.md#document-synchronization
+   */
   clearOverlay(relPath: string): void {
     this.overlay.delete(relPath);
   }

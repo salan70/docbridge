@@ -42,7 +42,7 @@ const LANGUAGE_SUFFIX: Record<CodeLanguage, string> = {
 };
 
 const LANGUAGE_VISIBILITY: Record<CodeLanguage, readonly string[]> = {
-  typescript: [],
+  typescript: ["public", "protected", "private"],
   swift: ["public", "open", "internal"],
   dart: ["public"],
 };

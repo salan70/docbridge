@@ -849,6 +849,157 @@ test("run graph --json scopes output to input files and direct counterparts", ()
   }
 });
 
+function makeMemberProject(): string {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-member-"));
+  writeFileSync(
+    join(project, "docbridge.config.json"),
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  mkdirSync(join(project, "src", "auth"), { recursive: true });
+  writeFileSync(
+    join(project, "src", "auth", "service.ts"),
+    [
+      "export class AuthService {",
+      "  /**",
+      "   * @doc docs/auth.md#login-spec",
+      "   */",
+      "  login(email: string) {",
+      "    return email;",
+      "  }",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  mkdirSync(join(project, "docs"), { recursive: true });
+  writeFileSync(
+    join(project, "docs", "auth.md"),
+    "<!-- @code src/auth/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+  );
+  return project;
+}
+
+test("run check honors typescript visibility opting into private members", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-visibility-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: {
+            typescript: { patterns: ["src/**/*.ts"], visibility: ["public", "private"] },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "service.ts"),
+      [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  private login() {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(project, "docs"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "auth.md"),
+      "<!-- @code src/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+    );
+
+    const c = capture();
+    const code = run(["check", "--root", project], c.io);
+
+    expect(c.out).toContain("0 errors, 0 warnings");
+    expect(code).toBe(0);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --json --include-content dedents a member signature", () => {
+  const project = makeMemberProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/**\n * @doc docs/auth.md#login-spec\n */\nlogin(email: string)",
+    });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --json --include-content keeps an object-typed parameter in the signature", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-object-param-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
+    );
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "service.ts"),
+      [
+        "export class AuthService {",
+        "  /** @doc docs/auth.md#login-spec */",
+        "  login(options: { verbose: boolean }) {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(project, "docs"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "auth.md"),
+      "<!-- @code src/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+    );
+
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/** @doc docs/auth.md#login-spec */\nlogin(options: { verbose: boolean })",
+    });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("run graph --json --include-content includes lightweight node content", () => {
   const project = makeContextProject();
   try {

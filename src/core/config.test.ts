@@ -88,6 +88,23 @@ test("resolveConfig accepts a dart entry with the public visibility option", () 
   });
 });
 
+test("resolveConfig accepts a typescript entry with a visibility option", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["public", "private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+
+  expect(result.ok).toBe(true);
+  expect(result.config.include.code.typescript).toEqual({
+    patterns: ["src/**/*.ts"],
+    visibility: ["public", "private"],
+  });
+});
+
 test("resolveConfig rejects unsupported dart visibility options", () => {
   const result = resolveConfig(
     JSON.stringify({
@@ -212,11 +229,11 @@ test.each([
   [
     {
       include: {
-        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["public"] } },
+        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["internal"] } },
         docs: ["docs/**/*.md"],
       },
     },
-    "typescript visibility unsupported",
+    "typescript visibility value unsupported",
   ],
   [
     { include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.ts"] } },
