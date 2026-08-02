@@ -17,6 +17,7 @@ import {
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import { runLspServer } from "../lsp/server";
+import { parseDocsCommand, runDocs } from "./docs";
 import {
   CliError,
   commandHelpGuidance,
@@ -491,6 +492,7 @@ function editDistance(left: string, right: string): number {
  * function is unit-testable without spawning a process.
  *
  * @doc docs/specs/cli.md#check-command
+ * @doc docs/user/commands.md#command-dispatch
  */
 export function run(
   argv: string[],
@@ -532,6 +534,10 @@ export function run(
 
     if (command === "graph") {
       return runGraph(parseGraphOptions(rest), io);
+    }
+
+    if (command === "docs") {
+      return runDocs(parseDocsCommand(rest), io);
     }
 
     if (command === "lsp") {

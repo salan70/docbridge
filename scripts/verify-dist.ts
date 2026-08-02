@@ -33,6 +33,8 @@ export async function verifyDistPackage(
   const runCommand = options.run ?? run;
   runCommand([distCli, "--version"], root);
   runCommand([distCli, "--help"], root);
+  runCommand([distCli, "docs", "list", "--json"], root);
+  runCommand([distCli, "docs", "show", "getting-started"], root);
   runCommand([distCli, "check", "--root", "examples/typescript"], root);
 }
 

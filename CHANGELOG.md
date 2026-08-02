@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `docbridge docs list [--json]` and `docbridge docs show <name>` provide six
+  task-oriented, version-matched guides from the installed npm package, with
+  packed-package smoke coverage under Node.js and Bun.
 - CLI invocation errors now list valid commands, suggest close command names,
   and include runnable command-specific recovery guidance. Missing check
   configuration also points to `docbridge init` and `docbridge init-with-agent`.

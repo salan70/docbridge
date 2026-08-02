@@ -45,6 +45,8 @@ test("verifyDistPackage runs dist checks from the inspected root", async () => {
     expect(calls).toEqual([
       { command: [distCli, "--version"], cwd: root },
       { command: [distCli, "--help"], cwd: root },
+      { command: [distCli, "docs", "list", "--json"], cwd: root },
+      { command: [distCli, "docs", "show", "getting-started"], cwd: root },
       {
         command: [distCli, "check", "--root", "examples/typescript"],
         cwd: root,

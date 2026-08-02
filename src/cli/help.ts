@@ -11,6 +11,7 @@ export const SUBCOMMANDS = [
   "related",
   "context",
   "graph",
+  "docs",
   "init",
   "init-with-agent",
   "lsp",
@@ -136,6 +137,16 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       STDIN_OPTION,
     ],
   },
+  docs: {
+    usage: "list [--json] | show <name>",
+    summary: "Use to read version-matched DocBridge documentation.",
+    description: [
+      "List or read the task-oriented documentation shipped with DocBridge.",
+      "Use it when you need offline guidance that matches the installed version.",
+      "Pass --json only to the list operation for machine-readable metadata.",
+    ].join("\n"),
+    options: [JSON_OPTION],
+  },
   init: {
     usage: "[options]",
     summary: "Use once per project to set up config and agent skills.",
@@ -206,7 +217,7 @@ function commandList(): string {
   ).join("\n");
 }
 
-const GLOBAL_OPTION_SECTIONS = (["check", "related", "context", "graph", "init"] as const)
+const GLOBAL_OPTION_SECTIONS = (["check", "related", "context", "graph", "docs", "init"] as const)
   .map((command) => {
     const label = `${command.charAt(0).toUpperCase()}${command.slice(1)}`;
     return `${label} options:\n${renderOptions(COMMAND_DOCS[command].options)}`;

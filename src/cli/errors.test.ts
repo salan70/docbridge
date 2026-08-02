@@ -41,7 +41,7 @@ test("unknown commands list available commands and suggest a close match", () =>
       "Error: Unknown command: ctx",
       "",
       "Available commands:",
-      "  check, related, context, graph, init, init-with-agent, lsp",
+      "  check, related, context, graph, docs, init, init-with-agent, lsp",
       "",
       "Did you mean `context`?",
       "",

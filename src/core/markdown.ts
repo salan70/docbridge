@@ -38,6 +38,7 @@ const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
  * without touching the filesystem. `filePath` must be project-root-relative.
  *
  * @doc docs/specs/scanning.md#markdown-scanning
+ * @doc docs/user/annotations.md#documentation-to-code
  */
 export function scanMarkdown(filePath: string, content: string): MarkdownScanResult {
   const anchors: DocAnchorEndpoint[] = [];

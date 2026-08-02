@@ -6,6 +6,6 @@
         "patterns": ["src/**/*.ts"]
       }
     },
-    "docs": ["docs/specs/**/*.md"]
+    "docs": ["docs/specs/**/*.md", "docs/user/**/*.md"]
   }
 }

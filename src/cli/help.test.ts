@@ -35,6 +35,7 @@ const COMMANDS = [
   "related",
   "context",
   "graph",
+  "docs",
   "init",
   "init-with-agent",
   "lsp",
@@ -155,6 +156,7 @@ function parserFlags(source: string, functionName: string): string[] {
 }
 
 const CLI_SOURCE = readFileSync(join(import.meta.dir, "index.ts"), "utf8");
+const DOCS_SOURCE = readFileSync(join(import.meta.dir, "docs.ts"), "utf8");
 const INIT_SOURCE = readFileSync(join(import.meta.dir, "init.ts"), "utf8");
 
 const PARSERS: ReadonlyArray<readonly [string, string, string]> = [
@@ -162,6 +164,7 @@ const PARSERS: ReadonlyArray<readonly [string, string, string]> = [
   ["related", CLI_SOURCE, "parseRelatedOptions"],
   ["context", CLI_SOURCE, "parseContextOptions"],
   ["graph", CLI_SOURCE, "parseGraphOptions"],
+  ["docs", DOCS_SOURCE, "parseDocsCommand"],
   ["init", INIT_SOURCE, "parseInitOptions"],
   ["init-with-agent", INIT_SOURCE, "parseInitOptions"],
 ];
