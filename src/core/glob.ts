@@ -1,9 +1,10 @@
 import { type Dirent, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { comparePaths } from "./path-order";
 import type { DocBridgeDiagnostic } from "./types";
 
-export type GlobValidation = { ok: true } | { ok: false; message: string };
+type GlobValidation = { ok: true } | { ok: false; message: string };
 
 const IGNORED_SEGMENTS = new Set(["node_modules", ".git"]);
 
@@ -130,16 +131,6 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
   walk("");
 
   return [...matched].toSorted(comparePaths);
-}
-
-function comparePaths(left: string, right: string): number {
-  if (left < right) {
-    return -1;
-  }
-  if (left > right) {
-    return 1;
-  }
-  return 0;
 }
 
 /**

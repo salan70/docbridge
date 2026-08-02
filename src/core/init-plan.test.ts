@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { makeProject } from "../../test/helpers";
 import { resolveConfig } from "./config";
 import { discoverRepository } from "./init-discovery";
 import {
@@ -12,16 +13,6 @@ import {
   planInitCommand,
   resolvePackageRoot,
 } from "./init-plan";
-
-function makeProject(structure: Record<string, string>): string {
-  const project = mkdtempSync(join(tmpdir(), "docbridge-init-plan-"));
-  for (const [relPath, content] of Object.entries(structure)) {
-    const absolutePath = join(project, relPath);
-    mkdirSync(join(absolutePath, ".."), { recursive: true });
-    writeFileSync(absolutePath, content);
-  }
-  return project;
-}
 
 test("resolvePackageRoot finds templates/skills for source-layout execution", () => {
   const repo = mkdtempSync(join(tmpdir(), "docbridge-pkg-src-"));

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
+import { CODE_FILE, DOC_FILE, stateOf } from "../../test/lsp/fixtures";
 import { references } from "./navigation";
 
 describe(references, () => {

@@ -1,7 +1,7 @@
 import type { Position, Range } from "../core/types";
 
 /** LSP position: 0-based line and UTF-16 `character`. */
-export type LspPosition = {
+type LspPosition = {
   line: number;
   character: number;
 };

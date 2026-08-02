@@ -9,7 +9,7 @@ export type LinkTarget = {
  */
 export type CodeLanguage = "typescript" | "swift" | "dart";
 
-export type DiagnosticSeverity = "error" | "warning";
+type DiagnosticSeverity = "error" | "warning";
 
 export type DiagnosticCode =
   | "config_file_invalid"
@@ -150,21 +150,10 @@ export type DocHeadingOutline = {
   anchor?: DocAnchorEndpoint;
 };
 
-export type LinkAnnotationDirection = "code-to-doc" | "doc-to-code";
-
 export type LinkAnnotation = {
-  direction: LinkAnnotationDirection;
   source: string;
   target: string;
   location: SourceLocation;
   /** Range of the annotation target string (the `file#fragment` text). */
   targetRange?: Range;
-};
-
-export type DocLinkAnnotation = LinkAnnotation & {
-  direction: "code-to-doc";
-};
-
-export type CodeLinkAnnotation = LinkAnnotation & {
-  direction: "doc-to-code";
 };

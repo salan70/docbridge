@@ -1,4 +1,5 @@
 import type { CodeScanResult } from "./code-scanner";
+import { compareEndpointOrder } from "./endpoint";
 import type { MarkdownScanResult } from "./markdown";
 import type { CodeSymbolEndpoint, DocAnchorEndpoint } from "./types";
 
@@ -123,14 +124,8 @@ function addTo(map: Map<string, Set<string>>, key: string, value: string): void 
 }
 
 function compareEndpoints(left: GraphEndpoint, right: GraphEndpoint): number {
-  return (
-    compareString(left.location.filePath, right.location.filePath) ||
-    left.location.line - right.location.line ||
-    left.location.column - right.location.column ||
-    compareString(left.endpoint, right.endpoint)
+  return compareEndpointOrder(
+    { ...left.location, endpoint: left.endpoint },
+    { ...right.location, endpoint: right.endpoint },
   );
-}
-
-function compareString(left: string, right: string): number {
-  return left.localeCompare(right);
 }

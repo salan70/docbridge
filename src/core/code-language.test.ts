@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { setCodeAdapterForTest } from "../../test/code-language";
 import {
   codeFileOwners,
   collectCodeFiles,
@@ -24,7 +25,6 @@ import {
   resolveScannerWorkerCommand,
   scanCodeFiles,
   scannerRootsFromModuleUrl,
-  setCodeAdapterForTest,
   type CodeInclude,
 } from "./code-language";
 import { readManagedFile } from "./glob";
@@ -437,7 +437,6 @@ test("check resolves links from a worker-backed language scan", () => {
                   undocumentedSymbols: [],
                   links: [
                     {
-                      direction: "code-to-doc",
                       source: "Sources/Auth.swift#AuthService",
                       target: "docs/auth.md#auth-service",
                       location: {

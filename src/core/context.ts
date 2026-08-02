@@ -1,7 +1,8 @@
 import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
-import { sortDiagnostics } from "./diagnostics";
+import { pluralize, sortDiagnostics } from "./diagnostics";
+import { compareEndpointOrder } from "./endpoint";
 import { collectFiles, readManagedFile } from "./glob";
 import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
 import { dedentBlockLines } from "./indent";
@@ -12,7 +13,7 @@ import { extractDocSection } from "./section";
 import type { EndpointKind, DocBridgeDiagnostic } from "./types";
 import type { CodeLanguage } from "./types";
 
-export type ContextBlock = {
+type ContextBlock = {
   endpoint: string;
   kind: EndpointKind;
   filePath: string;
@@ -26,17 +27,17 @@ export type ContextBlock = {
   content: string;
 };
 
-export type ContextSummary = {
+type ContextSummary = {
   inputFiles: number;
   contexts: number;
 };
 
-export type ContextData = {
+type ContextData = {
   contexts: ContextBlock[];
   summary: ContextSummary;
 };
 
-export type ContextResult = ContextData & {
+type ContextResult = ContextData & {
   /** Check diagnostics located in the input files, in check order. */
   diagnostics: DocBridgeDiagnostic[];
 };
@@ -87,13 +88,13 @@ export function computeContext(
   };
 }
 
-export type ContextOptions = {
+type ContextOptions = {
   projectRoot: string;
   /** Raw input file paths; normalized with `normalizeChangedPaths`. */
   inputFiles: string[];
 };
 
-export type ContextOutcome =
+type ContextOutcome =
   | { ok: true; result: ContextResult }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
@@ -200,9 +201,7 @@ function codeFence(content: string): string {
 }
 
 function formatContextSummary(summary: ContextSummary): string {
-  const fileWord = summary.inputFiles === 1 ? "file" : "files";
-  const blockWord = summary.contexts === 1 ? "block" : "blocks";
-  return `${summary.inputFiles} input ${fileWord}, ${summary.contexts} context ${blockWord}`;
+  return `${summary.inputFiles} input ${pluralize("file", summary.inputFiles)}, ${summary.contexts} context ${pluralize("block", summary.contexts)}`;
 }
 
 /** Every graph endpoint whose file is in the input set, in graph order. */
@@ -280,9 +279,8 @@ function extractBlock(
 }
 
 function compareBlocks(left: ContextBlock, right: ContextBlock): number {
-  return (
-    left.filePath.localeCompare(right.filePath) ||
-    left.startLine - right.startLine ||
-    left.endpoint.localeCompare(right.endpoint)
+  return compareEndpointOrder(
+    { filePath: left.filePath, line: left.startLine, column: 0, endpoint: left.endpoint },
+    { filePath: right.filePath, line: right.startLine, column: 0, endpoint: right.endpoint },
   );
 }

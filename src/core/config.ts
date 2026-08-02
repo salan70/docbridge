@@ -18,7 +18,7 @@ export type DocBridgeConfig = {
   };
 };
 
-export type LoadConfigResult = {
+type LoadConfigResult = {
   config: DocBridgeConfig;
   diagnostics: DocBridgeDiagnostic[];
   ok: boolean;

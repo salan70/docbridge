@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { codes } from "../../test/helpers";
 import { loadConfig, resolveConfig } from "./config";
 
 const TS_CONFIG = {
@@ -11,10 +12,6 @@ const TS_CONFIG = {
     docs: ["docs/**/*.md"],
   },
 };
-
-function codes(result: ReturnType<typeof resolveConfig>): string[] {
-  return result.diagnostics.map((diagnostic) => diagnostic.code);
-}
 
 test("resolveConfig rejects a missing config file", () => {
   const result = resolveConfig(undefined);
@@ -124,7 +121,7 @@ test("resolveConfig rejects the old include.code array form", () => {
     JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("resolveConfig rejects an unknown language ID", () => {
@@ -134,7 +131,7 @@ test("resolveConfig rejects an unknown language ID", () => {
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("resolveConfig rejects a shorthand array language entry", () => {
@@ -144,7 +141,7 @@ test("resolveConfig rejects a shorthand array language entry", () => {
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("resolveConfig rejects an unknown key inside a language entry", () => {
@@ -157,7 +154,7 @@ test("resolveConfig rejects an unknown key inside a language entry", () => {
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_unknown_key");
+  expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
 
 test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
@@ -173,7 +170,7 @@ test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
 test("resolveConfig reports config_unknown_key for unknown top-level keys", () => {
   const result = resolveConfig(JSON.stringify({ ...TS_CONFIG, extra: true }));
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_unknown_key");
+  expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
 
 test("resolveConfig reports config_unknown_key for unknown include keys", () => {
@@ -183,7 +180,7 @@ test("resolveConfig reports config_unknown_key for unknown include keys", () => 
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_unknown_key");
+  expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
 
 test.each([
@@ -251,7 +248,7 @@ test.each([
 ])("resolveConfig reports config_invalid_value for %s", (raw) => {
   const result = resolveConfig(JSON.stringify(raw));
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("loadConfig reads docbridge.config.json from project root", () => {

@@ -6,14 +6,14 @@ import type { CodeLanguage } from "./types";
 
 export type AgentTarget = "codex" | "claude" | "both" | "none";
 
-export type DocsScopeCandidate = {
+type DocsScopeCandidate = {
   directory: string;
   pattern: string;
   score: number;
   fileCount: number;
 };
 
-export type DocsScopeDiscovery = {
+type DocsScopeDiscovery = {
   candidates: DocsScopeCandidate[];
   recommended: DocsScopeCandidate | undefined;
   ambiguous: boolean;
@@ -26,13 +26,13 @@ export type CodeLanguageCandidate = {
   fileCount: number;
 };
 
-export type CodeScopeDiscovery = {
+type CodeScopeDiscovery = {
   languages: CodeLanguageCandidate[];
   ambiguous: boolean;
   message: string | undefined;
 };
 
-export type AgentTargetDiscovery = {
+type AgentTargetDiscovery = {
   hasAgentsDir: boolean;
   hasClaudeDir: boolean;
   defaultTarget: AgentTarget;

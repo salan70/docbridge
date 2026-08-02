@@ -11,7 +11,7 @@ import { encodeMessage, MessageReader } from "./transport";
 /** Sends an outgoing JSON-RPC message to the client. */
 export type SendFn = (message: unknown) => void;
 
-export type ServerOptions = {
+type ServerOptions = {
   /** Build the project model for a resolved root (overridable for tests). */
   makeProject?: (root: string) => Project;
   /** Debounce window, in ms, for re-resolving after a document change. */

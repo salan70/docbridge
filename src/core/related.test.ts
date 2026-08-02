@@ -1,9 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { buildLinkGraph, type LinkGraph } from "./graph";
-import { scanMarkdown } from "./markdown";
+import { graphFrom } from "../../test/helpers";
 import { collectGateViolations, computeRelated, normalizeChangedPaths } from "./related";
-import { scanTypeScript } from "./typescript";
 
 const LOGIN_TS = [
   "/**",
@@ -14,13 +12,6 @@ const LOGIN_TS = [
 ].join("\n");
 
 const AUTH_MD = ["<!-- @code src/auth/login.ts#login -->", "## Login Spec", ""].join("\n");
-
-function graphFrom(code: Array<[string, string]>, docs: Array<[string, string]>): LinkGraph {
-  return buildLinkGraph(
-    code.map(([filePath, content]) => scanTypeScript(filePath, content)),
-    docs.map(([filePath, content]) => scanMarkdown(filePath, content)),
-  );
-}
 
 test("computeRelated lists the doc counterpart of a changed code file", () => {
   const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);

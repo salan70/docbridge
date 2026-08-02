@@ -11,6 +11,7 @@ import { sortDiagnostics } from "../core/diagnostics";
 import { collectFiles, matchGlob, readManagedFile } from "../core/glob";
 import { buildLinkGraph, type LinkGraph } from "../core/graph";
 import { scanMarkdown, type MarkdownScanResult } from "../core/markdown";
+import { comparePaths } from "../core/path-order";
 import { resolveLinks } from "../core/resolver";
 import type { DocBridgeDiagnostic } from "../core/types";
 import { buildPositionIndex, type PositionIndex } from "./index-lookup";
@@ -192,16 +193,6 @@ export class Project {
     }
     return read.content;
   }
-}
-
-function comparePaths(left: string, right: string): number {
-  if (left < right) {
-    return -1;
-  }
-  if (left > right) {
-    return 1;
-  }
-  return 0;
 }
 
 function emptyState(): ProjectState {

@@ -2,33 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { capture } from "../../test/helpers";
 import { run } from "./index";
-
-type Captured = {
-  out: string;
-  err: string;
-  io: { stdout: (text: string) => void; stderr: (text: string) => void };
-};
-
-function capture(): Captured {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text: string) => {
-        state.out += text;
-      },
-      stderr: (text: string) => {
-        state.err += text;
-      },
-    },
-  };
-}
 
 const COMMANDS = [
   "check",

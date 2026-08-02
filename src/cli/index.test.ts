@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import pkg from "../../package.json";
+import { capture } from "../../test/helpers";
 import {
   parseCheckOptions,
   parseContextOptions,
@@ -11,32 +12,6 @@ import {
   parseRelatedOptions,
   run,
 } from "./index";
-
-type Captured = {
-  out: string;
-  err: string;
-  io: { stdout: (text: string) => void; stderr: (text: string) => void };
-};
-
-function capture(): Captured {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text: string) => {
-        state.out += text;
-      },
-      stderr: (text: string) => {
-        state.err += text;
-      },
-    },
-  };
-}
 
 test("parseCheckOptions reads root, json, and audit flags", () => {
   expect(parseCheckOptions(["--root", "examples/typescript", "--json", "--audit"])).toEqual({

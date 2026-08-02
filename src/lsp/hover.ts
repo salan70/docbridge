@@ -1,3 +1,4 @@
+import { endpointRange } from "../core/endpoint";
 import { counterpartsOf, type GraphEndpoint } from "../core/graph";
 import { capSectionLength, extractDocSection } from "../core/section";
 import type { Position, Range } from "../core/types";
@@ -5,7 +6,7 @@ import { endpointAt } from "./index-lookup";
 import type { ProjectState } from "./project";
 
 /** Markdown hover content plus the range of the element it describes. */
-export type HoverResult = {
+type HoverResult = {
   value: string;
   range: Range;
 };
@@ -44,7 +45,7 @@ export function hover(
     return null;
   }
 
-  return { value, range: triggerRange(element) };
+  return { value, range: endpointRange(element) };
 }
 
 /** Code -> doc: concatenate the linked Markdown sections. */
@@ -76,17 +77,6 @@ function renderCodeSignatures(state: ProjectState, counterparts: GraphEndpoint[]
     blocks.push(`**${symbol.endpoint}**${fenced}`);
   }
   return blocks.length > 0 ? blocks.join(DIVIDER) : null;
-}
-
-function triggerRange(element: GraphEndpoint): Range {
-  const range = element.kind === "code" ? element.nameRange : element.headingTextRange;
-  if (range !== undefined) {
-    return range;
-  }
-  // Endpoints reach hover only through the index, which requires a range, so
-  // this fallback is defensive.
-  const { line, column } = element.location;
-  return { start: { line, column }, end: { line, column } };
 }
 
 function lineAt(content: string, line: number): string {

@@ -86,9 +86,7 @@ function parseDocument(name: string, source: string): ParsedDocument {
 /**
  * Read task-oriented documentation from the installed package.
  */
-export function createFileDocumentationReader(
-  packageRoot: string = resolvePackageRoot(),
-): DocumentationReader {
+export function createFileDocumentationReader(packageRoot: string): DocumentationReader {
   const docsRoot = join(packageRoot, "docs", "user");
 
   function documents(): ParsedDocument[] {
@@ -159,7 +157,7 @@ export function parseDocsCommand(args: string[]): DocsCommand {
 export function runDocs(
   command: DocsCommand,
   io: CliIo,
-  reader: DocumentationReader = createFileDocumentationReader(),
+  reader: DocumentationReader = createFileDocumentationReader(resolvePackageRoot()),
 ): number {
   if (command.kind === "list") {
     const documents = reader.list();

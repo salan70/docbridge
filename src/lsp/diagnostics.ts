@@ -2,10 +2,10 @@ import type { DocBridgeDiagnostic } from "../core/types";
 import { toLspRange, type LspRange } from "./position";
 
 /** LSP diagnostic severities: error and warning are the only ones DocBridge uses. */
-export type LspDiagnosticSeverity = 1 | 2;
+type LspDiagnosticSeverity = 1 | 2;
 
 /** LSP `Diagnostic` shape (the subset DocBridge produces). */
-export type LspDiagnostic = {
+type LspDiagnostic = {
   range: LspRange;
   severity: LspDiagnosticSeverity;
   code: string;
