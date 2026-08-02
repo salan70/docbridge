@@ -136,8 +136,10 @@ For each supported declaration the scanner records, alongside the name range
 used for navigation, a `declarationRange` covering the whole declaration
 including its leading JSDoc block. The
 [context command](cli.md#context-command) extracts declaration content from
-this range, stripping the block's common leading indentation so a member reads
-at its own level rather than its enclosing type's.
+this range. When the declaration starts past column 1, as a type member does,
+the block's common leading indentation is stripped so the member reads at its
+own level rather than its enclosing type's; a top-level declaration starts at
+column 1 and is extracted verbatim.
 
 The scanner also records a `signatureRange` for the declaration's public
 surface. The signature range includes the leading JSDoc block but excludes

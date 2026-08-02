@@ -266,7 +266,7 @@ function extractBlock(
   if (firstLine !== undefined) {
     lines[0] = firstLine.slice(range.start.column - 1);
   }
-  const dedented = dedentBlockLines(lines);
+  const dedented = dedentBlockLines(lines, range.start.column);
   return {
     endpoint: counterpart.endpoint,
     kind: "code",

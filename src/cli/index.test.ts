@@ -950,6 +950,56 @@ test("run graph --json --include-content dedents a member signature", () => {
   }
 });
 
+test("run graph --json --include-content keeps an object-typed parameter in the signature", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-object-param-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
+    );
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "service.ts"),
+      [
+        "export class AuthService {",
+        "  /** @doc docs/auth.md#login-spec */",
+        "  login(options: { verbose: boolean }) {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(project, "docs"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "auth.md"),
+      "<!-- @code src/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+    );
+
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/** @doc docs/auth.md#login-spec */\nlogin(options: { verbose: boolean })",
+    });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("run graph --json --include-content includes lightweight node content", () => {
   const project = makeContextProject();
   try {

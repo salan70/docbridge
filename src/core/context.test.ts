@@ -284,3 +284,28 @@ test("computeContext leaves a top-level declaration unchanged", () => {
 
   expect(result.contexts[0]?.content).toBe(LOGIN_TS.trimEnd());
 });
+
+test("computeContext keeps the indentation of a top-level declaration whose lines are all indented", () => {
+  // With the JSDoc on the declaration's own line, every line after the first is
+  // indented, which must not be mistaken for a member's enclosing indentation.
+  const sources: Sources = {
+    code: [
+      [
+        "src/auth/service.ts",
+        ["/** @doc docs/auth.md#login-spec */ export const login =", "  compute();", ""].join("\n"),
+      ],
+    ],
+    docs: [
+      [
+        "docs/auth.md",
+        ["<!-- @code src/auth/service.ts#login -->", "## Login Spec", ""].join("\n"),
+      ],
+    ],
+  };
+
+  const result = computeContext(graphFrom(sources), contentMap(sources), ["docs/auth.md"]);
+
+  expect(result.contexts[0]?.content).toBe(
+    ["/** @doc docs/auth.md#login-spec */ export const login =", "  compute();"].join("\n"),
+  );
+});

@@ -694,6 +694,24 @@ describe("scanTypeScript", () => {
         expect(result.diagnostics.map((d) => d.code)).toContain("unsupported_declaration");
       });
 
+      test("ignores an annotated ordinary constructor parameter", () => {
+        // An ordinary parameter declares nothing on the type, so its annotation
+        // is an orphan comment, which no language reports.
+        const content = [
+          "export class C {",
+          "  constructor(/** @doc docs/auth.md#spec */ x: string) {",
+          "    void x;",
+          "  }",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scan(content);
+
+        expect(result.symbols).toEqual([]);
+        expect(result.diagnostics).toEqual([]);
+      });
+
       test("includes a private member when visibility opts into private", () => {
         const content = [
           "export class AuthService {",

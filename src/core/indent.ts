@@ -8,10 +8,17 @@
  * common indent over lines after the first and removing it from those lines
  * leaves the block reading as it does in the file, one level out.
  *
- * This is a no-op for a top-level declaration, whose body lines are already at
- * column 1 or deeper by their own nesting, and for a single-line block.
+ * `startColumn` is the declaration's own start column, which is what separates
+ * the two cases: a nested declaration is indented, a top-level one starts at
+ * column 1 and is returned untouched. Measuring alone cannot separate them,
+ * because a top-level declaration can have every line after the first indented
+ * — `export const f =` continued on the next line, for one — and dedenting it
+ * would rewrite content this function promises to leave alone.
  */
-export function dedentBlockLines(lines: string[]): string[] {
+export function dedentBlockLines(lines: string[], startColumn: number): string[] {
+  if (startColumn <= 1) {
+    return lines;
+  }
   const common = commonIndent(lines.slice(1));
   if (common === 0) {
     return lines;

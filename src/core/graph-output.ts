@@ -334,7 +334,11 @@ function codeNode(
     node.content = {
       kind: "code",
       symbolName: symbol.symbolName,
-      signature: extractSignature(contentByFile.get(symbol.filePath), range),
+      signature: extractSignature(
+        contentByFile.get(symbol.filePath),
+        range,
+        symbol.signatureRange !== undefined,
+      ),
     };
   }
   return node;
@@ -383,7 +387,21 @@ function docSectionRange(content: string | undefined, startLine: number): Range 
   };
 }
 
-function extractSignature(content: string | undefined, range: Range | undefined): string {
+/**
+ * Render a code node's signature text from `range`.
+ *
+ * `bodyExcluded` says the range is a `signatureRange`, which every scanner ends
+ * at the body's opening brace, so the extracted text is already body-free.
+ * Truncating it at its first `{` would instead cut into a signature that
+ * legitimately contains one — an object-typed parameter, an object type
+ * constraint — and render `login(options: {}`. The truncation exists for the
+ * `declarationRange` fallback, whose text does contain the body.
+ */
+function extractSignature(
+  content: string | undefined,
+  range: Range | undefined,
+  bodyExcluded: boolean,
+): string {
   if (content === undefined || range === undefined) {
     return "";
   }
@@ -397,8 +415,8 @@ function extractSignature(content: string | undefined, range: Range | undefined)
   if (last !== undefined && range.end.column > 1) {
     lines[lastIndex] = last.slice(0, range.end.column - 1);
   }
-  const declaration = dedentBlockLines(lines).join("\n");
-  const bodyStart = declaration.indexOf("{");
+  const declaration = dedentBlockLines(lines, range.start.column).join("\n");
+  const bodyStart = bodyExcluded ? -1 : declaration.indexOf("{");
   if (bodyStart === -1) {
     return declaration.trimEnd();
   }

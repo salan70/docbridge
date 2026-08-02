@@ -321,6 +321,10 @@ function collectMemberDeclarations(
  * signature. It is out of scope, so an annotation on one is diagnosed rather
  * than ignored. `ts.getJSDocTags` on a parameter does not resolve the enclosing
  * constructor's JSDoc, so this cannot double-report the constructor's own tag.
+ *
+ * An ordinary parameter declares nothing on the type and is not a member at
+ * all, so an annotation on one is an orphan comment and stays undetected, as it
+ * does on a free function's parameter.
  */
 function diagnoseParameterProperties(
   filePath: string,
@@ -333,6 +337,9 @@ function diagnoseParameterProperties(
   }
 
   for (const parameter of member.parameters) {
+    if (!ts.isParameterPropertyDeclaration(parameter, member)) {
+      continue;
+    }
     const firstDocTag = collectDocTags(filePath, sourceFile, parameter)[0];
     if (firstDocTag) {
       diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));

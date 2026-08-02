@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without `--audit` are unaffected, and the diagnostic is a warning, so exit
   codes do not change.
 
+### Fixed
+
+- `docbridge graph --include-content` no longer truncates a signature at an
+  object type. It cut the rendered text at the first `{`, which for
+  `login(options: { verbose: boolean })` produced `login(options: {}`. A
+  `signatureRange` already ends where the implementation body begins in every
+  language, so no body has to be cut out of it.
+
 ## [0.6.1] - 2026-07-27
 
 ### Changed
