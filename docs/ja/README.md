@@ -92,6 +92,16 @@ bunx docbridge check
 
 ## 使い方
 
+コマンドの使い方を調べる:
+
+```sh
+bunx docbridge --help
+bunx docbridge context --help
+```
+
+すべてのコマンドが `--help`（別名 `-h`）を受け付け、使用方法・使いどころ・
+オプションを stdout に出力します。
+
 リンクを検査する:
 
 ```sh
