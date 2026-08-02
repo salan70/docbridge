@@ -132,6 +132,17 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
   for (const runtime of cliRuntimes) {
     run([runtime, "node_modules/.bin/docbridge", "--version"], tempRoot);
     run([runtime, "node_modules/.bin/docbridge", "--help"], tempRoot);
+    run([runtime, "node_modules/.bin/docbridge", "docs", "list", "--json"], tempRoot);
+    for (const document of [
+      "getting-started",
+      "configuration",
+      "annotations",
+      "commands",
+      "agent-integration",
+      "troubleshooting",
+    ]) {
+      run([runtime, "node_modules/.bin/docbridge", "docs", "show", document], tempRoot);
+    }
   }
 
   mkdirSync(join(tempRoot, "fixture/src"), { recursive: true });

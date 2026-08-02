@@ -150,6 +150,7 @@ export function createDefaultPrompts(isInteractive = process.stdin.isTTY): InitP
  * Run CLI-driven first-time DocBridge setup.
  *
  * @doc docs/specs/cli.md#init-command
+ * @doc docs/user/getting-started.md#set-up-a-project
  */
 export function runInit(
   options: InitSharedOptions,
@@ -163,6 +164,7 @@ export function runInit(
  * Prepare agent-guided adoption by installing docbridge-adopt and printing setup guidance.
  *
  * @doc docs/specs/cli.md#init-with-agent-command
+ * @doc docs/user/agent-integration.md#install-agent-skills
  */
 export function runInitWithAgent(
   options: InitSharedOptions,

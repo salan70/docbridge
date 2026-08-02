@@ -90,7 +90,11 @@ export function configRepairGuidance(): string {
   return "Repair or delete docbridge.config.json, then re-run `docbridge check`.";
 }
 
-/** Render a CLI invocation error with its stable first-line prefix. */
+/**
+ * Render a CLI invocation error with its stable first-line prefix.
+ *
+ * @doc docs/user/troubleshooting.md#cli-invocation-errors
+ */
 export function formatCliError(error: unknown): string {
   if (!(error instanceof CliError)) {
     return error instanceof Error ? error.message : String(error);

@@ -25,6 +25,7 @@
   },
   "files": [
     "dist",
+    "docs/user",
     "schemas",
     "templates/skills",
     "README.md",

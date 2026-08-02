@@ -56,6 +56,7 @@ const LANGUAGE_VISIBILITY: Record<CodeLanguage, readonly string[]> = {
  * more than one configured language.
  *
  * @doc docs/specs/configuration.md#loading-configuration
+ * @doc docs/user/configuration.md#loading-configuration
  */
 export function loadConfig(projectRoot: string): LoadConfigResult {
   let rawText: string | undefined;

@@ -1,6 +1,6 @@
 # CLI
 
-DocBridge provides the `check`, `related`, `context`, `graph`, `init`,
+DocBridge provides the `check`, `related`, `context`, `graph`, `docs`, `init`,
 `init-with-agent`, and `lsp` commands.
 
 ```sh
@@ -9,6 +9,8 @@ docbridge check [--root <path>] [--json] [--audit]
 docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
 docbridge context [--root <path>] [--json] [--stdin] [files...]
 docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
+docbridge docs list [--json]
+docbridge docs show <name>
 docbridge init [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
 docbridge init-with-agent [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
 docbridge lsp
@@ -120,7 +122,8 @@ guidance.
 
 Every command supports `--help` (alias `-h`). `docbridge <command> --help`
 prints that command's help on stdout and exits with code `0`, for all of
-`check`, `related`, `context`, `graph`, `init`, `init-with-agent`, and `lsp`.
+`check`, `related`, `context`, `graph`, `docs`, `init`, `init-with-agent`, and
+`lsp`.
 Nothing is written to stderr.
 
 The help flag is honored before any other option is validated, so
@@ -457,6 +460,49 @@ The login flow.
 `context` exits with code `0` on success regardless of what it finds or which
 diagnostics it reports. Only CLI invocation errors and configuration errors
 exit with code `1`.
+
+<!-- @code src/cli/docs.ts#runDocs -->
+
+## Documentation Commands
+
+`docbridge docs list` discovers every `.md` file under the installed package's
+`docs/user/` directory. A document name is its filename without `.md`. Every
+document must start with YAML frontmatter containing a non-empty, single-line
+`description`; an invalid document makes the command fail instead of being
+silently omitted.
+
+Human-readable list output sorts documents by name, aligns descriptions after
+the longest name, and ends with this hint:
+
+```text
+Run `docbridge docs show <name>` to read a document.
+```
+
+`docs list --json` writes a two-space-indented JSON object followed by a newline:
+
+```json
+{
+  "documents": [
+    {
+      "name": "commands",
+      "description": "Choose between check, related, context, and graph."
+    }
+  ],
+  "help": "Run `docbridge docs show <name>` to read a document."
+}
+```
+
+`docbridge docs show <name>` removes the YAML frontmatter and its single
+separating blank line, then writes the remaining Markdown body to stdout
+verbatim. Every name returned by `docs list` must be readable. An unknown name
+writes an error plus all available names to stderr, leaves stdout empty, and
+exits with code `1`.
+
+The package allowlist contains `docs/user` and excludes the developer-facing
+`docs/specs`, `docs/decisions`, `docs/contributing`, `docs/plans`, and `docs/ja`
+trees. The npm packed-package smoke test installs the tarball without a
+repository checkout and exercises `docs list --json` plus `docs show` for every
+shipped name under both Node.js and Bun.
 
 <!-- @code src/cli/init.ts#runInit -->
 <!-- @code src/cli/init.ts#parseInitOptions -->
