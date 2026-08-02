@@ -14,9 +14,8 @@ import {
   type InitSharedOptions,
   type PlannedFileOp,
 } from "../core/init-plan";
+import { agentTargetGuidance, commandHelpGuidance, InitCliError, rootPathGuidance } from "./errors";
 import type { CliIo } from "./index";
-
-class InitCliError extends Error {}
 
 export type InitPrompts = {
   isInteractive: boolean;
@@ -69,7 +68,7 @@ export function parseInitOptions(args: string[], command: InitCommandKind): Init
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new InitCliError("--root requires a path.");
+        throw new InitCliError("--root requires a path.", rootPathGuidance(command));
       }
       options.root = root;
       index += 1;
@@ -79,15 +78,19 @@ export function parseInitOptions(args: string[], command: InitCommandKind): Init
     if (arg === "--agent-target") {
       const target = args[index + 1];
       if (target === undefined) {
-        throw new InitCliError("--agent-target requires a value.");
+        throw new InitCliError("--agent-target requires a value.", agentTargetGuidance(command));
       }
       if (!AGENT_TARGETS.has(target as AgentTarget)) {
         throw new InitCliError(
           `Unknown agent target: ${target}. Supported values: codex, claude, both${command === "init" ? ", none" : ""}.`,
+          agentTargetGuidance(command),
         );
       }
       if (command === "init-with-agent" && target === "none") {
-        throw new InitCliError("init-with-agent requires an agent target other than none.");
+        throw new InitCliError(
+          "init-with-agent requires an agent target other than none.",
+          agentTargetGuidance(command),
+        );
       }
       options.agentTarget = target as AgentTarget;
       index += 1;
@@ -95,10 +98,10 @@ export function parseInitOptions(args: string[], command: InitCommandKind): Init
     }
 
     if (arg.startsWith("--")) {
-      throw new InitCliError(`Unknown option: ${arg}`);
+      throw new InitCliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
     }
 
-    throw new InitCliError(`Unexpected argument: ${arg}`);
+    throw new InitCliError(`Unexpected argument: ${arg}`, commandHelpGuidance(command));
   }
 
   return options;
@@ -175,7 +178,7 @@ function runInitCommand(
   io: CliIo,
   runtime: InitRuntime,
 ): number {
-  const projectRoot = resolveProjectRoot(options.root);
+  const projectRoot = resolveProjectRoot(options.root, command);
   const discovery = discoverRepository(projectRoot);
   // init-with-agent never generates docbridge.config.json; scope confirmation
   // is deferred to the docbridge-adopt skill, so skip it here.
@@ -346,18 +349,18 @@ function executeSkillOperation(
   cpSync(sourceDir, destinationDir, { recursive: true, force: true });
 }
 
-function resolveProjectRoot(root: string): string {
+function resolveProjectRoot(root: string, command: InitCommandKind): string {
   const projectRoot = resolve(root);
 
   let stats;
   try {
     stats = statSync(projectRoot);
   } catch {
-    throw new InitCliError(`Root path does not exist: ${root}`);
+    throw new InitCliError(`Root path does not exist: ${root}`, rootPathGuidance(command));
   }
 
   if (!stats.isDirectory()) {
-    throw new InitCliError(`Root path is not a directory: ${root}`);
+    throw new InitCliError(`Root path is not a directory: ${root}`, rootPathGuidance(command));
   }
 
   return projectRoot;

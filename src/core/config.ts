@@ -24,7 +24,7 @@ export type LoadConfigResult = {
   ok: boolean;
 };
 
-const CONFIG_FILE_NAME = "docbridge.config.json";
+export const CONFIG_FILE_NAME = "docbridge.config.json";
 
 // Config errors short-circuit scanning, so this placeholder is never scanned.
 const EMPTY_CONFIG: DocBridgeConfig = {

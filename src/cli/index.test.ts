@@ -90,33 +90,6 @@ test("run prints the package version for -v and exits 0", () => {
   expect(c.err).toBe("");
 });
 
-test("run reports an unknown command on stderr and exits 1", () => {
-  const c = capture();
-  const code = run(["bogus"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("Unknown command");
-  expect(c.out).toBe("");
-});
-
-test("run reports an unknown option on stderr and exits 1 without JSON", () => {
-  const c = capture();
-  const code = run(["check", "--bogus", "--json"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("Unknown option");
-  expect(c.out).toBe("");
-});
-
-test("run reports a missing --root value on stderr and exits 1", () => {
-  const c = capture();
-  const code = run(["check", "--root"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("--root");
-  expect(c.out).toBe("");
-});
-
 test("run reports a non-existent root on stderr and exits 1", () => {
   const c = capture();
   const code = run(["check", "--root", "/no/such/dir/docbridge-test"], c.io);

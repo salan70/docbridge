@@ -54,6 +54,66 @@ docbridge.config.json error config_file_invalid - Failed to parse config file.
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
 
+## Error guidance
+
+CLI invocation errors keep the failure on the first line and append the next
+action below it. The complete error and its guidance are written to stderr;
+stdout remains empty. They continue to exit with code `1`.
+
+Unknown commands list every command from the dispatcher. A close spelling or
+ordered abbreviation adds a `Did you mean` line. The list and suggestion are
+derived from the same command set used by dispatch and help:
+
+```text
+Error: Unknown command: ctx
+
+Available commands:
+  check, related, context, graph, init, init-with-agent, lsp
+
+Did you mean `context`?
+
+Run `docbridge --help` for usage.
+```
+
+Unknown options and missing option values identify the command-specific help
+that explains the accepted flags. Missing project roots include a runnable
+`--root .` example. `related` and `context` require either positional input
+files or `--stdin`; when neither is supplied, the error includes both forms:
+
+```text
+Error: No input files were provided.
+
+Provide file paths as arguments:
+
+  docbridge context src/auth.ts
+
+Or read newline-separated paths from stdin:
+
+  git diff --name-only | docbridge context --stdin
+
+Run `docbridge context --help` for command usage.
+```
+
+When human-readable `check` output reports a missing configuration as
+`config_file_invalid`, setup guidance is written to stderr:
+
+```text
+Run one of:
+
+  docbridge init
+  docbridge init --dry-run
+
+For agent-guided adoption:
+
+  docbridge init-with-agent
+```
+
+The diagnostic and summary remain in the normal human-readable check output.
+If `docbridge.config.json` exists but cannot be parsed, stderr instead directs
+the user to repair or delete it before re-running `docbridge check`.
+The `--json` path emits the same JSON as before and does not include human
+guidance.
+
 <!-- @code src/cli/help.ts#commandHelp -->
 
 ## Help
