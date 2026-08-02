@@ -102,7 +102,40 @@ public final class Scanner {
       symbols.append(symbol)
 
       var seenTargets = Set<String>()
-      for docTarget in declaration.docTargets where !seenTargets.contains(docTarget.target) {
+      for docTarget in declaration.docTargets {
+        if !isValidLinkTarget(docTarget.target, sourceFilePath: file.filePath) {
+          diagnostics.append(
+            diagnostic(
+              code: "invalid_link_target",
+              target: docTarget.target,
+              source: symbol.endpoint,
+              message:
+                "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+              filePath: file.filePath,
+              line: docTarget.line,
+              column: docTarget.column,
+              range: docTarget.range
+            )
+          )
+          continue
+        }
+
+        if seenTargets.contains(docTarget.target) {
+          diagnostics.append(
+            diagnostic(
+              code: "duplicate_link",
+              target: docTarget.target,
+              source: symbol.endpoint,
+              severity: "warning",
+              message: "Duplicate @doc link from \(symbol.endpoint) to \(docTarget.target).",
+              filePath: file.filePath,
+              line: docTarget.line,
+              column: docTarget.column,
+              range: docTarget.range
+            )
+          )
+          continue
+        }
         seenTargets.insert(docTarget.target)
         links.append(
           DocLink(
@@ -515,6 +548,8 @@ private func makeSymbol(filePath: String, declaration: Declaration) -> CodeSymbo
 private func diagnostic(
   code: String,
   target: String,
+  source: String? = nil,
+  severity: String = "error",
   message: String,
   filePath: String,
   line: Int,
@@ -522,15 +557,37 @@ private func diagnostic(
   range: SourceRange? = nil
 ) -> Diagnostic {
   Diagnostic(
-    severity: "error",
+    severity: severity,
     code: code,
     target: target,
     language: "swift",
-    source: nil,
+    source: source,
     message: message,
     location: SourceLocation(filePath: filePath, line: line, column: column),
     range: range
   )
+}
+
+private func isValidLinkTarget(_ target: String, sourceFilePath: String) -> Bool {
+  let parts = target.split(separator: "#", omittingEmptySubsequences: false)
+  guard parts.count == 2 else { return false }
+
+  let filePath = String(parts[0])
+  let fragment = String(parts[1])
+  guard
+    !filePath.isEmpty,
+    !filePath.hasPrefix("/"),
+    !filePath.hasPrefix("./"),
+    !filePath.hasPrefix("../"),
+    !filePath.contains("\\"),
+    !filePath.contains(where: \.isWhitespace),
+    !filePath.split(separator: "/").contains(".."),
+    filePath != sourceFilePath,
+    !fragment.isEmpty,
+    !fragment.contains(where: \.isWhitespace)
+  else { return false }
+
+  return true
 }
 
 // MARK: - Position conversion

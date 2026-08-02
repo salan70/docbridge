@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Swift and Dart scanners now report malformed and duplicate `@doc` targets as
+  `invalid_link_target` and `duplicate_link`, matching TypeScript instead of
+  silently accepting or discarding the annotations.
 - `docbridge graph --include-content` no longer truncates a signature at an
   object type. It cut the rendered text at the first `{`, which for
   `login(options: { verbose: boolean })` produced `login(options: {}`. A

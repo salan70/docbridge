@@ -109,6 +109,47 @@ extension on AuthService {
     expect(codes(file['diagnostics'] as List), ['duplicate_code_symbol']);
   });
 
+  test('reports duplicate doc links', () {
+    final file = scan('''
+/// @doc docs/auth.md#login
+/// @doc docs/auth.md#login
+void login() {}
+''');
+
+    expect(
+      (file['links'] as List).map((link) => (link as Map)['target']).toList(),
+      ['docs/auth.md#login'],
+    );
+    expect(codes(file['diagnostics'] as List), ['duplicate_link']);
+    expect((file['diagnostics'] as List).single,
+        containsPair('severity', 'warning'));
+    expect((file['diagnostics'] as List).single,
+        containsPair('source', 'lib/auth.dart#login'));
+    expect(
+      (file['diagnostics'] as List).single,
+      containsPair('target', 'docs/auth.md#login'),
+    );
+  });
+
+  test('reports invalid doc link targets', () {
+    final file = scan('''
+/// @doc not-a-valid-target
+void login() {}
+''');
+
+    expect(canonicalIds(file), ['login']);
+    expect(file['links'], isEmpty);
+    expect(codes(file['diagnostics'] as List), ['invalid_link_target']);
+    expect((file['diagnostics'] as List).single,
+        containsPair('severity', 'error'));
+    expect((file['diagnostics'] as List).single,
+        containsPair('source', 'lib/auth.dart#login'));
+    expect(
+      (file['diagnostics'] as List).single,
+      containsPair('target', 'not-a-valid-target'),
+    );
+  });
+
   test('reports unsupported annotated declarations', () {
     final file = scan('''
 /// @doc docs/auth.md#callback
