@@ -3,8 +3,9 @@ import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import Ajv2020, { type ErrorObject } from "ajv/dist/2020";
+import Ajv2020, { type ErrorObject, type ValidateFunction } from "ajv/dist/2020";
 
+import commonOutputSchema from "../../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../../schemas/scanner-worker.schema.json";
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
 import { reasonOf } from "./error";
@@ -67,11 +68,26 @@ type ScannerWorkerFailure = {
 
 type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
 
-const workerSchemaValidator = new Ajv2020({ allErrors: true, strict: true }).compile({
-  $schema: scannerWorkerSchema.$schema,
-  $defs: scannerWorkerSchema.$defs,
-  $ref: "#/$defs/response",
-});
+/** @internal Exported only to make the lazy initialization contract executable in tests. */
+export function createLazyWorkerResponseValidator<T>(compile: () => T): () => T {
+  let validator: T | undefined;
+  return () => {
+    validator ??= compile();
+    return validator;
+  };
+}
+
+const responseValidator = createLazyWorkerResponseValidator(compileWorkerResponseValidator);
+
+function compileWorkerResponseValidator(): ValidateFunction {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  ajv.addSchema(commonOutputSchema);
+  return ajv.compile({
+    $schema: scannerWorkerSchema.$schema,
+    $defs: scannerWorkerSchema.$defs,
+    $ref: "#/$defs/response",
+  });
+}
 
 export function invokeScannerWorker(
   request: ScannerWorkerRequest,
@@ -188,8 +204,9 @@ export function runScannerWorkerProcess(
 }
 
 function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {
-  if (!workerSchemaValidator(value)) {
-    return formatSchemaError(workerSchemaValidator.errors);
+  const validator = responseValidator();
+  if (!validator(value)) {
+    return formatSchemaError(validator.errors);
   }
   const response = value as ScannerWorkerResponse;
   if (response.requestId !== request.requestId) {

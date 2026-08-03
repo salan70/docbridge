@@ -3,11 +3,26 @@ import { tmpdir } from "node:os";
 
 import {
   clangModuleCachePath,
+  createLazyWorkerResponseValidator,
   invokeScannerWorker,
   runScannerWorkerProcess,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
 import type { ScannerWorkerRequest } from "./scanner-worker";
+
+test("worker response schema compilation is lazy and cached", () => {
+  let compileCount = 0;
+  const compiled = { validate: true };
+  const validator = createLazyWorkerResponseValidator(() => {
+    compileCount += 1;
+    return compiled;
+  });
+
+  expect(compileCount).toBe(0);
+  expect(validator()).toBe(compiled);
+  expect(validator()).toBe(compiled);
+  expect(compileCount).toBe(1);
+});
 
 test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", () => {
   const path = clangModuleCachePath();

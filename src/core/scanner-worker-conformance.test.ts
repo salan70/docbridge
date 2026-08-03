@@ -4,12 +4,14 @@ import { resolve } from "node:path";
 
 import Ajv2020 from "ajv/dist/2020";
 
+import commonOutputSchema from "../../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../../schemas/scanner-worker.schema.json";
 import type { ScannerWorkerRequest } from "./scanner-worker";
 import { scanTypeScript } from "./typescript";
 
 const repoRoot = resolve(import.meta.dir, "..", "..");
 const ajv = new Ajv2020({ allErrors: true, strict: true });
+ajv.addSchema(commonOutputSchema);
 const validateRequest = ajv.compile({
   $schema: scannerWorkerSchema.$schema,
   $defs: scannerWorkerSchema.$defs,

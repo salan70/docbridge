@@ -35,13 +35,13 @@ const KNOWN_TOP_LEVEL_KEYS = new Set(["$schema", "include"]);
 const KNOWN_INCLUDE_KEYS = new Set(["code", "docs"]);
 const KNOWN_CODE_ENTRY_KEYS = new Set(["patterns", "visibility"]);
 
-const LANGUAGE_SUFFIX: Record<CodeLanguage, string> = {
+export const LANGUAGE_SUFFIX: Readonly<Record<CodeLanguage, string>> = {
   typescript: ".ts",
   swift: ".swift",
   dart: ".dart",
 };
 
-const LANGUAGE_VISIBILITY: Record<CodeLanguage, readonly string[]> = {
+export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[]>> = {
   typescript: ["public", "protected", "private"],
   swift: ["public", "open", "internal"],
   dart: ["public"],

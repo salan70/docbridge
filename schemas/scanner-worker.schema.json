@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/salan70/docbridge/schemas/scanner-worker.schema.json",
+  "$id": "scanner-worker.schema.json",
   "title": "DocBridge Scanner Worker Protocol",
   "description": "Request and response payloads exchanged with scanner workers.",
   "oneOf": [{ "$ref": "#/$defs/request" }, { "$ref": "#/$defs/response" }],
@@ -8,34 +8,6 @@
     "language": {
       "type": "string",
       "enum": ["typescript", "swift", "dart"]
-    },
-    "position": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["line", "column"],
-      "properties": {
-        "line": { "type": "integer", "minimum": 1 },
-        "column": { "type": "integer", "minimum": 1 }
-      }
-    },
-    "range": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["start", "end"],
-      "properties": {
-        "start": { "$ref": "#/$defs/position" },
-        "end": { "$ref": "#/$defs/position" }
-      }
-    },
-    "location": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["filePath", "line", "column"],
-      "properties": {
-        "filePath": { "type": "string" },
-        "line": { "type": "integer", "minimum": 1 },
-        "column": { "type": "integer", "minimum": 1 }
-      }
     },
     "codeSymbol": {
       "type": "object",
@@ -56,10 +28,10 @@
         "symbolName": { "type": "string" },
         "canonicalId": { "type": "string" },
         "endpoint": { "type": "string" },
-        "location": { "$ref": "#/$defs/location" },
-        "nameRange": { "$ref": "#/$defs/range" },
-        "declarationRange": { "$ref": "#/$defs/range" },
-        "signatureRange": { "$ref": "#/$defs/range" }
+        "location": { "$ref": "common-output.schema.json#/$defs/location" },
+        "nameRange": { "$ref": "common-output.schema.json#/$defs/range" },
+        "declarationRange": { "$ref": "common-output.schema.json#/$defs/range" },
+        "signatureRange": { "$ref": "common-output.schema.json#/$defs/range" }
       }
     },
     "link": {
@@ -69,23 +41,8 @@
       "properties": {
         "source": { "type": "string" },
         "target": { "type": "string" },
-        "location": { "$ref": "#/$defs/location" },
-        "targetRange": { "$ref": "#/$defs/range" }
-      }
-    },
-    "diagnostic": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["severity", "code", "target", "message"],
-      "properties": {
-        "severity": { "type": "string", "enum": ["error", "warning"] },
-        "code": { "type": "string" },
-        "target": { "type": "string" },
-        "language": { "$ref": "#/$defs/language" },
-        "source": { "type": "string" },
-        "message": { "type": "string" },
-        "location": { "$ref": "#/$defs/location" },
-        "range": { "$ref": "#/$defs/range" }
+        "location": { "$ref": "common-output.schema.json#/$defs/location" },
+        "targetRange": { "$ref": "common-output.schema.json#/$defs/range" }
       }
     },
     "requestFile": {
@@ -143,7 +100,7 @@
         },
         "diagnostics": {
           "type": "array",
-          "items": { "$ref": "#/$defs/diagnostic" }
+          "items": { "$ref": "common-output.schema.json#/$defs/diagnostic" }
         }
       }
     },
