@@ -1,10 +1,8 @@
-import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
-import { loadConfig } from "./config";
 import { pluralize, sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
 import { filePathOf } from "./endpoint";
-import { collectFiles, readManagedFile } from "./glob";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import type { MarkdownScanResult } from "./markdown";
+import { scanProject } from "./project-scan";
 import type {
   CheckResult,
   DocAnchorEndpoint,
@@ -195,38 +193,15 @@ type CheckOptions = {
  * resolve link relationships, then merge, sort, and summarize all diagnostics.
  */
 export function check(options: CheckOptions): CheckResult {
-  const { projectRoot } = options;
   const audit = options.audit ?? false;
-
-  const configResult = loadConfig(projectRoot);
-  if (!configResult.ok) {
+  const outcome = scanProject({ projectRoot: options.projectRoot });
+  if (!outcome.ok) {
     // Config errors short-circuit scanning; report only config diagnostics.
-    const sorted = sortDiagnostics(configResult.diagnostics);
+    const sorted = sortDiagnostics(outcome.diagnostics);
     return { diagnostics: sorted, summary: summarizeDiagnostics(sorted) };
   }
 
-  const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
-
-  const codeScan = scanCodeFiles(
-    projectRoot,
-    collectCodeFiles(projectRoot, configResult.config.include.code),
-    configResult.config.include.code,
-    (relPath) => readManagedFile(projectRoot, relPath),
-  );
-  const codeFiles = codeScan.codeFiles;
-  scanDiagnostics.push(...codeScan.diagnostics);
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(projectRoot, configResult.config.include.docs)) {
-    const read = readManagedFile(projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      continue;
-    }
-    const scan = scanMarkdown(relPath, read.content);
-    scanDiagnostics.push(...scan.diagnostics);
-    docFiles.push(scan);
-  }
+  const { codeFiles, docFiles, diagnostics: scanDiagnostics } = outcome.scan;
 
   const relationshipDiagnostics = resolveLinks({
     codeFiles,

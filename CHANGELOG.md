@@ -56,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `docbridge graph` now uses the same first-occurrence winner as navigation when
+  a scanner reports a duplicated endpoint. Projects with this invalid input
+  still receive `duplicate_code_symbol`, but graph node locations and content no
+  longer point at a later declaration than editor navigation.
 - Swift and Dart scanners now report malformed and duplicate `@doc` targets as
   `invalid_link_target` and `duplicate_link`, matching TypeScript instead of
   silently accepting or discarding the annotations.

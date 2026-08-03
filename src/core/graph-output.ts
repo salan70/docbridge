@@ -1,14 +1,13 @@
-import { collectCodeFiles, scanCodeFiles, type CodeInclude } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
-import { loadConfig } from "./config";
 import { pluralize, sortDiagnostics } from "./diagnostics";
 import { compareEndpointOrder, filePathOf, fragmentOf } from "./endpoint";
-import { collectFiles, readManagedFile } from "./glob";
-import { dedentBlockLines } from "./indent";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import { buildLinkGraph, type LinkGraph } from "./graph";
+import type { MarkdownScanResult } from "./markdown";
+import { scanProject } from "./project-scan";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
+import { sliceSourceRange } from "./source-range";
 import type {
   CodeLanguage,
   CodeSymbolEndpoint,
@@ -89,6 +88,7 @@ type ScanData = {
   docFiles: MarkdownScanResult[];
   diagnostics: DocBridgeDiagnostic[];
   contentByFile: Map<string, string>;
+  graph?: LinkGraph;
 };
 
 /**
@@ -98,12 +98,12 @@ type ScanData = {
  * @doc docs/specs/cli.md#graph-command
  */
 export function graph(options: GraphOptions): GraphOutcome {
-  const configResult = loadConfig(options.projectRoot);
-  if (!configResult.ok) {
-    return { ok: false, diagnostics: configResult.diagnostics };
+  const outcome = scanProject({ projectRoot: options.projectRoot });
+  if (!outcome.ok) {
+    return { ok: false, diagnostics: outcome.diagnostics };
   }
 
-  const scan = scanManagedFiles(options.projectRoot, configResult.config.include);
+  const scan = outcome.scan;
   const relationshipDiagnostics = resolveLinks({
     codeFiles: scan.codeFiles,
     docFiles: scan.docFiles,
@@ -132,31 +132,20 @@ type ComputeGraphOptions = ScanData & {
 };
 
 export function computeGraphResult(options: ComputeGraphOptions): GraphResult {
-  const codeByEndpoint = new Map<string, CodeSymbolEndpoint>();
-  for (const file of options.codeFiles) {
-    for (const symbol of file.symbols) {
-      codeByEndpoint.set(symbol.endpoint, symbol);
-    }
-  }
-
-  const docByEndpoint = new Map<string, DocAnchorEndpoint>();
-  for (const file of options.docFiles) {
-    for (const anchor of file.anchors) {
-      docByEndpoint.set(anchor.endpoint, anchor);
-    }
-  }
+  const linkGraph = options.graph ?? buildLinkGraph(options.codeFiles, options.docFiles);
+  const { codeByEndpoint, docByEndpoint } = linkGraph;
 
   const allEdges: GraphEdge[] = [];
   for (const file of options.codeFiles) {
     for (const link of file.links) {
-      if (codeByEndpoint.has(link.source) && docByEndpoint.has(link.target)) {
+      if (linkGraph.counterparts.get(link.source)?.has(link.target) === true) {
         allEdges.push(edgeFromDocLink(link));
       }
     }
   }
   for (const file of options.docFiles) {
     for (const link of file.links) {
-      if (docByEndpoint.has(link.source) && codeByEndpoint.has(link.target)) {
+      if (linkGraph.counterparts.get(link.source)?.has(link.target) === true) {
         allEdges.push(edgeFromCodeLink(link));
       }
     }
@@ -222,39 +211,6 @@ export function formatGraphResult(result: GraphResult, inputFiles: string[]): st
   }
   lines.push(formatGraphSummary(result.summary));
   return lines.join("\n");
-}
-
-function scanManagedFiles(
-  projectRoot: string,
-  include: { code: CodeInclude; docs: string[] },
-): ScanData {
-  const diagnostics: DocBridgeDiagnostic[] = [];
-  const contentByFile = new Map<string, string>();
-
-  const codeScan = scanCodeFiles(
-    projectRoot,
-    collectCodeFiles(projectRoot, include.code),
-    include.code,
-    (relPath) => readManagedFile(projectRoot, relPath),
-    (relPath, content) => contentByFile.set(relPath, content),
-  );
-  const codeFiles = codeScan.codeFiles;
-  diagnostics.push(...codeScan.diagnostics);
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(projectRoot, include.docs)) {
-    const read = readManagedFile(projectRoot, relPath);
-    if (!read.ok) {
-      diagnostics.push(read.diagnostic);
-      continue;
-    }
-    contentByFile.set(relPath, read.content);
-    const scan = scanMarkdown(relPath, read.content);
-    diagnostics.push(...scan.diagnostics);
-    docFiles.push(scan);
-  }
-
-  return { codeFiles, docFiles, diagnostics, contentByFile };
 }
 
 function edgeFromDocLink(link: LinkAnnotation): GraphEdge {
@@ -405,17 +361,7 @@ function extractSignature(
   if (content === undefined || range === undefined) {
     return "";
   }
-  const lines = content.split("\n").slice(range.start.line - 1, range.end.line);
-  const first = lines[0];
-  if (first !== undefined) {
-    lines[0] = first.slice(range.start.column - 1);
-  }
-  const lastIndex = lines.length - 1;
-  const last = lines[lastIndex];
-  if (last !== undefined && range.end.column > 1) {
-    lines[lastIndex] = last.slice(0, range.end.column - 1);
-  }
-  const declaration = dedentBlockLines(lines, range.start.column).join("\n");
+  const declaration = sliceSourceRange(content, range).content;
   const bodyStart = bodyExcluded ? -1 : declaration.indexOf("{");
   if (bodyStart === -1) {
     return declaration.trimEnd();

@@ -1,15 +1,11 @@
-import { collectCodeFiles, scanCodeFiles } from "./code-language";
-import type { CodeScanResult } from "./code-scanner";
-import { loadConfig } from "./config";
 import { pluralize, sortDiagnostics } from "./diagnostics";
 import { compareEndpointOrder } from "./endpoint";
-import { collectFiles, readManagedFile } from "./glob";
-import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
-import { dedentBlockLines } from "./indent";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import { counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
+import { scanProject } from "./project-scan";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
+import { sliceSourceRange } from "./source-range";
 import type { EndpointKind, DocBridgeDiagnostic } from "./types";
 import type { CodeLanguage } from "./types";
 
@@ -108,38 +104,12 @@ type ContextOutcome =
  * @doc docs/specs/cli.md#context-command
  */
 export function context(options: ContextOptions): ContextOutcome {
-  const configResult = loadConfig(options.projectRoot);
-  if (!configResult.ok) {
-    return { ok: false, diagnostics: configResult.diagnostics };
+  const outcome = scanProject({ projectRoot: options.projectRoot });
+  if (!outcome.ok) {
+    return { ok: false, diagnostics: outcome.diagnostics };
   }
 
-  const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
-  const contentByFile = new Map<string, string>();
-
-  const codeScan = scanCodeFiles(
-    options.projectRoot,
-    collectCodeFiles(options.projectRoot, configResult.config.include.code),
-    configResult.config.include.code,
-    (relPath) => readManagedFile(options.projectRoot, relPath),
-    (relPath, content) => contentByFile.set(relPath, content),
-  );
-  const codeFiles: CodeScanResult[] = codeScan.codeFiles;
-  scanDiagnostics.push(...codeScan.diagnostics);
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(options.projectRoot, configResult.config.include.docs)) {
-    const read = readManagedFile(options.projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      continue;
-    }
-    contentByFile.set(relPath, read.content);
-    const scan = scanMarkdown(relPath, read.content);
-    scanDiagnostics.push(...scan.diagnostics);
-    docFiles.push(scan);
-  }
-
-  const graph = buildLinkGraph(codeFiles, docFiles);
+  const { codeFiles, docFiles, diagnostics: scanDiagnostics, contentByFile, graph } = outcome.scan;
   const inputFiles = normalizeChangedPaths(options.projectRoot, options.inputFiles);
   const data = computeContext(graph, contentByFile, inputFiles);
 
@@ -251,30 +221,16 @@ function extractBlock(
   if (range === undefined) {
     return null;
   }
-  const startLine = range.start.line;
-  // The range end is exclusive; an end at column 1 means the declaration ends
-  // exactly at the previous line's newline.
-  const endLine = range.end.column === 1 ? range.end.line - 1 : range.end.line;
-  const lines = content.split("\n").slice(startLine - 1, endLine);
-  const lastIndex = lines.length - 1;
-  const lastLine = lines[lastIndex];
-  if (lastLine !== undefined && range.end.column > 1) {
-    lines[lastIndex] = lastLine.slice(0, range.end.column - 1);
-  }
-  const firstLine = lines[0];
-  if (firstLine !== undefined) {
-    lines[0] = firstLine.slice(range.start.column - 1);
-  }
-  const dedented = dedentBlockLines(lines, range.start.column);
+  const sliced = sliceSourceRange(content, range);
   return {
     endpoint: counterpart.endpoint,
     kind: "code",
     filePath: counterpart.filePath,
     language: counterpart.language,
-    startLine,
-    endLine,
+    startLine: sliced.startLine,
+    endLine: sliced.endLine,
     linkedFrom: [],
-    content: dedented.join("\n"),
+    content: sliced.content,
   };
 }
 
