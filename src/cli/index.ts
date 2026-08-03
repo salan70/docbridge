@@ -16,6 +16,7 @@ import {
   related as runRelatedCore,
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
+import type { DocBridgeDiagnostic } from "../core/types";
 import { runLspServer } from "../lsp/server";
 import { parseDocsCommand, runDocs } from "./docs";
 import {
@@ -25,7 +26,6 @@ import {
   configSetupGuidance,
   DiagnosticOutputError,
   formatCliError,
-  includeContentGuidance,
   missingInputGuidance,
   rootPathGuidance,
 } from "./errors";
@@ -34,6 +34,7 @@ import {
   GLOBAL_HELP,
   hasHelpFlag,
   isSubcommand,
+  parseCommandOptions,
   SUBCOMMANDS,
   type Subcommand,
 } from "./help";
@@ -61,39 +62,7 @@ export type CliIo = {
 };
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
-  const options: CliCheckOptions = {
-    root: ".",
-    json: false,
-    audit: false,
-  };
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-
-    if (arg === "--json") {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === "--audit") {
-      options.audit = true;
-      continue;
-    }
-
-    if (arg === "--root") {
-      const root = args[index + 1];
-      if (root === undefined) {
-        throw new CliError("--root requires a path.", rootPathGuidance("check"));
-      }
-      options.root = root;
-      index += 1;
-      continue;
-    }
-
-    throw new CliError(`Unknown option: ${arg ?? ""}`, commandHelpGuidance("check"));
-  }
-
-  return options;
+  return parseCommandOptions("check", args) as CliCheckOptions;
 }
 
 export type CliRelatedOptions = {
@@ -105,53 +74,7 @@ export type CliRelatedOptions = {
 };
 
 export function parseRelatedOptions(args: string[]): CliRelatedOptions {
-  const options: CliRelatedOptions = {
-    root: ".",
-    json: false,
-    stdin: false,
-    gate: false,
-    files: [],
-  };
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg === undefined) {
-      continue;
-    }
-
-    if (arg === "--json") {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === "--stdin") {
-      options.stdin = true;
-      continue;
-    }
-
-    if (arg === "--gate") {
-      options.gate = true;
-      continue;
-    }
-
-    if (arg === "--root") {
-      const root = args[index + 1];
-      if (root === undefined) {
-        throw new CliError("--root requires a path.", rootPathGuidance("related"));
-      }
-      options.root = root;
-      index += 1;
-      continue;
-    }
-
-    if (arg.startsWith("--")) {
-      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance("related"));
-    }
-
-    options.files.push(arg);
-  }
-
-  return options;
+  return parseCommandOptions("related", args) as CliRelatedOptions;
 }
 
 export type CliContextOptions = {
@@ -162,47 +85,7 @@ export type CliContextOptions = {
 };
 
 export function parseContextOptions(args: string[]): CliContextOptions {
-  const options: CliContextOptions = {
-    root: ".",
-    json: false,
-    stdin: false,
-    files: [],
-  };
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg === undefined) {
-      continue;
-    }
-
-    if (arg === "--json") {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === "--stdin") {
-      options.stdin = true;
-      continue;
-    }
-
-    if (arg === "--root") {
-      const root = args[index + 1];
-      if (root === undefined) {
-        throw new CliError("--root requires a path.", rootPathGuidance("context"));
-      }
-      options.root = root;
-      index += 1;
-      continue;
-    }
-
-    if (arg.startsWith("--")) {
-      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance("context"));
-    }
-
-    options.files.push(arg);
-  }
-
-  return options;
+  return parseCommandOptions("context", args) as CliContextOptions;
 }
 
 export type CliGraphOptions = {
@@ -214,57 +97,7 @@ export type CliGraphOptions = {
 };
 
 export function parseGraphOptions(args: string[]): CliGraphOptions {
-  const options: CliGraphOptions = {
-    root: ".",
-    json: false,
-    includeContent: false,
-    stdin: false,
-    files: [],
-  };
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg === undefined) {
-      continue;
-    }
-
-    if (arg === "--json") {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === "--include-content") {
-      options.includeContent = true;
-      continue;
-    }
-
-    if (arg === "--stdin") {
-      options.stdin = true;
-      continue;
-    }
-
-    if (arg === "--root") {
-      const root = args[index + 1];
-      if (root === undefined) {
-        throw new CliError("--root requires a path.", rootPathGuidance("graph"));
-      }
-      options.root = root;
-      index += 1;
-      continue;
-    }
-
-    if (arg.startsWith("--")) {
-      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance("graph"));
-    }
-
-    options.files.push(arg);
-  }
-
-  if (options.includeContent && !options.json) {
-    throw new CliError("--include-content requires --json.", includeContentGuidance());
-  }
-
-  return options;
+  return parseCommandOptions("graph", args) as CliGraphOptions;
 }
 
 function resolveProjectRoot(root: string, command: Subcommand): string {
@@ -305,48 +138,94 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
   return result.summary.errors > 0 ? 1 : 0;
 }
 
+type FileCommandOptions = {
+  root: string;
+  json: boolean;
+  stdin: boolean;
+  files: string[];
+};
+
+type FileCommandOutcome<Result> =
+  | { ok: true; result: Result }
+  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
+
+function runFileCommand<Result>(
+  command: "related" | "context" | "graph",
+  options: FileCommandOptions,
+  io: CliIo,
+  execute: (projectRoot: string, inputFiles: string[]) => FileCommandOutcome<Result>,
+  render: (result: Result, projectRoot: string, inputFiles: string[]) => number,
+): number {
+  const projectRoot = resolveProjectRoot(options.root, command);
+  const inputFiles = [...options.files];
+  if (options.stdin) {
+    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
+    inputFiles.push(...readStdin().split("\n"));
+  }
+
+  const outcome = execute(projectRoot, inputFiles);
+  if (!outcome.ok) {
+    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
+  }
+  return render(outcome.result, projectRoot, inputFiles);
+}
+
+function writeStructuredResult<Result>(
+  result: Result,
+  options: {
+    json: boolean;
+    io: CliIo;
+    formatText: (result: Result) => string;
+    diagnostics?: DocBridgeDiagnostic[];
+  },
+): void {
+  if (options.json) {
+    options.io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+
+  options.io.stdout(`${options.formatText(result)}\n`);
+  if (options.diagnostics !== undefined && options.diagnostics.length > 0) {
+    options.io.stderr(`${options.diagnostics.map(formatDiagnostic).join("\n")}\n`);
+  }
+}
+
 function runRelated(options: CliRelatedOptions, io: CliIo): number {
   if (!options.stdin && options.files.length === 0) {
     throw new CliError("No input files were provided.", missingInputGuidance("related"));
   }
 
-  const projectRoot = resolveProjectRoot(options.root, "related");
+  return runFileCommand(
+    "related",
+    options,
+    io,
+    (projectRoot, changedFiles) => runRelatedCore({ projectRoot, changedFiles }),
+    (result) => {
+      if (options.gate) {
+        const violations = collectGateViolations(result);
+        const gateReport = {
+          violations,
+          summary: {
+            changedFiles: result.summary.changedFiles,
+            violations: violations.length,
+          },
+        };
+        writeStructuredResult(gateReport, {
+          json: options.json,
+          io,
+          formatText: () => formatGateResult(result, violations),
+        });
+        return violations.length > 0 ? 1 : 0;
+      }
 
-  const changedFiles = [...options.files];
-  if (options.stdin) {
-    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
-    changedFiles.push(...readStdin().split("\n"));
-  }
-
-  const outcome = runRelatedCore({ projectRoot, changedFiles });
-  if (!outcome.ok) {
-    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
-  }
-
-  if (options.gate) {
-    const violations = collectGateViolations(outcome.result);
-    if (options.json) {
-      const gateReport = {
-        violations,
-        summary: {
-          changedFiles: outcome.result.summary.changedFiles,
-          violations: violations.length,
-        },
-      };
-      io.stdout(`${JSON.stringify(gateReport, null, 2)}\n`);
-    } else {
-      io.stdout(`${formatGateResult(outcome.result, violations)}\n`);
-    }
-    return violations.length > 0 ? 1 : 0;
-  }
-
-  if (options.json) {
-    io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
-  } else {
-    io.stdout(`${formatRelatedResult(outcome.result)}\n`);
-  }
-
-  return 0;
+      writeStructuredResult(result, {
+        json: options.json,
+        io,
+        formatText: formatRelatedResult,
+      });
+      return 0;
+    },
+  );
 }
 
 function runContext(options: CliContextOptions, io: CliIo): number {
@@ -354,61 +233,41 @@ function runContext(options: CliContextOptions, io: CliIo): number {
     throw new CliError("No input files were provided.", missingInputGuidance("context"));
   }
 
-  const projectRoot = resolveProjectRoot(options.root, "context");
-
-  const inputFiles = [...options.files];
-  if (options.stdin) {
-    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
-    inputFiles.push(...readStdin().split("\n"));
-  }
-
-  const outcome = runContextCore({ projectRoot, inputFiles });
-  if (!outcome.ok) {
-    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
-  }
-
-  if (options.json) {
-    io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
-    return 0;
-  }
-
-  io.stdout(`${formatContextResult(outcome.result)}\n`);
-  if (outcome.result.diagnostics.length > 0) {
-    io.stderr(`${outcome.result.diagnostics.map(formatDiagnostic).join("\n")}\n`);
-  }
-
-  return 0;
+  return runFileCommand(
+    "context",
+    options,
+    io,
+    (projectRoot, inputFiles) => runContextCore({ projectRoot, inputFiles }),
+    (result) => {
+      writeStructuredResult(result, {
+        json: options.json,
+        io,
+        formatText: formatContextResult,
+        diagnostics: result.diagnostics,
+      });
+      return 0;
+    },
+  );
 }
 
 function runGraph(options: CliGraphOptions, io: CliIo): number {
-  const projectRoot = resolveProjectRoot(options.root, "graph");
-
-  const inputFiles = [...options.files];
-  if (options.stdin) {
-    const readStdin = io.stdin ?? (() => readFileSync(0, "utf8"));
-    inputFiles.push(...readStdin().split("\n"));
-  }
-  const normalizedInputFiles = normalizeChangedPaths(projectRoot, inputFiles);
-
-  const outcome = runGraphCore({
-    projectRoot,
-    inputFiles,
-    includeContent: options.includeContent,
-  });
-  if (!outcome.ok) {
-    throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
-  }
-
-  if (options.json) {
-    io.stdout(`${JSON.stringify(outcome.result, null, 2)}\n`);
-  } else {
-    io.stdout(`${formatGraphResult(outcome.result, normalizedInputFiles)}\n`);
-    if (outcome.result.diagnostics.length > 0) {
-      io.stderr(`${outcome.result.diagnostics.map(formatDiagnostic).join("\n")}\n`);
-    }
-  }
-
-  return 0;
+  return runFileCommand(
+    "graph",
+    options,
+    io,
+    (projectRoot, inputFiles) =>
+      runGraphCore({ projectRoot, inputFiles, includeContent: options.includeContent }),
+    (result, projectRoot, inputFiles) => {
+      const normalizedInputFiles = normalizeChangedPaths(projectRoot, inputFiles);
+      writeStructuredResult(result, {
+        json: options.json,
+        io,
+        formatText: (graphResult) => formatGraphResult(graphResult, normalizedInputFiles),
+        diagnostics: result.diagnostics,
+      });
+      return 0;
+    },
+  );
 }
 
 function unknownCommandGuidance(command: string): string {
@@ -424,23 +283,15 @@ function unknownCommandGuidance(command: string): string {
 }
 
 function nearestSubcommand(input: string): Subcommand | undefined {
-  const abbreviation = SUBCOMMANDS.map((command, index) => ({
-    command,
-    distance: editDistance(input, command),
-    index,
-  }))
-    .filter(({ command }) => isOrderedAbbreviation(input, command))
-    .toSorted((left, right) => left.distance - right.distance || left.index - right.index)[0];
-  if (abbreviation !== undefined) {
-    return abbreviation.command;
-  }
-
   const ranked = SUBCOMMANDS.map((command, index) => ({
     command,
     distance: editDistance(input, command),
     index,
-  }));
-  ranked.sort((left, right) => left.distance - right.distance || left.index - right.index);
+  })).toSorted((left, right) => left.distance - right.distance || left.index - right.index);
+  const abbreviation = ranked.find(({ command }) => isOrderedAbbreviation(input, command));
+  if (abbreviation !== undefined) {
+    return abbreviation.command;
+  }
 
   const best = ranked[0];
   if (best === undefined) {
@@ -486,6 +337,26 @@ function editDistance(left: string, right: string): number {
   return previous[right.length] ?? 0;
 }
 
+type CommandHandler = (args: string[], io: CliIo, initRuntime: InitRuntime) => number;
+
+const COMMAND_HANDLERS: Record<Subcommand, CommandHandler> = {
+  check: (args, io) => runCheck(parseCheckOptions(args), io),
+  related: (args, io) => runRelated(parseRelatedOptions(args), io),
+  context: (args, io) => runContext(parseContextOptions(args), io),
+  graph: (args, io) => runGraph(parseGraphOptions(args), io),
+  docs: (args, io) => runDocs(parseDocsCommand(args), io),
+  init: (args, io, initRuntime) => runInit(parseInitOptions(args, "init"), io, initRuntime),
+  "init-with-agent": (args, io, initRuntime) =>
+    runInitWithAgent(parseInitOptions(args, "init-with-agent"), io, initRuntime),
+  lsp: (args) => {
+    if (args.length > 0) {
+      throw new CliError("lsp takes no options.", commandHelpGuidance("lsp"));
+    }
+    runLspServer();
+    return 0;
+  },
+};
+
 /**
  * Execute the CLI for the given argv (without the `bun` / script prefix) and
  * return the process exit code. Output is written through the injected IO so the
@@ -520,40 +391,8 @@ export function run(
       return 0;
     }
 
-    if (command === "check") {
-      return runCheck(parseCheckOptions(rest), io);
-    }
-
-    if (command === "related") {
-      return runRelated(parseRelatedOptions(rest), io);
-    }
-
-    if (command === "context") {
-      return runContext(parseContextOptions(rest), io);
-    }
-
-    if (command === "graph") {
-      return runGraph(parseGraphOptions(rest), io);
-    }
-
-    if (command === "docs") {
-      return runDocs(parseDocsCommand(rest), io);
-    }
-
-    if (command === "lsp") {
-      if (rest.length > 0) {
-        throw new CliError("lsp takes no options.", commandHelpGuidance("lsp"));
-      }
-      runLspServer();
-      return 0;
-    }
-
-    if (command === "init") {
-      return runInit(parseInitOptions(rest, "init"), io, initRuntime);
-    }
-
-    if (command === "init-with-agent") {
-      return runInitWithAgent(parseInitOptions(rest, "init-with-agent"), io, initRuntime);
+    if (isSubcommand(command)) {
+      return COMMAND_HANDLERS[command](rest, io, initRuntime);
     }
 
     throw new CliError(`Unknown command: ${command}`, unknownCommandGuidance(command));

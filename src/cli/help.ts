@@ -6,6 +6,8 @@
  * `docbridge <command> --help` cannot drift apart.
  */
 
+import { CliError, commandHelpGuidance, includeContentGuidance, rootPathGuidance } from "./errors";
+
 export const SUBCOMMANDS = [
   "check",
   "related",
@@ -24,6 +26,21 @@ type OptionDoc = {
   flag: string;
   /** One-line description; wrapped lines are indented by the renderer. */
   description: string;
+  /** How the shared option parser applies this flag. */
+  parse?:
+    | { kind: "boolean"; property: string }
+    | {
+        kind: "value";
+        property: string;
+        defaultValue: string;
+        missingMessage: string;
+        guidance: "root";
+      };
+};
+
+type CommandParser = {
+  positionalProperty?: string;
+  validate?: (options: Record<string, unknown>) => void;
 };
 
 type CommandDoc = {
@@ -34,21 +51,49 @@ type CommandDoc = {
   /** Multi-line description that states when to use the command. */
   description: string;
   options: OptionDoc[];
+  parser?: CommandParser;
 };
 
 const ROOT_OPTION: OptionDoc = {
   flag: "--root <path>",
   description: "Project root to scan. Defaults to current directory.",
+  parse: {
+    kind: "value",
+    property: "root",
+    defaultValue: ".",
+    missingMessage: "--root requires a path.",
+    guidance: "root",
+  },
 };
 
 const JSON_OPTION: OptionDoc = {
   flag: "--json",
   description: "Emit machine-readable JSON.",
+  parse: { kind: "boolean", property: "json" },
 };
 
 const STDIN_OPTION: OptionDoc = {
   flag: "--stdin",
   description: "Read newline-separated file paths from stdin.",
+  parse: { kind: "boolean", property: "stdin" },
+};
+
+const AUDIT_OPTION: OptionDoc = {
+  flag: "--audit",
+  description: "Include audit diagnostics: undocumented_symbol and unlinked_doc_section.",
+  parse: { kind: "boolean", property: "audit" },
+};
+
+const GATE_OPTION: OptionDoc = {
+  flag: "--gate",
+  description: "Report counterparts that are not in the change set and exit 1 if any.",
+  parse: { kind: "boolean", property: "gate" },
+};
+
+const INCLUDE_CONTENT_OPTION: OptionDoc = {
+  flag: "--include-content",
+  description: "Include lightweight node content. Requires --json.",
+  parse: { kind: "boolean", property: "includeContent" },
 };
 
 const HELP_OPTION: OptionDoc = {
@@ -79,14 +124,8 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "Use it as the quality gate: in CI, in a pre-commit hook, or after editing",
       "annotations. It exits 1 when there is at least one error.",
     ].join("\n"),
-    options: [
-      ROOT_OPTION,
-      JSON_OPTION,
-      {
-        flag: "--audit",
-        description: "Include audit diagnostics: undocumented_symbol and unlinked_doc_section.",
-      },
-    ],
+    options: [ROOT_OPTION, JSON_OPTION, AUDIT_OPTION],
+    parser: {},
   },
   related: {
     usage: "[options] [files...]",
@@ -98,15 +137,8 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "counterpart is missing from the change set. Reach for `context` instead when",
       "the counterpart content itself is needed.",
     ].join("\n"),
-    options: [
-      ROOT_OPTION,
-      JSON_OPTION,
-      STDIN_OPTION,
-      {
-        flag: "--gate",
-        description: "Report counterparts that are not in the change set and exit 1 if any.",
-      },
-    ],
+    options: [ROOT_OPTION, JSON_OPTION, STDIN_OPTION, GATE_OPTION],
+    parser: { positionalProperty: "files" },
   },
   context: {
     usage: "[options] [files...]",
@@ -118,6 +150,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "for inclusion in an agent prompt.",
     ].join("\n"),
     options: [ROOT_OPTION, JSON_OPTION, STDIN_OPTION],
+    parser: { positionalProperty: "files" },
   },
   graph: {
     usage: "[options] [files...]",
@@ -127,15 +160,15 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "Use it to inspect the link structure as a whole, or to feed link data to a",
       "tool. Passing files narrows the graph to them and their direct counterparts.",
     ].join("\n"),
-    options: [
-      ROOT_OPTION,
-      JSON_OPTION,
-      {
-        flag: "--include-content",
-        description: "Include lightweight node content. Requires --json.",
+    options: [ROOT_OPTION, JSON_OPTION, INCLUDE_CONTENT_OPTION, STDIN_OPTION],
+    parser: {
+      positionalProperty: "files",
+      validate: (options) => {
+        if (options.includeContent === true && options.json !== true) {
+          throw new CliError("--include-content requires --json.", includeContentGuidance());
+        }
       },
-      STDIN_OPTION,
-    ],
+    },
   },
   docs: {
     usage: "list [--json] | show <name>",
@@ -264,6 +297,77 @@ ${description}
 Options:
 ${options}
 `;
+}
+
+/** Return the flags declared for a command, in display order. */
+export function commandOptionFlags(command: Subcommand): string[] {
+  return COMMAND_DOCS[command].options.map((option) => option.flag.split(/[ ,]/, 1)[0] ?? "");
+}
+
+export type TableParsedSubcommand = "check" | "related" | "context" | "graph";
+
+/** Parse the table-driven commands from the same option definitions used by help. */
+export function parseCommandOptions(
+  command: TableParsedSubcommand,
+  args: string[],
+): Record<string, unknown> {
+  const definition = COMMAND_DOCS[command];
+  const parser = definition.parser;
+  if (parser === undefined) {
+    throw new Error(`Command ${command} has no parser definition.`);
+  }
+
+  const options: Record<string, unknown> = {};
+  const optionByFlag = new Map(
+    definition.options.flatMap((option) => {
+      const flag = option.flag.split(/[ ,]/, 1)[0];
+      if (flag === undefined || option.parse === undefined) {
+        return [];
+      }
+      options[option.parse.property] =
+        option.parse.kind === "boolean" ? false : option.parse.defaultValue;
+      return [[flag, option.parse] as const];
+    }),
+  );
+  if (parser.positionalProperty !== undefined) {
+    options[parser.positionalProperty] = [];
+  }
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    const option = optionByFlag.get(arg);
+    if (option?.kind === "boolean") {
+      options[option.property] = true;
+      continue;
+    }
+    if (option?.kind === "value") {
+      const value = args[index + 1];
+      if (value === undefined) {
+        throw new CliError(option.missingMessage, rootPathGuidance(command));
+      }
+      options[option.property] = value;
+      index += 1;
+      continue;
+    }
+
+    if (parser.positionalProperty !== undefined && !arg.startsWith("--")) {
+      const positionals = options[parser.positionalProperty];
+      if (!Array.isArray(positionals)) {
+        throw new Error(`Command ${command} has an invalid positional parser definition.`);
+      }
+      positionals.push(arg);
+      continue;
+    }
+
+    throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
+  }
+
+  parser.validate?.(options);
+  return options;
 }
 
 export function isSubcommand(value: string): value is Subcommand {
