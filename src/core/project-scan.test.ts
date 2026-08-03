@@ -5,7 +5,38 @@ import { counterpartsOf } from "./graph";
 import { scanProject } from "./project-scan";
 import { makeProject } from "./test-support";
 
-test("scanProject loads config, scans managed files, and builds one graph", () => {
+test("scanProject builds requested graph and content artifacts", () => {
+  const root = makeProject({
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+    "src/login.ts": "/** @doc docs/auth.md#login-spec */\nexport function login() {}\n",
+    "docs/auth.md": "<!-- @code src/login.ts#login -->\n## Login Spec\n",
+  });
+
+  try {
+    const outcome = scanProject({ projectRoot: root, buildGraph: true, keepContent: true });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+    expect(outcome.scan.diagnostics).toEqual([]);
+    expect([...outcome.scan.contentByFile.keys()]).toEqual(["src/login.ts", "docs/auth.md"]);
+    expect(
+      counterpartsOf(outcome.scan.graph, "src/login.ts#login").map(
+        (counterpart) => counterpart.endpoint,
+      ),
+    ).toEqual(["docs/auth.md#login-spec"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("scanProject omits graph and content artifacts by default", () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: {
@@ -25,12 +56,8 @@ test("scanProject loads config, scans managed files, and builds one graph", () =
       return;
     }
     expect(outcome.scan.diagnostics).toEqual([]);
-    expect([...outcome.scan.contentByFile.keys()]).toEqual(["src/login.ts", "docs/auth.md"]);
-    expect(
-      counterpartsOf(outcome.scan.graph, "src/login.ts#login").map(
-        (counterpart) => counterpart.endpoint,
-      ),
-    ).toEqual(["docs/auth.md#login-spec"]);
+    expect("graph" in outcome.scan).toBe(false);
+    expect("contentByFile" in outcome.scan).toBe(false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

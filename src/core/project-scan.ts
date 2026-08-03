@@ -16,23 +16,43 @@ type ProjectScan = {
   codeFiles: CodeScanResult[];
   docFiles: MarkdownScanResult[];
   diagnostics: DocBridgeDiagnostic[];
-  contentByFile: Map<string, string>;
-  graph: LinkGraph;
 };
 
-type ScanProjectOptions = {
+type ProjectScanWithGraph = ProjectScan & { graph: LinkGraph };
+type ProjectScanWithContent = ProjectScan & { contentByFile: Map<string, string> };
+
+type ScanProjectBaseOptions = {
   projectRoot: string;
   collectCode?: (projectRoot: string, include: CodeInclude) => CollectedCodeFile[];
   collectDocs?: (projectRoot: string, patterns: string[]) => string[];
   readFile?: (relPath: string) => CodeFileRead;
 };
 
-type ScanProjectOutcome =
-  | { ok: true; scan: ProjectScan }
+type ScanProjectOptions = ScanProjectBaseOptions & {
+  buildGraph?: boolean;
+  keepContent?: boolean;
+};
+
+type ScanProjectOutcome<Scan extends ProjectScan> =
+  | { ok: true; scan: Scan }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
-/** Load configuration, scan every managed file, and build the shared link graph. */
-export function scanProject(options: ScanProjectOptions): ScanProjectOutcome {
+export function scanProject(
+  options: ScanProjectBaseOptions & { buildGraph: true; keepContent: true },
+): ScanProjectOutcome<ProjectScanWithGraph & ProjectScanWithContent>;
+export function scanProject(
+  options: ScanProjectBaseOptions & { buildGraph: true; keepContent?: false },
+): ScanProjectOutcome<ProjectScanWithGraph>;
+export function scanProject(
+  options: ScanProjectBaseOptions & { buildGraph?: false; keepContent: true },
+): ScanProjectOutcome<ProjectScanWithContent>;
+export function scanProject(
+  options: ScanProjectBaseOptions & { buildGraph?: false; keepContent?: false },
+): ScanProjectOutcome<ProjectScan>;
+/** Load configuration, scan every managed file, and optionally retain derived artifacts. */
+export function scanProject(
+  options: ScanProjectOptions,
+): ScanProjectOutcome<ProjectScan & Partial<ProjectScanWithGraph & ProjectScanWithContent>> {
   const configResult = loadConfig(options.projectRoot);
   if (!configResult.ok) {
     return { ok: false, diagnostics: configResult.diagnostics };
@@ -43,14 +63,16 @@ export function scanProject(options: ScanProjectOptions): ScanProjectOutcome {
   const readFile =
     options.readFile ?? ((relPath: string) => readManagedFile(options.projectRoot, relPath));
   const diagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
-  const contentByFile = new Map<string, string>();
+  const contentByFile = options.keepContent ? new Map<string, string>() : undefined;
 
   const codeScan = scanCodeFiles(
     options.projectRoot,
     collectCode(options.projectRoot, configResult.config.include.code),
     configResult.config.include.code,
     readFile,
-    (relPath, content) => contentByFile.set(relPath, content),
+    contentByFile === undefined
+      ? undefined
+      : (relPath, content) => contentByFile.set(relPath, content),
   );
   diagnostics.push(...codeScan.diagnostics);
 
@@ -61,21 +83,26 @@ export function scanProject(options: ScanProjectOptions): ScanProjectOutcome {
       diagnostics.push(read.diagnostic);
       continue;
     }
-    contentByFile.set(relPath, read.content);
+    contentByFile?.set(relPath, read.content);
     const scan = scanMarkdown(relPath, read.content);
     diagnostics.push(...scan.diagnostics);
     docFiles.push(scan);
   }
 
   const codeFiles = codeScan.codeFiles;
+  const scan: ProjectScan & Partial<ProjectScanWithGraph & ProjectScanWithContent> = {
+    codeFiles,
+    docFiles,
+    diagnostics,
+  };
+  if (contentByFile !== undefined) {
+    scan.contentByFile = contentByFile;
+  }
+  if (options.buildGraph === true) {
+    scan.graph = buildLinkGraph(codeFiles, docFiles);
+  }
   return {
     ok: true,
-    scan: {
-      codeFiles,
-      docFiles,
-      diagnostics,
-      contentByFile,
-      graph: buildLinkGraph(codeFiles, docFiles),
-    },
+    scan,
   };
 }

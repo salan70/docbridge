@@ -98,7 +98,11 @@ type ScanData = {
  * @doc docs/specs/cli.md#graph-command
  */
 export function graph(options: GraphOptions): GraphOutcome {
-  const outcome = scanProject({ projectRoot: options.projectRoot });
+  const outcome = scanProject({
+    projectRoot: options.projectRoot,
+    buildGraph: true,
+    keepContent: true,
+  });
   if (!outcome.ok) {
     return { ok: false, diagnostics: outcome.diagnostics };
   }

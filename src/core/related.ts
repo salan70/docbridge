@@ -137,7 +137,7 @@ type RelatedOutcome =
  * @doc docs/specs/cli.md#related-command
  */
 export function related(options: RelatedOptions): RelatedOutcome {
-  const outcome = scanProject({ projectRoot: options.projectRoot });
+  const outcome = scanProject({ projectRoot: options.projectRoot, buildGraph: true });
   if (!outcome.ok) {
     return { ok: false, diagnostics: outcome.diagnostics };
   }

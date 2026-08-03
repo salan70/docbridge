@@ -104,7 +104,11 @@ type ContextOutcome =
  * @doc docs/specs/cli.md#context-command
  */
 export function context(options: ContextOptions): ContextOutcome {
-  const outcome = scanProject({ projectRoot: options.projectRoot });
+  const outcome = scanProject({
+    projectRoot: options.projectRoot,
+    buildGraph: true,
+    keepContent: true,
+  });
   if (!outcome.ok) {
     return { ok: false, diagnostics: outcome.diagnostics };
   }

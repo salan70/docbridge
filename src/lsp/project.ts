@@ -70,6 +70,8 @@ export class Project {
       collectCode: (_projectRoot, include) => this.collectCode(include),
       collectDocs: (_projectRoot, patterns) => this.collect(patterns, false),
       readFile: (relPath) => this.readContent(relPath),
+      buildGraph: true,
+      keepContent: true,
     });
     if (!outcome.ok) {
       this.current = {
