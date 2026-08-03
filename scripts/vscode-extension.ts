@@ -14,6 +14,11 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
+import {
+  supportedScannerExecutableNames,
+  supportedScannerPlatformKeys,
+} from "../src/core/code-language";
+
 type JsonObject = Record<string, unknown>;
 
 type RootPackage = {
@@ -48,8 +53,6 @@ type VerifyOptions = {
 const repoRoot = resolve(import.meta.dir, "..");
 const extensionRelativeRoot = "editors/vscode";
 const iconRelativePath = "editors/vscode/assets/icon.png";
-const requiredScannerPlatforms = ["darwin-arm64", "linux-x64"] as const;
-const scannerExecutableNames = ["docbridge-swift-scanner", "docbridge_dart_scanner"] as const;
 const activationEvents = [
   "workspaceContains:docbridge.config.json",
   "onLanguage:typescript",
@@ -229,8 +232,8 @@ function stageExtension(
 }
 
 function assertRequiredScannerBinaries(binRoot: string): void {
-  for (const platform of requiredScannerPlatforms) {
-    for (const executable of scannerExecutableNames) {
+  for (const platform of supportedScannerPlatformKeys()) {
+    for (const executable of supportedScannerExecutableNames()) {
       const scannerPath = join(binRoot, platform, executable);
       if (!existsSync(scannerPath)) {
         throw new Error(`${relativePath(process.cwd(), scannerPath)} is required.`);

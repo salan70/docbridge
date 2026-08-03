@@ -269,6 +269,55 @@ test("invokeScannerWorker rejects responses with unexpected file paths", () => {
   }
 });
 
+test("invokeScannerWorker rejects malformed nested scan results", () => {
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-malformed-symbol",
+      language: "swift",
+      projectRoot: "/project",
+      files: [{ filePath: "Sources/Auth.swift", content: "" }],
+      options: {},
+    },
+    ["mock-worker"],
+    (): ScannerWorkerProcessResult => ({
+      ok: true,
+      exitCode: 0,
+      stdout: JSON.stringify({
+        schemaVersion: 1,
+        requestId: "req-malformed-symbol",
+        language: "swift",
+        files: [
+          {
+            filePath: "Sources/Auth.swift",
+            symbols: [
+              {
+                kind: "code",
+                language: "swift",
+                filePath: "Sources/Auth.swift",
+                symbolName: "Auth",
+                canonicalId: "Auth",
+                endpoint: "Sources/Auth.swift#Auth",
+                location: { filePath: "Sources/Auth.swift", line: "one", column: 15 },
+              },
+            ],
+            undocumentedSymbols: [],
+            links: [],
+            diagnostics: [],
+          },
+        ],
+      }),
+      stderr: "",
+    }),
+  );
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.code).toBe("code_scanner_failed");
+    expect(result.diagnostic.message).toContain("/files/0/symbols/0/location/line");
+  }
+});
+
 test("invokeScannerWorker emits scanner unavailable when the process cannot start", () => {
   const result = invokeScannerWorker(
     {

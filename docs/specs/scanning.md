@@ -43,12 +43,16 @@ Worker-backed scanners receive one JSON request on stdin and return one JSON
 response on stdout. The request contains schema version `1`, a request ID, the
 language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
-does not affect stdout JSON parsing.
+does not affect stdout JSON parsing. The complete protocol is defined by
+[schemas/scanner-worker.schema.json](../../schemas/scanner-worker.schema.json),
+and actual TypeScript, Swift, and Dart scan results are checked against it.
 
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
 returns invalid JSON, or returns a response whose schema version, request ID, or
 language does not match the request, DocBridge emits `code_scanner_failed`.
+Responses with missing, mistyped, or unexpected nested fields also emit
+`code_scanner_failed` rather than being consumed as incomplete scan data.
 Worker responses must contain exactly the requested file paths in request order;
 missing files, unexpected files, or reordered files are `code_scanner_failed`.
 

@@ -3,6 +3,9 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import Ajv2020 from "ajv/dist/2020";
+
+import configSchema from "../../schemas/docbridge.schema.json";
 import { loadConfig, resolveConfig } from "./config";
 import { codes } from "./test-support";
 
@@ -12,6 +15,36 @@ const TS_CONFIG = {
     docs: ["docs/**/*.md"],
   },
 };
+
+const validateConfigSchema = new Ajv2020({ allErrors: true, strict: true }).compile(configSchema);
+
+test("published config schema enforces language suffixes and visibility values", () => {
+  expect(validateConfigSchema(TS_CONFIG), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { swift: { patterns: ["Sources/**/*.ts"], visibility: ["private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], visibility: ["internal"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.d.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+});
 
 test("resolveConfig rejects a missing config file", () => {
   const result = resolveConfig(undefined);

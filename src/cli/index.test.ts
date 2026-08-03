@@ -3,7 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import Ajv2020 from "ajv/dist/2020";
+
 import pkg from "../../package.json";
+import commonOutputSchema from "../../schemas/common-output.schema.json";
+import contextOutputSchema from "../../schemas/context-output.schema.json";
+import graphOutputSchema from "../../schemas/graph-output.schema.json";
 import {
   parseCheckOptions,
   parseContextOptions,
@@ -12,6 +17,11 @@ import {
   run,
 } from "./index";
 import { capture } from "./test-support";
+
+const outputSchemaAjv = new Ajv2020({ allErrors: true, strict: true });
+outputSchemaAjv.addSchema(commonOutputSchema);
+const validateContextOutput = outputSchemaAjv.compile(contextOutputSchema);
+const validateGraphOutput = outputSchemaAjv.compile(graphOutputSchema);
 
 test("parseCheckOptions reads root, json, and audit flags", () => {
   expect(parseCheckOptions(["--root", "examples/typescript", "--json", "--audit"])).toEqual({
@@ -557,7 +567,9 @@ test("run context --json emits contexts, diagnostics, and summary as JSON", () =
     const code = run(["context", "--root", project, "--json", "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
-    expect(JSON.parse(c.out)).toEqual({
+    const output: unknown = JSON.parse(c.out);
+    expect(validateContextOutput(output), JSON.stringify(validateContextOutput.errors)).toBe(true);
+    expect(output).toEqual({
       contexts: [
         {
           endpoint: "docs/auth.md#login-spec",
@@ -645,6 +657,8 @@ test("run graph --json emits nodes, edges, pairs, diagnostics, and summary", () 
         diagnostics: number;
       };
     };
+
+    expect(validateGraphOutput(parsed), JSON.stringify(validateGraphOutput.errors)).toBe(true);
 
     expect(parsed.nodes.map((node) => node.endpoint).toSorted()).toEqual([
       "docs/auth.md#login-spec",

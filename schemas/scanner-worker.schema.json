@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/salan70/docbridge/schemas/scanner-worker.schema.json",
+  "title": "DocBridge Scanner Worker Protocol",
+  "description": "Request and response payloads exchanged with scanner workers.",
+  "oneOf": [{ "$ref": "#/$defs/request" }, { "$ref": "#/$defs/response" }],
+  "$defs": {
+    "language": {
+      "type": "string",
+      "enum": ["typescript", "swift", "dart"]
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "column"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "$ref": "#/$defs/position" },
+        "end": { "$ref": "#/$defs/position" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filePath", "line", "column"],
+      "properties": {
+        "filePath": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "codeSymbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "language",
+        "filePath",
+        "symbolName",
+        "canonicalId",
+        "endpoint",
+        "location"
+      ],
+      "properties": {
+        "kind": { "const": "code" },
+        "language": { "$ref": "#/$defs/language" },
+        "filePath": { "type": "string" },
+        "symbolName": { "type": "string" },
+        "canonicalId": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" },
+        "nameRange": { "$ref": "#/$defs/range" },
+        "declarationRange": { "$ref": "#/$defs/range" },
+        "signatureRange": { "$ref": "#/$defs/range" }
+      }
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target", "location"],
+      "properties": {
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" },
+        "targetRange": { "$ref": "#/$defs/range" }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "code", "target", "message"],
+      "properties": {
+        "severity": { "type": "string", "enum": ["error", "warning"] },
+        "code": { "type": "string" },
+        "target": { "type": "string" },
+        "language": { "$ref": "#/$defs/language" },
+        "source": { "type": "string" },
+        "message": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" },
+        "range": { "$ref": "#/$defs/range" }
+      }
+    },
+    "requestFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filePath", "content"],
+      "properties": {
+        "filePath": { "type": "string" },
+        "content": { "type": "string" }
+      }
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visibility": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "language", "projectRoot", "files", "options"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "requestId": { "type": "string" },
+        "language": { "$ref": "#/$defs/language" },
+        "projectRoot": { "type": "string" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/requestFile" }
+        },
+        "options": { "$ref": "#/$defs/options" }
+      }
+    },
+    "responseFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filePath", "symbols", "undocumentedSymbols", "links", "diagnostics"],
+      "properties": {
+        "filePath": { "type": "string" },
+        "symbols": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/codeSymbol" }
+        },
+        "undocumentedSymbols": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/codeSymbol" }
+        },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/link" }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "language", "files"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "requestId": { "type": "string" },
+        "language": { "$ref": "#/$defs/language" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/responseFile" }
+        }
+      }
+    }
+  }
+}
