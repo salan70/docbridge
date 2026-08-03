@@ -6,6 +6,8 @@
  * `docbridge <command> --help` cannot drift apart.
  */
 
+import { CliError, commandHelpGuidance, includeContentGuidance, rootPathGuidance } from "./errors";
+
 export const SUBCOMMANDS = [
   "check",
   "related",
@@ -19,11 +21,51 @@ export const SUBCOMMANDS = [
 
 export type Subcommand = (typeof SUBCOMMANDS)[number];
 
+export type TableCommandOptions = {
+  check: { root: string; json: boolean; audit: boolean };
+  related: { root: string; json: boolean; stdin: boolean; gate: boolean; files: string[] };
+  context: { root: string; json: boolean; stdin: boolean; files: string[] };
+  graph: {
+    root: string;
+    json: boolean;
+    includeContent: boolean;
+    stdin: boolean;
+    files: string[];
+  };
+};
+
+export type TableParsedSubcommand = keyof TableCommandOptions;
+
 type OptionDoc = {
   /** Flag as it appears on the command line, including any value placeholder. */
   flag: string;
   /** One-line description; wrapped lines are indented by the renderer. */
   description: string;
+};
+
+type KeysMatching<Options, Value> = Extract<
+  {
+    [Property in keyof Options]-?: Options[Property] extends Value ? Property : never;
+  }[keyof Options],
+  string
+>;
+
+type ParsedOptionDoc<Options> = OptionDoc & {
+  /** How the shared option parser applies this flag. */
+  parse:
+    | { kind: "boolean"; property: KeysMatching<Options, boolean> }
+    | {
+        kind: "value";
+        property: KeysMatching<Options, string>;
+        defaultValue: string;
+        missingMessage: string;
+        guidance: "root";
+      };
+};
+
+type CommandParser<Options> = {
+  positionalProperty?: KeysMatching<Options, string[]>;
+  validate?: (options: Options) => void;
 };
 
 type CommandDoc = {
@@ -36,20 +78,58 @@ type CommandDoc = {
   options: OptionDoc[];
 };
 
-const ROOT_OPTION: OptionDoc = {
+type ParsedCommandDoc<Options> = Omit<CommandDoc, "options"> & {
+  options: ParsedOptionDoc<Options>[];
+  parser: CommandParser<Options>;
+};
+
+type CommandDefinitions = {
+  [Command in Subcommand]: Command extends TableParsedSubcommand
+    ? ParsedCommandDoc<TableCommandOptions[Command]>
+    : CommandDoc & { parser?: never };
+};
+
+const ROOT_OPTION = {
   flag: "--root <path>",
   description: "Project root to scan. Defaults to current directory.",
-};
+  parse: {
+    kind: "value",
+    property: "root",
+    defaultValue: ".",
+    missingMessage: "--root requires a path.",
+    guidance: "root",
+  },
+} satisfies ParsedOptionDoc<{ root: string }>;
 
-const JSON_OPTION: OptionDoc = {
+const JSON_OPTION = {
   flag: "--json",
   description: "Emit machine-readable JSON.",
-};
+  parse: { kind: "boolean", property: "json" },
+} satisfies ParsedOptionDoc<{ json: boolean }>;
 
-const STDIN_OPTION: OptionDoc = {
+const STDIN_OPTION = {
   flag: "--stdin",
   description: "Read newline-separated file paths from stdin.",
-};
+  parse: { kind: "boolean", property: "stdin" },
+} satisfies ParsedOptionDoc<{ stdin: boolean }>;
+
+const AUDIT_OPTION = {
+  flag: "--audit",
+  description: "Include audit diagnostics: undocumented_symbol and unlinked_doc_section.",
+  parse: { kind: "boolean", property: "audit" },
+} satisfies ParsedOptionDoc<{ audit: boolean }>;
+
+const GATE_OPTION = {
+  flag: "--gate",
+  description: "Report counterparts that are not in the change set and exit 1 if any.",
+  parse: { kind: "boolean", property: "gate" },
+} satisfies ParsedOptionDoc<{ gate: boolean }>;
+
+const INCLUDE_CONTENT_OPTION = {
+  flag: "--include-content",
+  description: "Include lightweight node content. Requires --json.",
+  parse: { kind: "boolean", property: "includeContent" },
+} satisfies ParsedOptionDoc<{ includeContent: boolean }>;
 
 const HELP_OPTION: OptionDoc = {
   flag: "--help, -h",
@@ -69,7 +149,7 @@ const INIT_OPTIONS: OptionDoc[] = [
   { flag: "--force", description: "Overwrite existing installed skills." },
 ];
 
-const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
+const COMMAND_DOCS: CommandDefinitions = {
   check: {
     usage: "[options]",
     summary: "Use before committing or in CI to validate every link.",
@@ -79,14 +159,8 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "Use it as the quality gate: in CI, in a pre-commit hook, or after editing",
       "annotations. It exits 1 when there is at least one error.",
     ].join("\n"),
-    options: [
-      ROOT_OPTION,
-      JSON_OPTION,
-      {
-        flag: "--audit",
-        description: "Include audit diagnostics: undocumented_symbol and unlinked_doc_section.",
-      },
-    ],
+    options: [ROOT_OPTION, JSON_OPTION, AUDIT_OPTION],
+    parser: {},
   },
   related: {
     usage: "[options] [files...]",
@@ -98,15 +172,8 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "counterpart is missing from the change set. Reach for `context` instead when",
       "the counterpart content itself is needed.",
     ].join("\n"),
-    options: [
-      ROOT_OPTION,
-      JSON_OPTION,
-      STDIN_OPTION,
-      {
-        flag: "--gate",
-        description: "Report counterparts that are not in the change set and exit 1 if any.",
-      },
-    ],
+    options: [ROOT_OPTION, JSON_OPTION, STDIN_OPTION, GATE_OPTION],
+    parser: { positionalProperty: "files" },
   },
   context: {
     usage: "[options] [files...]",
@@ -118,6 +185,7 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "for inclusion in an agent prompt.",
     ].join("\n"),
     options: [ROOT_OPTION, JSON_OPTION, STDIN_OPTION],
+    parser: { positionalProperty: "files" },
   },
   graph: {
     usage: "[options] [files...]",
@@ -127,15 +195,15 @@ const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
       "Use it to inspect the link structure as a whole, or to feed link data to a",
       "tool. Passing files narrows the graph to them and their direct counterparts.",
     ].join("\n"),
-    options: [
-      ROOT_OPTION,
-      JSON_OPTION,
-      {
-        flag: "--include-content",
-        description: "Include lightweight node content. Requires --json.",
+    options: [ROOT_OPTION, JSON_OPTION, INCLUDE_CONTENT_OPTION, STDIN_OPTION],
+    parser: {
+      positionalProperty: "files",
+      validate: (options) => {
+        if (options.includeContent === true && options.json !== true) {
+          throw new CliError("--include-content requires --json.", includeContentGuidance());
+        }
       },
-      STDIN_OPTION,
-    ],
+    },
   },
   docs: {
     usage: "list [--json] | show <name>",
@@ -264,6 +332,70 @@ ${description}
 Options:
 ${options}
 `;
+}
+
+/** Parse the table-driven commands from the same option definitions used by help. */
+export function parseCommandOptions<Command extends TableParsedSubcommand>(
+  command: Command,
+  args: string[],
+): TableCommandOptions[Command] {
+  const definition = COMMAND_DOCS[command] as unknown as ParsedCommandDoc<
+    TableCommandOptions[Command]
+  >;
+  const parser = definition.parser;
+
+  const options: Record<string, unknown> = {};
+  const optionByFlag = new Map(
+    definition.options.flatMap((option) => {
+      const flag = option.flag.split(/[ ,]/, 1)[0];
+      if (flag === undefined || option.parse === undefined) {
+        return [];
+      }
+      options[option.parse.property] =
+        option.parse.kind === "boolean" ? false : option.parse.defaultValue;
+      return [[flag, option.parse] as const];
+    }),
+  );
+  if (parser.positionalProperty !== undefined) {
+    options[parser.positionalProperty] = [];
+  }
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    const option = optionByFlag.get(arg);
+    if (option?.kind === "boolean") {
+      options[option.property] = true;
+      continue;
+    }
+    if (option?.kind === "value") {
+      const value = args[index + 1];
+      if (value === undefined) {
+        throw new CliError(option.missingMessage, rootPathGuidance(command));
+      }
+      options[option.property] = value;
+      index += 1;
+      continue;
+    }
+
+    if (parser.positionalProperty !== undefined && !arg.startsWith("--")) {
+      const positionals = options[parser.positionalProperty];
+      if (!Array.isArray(positionals)) {
+        throw new Error(`Command ${command} has an invalid positional parser definition.`);
+      }
+      positionals.push(arg);
+      continue;
+    }
+
+    throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
+  }
+
+  const parsed = options as TableCommandOptions[Command];
+  parser.validate?.(parsed);
+  return parsed;
 }
 
 export function isSubcommand(value: string): value is Subcommand {

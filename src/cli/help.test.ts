@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { run } from "./index";
+import { parseCommandOptions } from "./help";
+import { run, type CliGraphOptions } from "./index";
 import { capture } from "./test-support";
 
 const COMMANDS = [
@@ -116,36 +117,27 @@ test("run still rejects unknown commands", () => {
   expect(c.err).toContain("Unknown command: nope");
 });
 
-/**
- * Guards against per-command help drifting from the parsers: every flag the
- * parser accepts must be documented in that command's help text.
- */
 function parserFlags(source: string, functionName: string): string[] {
   const start = source.indexOf(`export function ${functionName}(`);
   expect(start).toBeGreaterThanOrEqual(0);
   const rest = source.slice(start);
-  const end = rest.indexOf("\n}\n");
+  const end = rest.indexOf("\n}");
   const body = end === -1 ? rest : rest.slice(0, end);
 
   return [...body.matchAll(/arg === "(--[a-z-]+)"/g)].map((match) => match[1] ?? "");
 }
 
-const CLI_SOURCE = readFileSync(join(import.meta.dir, "index.ts"), "utf8");
 const DOCS_SOURCE = readFileSync(join(import.meta.dir, "docs.ts"), "utf8");
 const INIT_SOURCE = readFileSync(join(import.meta.dir, "init.ts"), "utf8");
 
-const PARSERS: ReadonlyArray<readonly [string, string, string]> = [
-  ["check", CLI_SOURCE, "parseCheckOptions"],
-  ["related", CLI_SOURCE, "parseRelatedOptions"],
-  ["context", CLI_SOURCE, "parseContextOptions"],
-  ["graph", CLI_SOURCE, "parseGraphOptions"],
+const HAND_WRITTEN_PARSERS = [
   ["docs", DOCS_SOURCE, "parseDocsCommand"],
   ["init", INIT_SOURCE, "parseInitOptions"],
   ["init-with-agent", INIT_SOURCE, "parseInitOptions"],
-];
+] as const;
 
-for (const [command, source, functionName] of PARSERS) {
-  test(`${command} help documents every flag its parser accepts`, () => {
+for (const [command, source, functionName] of HAND_WRITTEN_PARSERS) {
+  test(`${command} help documents every flag its hand-written parser accepts`, () => {
     const c = capture();
     run([command, "--help"], c.io);
 
@@ -156,3 +148,9 @@ for (const [command, source, functionName] of PARSERS) {
     }
   });
 }
+
+test("table parsing retains the graph command's option type", () => {
+  const options: CliGraphOptions = parseCommandOptions("graph", []);
+
+  expect(options.includeContent).toBe(false);
+});

@@ -116,6 +116,9 @@ export function createFileDocumentationReader(packageRoot: string): Documentatio
 }
 
 export function parseDocsCommand(args: string[]): DocsCommand {
+  // Unlike the flat flag commands, `docs` has a verb-specific grammar:
+  // `list` accepts --json while `show` requires exactly one name. Keeping that
+  // grammar here avoids pretending it is the same positional-options shape.
   const [operation, ...rest] = args;
 
   if (operation === "list") {
