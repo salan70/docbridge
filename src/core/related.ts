@@ -1,12 +1,9 @@
 import { isAbsolute, relative } from "node:path";
 
-import { collectCodeFiles, scanCodeFiles } from "./code-language";
-import { loadConfig } from "./config";
 import { pluralize } from "./diagnostics";
 import { compareEndpointOrder, fragmentOf } from "./endpoint";
-import { collectFiles, readManagedFile } from "./glob";
-import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import { counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
+import { scanProject } from "./project-scan";
 import type { DocBridgeDiagnostic } from "./types";
 
 type RelatedCounterpart = {
@@ -140,30 +137,13 @@ type RelatedOutcome =
  * @doc docs/specs/cli.md#related-command
  */
 export function related(options: RelatedOptions): RelatedOutcome {
-  const configResult = loadConfig(options.projectRoot);
-  if (!configResult.ok) {
-    return { ok: false, diagnostics: configResult.diagnostics };
+  const outcome = scanProject({ projectRoot: options.projectRoot, buildGraph: true });
+  if (!outcome.ok) {
+    return { ok: false, diagnostics: outcome.diagnostics };
   }
 
-  // Unreadable files are skipped silently here; `docbridge check` reports them.
-  const codeFiles = scanCodeFiles(
-    options.projectRoot,
-    collectCodeFiles(options.projectRoot, configResult.config.include.code),
-    configResult.config.include.code,
-    (relPath) => readManagedFile(options.projectRoot, relPath),
-  ).codeFiles;
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(options.projectRoot, configResult.config.include.docs)) {
-    const read = readManagedFile(options.projectRoot, relPath);
-    if (read.ok) {
-      docFiles.push(scanMarkdown(relPath, read.content));
-    }
-  }
-
-  const graph = buildLinkGraph(codeFiles, docFiles);
   const changedFiles = normalizeChangedPaths(options.projectRoot, options.changedFiles);
-  return { ok: true, result: computeRelated(graph, changedFiles) };
+  return { ok: true, result: computeRelated(outcome.scan.graph, changedFiles) };
 }
 
 /**
