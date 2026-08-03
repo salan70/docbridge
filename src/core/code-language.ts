@@ -41,9 +41,13 @@ Object.assign(codeAdapters, {
   dart: createScannerWorkerAdapter("dart", (_projectRoot) => resolveScannerWorkerCommand("dart")),
 });
 
-const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
-
 type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
+
+const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
+const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> = {
+  swift: "docbridge-swift-scanner",
+  dart: "docbridge_dart_scanner",
+};
 
 type ScannerWorkerCommandResolution =
   | { ok: true; command: string[] }
@@ -63,6 +67,10 @@ type ScannerWorkerResolutionOptions = {
 
 export function supportedScannerPlatformKeys(): readonly string[] {
   return SUPPORTED_SCANNER_PLATFORM_KEYS;
+}
+
+export function supportedScannerExecutableNames(): readonly string[] {
+  return Object.values(SCANNER_EXECUTABLE_NAMES);
 }
 
 export function scannerPlatformKey(): string {
@@ -414,8 +422,8 @@ function distRootPath(): string {
   return scannerRootsFromModuleUrl(import.meta.url).distRoot;
 }
 
-function scannerExecutableName(language: ScannerWorkerLanguage): string {
-  return language === "swift" ? "docbridge-swift-scanner" : "docbridge_dart_scanner";
+export function scannerExecutableName(language: ScannerWorkerLanguage): string {
+  return SCANNER_EXECUTABLE_NAMES[language];
 }
 
 function scannerUnavailableDiagnostic(

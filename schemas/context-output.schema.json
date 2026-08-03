@@ -66,37 +66,7 @@
     "diagnostics": {
       "type": "array",
       "description": "Check diagnostics located in the input files, in check order.",
-      "items": {
-        "type": "object",
-        "required": ["severity", "code", "target", "message"],
-        "properties": {
-          "severity": {
-            "type": "string",
-            "enum": ["error", "warning"]
-          },
-          "code": {
-            "type": "string"
-          },
-          "target": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "location": {
-            "type": "object",
-            "required": ["filePath", "line", "column"],
-            "properties": {
-              "filePath": { "type": "string" },
-              "line": { "type": "integer", "minimum": 1 },
-              "column": { "type": "integer", "minimum": 1 }
-            }
-          }
-        }
-      }
+      "items": { "$ref": "common-output.schema.json#/$defs/diagnostic" }
     },
     "summary": {
       "type": "object",

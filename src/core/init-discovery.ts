@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
+import { KNOWN_CODE_LANGUAGES } from "./code-language";
 import { collectFiles } from "./glob";
 import type { CodeLanguage } from "./types";
 
@@ -179,7 +180,7 @@ export function discoverDocsScope(projectRoot: string): DocsScopeDiscovery {
 export function discoverCodeScope(projectRoot: string): CodeScopeDiscovery {
   const languages: CodeLanguageCandidate[] = [];
 
-  for (const language of ["typescript", "swift", "dart"] as const) {
+  for (const language of KNOWN_CODE_LANGUAGES) {
     const patterns = activeCodePatterns(projectRoot, language);
     if (patterns.length > 0) {
       languages.push({

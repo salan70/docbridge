@@ -12,10 +12,13 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
+import {
+  supportedScannerExecutableNames,
+  supportedScannerPlatformKeys,
+} from "../src/core/code-language";
+
 // The packaged CLI must work for both npm/Node and Bun consumers.
 const cliRuntimes = ["node", "bun"] as const;
-const scannerExecutableNames = ["docbridge-swift-scanner", "docbridge_dart_scanner"] as const;
 
 type SmokeOptions = {
   scannerFixtures: boolean;
@@ -98,8 +101,8 @@ function stripInstalledScannerExecutableBits(installRoot: string): void {
 
 function installedScannerPaths(installRoot: string): string[] {
   const paths: string[] = [];
-  for (const platform of scannerPlatformKeys) {
-    for (const executable of scannerExecutableNames) {
+  for (const platform of supportedScannerPlatformKeys()) {
+    for (const executable of supportedScannerExecutableNames()) {
       const scannerPath = join(
         installRoot,
         "node_modules/docbridge/dist/bin",

@@ -24,6 +24,8 @@ import {
   resolveScannerWorkerCommand,
   scanCodeFiles,
   scannerRootsFromModuleUrl,
+  supportedScannerExecutableNames,
+  supportedScannerPlatformKeys,
   type CodeInclude,
 } from "./code-language";
 import { setCodeAdapterForTest } from "./code-language.test-support";
@@ -50,6 +52,14 @@ test("isCodeLanguage accepts the fixed language IDs and rejects others", () => {
   expect(isCodeLanguage("swift")).toBe(true);
   expect(isCodeLanguage("dart")).toBe(true);
   expect(isCodeLanguage("kotlin")).toBe(false);
+});
+
+test("scanner packaging metadata exposes every supported platform and executable", () => {
+  expect(supportedScannerPlatformKeys()).toEqual(["darwin-arm64", "linux-x64"]);
+  expect(supportedScannerExecutableNames()).toEqual([
+    "docbridge-swift-scanner",
+    "docbridge_dart_scanner",
+  ]);
 });
 
 test("TypeScript has an in-process adapter and Swift/Dart have worker-backed adapters", () => {

@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Scanner worker request and response payloads now have a published JSON Schema,
+  and malformed nested worker output fails explicitly instead of degrading into
+  incomplete scan data. Graph and context output schemas share their diagnostic
+  definitions and are checked against real CLI output. The configuration schema
+  now matches the CLI's per-language suffix and visibility rules.
 - `docbridge context` and `docbridge graph --include-content` strip the common
   leading indentation from an extracted declaration, so a type member reads at
   its own level. Output for top-level declarations is unchanged.

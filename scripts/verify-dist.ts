@@ -4,9 +4,12 @@ import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import {
+  supportedScannerExecutableNames,
+  supportedScannerPlatformKeys,
+} from "../src/core/code-language";
+
 const repoRoot = resolve(import.meta.dir, "..");
-const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
-const scannerExecutableNames = ["docbridge-swift-scanner", "docbridge_dart_scanner"] as const;
 
 export type VerifyDistOptions = {
   run?: (command: string[], cwd: string) => void;
@@ -39,8 +42,8 @@ export async function verifyDistPackage(
 }
 
 function assertPackagedScannersExecutable(root: string): void {
-  for (const platform of scannerPlatformKeys) {
-    for (const executable of scannerExecutableNames) {
+  for (const platform of supportedScannerPlatformKeys()) {
+    for (const executable of supportedScannerExecutableNames()) {
       const scannerPath = join(root, "dist/bin", platform, executable);
       if (existsSync(scannerPath)) {
         assertExecutable(root, scannerPath);

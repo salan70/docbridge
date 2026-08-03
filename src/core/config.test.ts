@@ -3,7 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { loadConfig, resolveConfig } from "./config";
+import Ajv2020 from "ajv/dist/2020";
+
+import configSchema from "../../schemas/docbridge.schema.json";
+import { KNOWN_CODE_LANGUAGES } from "./code-language";
+import { LANGUAGE_SUFFIX, LANGUAGE_VISIBILITY, loadConfig, resolveConfig } from "./config";
 import { codes } from "./test-support";
 
 const TS_CONFIG = {
@@ -12,6 +16,63 @@ const TS_CONFIG = {
     docs: ["docs/**/*.md"],
   },
 };
+
+const validateConfigSchema = new Ajv2020({ allErrors: true, strict: true }).compile(configSchema);
+
+test("published config schema enforces language suffixes and visibility values", () => {
+  expect(validateConfigSchema(TS_CONFIG), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { swift: { patterns: ["Sources/**/*.ts"], visibility: ["private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], visibility: ["internal"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.d.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+});
+
+test("published config schema mirrors every CLI language contract", () => {
+  const codeProperties = configSchema.properties.include.properties.code.properties;
+
+  expect(Object.keys(codeProperties).toSorted()).toEqual([...KNOWN_CODE_LANGUAGES].toSorted());
+  for (const language of KNOWN_CODE_LANGUAGES) {
+    const reference = codeProperties[language].$ref;
+    const definitionName = reference.slice("#/$defs/".length) as keyof typeof configSchema.$defs;
+    const definition = configSchema.$defs[definitionName];
+
+    expect(definition.properties.visibility.items.enum).toEqual([...LANGUAGE_VISIBILITY[language]]);
+    expect(
+      validateConfigSchema({
+        include: {
+          code: {
+            [language]: {
+              patterns: [`src/**/*${LANGUAGE_SUFFIX[language]}`],
+              visibility: [...LANGUAGE_VISIBILITY[language]],
+            },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+      JSON.stringify(validateConfigSchema.errors),
+    ).toBe(true);
+  }
+});
 
 test("resolveConfig rejects a missing config file", () => {
   const result = resolveConfig(undefined);

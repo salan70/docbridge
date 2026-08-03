@@ -3,6 +3,10 @@ import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import Ajv2020, { type ErrorObject, type ValidateFunction } from "ajv/dist/2020";
+
+import commonOutputSchema from "../../schemas/common-output.schema.json";
+import scannerWorkerSchema from "../../schemas/scanner-worker.schema.json";
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
 import { reasonOf } from "./error";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
@@ -63,6 +67,27 @@ type ScannerWorkerFailure = {
 };
 
 type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
+
+/** @internal Exported only to make the lazy initialization contract executable in tests. */
+export function createLazyWorkerResponseValidator<T>(compile: () => T): () => T {
+  let validator: T | undefined;
+  return () => {
+    validator ??= compile();
+    return validator;
+  };
+}
+
+const responseValidator = createLazyWorkerResponseValidator(compileWorkerResponseValidator);
+
+function compileWorkerResponseValidator(): ValidateFunction {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  ajv.addSchema(commonOutputSchema);
+  return ajv.compile({
+    $schema: scannerWorkerSchema.$schema,
+    $defs: scannerWorkerSchema.$defs,
+    $ref: "#/$defs/response",
+  });
+}
 
 export function invokeScannerWorker(
   request: ScannerWorkerRequest,
@@ -179,30 +204,30 @@ export function runScannerWorkerProcess(
 }
 
 function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {
-  if (!isRecord(value)) {
-    return "worker response must be a JSON object";
+  const validator = responseValidator();
+  if (!validator(value)) {
+    return formatSchemaError(validator.errors);
   }
-  if (value.schemaVersion !== 1) {
-    return "worker response schemaVersion must be 1";
-  }
-  if (value.requestId !== request.requestId) {
+  const response = value as ScannerWorkerResponse;
+  if (response.requestId !== request.requestId) {
     return "worker response requestId does not match the request";
   }
-  if (value.language !== request.language) {
+  if (response.language !== request.language) {
     return "worker response language does not match the request";
   }
-  if (!Array.isArray(value.files)) {
-    return "worker response files must be an array";
-  }
-  if (!responseFilesMatchRequest(value.files, request.files)) {
+  if (!responseFilesMatchRequest(response.files, request.files)) {
     return "worker response files must match requested files";
   }
-  for (const file of value.files) {
-    if (!isResponseFile(file)) {
-      return "worker response files contain an invalid scan result";
-    }
-  }
   return undefined;
+}
+
+function formatSchemaError(errors: ErrorObject[] | null | undefined): string {
+  const error = errors?.[0];
+  if (error === undefined) {
+    return "worker response does not match scanner-worker.schema.json";
+  }
+  const path = error.instancePath || "/";
+  return `worker response does not match scanner-worker.schema.json at ${path}: ${error.message ?? "invalid value"}`;
 }
 
 function responseFilesMatchRequest(
@@ -218,19 +243,6 @@ function responseFilesMatchRequest(
     }
     return file.filePath === requestFiles[index]?.filePath;
   });
-}
-
-function isResponseFile(value: unknown): value is ScannerWorkerResponseFile {
-  if (!isRecord(value)) {
-    return false;
-  }
-  return (
-    typeof value.filePath === "string" &&
-    Array.isArray(value.symbols) &&
-    Array.isArray(value.undocumentedSymbols) &&
-    Array.isArray(value.links) &&
-    Array.isArray(value.diagnostics)
-  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
