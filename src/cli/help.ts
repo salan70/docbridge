@@ -21,26 +21,51 @@ export const SUBCOMMANDS = [
 
 export type Subcommand = (typeof SUBCOMMANDS)[number];
 
+export type TableCommandOptions = {
+  check: { root: string; json: boolean; audit: boolean };
+  related: { root: string; json: boolean; stdin: boolean; gate: boolean; files: string[] };
+  context: { root: string; json: boolean; stdin: boolean; files: string[] };
+  graph: {
+    root: string;
+    json: boolean;
+    includeContent: boolean;
+    stdin: boolean;
+    files: string[];
+  };
+};
+
+export type TableParsedSubcommand = keyof TableCommandOptions;
+
 type OptionDoc = {
   /** Flag as it appears on the command line, including any value placeholder. */
   flag: string;
   /** One-line description; wrapped lines are indented by the renderer. */
   description: string;
+};
+
+type KeysMatching<Options, Value> = Extract<
+  {
+    [Property in keyof Options]-?: Options[Property] extends Value ? Property : never;
+  }[keyof Options],
+  string
+>;
+
+type ParsedOptionDoc<Options> = OptionDoc & {
   /** How the shared option parser applies this flag. */
-  parse?:
-    | { kind: "boolean"; property: string }
+  parse:
+    | { kind: "boolean"; property: KeysMatching<Options, boolean> }
     | {
         kind: "value";
-        property: string;
+        property: KeysMatching<Options, string>;
         defaultValue: string;
         missingMessage: string;
         guidance: "root";
       };
 };
 
-type CommandParser = {
-  positionalProperty?: string;
-  validate?: (options: Record<string, unknown>) => void;
+type CommandParser<Options> = {
+  positionalProperty?: KeysMatching<Options, string[]>;
+  validate?: (options: Options) => void;
 };
 
 type CommandDoc = {
@@ -51,10 +76,20 @@ type CommandDoc = {
   /** Multi-line description that states when to use the command. */
   description: string;
   options: OptionDoc[];
-  parser?: CommandParser;
 };
 
-const ROOT_OPTION: OptionDoc = {
+type ParsedCommandDoc<Options> = Omit<CommandDoc, "options"> & {
+  options: ParsedOptionDoc<Options>[];
+  parser: CommandParser<Options>;
+};
+
+type CommandDefinitions = {
+  [Command in Subcommand]: Command extends TableParsedSubcommand
+    ? ParsedCommandDoc<TableCommandOptions[Command]>
+    : CommandDoc & { parser?: never };
+};
+
+const ROOT_OPTION = {
   flag: "--root <path>",
   description: "Project root to scan. Defaults to current directory.",
   parse: {
@@ -64,37 +99,37 @@ const ROOT_OPTION: OptionDoc = {
     missingMessage: "--root requires a path.",
     guidance: "root",
   },
-};
+} satisfies ParsedOptionDoc<{ root: string }>;
 
-const JSON_OPTION: OptionDoc = {
+const JSON_OPTION = {
   flag: "--json",
   description: "Emit machine-readable JSON.",
   parse: { kind: "boolean", property: "json" },
-};
+} satisfies ParsedOptionDoc<{ json: boolean }>;
 
-const STDIN_OPTION: OptionDoc = {
+const STDIN_OPTION = {
   flag: "--stdin",
   description: "Read newline-separated file paths from stdin.",
   parse: { kind: "boolean", property: "stdin" },
-};
+} satisfies ParsedOptionDoc<{ stdin: boolean }>;
 
-const AUDIT_OPTION: OptionDoc = {
+const AUDIT_OPTION = {
   flag: "--audit",
   description: "Include audit diagnostics: undocumented_symbol and unlinked_doc_section.",
   parse: { kind: "boolean", property: "audit" },
-};
+} satisfies ParsedOptionDoc<{ audit: boolean }>;
 
-const GATE_OPTION: OptionDoc = {
+const GATE_OPTION = {
   flag: "--gate",
   description: "Report counterparts that are not in the change set and exit 1 if any.",
   parse: { kind: "boolean", property: "gate" },
-};
+} satisfies ParsedOptionDoc<{ gate: boolean }>;
 
-const INCLUDE_CONTENT_OPTION: OptionDoc = {
+const INCLUDE_CONTENT_OPTION = {
   flag: "--include-content",
   description: "Include lightweight node content. Requires --json.",
   parse: { kind: "boolean", property: "includeContent" },
-};
+} satisfies ParsedOptionDoc<{ includeContent: boolean }>;
 
 const HELP_OPTION: OptionDoc = {
   flag: "--help, -h",
@@ -114,7 +149,7 @@ const INIT_OPTIONS: OptionDoc[] = [
   { flag: "--force", description: "Overwrite existing installed skills." },
 ];
 
-const COMMAND_DOCS: Record<Subcommand, CommandDoc> = {
+const COMMAND_DOCS: CommandDefinitions = {
   check: {
     usage: "[options]",
     summary: "Use before committing or in CI to validate every link.",
@@ -299,23 +334,15 @@ ${options}
 `;
 }
 
-/** Return the flags declared for a command, in display order. */
-export function commandOptionFlags(command: Subcommand): string[] {
-  return COMMAND_DOCS[command].options.map((option) => option.flag.split(/[ ,]/, 1)[0] ?? "");
-}
-
-export type TableParsedSubcommand = "check" | "related" | "context" | "graph";
-
 /** Parse the table-driven commands from the same option definitions used by help. */
-export function parseCommandOptions(
-  command: TableParsedSubcommand,
+export function parseCommandOptions<Command extends TableParsedSubcommand>(
+  command: Command,
   args: string[],
-): Record<string, unknown> {
-  const definition = COMMAND_DOCS[command];
+): TableCommandOptions[Command] {
+  const definition = COMMAND_DOCS[command] as unknown as ParsedCommandDoc<
+    TableCommandOptions[Command]
+  >;
   const parser = definition.parser;
-  if (parser === undefined) {
-    throw new Error(`Command ${command} has no parser definition.`);
-  }
 
   const options: Record<string, unknown> = {};
   const optionByFlag = new Map(
@@ -366,8 +393,9 @@ export function parseCommandOptions(
     throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
   }
 
-  parser.validate?.(options);
-  return options;
+  const parsed = options as TableCommandOptions[Command];
+  parser.validate?.(parsed);
+  return parsed;
 }
 
 export function isSubcommand(value: string): value is Subcommand {

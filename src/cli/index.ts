@@ -37,6 +37,7 @@ import {
   parseCommandOptions,
   SUBCOMMANDS,
   type Subcommand,
+  type TableCommandOptions,
 } from "./help";
 import {
   createDefaultPrompts,
@@ -48,11 +49,7 @@ import {
 
 const VERSION = pkg.version;
 
-export type CliCheckOptions = {
-  root: string;
-  json: boolean;
-  audit: boolean;
-};
+export type CliCheckOptions = TableCommandOptions["check"];
 
 export type CliIo = {
   stdout: (text: string) => void;
@@ -62,42 +59,25 @@ export type CliIo = {
 };
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {
-  return parseCommandOptions("check", args) as CliCheckOptions;
+  return parseCommandOptions("check", args);
 }
 
-export type CliRelatedOptions = {
-  root: string;
-  json: boolean;
-  stdin: boolean;
-  gate: boolean;
-  files: string[];
-};
+export type CliRelatedOptions = TableCommandOptions["related"];
 
 export function parseRelatedOptions(args: string[]): CliRelatedOptions {
-  return parseCommandOptions("related", args) as CliRelatedOptions;
+  return parseCommandOptions("related", args);
 }
 
-export type CliContextOptions = {
-  root: string;
-  json: boolean;
-  stdin: boolean;
-  files: string[];
-};
+export type CliContextOptions = TableCommandOptions["context"];
 
 export function parseContextOptions(args: string[]): CliContextOptions {
-  return parseCommandOptions("context", args) as CliContextOptions;
+  return parseCommandOptions("context", args);
 }
 
-export type CliGraphOptions = {
-  root: string;
-  json: boolean;
-  includeContent: boolean;
-  stdin: boolean;
-  files: string[];
-};
+export type CliGraphOptions = TableCommandOptions["graph"];
 
 export function parseGraphOptions(args: string[]): CliGraphOptions {
-  return parseCommandOptions("graph", args) as CliGraphOptions;
+  return parseCommandOptions("graph", args);
 }
 
 function resolveProjectRoot(root: string, command: Subcommand): string {
