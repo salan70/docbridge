@@ -160,7 +160,6 @@ class DocLink {
   final SourceRange? targetRange;
 
   Map<String, dynamic> toJson() => _pruneNulls({
-        'direction': 'code-to-doc',
         'source': source,
         'target': target,
         'location': location.toJson(),

@@ -4,12 +4,12 @@ import { join } from "node:path";
 import type { CodeScanResult } from "./code-scanner";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { check, resolveLinks } from "./resolver";
+import { codes } from "./test-support";
 import type {
-  CodeLinkAnnotation,
   CodeSymbolEndpoint,
   DocAnchorEndpoint,
   DocHeadingOutline,
-  DocLinkAnnotation,
+  LinkAnnotation,
   SourceLocation,
   DocBridgeDiagnostic,
 } from "./types";
@@ -69,18 +69,16 @@ function emptyHeading(level: number): DocHeadingOutline {
   return { level, hasCodeAnnotation: false };
 }
 
-function docLink(source: string, target: string, filePath = CODE_FILE): DocLinkAnnotation {
+function docLink(source: string, target: string, filePath = CODE_FILE): LinkAnnotation {
   return {
-    direction: "code-to-doc",
     source,
     target,
     location: loc(filePath),
   };
 }
 
-function codeLink(source: string, target: string, filePath = DOC_FILE): CodeLinkAnnotation {
+function codeLink(source: string, target: string, filePath = DOC_FILE): LinkAnnotation {
   return {
-    direction: "doc-to-code",
     source,
     target,
     location: loc(filePath),
@@ -90,7 +88,7 @@ function codeLink(source: string, target: string, filePath = DOC_FILE): CodeLink
 function codeFile(
   filePath: string,
   symbols: CodeSymbolEndpoint[],
-  links: DocLinkAnnotation[],
+  links: LinkAnnotation[],
   diagnostics: DocBridgeDiagnostic[] = [],
   undocumentedSymbols: CodeSymbolEndpoint[] = [],
 ): CodeScanResult {
@@ -100,7 +98,7 @@ function codeFile(
 function docFile(
   filePath: string,
   anchors: DocAnchorEndpoint[],
-  links: CodeLinkAnnotation[],
+  links: LinkAnnotation[],
   diagnostics: DocBridgeDiagnostic[] = [],
 ): MarkdownScanResult {
   // Link resolution reads `anchors`; only the audit rule reads `headings`, and
@@ -113,10 +111,6 @@ function docFileWithHeadings(filePath: string, headings: DocHeadingOutline[]): M
     .map((heading) => heading.anchor)
     .filter((anchor): anchor is DocAnchorEndpoint => anchor !== undefined);
   return { filePath, anchors, headings, links: [], diagnostics: [] };
-}
-
-function codes(diagnostics: DocBridgeDiagnostic[]): string[] {
-  return diagnostics.map((diagnostic) => diagnostic.code);
 }
 
 describe(resolveLinks, () => {

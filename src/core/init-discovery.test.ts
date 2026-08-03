@@ -1,7 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { rmSync } from "node:fs";
 
 import {
   discoverAgentTarget,
@@ -11,16 +9,7 @@ import {
   resolveAgentTargetForInit,
   resolveAgentTargetForInitWithAgent,
 } from "./init-discovery";
-
-function makeProject(structure: Record<string, string>): string {
-  const project = mkdtempSync(join(tmpdir(), "docbridge-init-discovery-"));
-  for (const [relPath, content] of Object.entries(structure)) {
-    const absolutePath = join(project, relPath);
-    mkdirSync(join(absolutePath, ".."), { recursive: true });
-    writeFileSync(absolutePath, content);
-  }
-  return project;
-}
+import { makeProject } from "./test-support";
 
 test("discoverDocsScope recommends a strong docs directory", () => {
   const project = makeProject({

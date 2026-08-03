@@ -46,6 +46,7 @@ enum Role { admin, user }
       (file['links'] as List).map((l) => (l as Map)['target']).toList(),
       ['docs/auth.md#login', 'docs/auth.md#service', 'docs/auth.md#role'],
     );
+    expect((file['links'] as List).first, isNot(contains('direction')));
   });
 
   test('canonicalizes class members, getters, setters, and constructors', () {

@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
+import { reasonOf } from "./error";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
-export type ScannerWorkerFile = {
+type ScannerWorkerFile = {
   filePath: string;
   content: string;
 };
@@ -20,16 +21,16 @@ export type ScannerWorkerRequest = {
   options: CodeScanOptions;
 };
 
-export type ScannerWorkerResponse = {
+type ScannerWorkerResponse = {
   schemaVersion: 1;
   requestId: string;
   language: CodeLanguage;
   files: ScannerWorkerResponseFile[];
 };
 
-export type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
+type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
 
-export type ScannerWorkerProcessInput = {
+type ScannerWorkerProcessInput = {
   command: string[];
   stdin: string;
 };
@@ -49,19 +50,19 @@ export type ScannerWorkerProcessResult =
 
 export type ScannerWorkerRun = (input: ScannerWorkerProcessInput) => ScannerWorkerProcessResult;
 
-export type ScannerWorkerSuccess = {
+type ScannerWorkerSuccess = {
   ok: true;
   codeFiles: CodeScanResult[];
   stderr: string;
 };
 
-export type ScannerWorkerFailure = {
+type ScannerWorkerFailure = {
   ok: false;
   diagnostic: DocBridgeDiagnostic;
   stderr: string;
 };
 
-export type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
+type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
 
 export function invokeScannerWorker(
   request: ScannerWorkerRequest,
@@ -289,10 +290,6 @@ function scannerFailedDiagnostic(language: CodeLanguage, reason: string): DocBri
     target: language,
     message: `${label} scanner worker failed: ${reason}`,
   };
-}
-
-function reasonOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function languageLabel(language: CodeLanguage): string {

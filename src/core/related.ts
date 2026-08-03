@@ -2,33 +2,35 @@ import { isAbsolute, relative } from "node:path";
 
 import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import { loadConfig } from "./config";
+import { pluralize } from "./diagnostics";
+import { compareEndpointOrder, fragmentOf } from "./endpoint";
 import { collectFiles, readManagedFile } from "./glob";
 import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import type { DocBridgeDiagnostic } from "./types";
 
-export type RelatedCounterpart = {
+type RelatedCounterpart = {
   endpoint: string;
   filePath: string;
   inChangeSet: boolean;
 };
 
-export type RelatedEndpoint = {
+type RelatedEndpoint = {
   endpoint: string;
   counterparts: RelatedCounterpart[];
 };
 
-export type RelatedFile = {
+type RelatedFile = {
   filePath: string;
   endpoints: RelatedEndpoint[];
 };
 
-export type RelatedSummary = {
+type RelatedSummary = {
   changedFiles: number;
   filesWithLinks: number;
 };
 
-export type RelatedResult = {
+type RelatedResult = {
   files: RelatedFile[];
   summary: RelatedSummary;
 };
@@ -87,7 +89,7 @@ export function computeRelated(graph: LinkGraph, changedFiles: string[]): Relate
   };
 }
 
-export type RelatedGateViolation = {
+type RelatedGateViolation = {
   changedEndpoint: string;
   changedFilePath: string;
   counterpartEndpoint: string;
@@ -119,13 +121,13 @@ export function collectGateViolations(result: RelatedResult): RelatedGateViolati
   return violations;
 }
 
-export type RelatedOptions = {
+type RelatedOptions = {
   projectRoot: string;
   /** Raw changed-file paths; normalized with `normalizeChangedPaths`. */
   changedFiles: string[];
 };
 
-export type RelatedOutcome =
+type RelatedOutcome =
   | { ok: true; result: RelatedResult }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
@@ -208,19 +210,11 @@ export function formatGateResult(
 }
 
 function formatGateSummary(changedFiles: number, violations: number): string {
-  const fileWord = changedFiles === 1 ? "file" : "files";
-  const counterpartWord = violations === 1 ? "counterpart" : "counterparts";
-  return `${changedFiles} changed ${fileWord}, ${violations} ${counterpartWord} not in change set`;
+  return `${changedFiles} changed ${pluralize("file", changedFiles)}, ${violations} ${pluralize("counterpart", violations)} not in change set`;
 }
 
 function formatRelatedSummary(summary: RelatedSummary): string {
-  const fileWord = summary.changedFiles === 1 ? "file" : "files";
-  return `${summary.changedFiles} changed ${fileWord}, ${summary.filesWithLinks} with links`;
-}
-
-function fragmentOf(endpoint: string): string {
-  const hashIndex = endpoint.indexOf("#");
-  return hashIndex === -1 ? endpoint : endpoint.slice(hashIndex + 1);
+  return `${summary.changedFiles} changed ${pluralize("file", summary.changedFiles)}, ${summary.filesWithLinks} with links`;
 }
 
 /** Index every graph endpoint by file path, each file's list sorted by position. */
@@ -241,9 +235,11 @@ function indexEndpointsByFile(graph: LinkGraph): Map<string, GraphEndpoint[]> {
     add(doc);
   }
   for (const endpoints of byFile.values()) {
-    endpoints.sort(
-      (left, right) =>
-        left.location.line - right.location.line || left.location.column - right.location.column,
+    endpoints.sort((left, right) =>
+      compareEndpointOrder(
+        { ...left.location, endpoint: left.endpoint },
+        { ...right.location, endpoint: right.endpoint },
+      ),
     );
   }
   return byFile;

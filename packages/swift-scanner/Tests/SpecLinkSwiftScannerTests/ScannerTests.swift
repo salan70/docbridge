@@ -25,6 +25,11 @@ final class ScannerTests: XCTestCase {
         "docs/auth.md#auth-error",
         "docs/auth.md#login",
       ])
+    let linkData = try JSONEncoder().encode(try XCTUnwrap(file.links.first))
+    let linkJson = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: linkData) as? [String: Any]
+    )
+    XCTAssertNil(linkJson["direction"])
   }
 
   func testScansTypeMembersWithArgumentLabels() throws {

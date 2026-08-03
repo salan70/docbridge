@@ -2,8 +2,11 @@ import { accessSync, chmodSync, constants, existsSync, realpathSync, statSync } 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { codeAdapters } from "./code-adapter-registry";
 import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
+import { reasonOf } from "./error";
 import { collectFiles } from "./glob";
+import { comparePaths } from "./path-order";
 import { invokeScannerWorker, type ScannerWorkerRun } from "./scanner-worker";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 import { typeScriptAdapter } from "./typescript";
@@ -30,13 +33,13 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
 }
 
-const ADAPTERS: Partial<Record<CodeLanguage, CodeLanguageAdapter>> = {
+Object.assign(codeAdapters, {
   typescript: typeScriptAdapter,
   swift: createScannerWorkerAdapter("swift", (_projectRoot) =>
     resolveScannerWorkerCommand("swift"),
   ),
   dart: createScannerWorkerAdapter("dart", (_projectRoot) => resolveScannerWorkerCommand("dart")),
-};
+});
 
 const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
 
@@ -46,7 +49,7 @@ type ScannerWorkerCommandResolution =
   | { ok: true; command: string[] }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
-export type ScannerWorkerResolutionOptions = {
+type ScannerWorkerResolutionOptions = {
   platformKey?: string;
   sourceRoot?: string;
   distRoot?: string;
@@ -108,14 +111,14 @@ export function resolveScannerWorkerCommand(
 
 /** The registered adapter for a language, or `undefined` when none exists yet. */
 export function getCodeAdapter(language: CodeLanguage): CodeLanguageAdapter | undefined {
-  return ADAPTERS[language];
+  return codeAdapters[language];
 }
 
-export type ScannerWorkerCommandFactory = (
+type ScannerWorkerCommandFactory = (
   projectRoot: string,
 ) => string[] | ScannerWorkerCommandResolution;
 
-export type ScannerWorkerAdapterOptions = {
+type ScannerWorkerAdapterOptions = {
   requestId?: () => string;
   run?: ScannerWorkerRun;
 };
@@ -159,21 +162,6 @@ export function createScannerWorkerAdapter(
   };
 }
 
-export function setCodeAdapterForTest(
-  language: CodeLanguage,
-  adapter: CodeLanguageAdapter,
-): () => void {
-  const previous = ADAPTERS[language];
-  ADAPTERS[language] = adapter;
-  return () => {
-    if (previous === undefined) {
-      delete ADAPTERS[language];
-    } else {
-      ADAPTERS[language] = previous;
-    }
-  };
-}
-
 export type CollectedCodeFile = {
   language: CodeLanguage;
   relPath: string;
@@ -209,21 +197,11 @@ export function collectCodeFiles(
   return collected;
 }
 
-function comparePaths(left: string, right: string): number {
-  if (left < right) {
-    return -1;
-  }
-  if (left > right) {
-    return 1;
-  }
-  return 0;
-}
-
 export type CodeFileRead =
   | { ok: true; content: string }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
-export type ScanCodeFilesResult = {
+type ScanCodeFilesResult = {
   codeFiles: CodeScanResult[];
   diagnostics: DocBridgeDiagnostic[];
 };
@@ -398,10 +376,6 @@ function isExecutableByThisProcess(path: string): boolean {
 
 function formatMode(mode: number): string {
   return `0${(mode & 0o7777).toString(8).padStart(3, "0")}`;
-}
-
-function reasonOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function isSupportedScannerPlatformKey(platformKey: string): boolean {

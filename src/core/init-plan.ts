@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,7 +16,7 @@ export type InitSharedOptions = {
   agentTarget: AgentTarget | undefined;
 };
 
-export type FileOpAction = "create" | "skip" | "overwrite" | "would-create" | "would-overwrite";
+type FileOpAction = "create" | "skip" | "overwrite" | "would-create" | "would-overwrite";
 
 export type PlannedFileOp = {
   action: FileOpAction;
@@ -25,7 +25,7 @@ export type PlannedFileOp = {
   reason?: string;
 };
 
-export type AgentGuidance = {
+type AgentGuidance = {
   agent: "codex" | "claude";
   destination: string;
   oneShotCommand: string;
@@ -537,39 +537,4 @@ function formatFileOp(operation: PlannedFileOp): string {
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-export function collectSkillTemplateFiles(packageRoot: string, skillName: string): string[] {
-  const skillRoot = join(packageRoot, "templates", "skills", skillName);
-  const files: string[] = [];
-  walkSkillTree(skillRoot, skillRoot, files);
-  return files.toSorted();
-}
-
-function walkSkillTree(root: string, currentDir: string, files: string[]): void {
-  let entries: string[];
-  try {
-    entries = readdirSync(currentDir);
-  } catch {
-    return;
-  }
-
-  for (const entry of entries) {
-    const absolutePath = join(currentDir, entry);
-    let stats;
-    try {
-      stats = statSync(absolutePath);
-    } catch {
-      continue;
-    }
-
-    if (stats.isDirectory()) {
-      walkSkillTree(root, absolutePath, files);
-      continue;
-    }
-
-    if (stats.isFile()) {
-      files.push(relative(root, absolutePath));
-    }
-  }
 }

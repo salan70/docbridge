@@ -1,0 +1,10 @@
+/** Compare project-relative paths using their stable bytewise order. */
+export function comparePaths(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}

@@ -4,7 +4,7 @@ import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./cod
 import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeSymbolEndpoint,
-  DocLinkAnnotation,
+  LinkAnnotation,
   Range,
   SourceLocation,
   DocBridgeDiagnostic,
@@ -82,7 +82,7 @@ export function scanTypeScript(
   const diagnostics: DocBridgeDiagnostic[] = [];
   const symbols: CodeSymbolEndpoint[] = [];
   const undocumentedSymbols: CodeSymbolEndpoint[] = [];
-  const links: DocLinkAnnotation[] = [];
+  const links: LinkAnnotation[] = [];
 
   // Collect every supported, top-level exported declaration in source order.
   // Unsupported declarations are diagnosed (when annotated) but not recorded.
@@ -182,8 +182,7 @@ export function scanTypeScript(
       }
       linkTargetsSeen.add(docTag.rawTarget);
 
-      const link: DocLinkAnnotation = {
-        direction: "code-to-doc",
+      const link: LinkAnnotation = {
         source: endpoint,
         target: docTag.rawTarget,
         location: docTag.location,

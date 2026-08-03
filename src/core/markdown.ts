@@ -1,6 +1,7 @@
 import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
+import { fenceMarkerOf, isFenceClose, matchAtxHeading, type FenceMarker } from "./markdown-syntax";
 import type {
-  CodeLinkAnnotation,
+  LinkAnnotation,
   DocAnchorEndpoint,
   DocHeadingOutline,
   Range,
@@ -17,7 +18,7 @@ export type MarkdownScanResult = {
    * than `anchors`, which cannot express a section closed by an empty heading.
    */
   headings: DocHeadingOutline[];
-  links: CodeLinkAnnotation[];
+  links: LinkAnnotation[];
   diagnostics: DocBridgeDiagnostic[];
 };
 
@@ -27,8 +28,6 @@ type PendingComment = {
   targetRange?: Range;
 };
 
-const atxHeadingPattern = /^(?<indent> {0,3})(?<hashes>#{1,6})(?:(?<gap>[ \t]+)(?<rest>.*))?$/;
-const fenceOpenPattern = /^ {0,3}(?:`{3,}|~{3,})/;
 const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
 
 /**
@@ -43,13 +42,13 @@ const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
 export function scanMarkdown(filePath: string, content: string): MarkdownScanResult {
   const anchors: DocAnchorEndpoint[] = [];
   const headings: DocHeadingOutline[] = [];
-  const links: CodeLinkAnnotation[] = [];
+  const links: LinkAnnotation[] = [];
   const diagnostics: DocBridgeDiagnostic[] = [];
 
   const seenAnchors = new Set<string>();
   let pending: PendingComment[] = [];
   let inFence = false;
-  let fenceMarker: "`" | "~" | null = null;
+  let fenceMarker: FenceMarker | null = null;
 
   const lines = content.split("\n");
 
@@ -66,9 +65,10 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
       continue;
     }
 
-    if (fenceOpenPattern.test(line)) {
+    const openingFence = fenceMarkerOf(line);
+    if (openingFence !== null) {
       inFence = true;
-      fenceMarker = line.trimStart().startsWith("`") ? "`" : "~";
+      fenceMarker = openingFence;
       continue;
     }
 
@@ -137,15 +137,12 @@ type HeadingMatch = {
 };
 
 function matchHeading(line: string, filePath: string, lineNumber: number): HeadingMatch | null {
-  const match = atxHeadingPattern.exec(line);
-  if (match?.groups === undefined) {
+  const match = matchAtxHeading(line);
+  if (match === null) {
     return null;
   }
 
-  const indent = match.groups.indent ?? "";
-  const hashes = match.groups.hashes ?? "";
-  const gap = match.groups.gap ?? "";
-  const rest = match.groups.rest ?? "";
+  const { indent, hashes, gap, rest } = match;
   const headingText = stripClosingHashes(rest).trim();
   const anchor = toAnchor(headingText);
 
@@ -234,20 +231,10 @@ function indentWidth(line: string): number {
   return match ? match[0].length : 0;
 }
 
-function isFenceClose(line: string, marker: "`" | "~" | null): boolean {
-  if (marker === "`") {
-    return /^ {0,3}`{3,}\s*$/.test(line);
-  }
-  if (marker === "~") {
-    return /^ {0,3}~{3,}\s*$/.test(line);
-  }
-  return false;
-}
-
 function attachHeading(
   heading: HeadingMatch,
   anchors: DocAnchorEndpoint[],
-  links: CodeLinkAnnotation[],
+  links: LinkAnnotation[],
   diagnostics: DocBridgeDiagnostic[],
   seenAnchors: Set<string>,
   pending: PendingComment[],
@@ -311,8 +298,7 @@ function attachHeading(
       seenLinkTargets.add(target);
     }
 
-    const link: CodeLinkAnnotation = {
-      direction: "doc-to-code",
+    const link: LinkAnnotation = {
       source: endpoint,
       target,
       location: comment.location,

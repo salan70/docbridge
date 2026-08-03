@@ -2,8 +2,8 @@ import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { pluralize, sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
+import { filePathOf } from "./endpoint";
 import { collectFiles, readManagedFile } from "./glob";
-import { parseLinkTarget } from "./links";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import type {
   CheckResult,
@@ -13,7 +13,7 @@ import type {
   DocBridgeDiagnostic,
 } from "./types";
 
-export type ResolveInput = {
+type ResolveInput = {
   /** One per scanned code file, including files that hit a parse error. */
   codeFiles: CodeScanResult[];
   /** One per scanned `.md` file. */
@@ -185,7 +185,7 @@ export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
   return diagnostics;
 }
 
-export type CheckOptions = {
+type CheckOptions = {
   projectRoot: string;
   audit?: boolean;
 };
@@ -419,17 +419,6 @@ function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean
 
 function pairKey(source: string, target: string): string {
   return `${source}->${target}`;
-}
-
-function filePathOf(endpoint: string): string {
-  // Endpoints are produced by parseLinkTarget-validated `file#fragment` forms,
-  // so they contain exactly one `#`. Split on the first to be defensive.
-  const parsed = parseLinkTarget(endpoint);
-  if (parsed.ok) {
-    return parsed.target.filePath;
-  }
-  const hashIndex = endpoint.indexOf("#");
-  return hashIndex === -1 ? endpoint : endpoint.slice(0, hashIndex);
 }
 
 function relationshipDiagnostic(

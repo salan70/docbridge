@@ -7,7 +7,7 @@ export type ParseLinkTargetOptions = {
   targetRange?: Range;
 };
 
-export type ParseLinkTargetResult =
+type ParseLinkTargetResult =
   | {
       ok: true;
       target: LinkTarget;

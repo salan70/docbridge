@@ -139,7 +139,6 @@ public final class Scanner {
         seenTargets.insert(docTarget.target)
         links.append(
           DocLink(
-            direction: "code-to-doc",
             source: symbol.endpoint,
             target: docTarget.target,
             location: SourceLocation(

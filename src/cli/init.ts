@@ -152,11 +152,7 @@ export function createDefaultPrompts(isInteractive = process.stdin.isTTY): InitP
  * @doc docs/specs/cli.md#init-command
  * @doc docs/user/getting-started.md#set-up-a-project
  */
-export function runInit(
-  options: InitSharedOptions,
-  io: CliIo,
-  runtime: InitRuntime = { prompts: createDefaultPrompts(false) },
-): number {
+export function runInit(options: InitSharedOptions, io: CliIo, runtime: InitRuntime): number {
   return runInitCommand("init", options, io, runtime);
 }
 
@@ -169,7 +165,7 @@ export function runInit(
 export function runInitWithAgent(
   options: InitSharedOptions,
   io: CliIo,
-  runtime: InitRuntime = { prompts: createDefaultPrompts(false) },
+  runtime: InitRuntime,
 ): number {
   return runInitCommand("init-with-agent", options, io, runtime);
 }

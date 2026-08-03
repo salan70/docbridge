@@ -7,14 +7,13 @@
  * ends a section.
  */
 
+import { fenceMarkerOf, headingLevel, isFenceClose, type FenceMarker } from "./markdown-syntax";
+
 /** Loose section length cap for hover surfaces, in characters. */
 export const MAX_SECTION_LENGTH = 2000;
 
 /** Continuation marker appended when a section is truncated by the length cap. */
 const TRUNCATION_MARKER = "\n\n…";
-
-const atxHeadingPattern = /^ {0,3}(#{1,6})(?:[ \t]+.*)?$/;
-const fenceOpenPattern = /^ {0,3}(?:`{3,}|~{3,})/;
 
 /**
  * Extract the Markdown section beginning at the 1-based `headingLine`. Returns
@@ -44,7 +43,7 @@ export function extractDocSection(content: string, headingLine: number): string 
   const collected: string[] = [startLine];
 
   let inFence = false;
-  let fenceMarker: "`" | "~" | null = null;
+  let fenceMarker: FenceMarker | null = null;
 
   for (let index = startIndex + 1; index < lines.length; index += 1) {
     const line = lines[index] ?? "";
@@ -58,9 +57,10 @@ export function extractDocSection(content: string, headingLine: number): string 
       continue;
     }
 
-    if (fenceOpenPattern.test(line)) {
+    const openingFence = fenceMarkerOf(line);
+    if (openingFence !== null) {
       inFence = true;
-      fenceMarker = line.trimStart().startsWith("`") ? "`" : "~";
+      fenceMarker = openingFence;
       collected.push(line);
       continue;
     }
@@ -87,15 +87,6 @@ export function capSectionLength(text: string): string {
   return text.slice(0, MAX_SECTION_LENGTH) + TRUNCATION_MARKER;
 }
 
-/** Return the ATX heading level (1–6) for a line, or `null` when not a heading. */
-function headingLevel(line: string): number | null {
-  const match = atxHeadingPattern.exec(line);
-  if (match === null) {
-    return null;
-  }
-  return (match[1] ?? "").length;
-}
-
 /**
  * Decide whether a heading at `level` ends a section started at `startLevel`.
  *
@@ -107,17 +98,6 @@ function terminatesSection(startLevel: number | null, level: number): boolean {
     return true;
   }
   return level <= startLevel;
-}
-
-/** Match the fence-close rule used by `src/core/markdown.ts`. */
-function isFenceClose(line: string, marker: "`" | "~" | null): boolean {
-  if (marker === "`") {
-    return /^ {0,3}`{3,}\s*$/.test(line);
-  }
-  if (marker === "~") {
-    return /^ {0,3}~{3,}\s*$/.test(line);
-  }
-  return false;
 }
 
 /** Drop trailing blank (whitespace-only) lines from a collected section. */

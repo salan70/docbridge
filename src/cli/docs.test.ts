@@ -11,30 +11,7 @@ import {
 } from "./docs";
 import { CliError } from "./errors";
 import { run } from "./index";
-
-function capture(): {
-  out: string;
-  err: string;
-  io: { stdout: (text: string) => void; stderr: (text: string) => void };
-} {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text) => {
-        state.out += text;
-      },
-      stderr: (text) => {
-        state.err += text;
-      },
-    },
-  };
-}
+import { capture } from "./test-support";
 
 function withUserDocs(
   files: Record<string, string>,

@@ -24,9 +24,9 @@ import {
   resolveScannerWorkerCommand,
   scanCodeFiles,
   scannerRootsFromModuleUrl,
-  setCodeAdapterForTest,
   type CodeInclude,
 } from "./code-language";
+import { setCodeAdapterForTest } from "./code-language.test-support";
 import { readManagedFile } from "./glob";
 import { check } from "./resolver";
 import type { ScannerWorkerProcessResult } from "./scanner-worker";
@@ -437,7 +437,6 @@ test("check resolves links from a worker-backed language scan", () => {
                   undocumentedSymbols: [],
                   links: [
                     {
-                      direction: "code-to-doc",
                       source: "Sources/Auth.swift#AuthService",
                       target: "docs/auth.md#auth-service",
                       location: {

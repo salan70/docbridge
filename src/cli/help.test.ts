@@ -3,32 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { run } from "./index";
-
-type Captured = {
-  out: string;
-  err: string;
-  io: { stdout: (text: string) => void; stderr: (text: string) => void };
-};
-
-function capture(): Captured {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text: string) => {
-        state.out += text;
-      },
-      stderr: (text: string) => {
-        state.err += text;
-      },
-    },
-  };
-}
+import { capture } from "./test-support";
 
 const COMMANDS = [
   "check",

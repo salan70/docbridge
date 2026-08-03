@@ -27,7 +27,6 @@ test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
   ]);
   expect(result.links).toMatchObject([
     {
-      direction: "doc-to-code",
       source: "docs/auth.md#login-spec",
       target: "src/auth/login.ts#login",
       location: { filePath: "docs/auth.md", line: 1, column: 1 },
@@ -145,7 +144,6 @@ test("scanMarkdown takes only the first token after @code as the target", () => 
   const result = scanMarkdown("docs/a.md", content);
   expect(result.links).toMatchObject([
     {
-      direction: "doc-to-code",
       source: "docs/a.md#heading",
       target: "src/a.ts#foo",
       location: { filePath: "docs/a.md", line: 1, column: 1 },
@@ -168,13 +166,11 @@ test("scanMarkdown attaches multiple @code comments to one heading", () => {
 
   expect(result.links).toMatchObject([
     {
-      direction: "doc-to-code",
       source: "docs/a.md#heading",
       target: "src/a.ts#foo",
       location: { filePath: "docs/a.md", line: 1, column: 1 },
     },
     {
-      direction: "doc-to-code",
       source: "docs/a.md#heading",
       target: "src/b.ts#bar",
       location: { filePath: "docs/a.md", line: 2, column: 1 },

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { CodeSymbolEndpoint, DocLinkAnnotation } from "./types";
+import type { CodeSymbolEndpoint, LinkAnnotation } from "./types";
 import { scanTypeScript } from "./typescript";
 
 const FILE = "src/auth/login.ts";
@@ -68,13 +68,12 @@ describe("scanTypeScript", () => {
         expect(result.symbols).toMatchObject([expectedSymbol]);
         expect(result.language).toBe("typescript");
 
-        const expectedLink: DocLinkAnnotation = {
-          direction: "code-to-doc",
+        const expectedLink: LinkAnnotation = {
           source: `${FILE}#${symbolName}`,
           target: "docs/auth.md#login-spec",
           location: expect.objectContaining({
             filePath: FILE,
-          }) as unknown as DocLinkAnnotation["location"],
+          }) as unknown as LinkAnnotation["location"],
         };
 
         expect(result.links).toMatchObject([expectedLink]);
@@ -303,7 +302,6 @@ describe("scanTypeScript", () => {
     ]);
     expect(result.links).toMatchObject([
       {
-        direction: "code-to-doc",
         source: "src/auth/login.ts#login",
         target: "docs/auth.md#login-spec",
         location: { filePath: "src/auth/login.ts", line: 4, column: 1 },
