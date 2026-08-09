@@ -1,6 +1,6 @@
 ---
 name: docbridge-sync
-description: Triage DocBridge related-gate findings — linked counterparts of changed files that were not themselves updated. Use when a Stop-hook message, CI comment, or docbridge related --gate run flags unchanged counterparts, to judge divergence with docbridge context and then update or justify each one.
+description: Triage DocBridge related-gate findings — linked counterparts of changed files that were not themselves updated. Use when a Git hook, CI comment, or docbridge related --gate run flags unchanged counterparts, to judge divergence with docbridge context and then update or justify each one.
 ---
 
 # docbridge-sync
@@ -16,8 +16,8 @@ repo recipe such as `just related-gate`, or
 
 ## Procedure
 
-1. **Collect the violations.** Use the gate report you were given (Stop-hook
-   message, CI comment), or produce one over the change set:
+1. **Collect the violations.** Use the gate report you were given (a Git
+   hook's output, a CI comment), or produce one over the change set:
 
    ```sh
    git diff --name-only HEAD | docbridge related --stdin --gate

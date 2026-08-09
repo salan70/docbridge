@@ -16,8 +16,8 @@ nothing unless your DocBridge invocation differs from the examples inside.
   then update the counterpart or justify leaving it unchanged.
 - [`docbridge-adopt`](docbridge-adopt/SKILL.md) — adopt DocBridge in an existing
   TypeScript, Swift, or Dart project by confirming docs/code scope, creating
-  or improving config, installing companion skills, and handling simple CI/hook
-  setup.
+  or improving config, installing companion skills, and handling simple CI or
+  Git-hook setup.
 - [`docbridge-link`](docbridge-link/SKILL.md) — link existing docs sections to
   existing supported code declarations through docs-first candidate discovery
   and section-level confirmation.
@@ -30,6 +30,5 @@ directory. The template is the source of truth; do not edit the symlinked
 copies in place. In-repository dogfood links require symlink-capable checkouts;
 external projects should use the copy-based installation above.
 
-The hook-side integration that complements these skills lives in
-[`examples/hooks/`](../../examples/hooks/) with recipes under
-[`docs/integrations/`](../../docs/integrations/).
+The Git-hook and CI integration that complements these skills is described
+under [`docs/integrations/`](../../docs/integrations/).

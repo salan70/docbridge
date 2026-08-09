@@ -311,18 +311,17 @@ before checking those languages. Run `just build-swift-scanner` for Swift and
 DocBridge's link graph is built to be consumed by AI coding agents:
 
 - [docs/integrations](docs/integrations) — recipes for Claude Code, Codex,
-  and CI: on-edit counterpart awareness with `docbridge context`, gate triage
-  with `docbridge related --gate`, and PR reporting.
-- [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
-  those recipes.
+  and CI: gate triage with `docbridge related --gate`, counterpart content with
+  `docbridge context`, and PR reporting.
 - [templates/skills](templates/skills) — distributable agent skills installed by
   `docbridge init`; `docbridge init-with-agent` installs `docbridge-adopt`
   alone, then `docbridge-adopt` installs the companion skills:
   `docbridge-annotate`, `docbridge-link`, `docbridge-review`, and
   `docbridge-sync`.
 
-This repository dogfoods the hooks and skills in its own guardrails under
-`.claude/`, `.codex/`, and `.agents/`.
+This repository dogfoods the skills under `.claude/` and `.agents/`, and keeps
+its guardrail in the Git `pre-commit` hook under `.githooks/` rather than in
+any agent's configuration.
 
 ## Editor support
 

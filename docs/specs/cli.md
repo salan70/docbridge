@@ -266,11 +266,11 @@ unchanged linked doc is a violation, and a changed doc with an unchanged
 linked code file is one too.
 
 A violation does not necessarily mean the counterpart must change; it means
-nobody has decided yet. The intended consumer is a guardrail (an agent Stop
-hook or a CI step) that asks the author to either update the counterpart or
-explicitly justify leaving it unchanged. Deciding what counts as the change
-set (staged files, working tree, PR diff) remains the caller's concern, the
-same as in the default mode.
+nobody has decided yet. The intended consumer is a guardrail (a Git hook or a
+CI step) that asks the author to either update the counterpart or explicitly
+justify leaving it unchanged. Deciding what counts as the change set (staged
+files, working tree, PR diff) remains the caller's concern, the same as in the
+default mode.
 
 Human-readable output prints one line per violation, then the summary line,
 which is always printed:
@@ -375,13 +375,14 @@ not by themselves make `graph` exit non-zero.
 
 The context command prints the _content_ of the counterparts linked from a set
 of input files: where `related` answers "which files are linked", `context`
-answers "what do they say". Its primary consumer is an agent hook that injects
-the linked specification (or the linked code) into the agent's context before
-it edits a file, so the default output is Markdown suitable for direct
-injection. It takes the same input forms as `related`:
+answers "what do they say". Its primary consumers are a Git hook, a CI step, or
+a direct invocation that needs the linked specification (or the linked code)
+alongside a change, so the default output is Markdown suitable for direct
+injection into a report or an agent's context. It takes the same input forms as
+`related`:
 
 ```sh
-# before editing a file
+# a single file
 docbridge context src/auth/login.ts
 
 # uncommitted changes

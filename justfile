@@ -23,8 +23,13 @@ format:
     bun run oxfmt .
     swift format format --configuration .swift-format --in-place --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
     dart format packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
-    git ls-files -z '*.sh' | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
+    just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
+
+# Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
+[private]
+shell-sources:
+    @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
 format-check: format-check-ox format-check-swift format-check-dart format-check-shell format-check-nix
@@ -40,7 +45,7 @@ format-check-dart:
     dart format --output=none --set-exit-if-changed packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
 
 format-check-shell:
-    git ls-files -z '*.sh' | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
+    just shell-sources | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
 
 format-check-nix:
     nixfmt --check flake.nix
@@ -60,7 +65,7 @@ lint-dart:
     cd packages/dart-scanner && dart analyze --fatal-infos --fatal-warnings
 
 lint-shell:
-    git ls-files -z '*.sh' | xargs -0 shellcheck --severity=style
+    just shell-sources | xargs -0 shellcheck --severity=style
 
 lint-nix:
     statix check flake.nix
@@ -73,7 +78,7 @@ lint-actions:
 lint-fix:
     bun run oxlint . --fix --deny-warnings
 
-# Offline, read-only common gate for local hooks and AI-agent Stop hooks.
+# Offline, read-only common gate shared by the pre-commit hook and CI.
 verify: format-check lint check typecheck test
 
 check:
@@ -102,6 +107,15 @@ check-fixture code:
 # List counterparts of uncommitted changes that are themselves unchanged; exit 1 if any.
 related-gate:
     { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | bun run src/cli/index.ts related --stdin --gate
+
+# Same verdict over the staged change set only, which is what `pre-commit` gates on.
+related-gate-staged:
+    git diff --cached --name-only | bun run src/cli/index.ts related --stdin --gate
+
+# Report the staged change set's gate violations with the flagged counterparts'
+# content on stderr. Always exits 0; the pre-commit hook uses it as awareness.
+related-gate-report:
+    git diff --cached --name-only | bun run scripts/related-gate-report.ts
 
 # Print the linked counterpart content of the uncommitted changes.
 context:

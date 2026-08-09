@@ -235,7 +235,7 @@ test("run docs list emits valid JSON for every packaged document", () => {
     documents: [
       {
         name: "agent-integration",
-        description: "Wire DocBridge into coding agents, hooks, and CI.",
+        description: "Wire DocBridge into coding agents, Git hooks, and CI.",
       },
       {
         name: "annotations",

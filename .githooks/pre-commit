@@ -14,3 +14,14 @@ run_just() {
 
 echo "Running pre-commit guard: just verify"
 run_just verify
+
+# Awareness, not a verdict: list the staged changes' linked counterparts that
+# were not staged, with their content, then let the commit proceed. Judgment
+# about counterparts belongs to the pull request, where CI re-runs the gate over
+# the whole change set and a human approves the merge.
+echo "Reporting DocBridge related-gate over the staged files"
+gate_status=0
+run_just related-gate-report || gate_status=$?
+if [[ "$gate_status" -ne 0 ]]; then
+  echo "pre-commit: the related-gate report failed (exit $gate_status); continuing." >&2
+fi

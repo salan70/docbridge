@@ -86,7 +86,7 @@ export function computeRelated(graph: LinkGraph, changedFiles: string[]): Relate
   };
 }
 
-type RelatedGateViolation = {
+export type RelatedGateViolation = {
   changedEndpoint: string;
   changedFilePath: string;
   counterpartEndpoint: string;

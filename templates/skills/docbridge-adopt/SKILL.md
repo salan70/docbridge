@@ -1,6 +1,6 @@
 ---
 name: docbridge-adopt
-description: Adopt DocBridge in an existing TypeScript, Swift, or Dart project. Use when asked to introduce DocBridge into a repository, choose docs/code scope, create or improve docbridge.config.json, and optionally wire simple CI or agent hooks.
+description: Adopt DocBridge in an existing TypeScript, Swift, or Dart project. Use when asked to introduce DocBridge into a repository, choose docs/code scope, create or improve docbridge.config.json, and optionally wire simple CI or Git hooks.
 ---
 
 # docbridge-adopt
@@ -24,7 +24,7 @@ repo recipe such as `just check`, or
    - Markdown docs structure and likely specification directories
    - TypeScript, Swift, or Dart source structure and public API locations
    - existing `@doc` / `@code` annotations
-   - package scripts, CI files, git hooks, and agent hooks
+   - package scripts, CI files, and Git hooks
 
 2. **Recommend scope, then ask for confirmation.** Present concise options and
    your recommendation for:
@@ -32,7 +32,7 @@ repo recipe such as `just check`, or
      contracts, behavior, constraints, or design decisions
    - code scope: language-keyed TypeScript, Swift, or Dart directories/files
      whose supported declarations should be linkable
-   - CI/hook mode: if any integration should be added now
+   - CI/Git-hook mode: if any integration should be added now
 
    Do not ask the user to rediscover obvious facts from the repository. Show
    your recommendation and the tradeoff, then wait for confirmation.
@@ -65,7 +65,7 @@ repo recipe such as `just check`, or
      copy target paths from `templates/skills/docbridge-*` instead of silently
      skipping this step.
 
-5. **Handle CI/hooks conservatively.**
+5. **Handle CI and Git hooks conservatively.**
    - If the existing setup is simple and the user confirmed the mode, implement
      it.
    - If the setup is complex or ambiguous, provide a concrete patch plan or

@@ -9,7 +9,7 @@ import { sliceSourceRange } from "./source-range";
 import type { EndpointKind, DocBridgeDiagnostic } from "./types";
 import type { CodeLanguage } from "./types";
 
-type ContextBlock = {
+export type ContextBlock = {
   endpoint: string;
   kind: EndpointKind;
   filePath: string;
@@ -138,7 +138,7 @@ export function context(options: ContextOptions): ContextOutcome {
  * the CLI reports them on stderr.
  */
 export function formatContextResult(result: ContextResult): string {
-  const blocks = result.contexts.map(renderBlock);
+  const blocks = result.contexts.map(renderContextBlock);
   const summary = formatContextSummary(result.summary);
   if (blocks.length === 0) {
     return summary;
@@ -146,7 +146,12 @@ export function formatContextResult(result: ContextResult): string {
   return `${blocks.join("\n\n---\n\n")}\n\n${summary}`;
 }
 
-function renderBlock(block: ContextBlock): string {
+/**
+ * Render one context block: the `endpoint (linked from …)` header, then the
+ * content — raw for doc sections, fenced with the code language for code
+ * declarations.
+ */
+export function renderContextBlock(block: ContextBlock): string {
   const header = `${block.endpoint} (linked from ${block.linkedFrom.join(", ")})`;
   if (block.kind !== "code") {
     return `${header}\n\n${block.content}`;

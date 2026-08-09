@@ -70,6 +70,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `signatureRange` already ends where the implementation body begins in every
   language, so no body has to be cut out of it.
 
+### Removed
+
+- The agent-hook integration is gone from the product surface: the copyable
+  scripts under `examples/hooks/` and the hook recipes in
+  `docs/integrations/claude-code.md` and `docs/integrations/codex.md` no longer
+  ship. Wiring DocBridge into an agent's `PostToolUse`/`Stop` hooks covered only
+  the agents that read those configuration files; the documented guardrail is
+  now a Git `pre-commit` hook, which applies to every contributor and every
+  tool. Both integration documents survive as skill-installation guides,
+  `docbridge context` and `docbridge related --gate` are unchanged, and
+  `docbridge docs show agent-integration` describes the Git-hook shape instead.
+  Copies already installed in adopters' repositories keep working.
+
 ## [0.6.1] - 2026-07-27
 
 ### Changed

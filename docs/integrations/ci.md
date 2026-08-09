@@ -3,10 +3,11 @@
 How to run the DocBridge gate in CI so the pull request — not the agent
 session — is the enforcement point for linked counterparts.
 
-The local agent hooks ([Claude Code](claude-code.md), [Codex](codex.md)) are
-informational by design: they raise awareness during a session but never
-block. CI re-runs the same gate over the whole PR change set, and the human
-merge approval enforces the outcome.
+A local Git `pre-commit` hook (see
+[agent integration](../user/agent-integration.md)) is informational by design:
+it raises awareness while the work is in progress but never blocks, and it sees
+only one commit's staged files. CI re-runs the same gate over the whole PR
+change set, and the human merge approval enforces the outcome.
 
 ## Validate the link graph
 
@@ -261,9 +262,8 @@ Filter the `contexts` array to the endpoints reported as gate violations
 (`related --gate --json`, field `counterpartEndpoint`) and append each block's
 `content` to the comment body. The JSON shape is specified by
 [`schemas/context-output.schema.json`](../../schemas/context-output.schema.json);
-the Stop-hook script in
-[`examples/hooks/claude-stop-related-gate.sh`](../../examples/hooks/claude-stop-related-gate.sh)
-shows the same filtering in ~20 lines of Bun.
+[`scripts/related-gate-report.ts`](../../scripts/related-gate-report.ts) shows
+the same filtering as the DocBridge repository's own `pre-commit` report.
 
 ## Exit-code summary
 
