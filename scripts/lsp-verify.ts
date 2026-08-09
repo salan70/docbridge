@@ -81,7 +81,7 @@ function check(name: string, ok: boolean, detail = "") {
 const serverTs = readFileSync(resolve(root, "src/lsp/server.ts"), "utf8");
 const lines = serverTs.split("\n");
 const line = lines.findIndex((l) => l.includes("export class Server"));
-const character = lines[line].indexOf("Server") + 2;
+const character = (lines[line] ?? "").indexOf("Server") + 2;
 const pos = { line, character };
 
 await request("initialize", { rootUri: `file://${root}` });
@@ -97,7 +97,7 @@ const hover = await request<{ contents?: { value?: string } } | null>("textDocum
 check(
   "hover",
   typeof hover?.contents?.value === "string" && hover.contents.value.includes("Lifecycle"),
-  hover ? `returned ${hover.contents.value.length} chars` : "null",
+  hover ? `returned ${hover.contents?.value?.length ?? 0} chars` : "null",
 );
 
 // 2. Definition on the same symbol → jumps into docs/specs/lsp.md.
@@ -109,7 +109,7 @@ const defLoc = Array.isArray(def) ? def[0] : def;
 check(
   "definition",
   !!defLoc?.uri?.endsWith("docs/specs/lsp.md"),
-  defLoc ? defLoc.uri.replace(`file://${root}/`, "") : "null",
+  defLoc?.uri ? defLoc.uri.replace(`file://${root}/`, "") : "null",
 );
 
 // 3. References → counterpart set including both code and doc.
