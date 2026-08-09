@@ -3,10 +3,11 @@
 How to run the DocBridge gate in CI so the pull request — not the agent
 session — is the enforcement point for linked counterparts.
 
-The local agent hooks ([Claude Code](claude-code.md), [Codex](codex.md)) are
-informational by design: they raise awareness during a session but never
-block. CI re-runs the same gate over the whole PR change set, and the human
-merge approval enforces the outcome.
+A local Git `pre-commit` hook (see
+[agent integration](../user/agent-integration.md)) is informational by design:
+it raises awareness while the work is in progress but never blocks, and it sees
+only one commit's staged files. CI re-runs the same gate over the whole PR
+change set, and the human merge approval enforces the outcome.
 
 ## Validate the link graph
 
