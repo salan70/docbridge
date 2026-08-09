@@ -297,10 +297,8 @@ DocBridge のリンクグラフは、AI コーディングエージェントか�
 設計されています。
 
 - [../integrations](../integrations) — Claude Code、Codex、CI 向けのレシピ:
-  `docbridge context` による編集時のカウンターパート把握、`docbridge related --gate`
-  によるゲートのトリアージ、PR へのレポート。
-- [../../examples/hooks](../../examples/hooks) — レシピを実装した、コピーして使える
-  エージェントフックスクリプト。
+  `docbridge related --gate` によるゲートのトリアージ、`docbridge context` による
+  カウンターパートの内容取得、PR へのレポート。
 - [../../templates/skills](../../templates/skills) — `docbridge init` が
   インストールする配布用エージェントスキル。`docbridge init-with-agent` は
   `docbridge-adopt` のみをインストールし、`docbridge-adopt` が残りの
@@ -308,8 +306,9 @@ DocBridge のリンクグラフは、AI コーディングエージェントか�
   `docbridge-annotate`、`docbridge-link`、`docbridge-review`、
   `docbridge-sync`。
 
-このリポジトリ自身も、`.claude/`、`.codex/`、`.agents/` のガードレールで
-これらをドッグフーディングしています。
+このリポジトリ自身も `.claude/` と `.agents/` でこれらのスキルをドッグフーディング
+しており、ガードレールはエージェントの設定ではなく `.githooks/` の Git `pre-commit`
+フックに置いています。
 
 ## エディタ対応
 

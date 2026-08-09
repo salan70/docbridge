@@ -1,5 +1,5 @@
 ---
-description: Wire DocBridge into coding agents, hooks, and CI.
+description: Wire DocBridge into coding agents, Git hooks, and CI.
 ---
 
 # Agent Integration
@@ -41,10 +41,26 @@ no documentation or code change is necessary.
 
 ## Hooks
 
-Agent hooks are advisory automation around the same commands. An edit hook can
-run `context` to surface linked content. A stop hook can run `check`, then
-`related --gate` over changed files. Hooks must not silently rewrite files or
-replace the repository's mandatory checks.
+Put the automation in Git hooks rather than in one agent's configuration, so
+it covers every contributor and every tool. A `pre-commit` hook can run
+`docbridge check` as a hard gate, then report `related --gate` over the staged
+files:
+
+```sh
+git diff --cached --name-only | docbridge related --stdin --gate
+```
+
+When an agent runs `git commit` through a shell, the hook's output lands in the
+tool result and therefore in the agent's context, so the counterpart findings
+reach it without any agent-specific wiring. Attach the counterparts' content
+with `docbridge context --stdin` to make the finding actionable in place.
+
+Keep the gate stage non-blocking while the link graph is still sparse: a
+blocking gate on a staged subset mostly trains `--no-verify`. Hooks must not
+silently rewrite files or replace the repository's mandatory checks.
+
+Git hooks cannot signal before an edit, and they are skipped by `--no-verify`
+and by some GUI clients, so the pull request stays the enforcement point.
 
 ## CI
 

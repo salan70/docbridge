@@ -261,9 +261,8 @@ Filter the `contexts` array to the endpoints reported as gate violations
 (`related --gate --json`, field `counterpartEndpoint`) and append each block's
 `content` to the comment body. The JSON shape is specified by
 [`schemas/context-output.schema.json`](../../schemas/context-output.schema.json);
-the Stop-hook script in
-[`examples/hooks/claude-stop-related-gate.sh`](../../examples/hooks/claude-stop-related-gate.sh)
-shows the same filtering in ~20 lines of Bun.
+[`scripts/related-gate-report.ts`](../../scripts/related-gate-report.ts) shows
+the same filtering as the DocBridge repository's own `pre-commit` report.
 
 ## Exit-code summary
 

@@ -1,93 +1,12 @@
 # Claude Code integration
 
-How to wire DocBridge into [Claude Code](https://claude.com/claude-code) so the
-agent reconciles its edits against the linked specification and triages
-unchanged counterparts before finishing a turn.
+How to give [Claude Code](https://claude.com/claude-code) DocBridge's link data
+through the distributable skills.
 
-Both recipes consume the DocBridge CLI. If `docbridge` is not on `PATH`, the
-example scripts accept a `DOCBRIDGE_CMD` override, for example
-`DOCBRIDGE_CMD="bun run /path/to/docbridge/src/cli/index.ts"`.
-
-## On-edit counterpart awareness
-
-Goal: when Claude Code edits a managed code or Markdown file, surface the
-content of the file's linked counterparts so the agent reconciles the edit
-against the relevant specification (or the linked code) without extra file
-discovery.
-
-This is a `PostToolUse` hook, not `PreToolUse`. Claude Code delivers a
-`PreToolUse` hook's `additionalContext` next to the tool result — after the
-edit has already run — so it cannot enforce read-before-editing. Surfacing the
-counterpart immediately after the edit, while the agent can still act on it
-before moving on, is the documented behavior.
-
-1. Copy [`examples/hooks/claude-on-edit-context.sh`](../../examples/hooks/claude-on-edit-context.sh)
-   into your repository, conventionally `.claude/hooks/`.
-2. Register it as a `PostToolUse` hook for the editing tools in
-   `.claude/settings.json`:
-
-   ```json
-   {
-     "hooks": {
-       "PostToolUse": [
-         {
-           "matcher": "Edit|MultiEdit|Write",
-           "hooks": [
-             {
-               "type": "command",
-               "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/claude-on-edit-context.sh\"",
-               "timeout": 30
-             }
-           ]
-         }
-       ]
-     }
-   }
-   ```
-
-The hook reads the target `file_path` from the tool input, runs
-`docbridge context <file>`, and returns the Markdown output as
-`additionalContext`. Files DocBridge does not manage, and files without linked
-counterparts, inject nothing. `docbridge context` is best-effort by design: a
-temporarily broken link drops that block instead of failing the hook.
-
-## Gate triage on Stop
-
-Goal: when Claude Code finishes a turn, surface linked counterparts of
-uncommitted changes that were not themselves changed — together with their
-content — so the agent either updates each counterpart or justifies leaving it
-unchanged in its final report.
-
-1. Copy [`examples/hooks/claude-stop-related-gate.sh`](../../examples/hooks/claude-stop-related-gate.sh)
-   into your repository.
-2. Register it as a `Stop` hook:
-
-   ```json
-   {
-     "hooks": {
-       "Stop": [
-         {
-           "hooks": [
-             {
-               "type": "command",
-               "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/claude-stop-related-gate.sh\"",
-               "timeout": 60
-             }
-           ]
-         }
-       ]
-     }
-   }
-   ```
-
-The hook runs `docbridge related --stdin --gate --json` over the uncommitted
-changes and, when counterparts were left unchanged, returns Stop
-`hookSpecificOutput` `additionalContext` that lists each violation and attaches
-the counterpart content fetched via `docbridge context --stdin --json`. It uses
-`additionalContext` (injected into the agent's context for it to act on) rather
-than `systemMessage` (a user-facing warning the model never sees), and never
-blocks the turn — the conversation continues with the context attached. Pair it
-with the [CI recipe](ci.md) so the pull request remains the enforcement point.
+DocBridge does not ship agent hooks. Its guardrail belongs in Git hooks and CI,
+where it applies to every contributor and every tool rather than to one agent
+client; see [agent integration](../user/agent-integration.md) and the
+[CI recipe](ci.md).
 
 ## Skills
 
@@ -114,12 +33,3 @@ This repository keeps the distributable DocBridge skills canonical under
 `templates/skills/` and dogfoods them as skill-level symlinks from
 `.claude/skills/`. External repositories should usually copy the skill
 directories so they are not tied to this repository's checkout path.
-
-## Dogfooding reference
-
-This repository wires the same integration into its own guardrails:
-[`.claude/settings.json`](../../.claude/settings.json) registers
-[`.claude/hooks/on-edit-context.sh`](../../.claude/hooks/on-edit-context.sh)
-and a `Stop` hook that runs the repo's checks before reporting gate findings
-with counterpart content. Treat it as a known-good reference for payload
-handling and output formats.

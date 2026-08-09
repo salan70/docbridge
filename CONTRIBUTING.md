@@ -52,7 +52,9 @@ just doctor
 ```
 
 The setup command configures `core.hooksPath` as `.githooks`. The pre-commit
-hook runs the read-only `just verify` gate and never modifies files.
+hook runs the read-only `just verify` gate and never modifies files, then
+reports the staged changes' unstaged linked counterparts without blocking the
+commit.
 
 ## Start non-trivial work with an accepted issue
 
