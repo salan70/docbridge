@@ -7,7 +7,7 @@
   "$defs": {
     "language": {
       "type": "string",
-      "enum": ["typescript", "swift", "dart"]
+      "enum": ["typescript", "swift", "dart", "rust"]
     },
     "codeSymbol": {
       "type": "object",

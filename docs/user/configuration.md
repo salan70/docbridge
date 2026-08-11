@@ -33,7 +33,7 @@ Declare documentation patterns and at least one supported code language:
 }
 ```
 
-Supported language keys are `typescript`, `swift`, and `dart`. A project can
+Supported language keys are `typescript`, `swift`, `dart`, and `rust`. A project can
 enable more than one language, each with its own patterns.
 
 ## Excluded files

@@ -47,8 +47,8 @@ lowercase code language ID, and each value is an object configuring that
 language. Shorthand pattern arrays such as `"swift": ["Sources/**/*.swift"]` are
 not supported; the old array form `"code": ["src/**/*.ts"]` is invalid.
 
-Supported language IDs are `typescript`, `swift`, and `dart`. Any other key is an
-error.
+Supported language IDs are `typescript`, `swift`, `dart`, and `rust`. Any other
+key is an error.
 
 ```json
 {
@@ -59,7 +59,8 @@ error.
         "patterns": ["Sources/**/*.swift"],
         "visibility": ["public", "open", "internal"]
       },
-      "dart": { "patterns": ["lib/**/*.dart"], "visibility": ["public"] }
+      "dart": { "patterns": ["lib/**/*.dart"], "visibility": ["public"] },
+      "rust": { "patterns": ["src/**/*.rs"], "visibility": ["pub"] }
     },
     "docs": ["docs/**/*.md"]
   }
@@ -68,12 +69,15 @@ error.
 
 Each entry requires a non-empty `patterns` array of strings. Patterns must end
 with the language extension: `.ts` for `typescript` (but not `.d.ts`), `.swift`
-for `swift`, and `.dart` for `dart`. An optional `visibility` array narrows the
-audited public surface; allowed values are validated per language adapter.
-Swift accepts `public`, `open`, and `internal`; omitting `visibility` scans
-`public` and `open`. Dart accepts `public`. TypeScript accepts `public`,
-`protected`, and `private`; omitting `visibility` scans `public` and
-`protected`.
+for `swift`, `.dart` for `dart`, and `.rs` for `rust`. An optional `visibility`
+array narrows the audited public surface; allowed values are validated per
+language adapter. Swift accepts `public`, `open`, and `internal`; omitting
+`visibility` scans `public` and `open`. Dart accepts `public`. TypeScript
+accepts `public`, `protected`, and `private`; omitting `visibility` scans
+`public` and `protected`. Rust accepts `pub` and `private`; omitting
+`visibility` scans `pub` only. `pub` means unrestricted `pub` visibility;
+`private` means every other visibility (`pub(crate)`, `pub(super)`,
+`pub(in path)`, and inherited/private).
 
 TypeScript `visibility` applies only to type members. Top-level declarations are
 scoped by `export` and are unaffected by it. A member excluded by visibility is

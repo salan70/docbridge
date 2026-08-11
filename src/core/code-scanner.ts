@@ -38,7 +38,7 @@ type CodeScanContext = {
 
 /**
  * The internal extension point for a code language. Slice 1 ships only the
- * in-process TypeScript adapter; Swift and Dart adapters arrive as worker-backed
+ * in-process TypeScript adapter; Swift, Dart, and Rust adapters arrive as worker-backed
  * implementations in later slices.
  */
 export type CodeLanguageAdapter = {

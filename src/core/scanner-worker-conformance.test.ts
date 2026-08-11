@@ -58,6 +58,12 @@ for (const fixture of [
     filePath: "lib/auth.dart",
     content: "class Auth {}\n",
   },
+  {
+    language: "rust" as const,
+    executable: resolve(repoRoot, "packages/rust-scanner/target/debug/docbridge-rust-scanner"),
+    filePath: "src/auth.rs",
+    content: "pub struct Auth;\n",
+  },
 ]) {
   test(`${fixture.language} worker conforms to the shared request and response schema`, () => {
     const request: ScannerWorkerRequest = {

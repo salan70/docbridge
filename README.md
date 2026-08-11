@@ -6,7 +6,7 @@
 
 Bring Markdown into the LSP world.
 
-DocBridge creates bidirectional links between TypeScript, Swift, or Dart code
+DocBridge creates bidirectional links between TypeScript, Swift, Dart, or Rust code
 and Markdown documentation, enabling LSP-like experiences such as Hover,
 Definition, References, and Diagnostics across implementation and specification
 files.
@@ -26,9 +26,9 @@ See the npm badge above or
 [Releases](https://github.com/salan70/docbridge/releases) for the current
 version.
 
-The package includes prebuilt Swift and Dart scanner
+The package includes prebuilt Swift, Dart, and Rust scanner
 binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
-without scanner binaries. Configured Swift or Dart projects on unsupported
+without scanner binaries. Configured Swift, Dart, or Rust projects on unsupported
 platforms report `code_scanner_unavailable` and name the supported platform
 keys.
 
@@ -204,7 +204,7 @@ Code <-> Documentation
 ```
 
 DocBridge links supported code declarations to Markdown sections. TypeScript is
-scanned in-process; Swift and Dart are scanned through bundled first-party
+scanned in-process; Swift, Dart, and Rust are scanned through bundled first-party
 worker packages.
 
 ## Supported Inputs
@@ -223,6 +223,8 @@ Supported code declarations:
   and extension members
 - Dart public declarations: top-level functions/variables, classes, enums,
   mixins, constructors, fields, accessors, methods, and extension members
+- Rust `pub` declarations (and configured non-`pub` with `visibility`):
+  modules, structs, enums, free functions, and inherent `impl` methods
 
 Supported Markdown elements:
 
@@ -230,7 +232,7 @@ Supported Markdown elements:
 - HTML comments
 - `@code` annotations attached to the next heading
 
-All three languages use the same `@doc` and `@code` model. Code fragments are
+All four languages use the same `@doc` and `@code` model. Code fragments are
 the scanner-produced canonical IDs, so members are type-qualified.
 
 TypeScript member IDs carry no parameter signature; overload signatures and a
@@ -252,7 +254,7 @@ export class AuthService {
 ## Login Spec
 ```
 
-Swift and Dart canonical IDs follow their own conventions:
+Swift, Dart, and Rust canonical IDs follow their own conventions:
 
 ```swift
 /// @doc docs/auth.md#login-spec
@@ -302,9 +304,10 @@ shape is intentionally invalid; migrate it to a `typescript` entry:
 }
 ```
 
-Swift and Dart projects must build their scanner workers in source checkouts
-before checking those languages. Run `just build-swift-scanner` for Swift and
-`just build-dart-scanner` for Dart, or use the native test recipes below.
+Swift, Dart, and Rust projects must build their scanner workers in source checkouts
+before checking those languages. Run `just build-swift-scanner` for Swift,
+`just build-dart-scanner` for Dart, and `just build-rust-scanner` for Rust, or
+use the native test recipes below.
 
 ## AI agent integration
 

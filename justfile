@@ -14,6 +14,8 @@ doctor:
     bun --version
     node --version
     dart --version
+    rustc --version
+    cargo --version
     swift --version | rg 'Swift version 6\.2\.1'
     just --version
     git --version
@@ -23,6 +25,7 @@ format:
     bun run oxfmt .
     swift format format --configuration .swift-format --in-place --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
     dart format packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
+    cargo fmt --manifest-path packages/rust-scanner/Cargo.toml
     just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
 
@@ -32,7 +35,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-ox format-check-swift format-check-dart format-check-shell format-check-nix
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-shell format-check-nix
 
 format-check-ox:
     bun run oxfmt --check .
@@ -44,6 +47,9 @@ format-check-swift:
 format-check-dart:
     dart format --output=none --set-exit-if-changed packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
 
+format-check-rust:
+    cargo fmt --manifest-path packages/rust-scanner/Cargo.toml -- --check
+
 format-check-shell:
     just shell-sources | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
 
@@ -51,7 +57,7 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown lint-swift lint-dart lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown lint-swift lint-dart lint-rust lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
@@ -63,6 +69,9 @@ lint-swift: format-check-swift
 
 lint-dart:
     cd packages/dart-scanner && dart analyze --fatal-infos --fatal-warnings
+
+lint-rust:
+    cargo clippy --manifest-path packages/rust-scanner/Cargo.toml --all-targets -- -D warnings
 
 lint-shell:
     just shell-sources | xargs -0 shellcheck --severity=style
@@ -92,6 +101,9 @@ check-swift-example:
 
 check-dart-example:
     bun run src/cli/index.ts check --root examples/dart
+
+check-rust-example:
+    bun run src/cli/index.ts check --root examples/rust
 
 check-example-json:
     bun run src/cli/index.ts check --root examples/typescript --json
@@ -127,10 +139,11 @@ test:
 test-swift-scanner:
     swift test --package-path packages/swift-scanner
 
-# Build the debug Swift worker and compiled Dart worker required by `just test`.
+# Build the debug Swift/Rust workers and compiled Dart worker required by `just test`.
 build-test-scanners:
     swift build --package-path packages/swift-scanner
     just build-dart-scanner
+    just build-rust-scanner-debug
 
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
@@ -140,6 +153,15 @@ test-dart-scanner:
 
 build-dart-scanner:
     cd packages/dart-scanner && dart pub get --enforce-lockfile && dart compile exe bin/docbridge_dart_scanner.dart -o bin/docbridge_dart_scanner
+
+test-rust-scanner:
+    cargo test --manifest-path packages/rust-scanner/Cargo.toml
+
+build-rust-scanner:
+    cargo build --manifest-path packages/rust-scanner/Cargo.toml --release
+
+build-rust-scanner-debug:
+    cargo build --manifest-path packages/rust-scanner/Cargo.toml
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.

@@ -39,12 +39,14 @@ export const LANGUAGE_SUFFIX: Readonly<Record<CodeLanguage, string>> = {
   typescript: ".ts",
   swift: ".swift",
   dart: ".dart",
+  rust: ".rs",
 };
 
 export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[]>> = {
   typescript: ["public", "protected", "private"],
   swift: ["public", "open", "internal"],
   dart: ["public"],
+  rust: ["pub", "private"],
 };
 
 /**

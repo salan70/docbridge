@@ -5,7 +5,7 @@
 
 Markdown を LSP の世界へ。
 
-DocBridge は TypeScript、Swift、Dart のコードと Markdown ドキュメントの間に双方向リンクを作るツールです。実装ファイルと仕様ファイルをまたいで、Hover、Definition、References、Diagnostics のような LSP 的体験を実現することを目指します。
+DocBridge は TypeScript、Swift、Dart、Rust のコードと Markdown ドキュメントの間に双方向リンクを作るツールです。実装ファイルと仕様ファイルをまたいで、Hover、Definition、References、Diagnostics のような LSP 的体験を実現することを目指します。
 
 ## インストール
 
@@ -21,9 +21,9 @@ bunx docbridge check
 現在のバージョンは、冒頭の npm バッジまたは
 [Releases](https://github.com/salan70/docbridge/releases) を参照してください。
 
-Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
+Swift / Dart / Rust scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
 TypeScript と Markdown の check は scanner binary なしで実行できます。
-未対応 platform で Swift / Dart project を設定した場合は
+未対応 platform で Swift / Dart / Rust project を設定した場合は
 `code_scanner_unavailable` を報告し、対応 platform key を表示します。
 
 ## クイックスタート
@@ -199,7 +199,7 @@ DocBridge は双方向の関係を扱います。
 Code <-> Documentation
 ```
 
-DocBridge は、対応しているコード宣言と Markdown セクションをリンクします。TypeScript はプロセス内でスキャンし、Swift と Dart は同梱する first-party worker package でスキャンします。
+DocBridge は、対応しているコード宣言と Markdown セクションをリンクします。TypeScript はプロセス内でスキャンし、Swift、Dart、Rust は同梱する first-party worker package でスキャンします。
 
 ## 対応入力
 
@@ -211,6 +211,7 @@ DocBridge は以下の要素を対象にします。
 - TypeScript の型 member: class の method、property、accessor、constructor、static member、および interface と object 型 alias の signature
 - Swift の `public` / `open` 宣言と、設定で含めた `internal` 宣言: トップレベルと member の型、関数、変数、定数、initializer、extension member
 - Dart の public 宣言: トップレベル関数/変数、class、enum、mixin、constructor、field、accessor、method、extension member
+- Rust の `pub` 宣言（`visibility` で非 `pub` も設定可）: module、struct、enum、自由関数、inherent `impl` method
 
 対象にする Markdown 要素:
 
@@ -218,7 +219,7 @@ DocBridge は以下の要素を対象にします。
 - HTML コメント
 - 次の見出しに紐づく `@code` アノテーション
 
-3 言語とも同じ `@doc` / `@code` モデルを使います。コード側 fragment は
+4 言語とも同じ `@doc` / `@code` モデルを使います。コード側 fragment は
 scanner が生成する canonical ID で、member は型名で修飾されます。
 
 TypeScript の member ID は引数シグネチャを持ちません。overload signature と
@@ -240,7 +241,7 @@ export class AuthService {
 ## Login Spec
 ```
 
-Swift と Dart の canonical ID はそれぞれの慣習に従います。
+Swift、Dart、Rust の canonical ID はそれぞれの慣習に従います。
 
 ```swift
 /// @doc docs/auth.md#login-spec
@@ -289,7 +290,7 @@ TypeScript 向けの最小設定:
 }
 ```
 
-source checkout から Swift / Dart project を検査するには、先に scanner worker を build します。Swift は `just build-swift-scanner`、Dart は `just build-dart-scanner` を使ってください。
+source checkout から Swift / Dart / Rust project を検査するには、先に scanner worker を build します。Swift は `just build-swift-scanner`、Dart は `just build-dart-scanner`、Rust は `just build-rust-scanner` を使ってください。
 
 ## AI エージェント統合
 

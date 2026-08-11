@@ -92,10 +92,13 @@ const SWIFT_PATTERNS = ["Sources/**/*.swift", "*/Sources/**/*.swift"] as const;
 
 const DART_PATTERNS = ["lib/**/*.dart"] as const;
 
+const RUST_PATTERNS = ["src/**/*.rs", "*/src/**/*.rs"] as const;
+
 const LANGUAGE_PATTERNS: Record<CodeLanguage, readonly string[]> = {
   typescript: TYPESCRIPT_PATTERNS,
   swift: SWIFT_PATTERNS,
   dart: DART_PATTERNS,
+  rust: RUST_PATTERNS,
 };
 
 /**
@@ -398,6 +401,17 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
 
   if (language === "dart") {
     if (lower.endsWith("_test.dart") || segments.includes("test")) {
+      return true;
+    }
+  }
+
+  if (language === "rust") {
+    if (
+      segments.includes("target") ||
+      segments.includes("tests") ||
+      segments.includes("benches") ||
+      segments.includes("examples")
+    ) {
       return true;
     }
   }

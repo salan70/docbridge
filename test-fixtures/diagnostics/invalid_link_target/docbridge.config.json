@@ -16,6 +16,11 @@
         "patterns": [
           "lib/**/*.dart"
         ]
+      },
+      "rust": {
+        "patterns": [
+          "src/**/*.rs"
+        ]
       }
     },
     "docs": [

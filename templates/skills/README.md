@@ -15,7 +15,7 @@ nothing unless your DocBridge invocation differs from the examples inside.
   findings: fetch the flagged counterpart content with `docbridge context`,
   then update the counterpart or justify leaving it unchanged.
 - [`docbridge-adopt`](docbridge-adopt/SKILL.md) — adopt DocBridge in an existing
-  TypeScript, Swift, or Dart project by confirming docs/code scope, creating
+  TypeScript, Swift, Dart, or Rust project by confirming docs/code scope, creating
   or improving config, installing companion skills, and handling simple CI or
   Git-hook setup.
 - [`docbridge-link`](docbridge-link/SKILL.md) — link existing docs sections to

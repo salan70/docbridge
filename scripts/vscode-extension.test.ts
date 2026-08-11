@@ -47,6 +47,7 @@ describe("buildReleaseManifest", () => {
       "onLanguage:typescriptreact",
       "onLanguage:swift",
       "onLanguage:dart",
+      "onLanguage:rust",
       "onLanguage:markdown",
     ]);
     expect(manifest.repository).toEqual({
@@ -170,7 +171,11 @@ function createReleaseInputFixture(
     writeFileSync(join(root, "editors/vscode/assets/icon.png"), "png");
   }
   for (const platform of ["darwin-arm64", "linux-x64"]) {
-    for (const executable of ["docbridge-swift-scanner", "docbridge_dart_scanner"]) {
+    for (const executable of [
+      "docbridge-swift-scanner",
+      "docbridge_dart_scanner",
+      "docbridge-rust-scanner",
+    ]) {
       const relative = `${platform}/${executable}`;
       if (relative === options.omitScanner) {
         continue;
@@ -210,7 +215,11 @@ function createExpandedVsixFixture(extensionRoot: string): void {
   writeFileSync(join(extensionRoot, "server/dist/index.js"), "#!/usr/bin/env bun\n");
   chmodSync(join(extensionRoot, "server/dist/index.js"), 0o755);
   for (const platform of ["darwin-arm64", "linux-x64"]) {
-    for (const executable of ["docbridge-swift-scanner", "docbridge_dart_scanner"]) {
+    for (const executable of [
+      "docbridge-swift-scanner",
+      "docbridge_dart_scanner",
+      "docbridge-rust-scanner",
+    ]) {
       const file = join(extensionRoot, "server/dist/bin", platform, executable);
       mkdirSync(join(file, ".."), { recursive: true });
       writeFileSync(file, "binary");

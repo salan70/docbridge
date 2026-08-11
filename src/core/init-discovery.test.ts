@@ -76,11 +76,13 @@ test("discoverCodeScope proposes every supported language in mixed-language repo
     "src/app.ts": "export const app = 1;\n",
     "Sources/App.swift": "public struct App {}\n",
     "lib/app.dart": "class App {}\n",
+    "crate/src/lib.rs": "pub fn app() {}\n",
   });
   try {
     const discovery = discoverCodeScope(project);
     expect(discovery.languages.map((entry) => entry.language).toSorted()).toEqual([
       "dart",
+      "rust",
       "swift",
       "typescript",
     ]);

@@ -59,6 +59,7 @@ const activationEvents = [
   "onLanguage:typescriptreact",
   "onLanguage:swift",
   "onLanguage:dart",
+  "onLanguage:rust",
   "onLanguage:markdown",
 ];
 

@@ -23,7 +23,7 @@ The `examples/` and `test-fixtures/` trees both hold small DocBridge projects bu
 differ by intended audience:
 
 - `examples/` holds human-facing showcases meant to be read or copied: one
-  per language (`examples/typescript`, `examples/swift`, `examples/dart`).
+  per language (`examples/typescript`, `examples/swift`, `examples/dart`, `examples/rust`).
   These may also serve as integration test inputs; that reuse is intentional,
   not a reason to move them.
 - `test-fixtures/` holds projects that exist solely to drive automated tests.

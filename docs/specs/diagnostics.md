@@ -7,7 +7,7 @@ type DocBridgeDiagnostic = {
   severity: "error" | "warning";
   code: DiagnosticCode;
   target: string;
-  language?: "typescript" | "swift" | "dart";
+  language?: "typescript" | "swift" | "dart" | "rust";
   source?: string;
   message: string;
   location?: {

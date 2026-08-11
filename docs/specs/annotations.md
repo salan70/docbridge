@@ -27,6 +27,15 @@ declarations:
 void login(String email, String password) {}
 ```
 
+Rust uses documentation comments with `@doc` attached to supported
+declarations (`///`, `//!`, and `/** */`, including forms that syn surfaces as
+`#[doc]` attributes):
+
+```rust
+/// @doc docs/specs/auth.md#login-flow
+pub fn login(email: &str, password: &str) {}
+```
+
 Markdown uses standalone HTML comments with `@code` attached to the next heading:
 
 ```md

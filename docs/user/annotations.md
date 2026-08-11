@@ -19,7 +19,7 @@ comment:
 export function login(): void {}
 ```
 
-Swift and Dart use their normal documentation comment syntax with the same
+Swift, Dart, and Rust use their normal documentation comment syntax with the same
 target format. Paths are relative to the configured project root.
 
 <!-- @code src/core/markdown.ts#scanMarkdown -->
@@ -37,8 +37,8 @@ Place an HTML comment immediately before the linked heading:
 The code fragment is the canonical symbol ID emitted by the language scanner.
 Top-level functions and types normally use their declaration name. Members use
 their type-qualified identity. TypeScript member IDs omit parameter signatures,
-Swift member IDs include argument labels, and Dart member IDs omit parameter
-signatures.
+Swift member IDs include argument labels, Dart member IDs omit parameter
+signatures, and Rust member IDs use `::` path qualification.
 
 ## Anchors and reciprocity
 

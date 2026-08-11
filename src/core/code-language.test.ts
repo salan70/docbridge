@@ -51,6 +51,7 @@ test("isCodeLanguage accepts the fixed language IDs and rejects others", () => {
   expect(isCodeLanguage("typescript")).toBe(true);
   expect(isCodeLanguage("swift")).toBe(true);
   expect(isCodeLanguage("dart")).toBe(true);
+  expect(isCodeLanguage("rust")).toBe(true);
   expect(isCodeLanguage("kotlin")).toBe(false);
 });
 
@@ -59,13 +60,15 @@ test("scanner packaging metadata exposes every supported platform and executable
   expect(supportedScannerExecutableNames()).toEqual([
     "docbridge-swift-scanner",
     "docbridge_dart_scanner",
+    "docbridge-rust-scanner",
   ]);
 });
 
-test("TypeScript has an in-process adapter and Swift/Dart have worker-backed adapters", () => {
+test("TypeScript has an in-process adapter and Swift/Dart/Rust have worker-backed adapters", () => {
   expect(getCodeAdapter("typescript")?.language).toBe("typescript");
   expect(getCodeAdapter("swift")?.language).toBe("swift");
   expect(getCodeAdapter("dart")?.language).toBe("dart");
+  expect(getCodeAdapter("rust")?.language).toBe("rust");
 });
 
 test("resolveScannerWorkerCommand selects the dist scanner for a supported platform", () => {
