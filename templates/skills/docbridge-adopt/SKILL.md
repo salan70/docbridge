@@ -1,6 +1,6 @@
 ---
 name: docbridge-adopt
-description: Adopt DocBridge in an existing TypeScript, Swift, or Dart project. Use when asked to introduce DocBridge into a repository, choose docs/code scope, create or improve docbridge.config.json, and optionally wire simple CI or Git hooks.
+description: Adopt DocBridge in an existing TypeScript, Swift, Dart, or Rust project. Use when asked to introduce DocBridge into a repository, choose docs/code scope, create or improve docbridge.config.json, and optionally wire simple CI or Git hooks.
 ---
 
 # docbridge-adopt
@@ -22,7 +22,7 @@ repo recipe such as `just check`, or
 1. **Survey the repository.** Inspect:
    - existing `docbridge.config.json`
    - Markdown docs structure and likely specification directories
-   - TypeScript, Swift, or Dart source structure and public API locations
+   - TypeScript, Swift, Dart, or Rust source structure and public API locations
    - existing `@doc` / `@code` annotations
    - package scripts, CI files, and Git hooks
 
@@ -30,7 +30,7 @@ repo recipe such as `just check`, or
    your recommendation for:
    - docs scope: directories/files whose sections are likely specifications,
      contracts, behavior, constraints, or design decisions
-   - code scope: language-keyed TypeScript, Swift, or Dart directories/files
+   - code scope: language-keyed TypeScript, Swift, Dart, or Rust directories/files
      whose supported declarations should be linkable
    - CI/Git-hook mode: if any integration should be added now
 
@@ -42,8 +42,8 @@ repo recipe such as `just check`, or
      `include.code` and `include.docs` globs.
    - Use the language-keyed `include.code` object. Do not write the old
      array form; for example, use `{ "typescript": { "patterns": [...] } }`,
-     `{ "swift": { "patterns": [...] } }`, or
-     `{ "dart": { "patterns": [...] } }`.
+     `{ "swift": { "patterns": [...] } }`, `{ "dart": { "patterns": [...] } }`,
+     or `{ "rust": { "patterns": [...] } }`.
    - If config exists, read it, explain the current scope, propose any
      improvement, and edit only after confirmation.
    - Never replace a user-authored config blindly.
@@ -90,7 +90,7 @@ repo recipe such as `just check`, or
   notes as exclusions by default unless the user identifies specific sections
   as specifications.
 - Prefer supported public API declarations as link targets. TypeScript starts
-  with top-level exported declarations; Swift and Dart also support member
+  with top-level exported declarations; Swift, Dart, and Rust also support member
   endpoints with scanner-produced canonical IDs.
 - Do not decide project workflow policy such as branch or PR strategy. Mention
   only what affects DocBridge adoption.

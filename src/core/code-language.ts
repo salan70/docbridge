@@ -27,7 +27,12 @@ export type CodeIncludeEntry = {
 export type CodeInclude = Partial<Record<CodeLanguage, CodeIncludeEntry>>;
 
 /** Fixed, ordered set of supported code language IDs. */
-export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = ["typescript", "swift", "dart"];
+export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = [
+  "typescript",
+  "swift",
+  "dart",
+  "rust",
+];
 
 export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
@@ -39,6 +44,7 @@ Object.assign(codeAdapters, {
     resolveScannerWorkerCommand("swift"),
   ),
   dart: createScannerWorkerAdapter("dart", (_projectRoot) => resolveScannerWorkerCommand("dart")),
+  rust: createScannerWorkerAdapter("rust", (_projectRoot) => resolveScannerWorkerCommand("rust")),
 });
 
 type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
@@ -47,6 +53,7 @@ const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
 const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> = {
   swift: "docbridge-swift-scanner",
   dart: "docbridge_dart_scanner",
+  rust: "docbridge-rust-scanner",
 };
 
 type ScannerWorkerCommandResolution =
@@ -316,6 +323,13 @@ function scannerExecutableCandidates(
     return [
       join(sourceRoot, "packages/swift-scanner/.build/release", executable),
       join(sourceRoot, "packages/swift-scanner/.build/debug", executable),
+      ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
+    ];
+  }
+  if (language === "rust") {
+    return [
+      join(sourceRoot, "packages/rust-scanner/target/release", executable),
+      join(sourceRoot, "packages/rust-scanner/target/debug", executable),
       ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
     ];
   }

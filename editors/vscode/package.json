@@ -13,6 +13,7 @@
     "language-server",
     "lsp",
     "markdown",
+    "rust",
     "specification",
     "swift",
     "typescript"
@@ -59,6 +60,7 @@
   "activationEvents": [
     "onLanguage:dart",
     "onLanguage:markdown",
+    "onLanguage:rust",
     "onLanguage:swift",
     "onLanguage:typescript",
     "onLanguage:typescriptreact",

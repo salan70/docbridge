@@ -88,6 +88,7 @@ test("fixture invalid_link_target fires exactly invalid_link_target", () => {
   expect(diagnostics).toEqual([
     { code: "invalid_link_target", filePath: "lib/example.dart", line: 1 },
     { code: "invalid_link_target", filePath: "Sources/Example.swift", line: 1 },
+    { code: "invalid_link_target", filePath: "src/example.rs", line: 1 },
     { code: "invalid_link_target", filePath: "src/example.ts", line: 4 },
   ]);
   expect(exitCode).toBe(1);
@@ -172,6 +173,7 @@ test("fixture duplicate_link fires exactly duplicate_link", () => {
   expect(diagnostics).toEqual([
     { code: "duplicate_link", filePath: "lib/example.dart", line: 2 },
     { code: "duplicate_link", filePath: "Sources/Example.swift", line: 2 },
+    { code: "duplicate_link", filePath: "src/example.rs", line: 2 },
     { code: "duplicate_link", filePath: "src/example.ts", line: 5 },
   ]);
   expect(exitCode).toBe(0);

@@ -7,7 +7,7 @@ description: Link existing Markdown specification sections to existing supported
 
 Create DocBridge annotations for existing docs and code. Work docs-first: choose
 Markdown sections that look like specifications, then propose supported
-TypeScript, Swift, or Dart declarations that implement or represent each
+TypeScript, Swift, Dart, or Rust declarations that implement or represent each
 section.
 
 Run DocBridge with the project's native invocation: `docbridge` on `PATH`, a

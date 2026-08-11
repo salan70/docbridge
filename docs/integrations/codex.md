@@ -21,7 +21,7 @@ setup:
   them with `docbridge check`.
 - `docbridge-sync` — triage `related --gate` findings using `docbridge context`,
   then update the counterpart or justify the divergence.
-- `docbridge-adopt` — adopt DocBridge in an existing TypeScript, Swift, or Dart
+- `docbridge-adopt` — adopt DocBridge in an existing TypeScript, Swift, Dart, or Rust
   project by confirming docs/code scope, creating or improving config, and
   installing the companion DocBridge skills.
 - `docbridge-link` — link existing docs sections to existing exported

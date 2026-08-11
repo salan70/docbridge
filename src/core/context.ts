@@ -167,6 +167,9 @@ function fenceLanguage(language: CodeLanguage | undefined): string {
   if (language === "dart") {
     return "dart";
   }
+  if (language === "rust") {
+    return "rust";
+  }
   return "ts";
 }
 

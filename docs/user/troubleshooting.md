@@ -20,7 +20,7 @@ link target.
 
 ## Scanner errors
 
-Swift and Dart use packaged scanner workers. A `scanner_unavailable` diagnostic
+Swift, Dart, and Rust use packaged scanner workers. A `scanner_unavailable` diagnostic
 usually means the installed package lacks a binary for the current platform or
 the binary cannot execute. Reinstall the package first. If the platform is not
 supported, run DocBridge in a supported environment or build the scanner from

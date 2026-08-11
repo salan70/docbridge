@@ -44,7 +44,7 @@ cursor --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
   package platforms that are staged before packaging. The initial universal
   VSIX expects `darwin-arm64` and `linux-x64` scanner binaries.
 
-TypeScript, TSX, and Markdown support require only Bun. Swift and Dart editor
+TypeScript, TSX, and Markdown support require only Bun. Swift, Dart, and Rust editor
 support uses the bundled scanner binary for the user's platform.
 
 ## Features
@@ -92,8 +92,10 @@ Also stage the supported scanner binaries under the root package layout:
 ```text
 dist/bin/darwin-arm64/docbridge-swift-scanner
 dist/bin/darwin-arm64/docbridge_dart_scanner
+dist/bin/darwin-arm64/docbridge-rust-scanner
 dist/bin/linux-x64/docbridge-swift-scanner
 dist/bin/linux-x64/docbridge_dart_scanner
+dist/bin/linux-x64/docbridge-rust-scanner
 ```
 
 `just package-vsix` preserves this pre-staged `dist/bin` directory while

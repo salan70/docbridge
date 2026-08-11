@@ -44,7 +44,7 @@
         "target": { "type": "string" },
         "language": {
           "type": "string",
-          "enum": ["typescript", "swift", "dart"]
+          "enum": ["typescript", "swift", "dart", "rust"]
         },
         "source": { "type": "string" },
         "message": { "type": "string" },

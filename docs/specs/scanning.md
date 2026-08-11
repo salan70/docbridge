@@ -14,8 +14,8 @@ DocBridge ignores these paths even when they match an include glob:
 DocBridge does not read `.gitignore`.
 
 Code files belong to a configured language: TypeScript `.ts` files (declaration
-files ending in `.d.ts` are excluded), Swift `.swift` files, and Dart `.dart`
-files. Each code file is scanned by its language adapter.
+files ending in `.d.ts` are excluded), Swift `.swift` files, Dart `.dart`
+files, and Rust `.rs` files. Each code file is scanned by its language adapter.
 
 Markdown files are `.md` files.
 
@@ -33,7 +33,7 @@ that depend on that file are suppressed.
 ## Code Scanning
 
 Code scanning is language-aware but not language-specific. Every code language
-adapter, in-process (TypeScript) or worker-backed (Swift, Dart), produces the
+adapter, in-process (TypeScript) or worker-backed (Swift, Dart, Rust), produces the
 same language-neutral result: the supported symbols, the undocumented symbols
 used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
@@ -45,7 +45,7 @@ language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
 does not affect stdout JSON parsing. The complete protocol is defined by
 [schemas/scanner-worker.schema.json](../../schemas/scanner-worker.schema.json),
-and actual TypeScript, Swift, and Dart scan results are checked against it.
+and actual TypeScript, Swift, Dart, and Rust scan results are checked against it.
 
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
@@ -77,12 +77,22 @@ checking Dart projects from a source checkout. In the npm package, the adapter
 executes `dist/bin/<platform>/docbridge_dart_scanner`. Building the package
 requires the Dart SDK, which the Nix dev shell provides.
 
+The bundled Rust worker is a Cargo package under `packages/rust-scanner`. It uses
+`syn` with `proc-macro2` span locations and communicates through the worker
+protocol. From a source checkout, the adapter executes
+`packages/rust-scanner/target/release/docbridge-rust-scanner`, falling back to
+the debug binary when present; run `just test-rust-scanner` or
+`just build-rust-scanner` locally to build it before checking Rust projects from
+a source checkout. In the npm package, the adapter executes
+`dist/bin/<platform>/docbridge-rust-scanner`. Building the package requires a
+Rust 1.83 toolchain on `PATH` (pinned by `packages/rust-scanner/rust-toolchain.toml`).
+
 The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
 TypeScript and Markdown checks do not require scanner binaries. If a configured
-Swift or Dart project runs on any other platform, or the expected binary is not
-present for a supported platform, DocBridge emits `code_scanner_unavailable`
-with the missing platform key and the supported keys.
+Swift, Dart, or Rust project runs on any other platform, or the expected binary
+is not present for a supported platform, DocBridge emits
+`code_scanner_unavailable` with the missing platform key and the supported keys.
 
 Installers do not reliably preserve the executable bit on the scanner binaries
 bundled under `dist/bin/`. When DocBridge resolves one of its own bundled
@@ -233,3 +243,25 @@ names without parameter signatures, for example `AuthService.login`. Setters
 carry a trailing `=` to stay distinct from a same-named getter or field
 (`AuthService.token=`), the unnamed constructor is `AuthService.new`, and named
 constructors keep their name (`AuthService.guest`).
+
+## Rust Scanning
+
+Rust scanning extracts `@doc` annotations from `///`, `//!`, and `/** ... */`
+documentation comments (including docs that syn surfaces as `#[doc]` /
+`#![doc]` attributes). By default only unrestricted `pub` declarations are
+included; non-`pub` declarations are included when configured through
+`include.code.rust.visibility` with `private`.
+
+Supported Rust declarations are:
+
+- `mod` (including nested modules)
+- `struct` and `enum`
+- free `fn`
+- inherent `impl` methods (`impl Type { fn method }`)
+
+Trait definitions, trait-impl methods, macros, const/static items, unions,
+extern blocks, and other item kinds are out of the MVP set. An `@doc` on one
+reports `unsupported_declaration`.
+
+Rust canonical IDs use path-style `::` qualification, for example `normalize`,
+`TypingEngine`, `TypingEngine::advance`, and `domain::typing`.

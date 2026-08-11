@@ -30,8 +30,8 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Scanner workers
 
-- `just test` includes TypeScript, Swift, and Dart end-to-end integration
-  tests. The Swift and Dart integration tests spawn the built worker binaries,
+- `just test` includes TypeScript, Swift, Dart, and Rust end-to-end integration
+  tests. The Swift, Dart, and Rust integration tests spawn the built worker binaries,
   which `just setup` builds for a fresh source checkout. Rebuild both after
   changing worker code with `just build-test-scanners`.
 - `just test-swift-scanner` runs the SwiftPM test suite for
@@ -40,6 +40,8 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   separately.
 - `just test-dart-scanner` runs the Dart package tests for
   `packages/dart-scanner`. The Dart SDK is provided by the Nix dev shell.
+- `just test-rust-scanner` runs the Cargo test suite for
+  `packages/rust-scanner`. A Rust 1.83 toolchain is required on `PATH`.
 - CI treats the scanner-native test suites as mandatory before the shared
   `just test` gate. Local changes to scanner code should run the matching
   native test plus `just test`.
@@ -50,6 +52,7 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   `examples/typescript`.
 - `just check-swift-example` verifies the Swift example under `examples/swift`.
 - `just check-dart-example` verifies the Dart example under `examples/dart`.
+- `just check-rust-example` verifies the Rust example under `examples/rust`.
 
 ## Notes
 

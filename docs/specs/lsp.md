@@ -104,7 +104,7 @@ v0.1 records a single point per element. v0.2 enriches the scanners to record
 ranges:
 
 - `nameRange` — the declaration name identifier in code (for example, the
-  `login` identifier in TypeScript, Swift, or Dart).
+  `login` identifier in TypeScript, Swift, Dart, or Rust).
 - `headingTextRange` — the heading text in Markdown, excluding leading `#` and
   surrounding whitespace.
 - `targetRange` — the target string of an annotation (the `file#fragment` text in

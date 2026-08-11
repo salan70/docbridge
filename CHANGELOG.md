@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rust is a first-party code language. Configure `include.code.rust`, place
+  `@doc` in `///` / `//!` / `/** */` comments on modules, structs, enums, free
+  functions, and inherent `impl` methods, and check links with the bundled
+  `docbridge-rust-scanner` worker (same platforms as Swift/Dart). Default
+  visibility is `pub` only; set `visibility` to include `private` for
+  non-`pub` items. Canonical IDs use Rust path style (`Type::method`).
 - `docbridge docs list [--json]` and `docbridge docs show <name>` provide six
   task-oriented, version-matched guides from the installed npm package, with
   packed-package smoke coverage under Node.js and Bun.

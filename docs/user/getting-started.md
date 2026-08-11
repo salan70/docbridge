@@ -1,5 +1,5 @@
 ---
-description: Set up DocBridge in an existing TypeScript, Swift, or Dart project.
+description: Set up DocBridge in an existing TypeScript, Swift, Dart, or Rust project.
 ---
 
 # Getting Started

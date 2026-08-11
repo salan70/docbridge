@@ -63,7 +63,7 @@ function smokeExecutableBitRepair(tarballPath: string, tempRoot: string): void {
 
   writeScannerFixtures(installRoot);
   for (const runtime of cliRuntimes) {
-    for (const fixture of ["swift-fixture", "dart-fixture"] as const) {
+    for (const fixture of ["swift-fixture", "dart-fixture", "rust-fixture"] as const) {
       stripInstalledScannerExecutableBits(installRoot);
       run(
         [
@@ -186,7 +186,7 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
 
   writeScannerFixtures(tempRoot);
   for (const runtime of cliRuntimes) {
-    for (const fixture of ["swift-fixture", "dart-fixture"] as const) {
+    for (const fixture of ["swift-fixture", "dart-fixture", "rust-fixture"] as const) {
       run(
         [
           runtime,
@@ -228,6 +228,20 @@ function writeScannerFixtures(root: string): void {
   writeFileSync(
     join(root, "dart-fixture/docs/auth.md"),
     "<!-- @code lib/auth_service.dart#AuthService -->\n## Auth Service\n",
+  );
+
+  mkdirSync(join(root, "rust-fixture/src"), { recursive: true });
+  mkdirSync(join(root, "rust-fixture/docs"), { recursive: true });
+  writeFixtureConfig(root, "rust-fixture", {
+    rust: { patterns: ["src/**/*.rs"] },
+  });
+  writeFileSync(
+    join(root, "rust-fixture/src/auth_service.rs"),
+    "/// @doc docs/auth.md#auth-service\npub struct AuthService;\n",
+  );
+  writeFileSync(
+    join(root, "rust-fixture/docs/auth.md"),
+    "<!-- @code src/auth_service.rs#AuthService -->\n## Auth Service\n",
   );
 }
 

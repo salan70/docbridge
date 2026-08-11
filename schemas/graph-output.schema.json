@@ -31,7 +31,7 @@
           },
           "language": {
             "type": "string",
-            "enum": ["typescript", "swift", "dart"],
+            "enum": ["typescript", "swift", "dart", "rust"],
             "description": "Code language for code nodes."
           },
           "location": { "$ref": "common-output.schema.json#/$defs/location" },
