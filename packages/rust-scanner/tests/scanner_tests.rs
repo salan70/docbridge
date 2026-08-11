@@ -186,6 +186,37 @@ impl Login for AuthService {
 }
 
 #[test]
+fn reports_unsupported_nested_declarations_with_doc() {
+    let source = r#"
+pub trait Greeter {
+    /// @doc docs/auth.md#greet
+    fn greet(&self);
+}
+
+pub struct Credentials {
+    /// @doc docs/auth.md#email
+    pub email: String,
+}
+
+pub union Value {
+    /// @doc docs/auth.md#number
+    pub number: u32,
+}
+
+pub enum State {
+    /// @doc docs/auth.md#ready
+    Ready,
+}
+"#;
+    let response = scan(source, None);
+    let unsupported_count = diagnostic_codes(&response)
+        .iter()
+        .filter(|code| code.as_str() == "unsupported_declaration")
+        .count();
+    assert_eq!(unsupported_count, 4);
+}
+
+#[test]
 fn reports_invalid_link_target() {
     let source = r#"
 /// @doc ./docs/auth.md#login
@@ -212,4 +243,40 @@ fn converts_name_locations_to_one_based_utf16_columns() {
     // `pub struct ` is 11 UTF-16 code units before `Café` (1-based => column 12).
     assert_eq!(symbol["location"]["column"], 12);
     assert_eq!(symbol["nameRange"]["start"]["column"], 12);
+}
+
+#[test]
+fn reports_doc_target_ranges_for_the_target_text() {
+    let source = "/**\n * Docs for login.\n * @doc docs/auth.md#login-flow\n */\npub fn login() {}\n\n/// @doc docs/a.md#x\npub fn short() {}\n";
+    let response = scan(source, None);
+    let links = response["files"][0]["links"].as_array().expect("links");
+
+    assert_eq!(links[0]["location"]["line"], 3);
+    assert_eq!(links[0]["location"]["column"], 9);
+    assert_eq!(links[0]["targetRange"]["start"]["line"], 3);
+    assert_eq!(links[0]["targetRange"]["start"]["column"], 9);
+    assert_eq!(links[0]["targetRange"]["end"]["line"], 3);
+    assert_eq!(links[0]["targetRange"]["end"]["column"], 32);
+
+    assert_eq!(links[1]["location"]["line"], 7);
+    assert_eq!(links[1]["location"]["column"], 10);
+    assert_eq!(links[1]["targetRange"]["start"]["column"], 10);
+    assert_eq!(links[1]["targetRange"]["end"]["column"], 21);
+}
+
+#[test]
+fn signature_ranges_include_docs_and_exclude_bodies() {
+    let source = "/// @doc docs/auth.md#service\npub struct AuthService { value: i32 }\n\nimpl AuthService {\n    /// @doc docs/auth.md#login\n    pub fn login(&self) -> bool { true }\n}\n";
+    let response = scan(source, None);
+    let symbols = response["files"][0]["symbols"].as_array().expect("symbols");
+
+    assert_eq!(symbols[0]["signatureRange"]["start"]["line"], 1);
+    assert_eq!(symbols[0]["signatureRange"]["start"]["column"], 1);
+    assert_eq!(symbols[0]["signatureRange"]["end"]["line"], 2);
+    assert_eq!(symbols[0]["signatureRange"]["end"]["column"], 23);
+
+    assert_eq!(symbols[1]["signatureRange"]["start"]["line"], 5);
+    assert_eq!(symbols[1]["signatureRange"]["start"]["column"], 5);
+    assert_eq!(symbols[1]["signatureRange"]["end"]["line"], 6);
+    assert_eq!(symbols[1]["signatureRange"]["end"]["column"], 32);
 }

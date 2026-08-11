@@ -3,10 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, rust-overlay, ... }:
     let
       supportedSystems = [
         "aarch64-darwin"
@@ -16,16 +20,23 @@
       ];
 
       forAllSystems =
-        function: nixpkgs.lib.genAttrs supportedSystems (system: function nixpkgs.legacyPackages.${system});
+        function:
+        nixpkgs.lib.genAttrs supportedSystems (
+          system:
+          function (
+            import nixpkgs {
+              inherit system;
+              overlays = [ (import rust-overlay) ];
+            }
+          )
+        );
     in
     {
       devShells = forAllSystems (pkgs: {
-        # `mkShellNoCC` avoids pulling in a C compiler the project does not need
-        # (it is pure Bun/TypeScript). On macOS the default `mkShell` stdenv
-        # exports `SDKROOT`/`DEVELOPER_DIR` pointing at nixpkgs' Apple SDK, which
-        # is built with an older Swift than the system toolchain and breaks
-        # `swift build` for the bundled Swift scanner. Dropping the CC wrapper
-        # leaves those variables unset so the system Swift toolchain works.
+        # `mkShellNoCC` avoids exporting `SDKROOT`/`DEVELOPER_DIR` from nixpkgs'
+        # Apple SDK on macOS. That SDK is built with an older Swift than the
+        # system toolchain and breaks `swift build` for the bundled scanner.
+        # The Rust toolchain is supplied explicitly below instead.
         default = pkgs.mkShellNoCC {
           packages = [
             pkgs.actionlint
@@ -41,6 +52,7 @@
             pkgs.nixfmt
             pkgs.ripgrep
             pkgs.rumdl
+            (pkgs.rust-bin.fromRustupToolchainFile ./packages/rust-scanner/rust-toolchain.toml)
             pkgs.shellcheck
             pkgs.shfmt
             pkgs.statix

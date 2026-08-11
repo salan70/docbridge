@@ -8,8 +8,8 @@ use proc_macro2::LineColumn;
 use std::collections::HashSet;
 use syn::spanned::Spanned;
 use syn::{
-    Attribute, Expr, ExprLit, File, ImplItem, Item, ItemFn, ItemImpl, ItemMod, Lit, Meta,
-    Visibility,
+    Attribute, Expr, ExprLit, Field, Fields, File, Generics, ImplItem, Item, ItemFn, ItemImpl,
+    ItemMod, Lit, Meta, TraitItem, Visibility,
 };
 
 /// Scan a worker request JSON payload and return the response JSON.
@@ -279,8 +279,13 @@ fn walk_items(
                     &item.vis,
                     &item.attrs,
                     (&name, &canonical),
-                    (item.ident.span(), item.span()),
+                    (
+                        item.ident.span(),
+                        item.span(),
+                        type_signature_end(&item.generics, item.ident.span().end()),
+                    ),
                 );
+                mark_unsupported_fields(out, converter, &item.fields);
             }
             Item::Enum(item) => {
                 let name = item.ident.to_string();
@@ -292,8 +297,16 @@ fn walk_items(
                     &item.vis,
                     &item.attrs,
                     (&name, &canonical),
-                    (item.ident.span(), item.span()),
+                    (
+                        item.ident.span(),
+                        item.span(),
+                        type_signature_end(&item.generics, item.ident.span().end()),
+                    ),
                 );
+                for variant in &item.variants {
+                    mark_unsupported_attrs(out, converter, &variant.attrs, variant.span());
+                    mark_unsupported_fields(out, converter, &variant.fields);
+                }
             }
             Item::Fn(item) => {
                 record_fn(out, converter, visibility, module_prefix, item);
@@ -303,6 +316,18 @@ fn walk_items(
             }
             Item::Impl(item) => {
                 record_impl(out, converter, visibility, module_prefix, item);
+            }
+            Item::Trait(item) => {
+                mark_unsupported_attrs(out, converter, &item.attrs, item.span());
+                for trait_item in &item.items {
+                    mark_unsupported_trait_item(out, converter, trait_item);
+                }
+            }
+            Item::Union(item) => {
+                mark_unsupported_attrs(out, converter, &item.attrs, item.span());
+                for field in &item.fields.named {
+                    mark_unsupported_field(out, converter, field);
+                }
             }
             other => {
                 mark_unsupported_if_annotated(out, converter, other);
@@ -327,7 +352,7 @@ fn record_mod(
         &item.vis,
         &item.attrs,
         (&name, &canonical),
-        (item.ident.span(), item.span()),
+        (item.ident.span(), item.span(), item.ident.span().end()),
     );
     if let Some((_, items)) = &item.content {
         walk_items(items, &canonical, converter, visibility, out);
@@ -350,7 +375,7 @@ fn record_fn(
         &item.vis,
         &item.attrs,
         (&name, &canonical),
-        (item.sig.ident.span(), item.span()),
+        (item.sig.ident.span(), item.span(), item.sig.span().end()),
     );
 }
 
@@ -393,7 +418,11 @@ fn record_impl(
                     &method.vis,
                     &method.attrs,
                     (&name, &canonical),
-                    (method.sig.ident.span(), method.span()),
+                    (
+                        method.sig.ident.span(),
+                        method.span(),
+                        method.sig.span().end(),
+                    ),
                 );
             }
             other => mark_unsupported_impl_item(out, converter, other),
@@ -433,24 +462,7 @@ fn mark_unsupported_if_annotated(
     let Some(attrs) = item_attrs(item) else {
         return;
     };
-    let docs = extract_doc_targets(attrs, converter);
-    if docs.is_empty() {
-        return;
-    }
-    let span = item.span();
-    let loc = converter.line_column(span.start());
-    out.push(Declaration {
-        symbol_name: "<unsupported>".to_string(),
-        canonical_id: "<unsupported>".to_string(),
-        line: loc.line,
-        column: loc.column,
-        visible: true,
-        unsupported: true,
-        name_range: Some(converter.span_range(span)),
-        declaration_range: Some(converter.span_range(span)),
-        signature_range: None,
-        doc_targets: docs,
-    });
+    mark_unsupported_attrs(out, converter, attrs, item.span());
 }
 
 fn mark_unsupported_impl_item(
@@ -464,11 +476,52 @@ fn mark_unsupported_impl_item(
         ImplItem::Macro(item) => &item.attrs,
         _ => return,
     };
+    mark_unsupported_attrs(out, converter, attrs, item.span());
+}
+
+fn mark_unsupported_trait_item(
+    out: &mut Vec<Declaration>,
+    converter: &PositionConverter,
+    item: &TraitItem,
+) {
+    let attrs = match item {
+        TraitItem::Const(item) => &item.attrs,
+        TraitItem::Fn(item) => &item.attrs,
+        TraitItem::Type(item) => &item.attrs,
+        TraitItem::Macro(item) => &item.attrs,
+        _ => return,
+    };
+    mark_unsupported_attrs(out, converter, attrs, item.span());
+}
+
+fn mark_unsupported_fields(
+    out: &mut Vec<Declaration>,
+    converter: &PositionConverter,
+    fields: &Fields,
+) {
+    for field in fields {
+        mark_unsupported_field(out, converter, field);
+    }
+}
+
+fn mark_unsupported_field(
+    out: &mut Vec<Declaration>,
+    converter: &PositionConverter,
+    field: &Field,
+) {
+    mark_unsupported_attrs(out, converter, &field.attrs, field.span());
+}
+
+fn mark_unsupported_attrs(
+    out: &mut Vec<Declaration>,
+    converter: &PositionConverter,
+    attrs: &[Attribute],
+    span: proc_macro2::Span,
+) {
     let docs = extract_doc_targets(attrs, converter);
     if docs.is_empty() {
         return;
     }
-    let span = item.span();
     let loc = converter.line_column(span.start());
     out.push(Declaration {
         symbol_name: "<unsupported>".to_string(),
@@ -507,11 +560,15 @@ fn record_item(
     vis: &Visibility,
     attrs: &[Attribute],
     names: (&str, &str),
-    spans: (proc_macro2::Span, proc_macro2::Span),
+    spans: (proc_macro2::Span, proc_macro2::Span, LineColumn),
 ) {
     let (symbol_name, canonical_id) = names;
-    let (name_span, decl_span) = spans;
+    let (name_span, decl_span, signature_end) = spans;
     let loc = converter.line_column(name_span.start());
+    let signature_start = attrs
+        .iter()
+        .find(|attr| doc_attribute_value(attr).is_some())
+        .map_or_else(|| decl_span.start(), |attr| attr.span().start());
     out.push(Declaration {
         symbol_name: symbol_name.to_string(),
         canonical_id: canonical_id.to_string(),
@@ -521,9 +578,19 @@ fn record_item(
         unsupported: false,
         name_range: Some(converter.span_range(name_span)),
         declaration_range: Some(converter.span_range(decl_span)),
-        signature_range: Some(converter.span_range(name_span)),
+        signature_range: Some(converter.range(signature_start, signature_end)),
         doc_targets: extract_doc_targets(attrs, converter),
     });
+}
+
+fn type_signature_end(generics: &Generics, name_end: LineColumn) -> LineColumn {
+    if let Some(where_clause) = &generics.where_clause {
+        where_clause.span().end()
+    } else if generics.lt_token.is_some() {
+        generics.span().end()
+    } else {
+        name_end
+    }
 }
 
 fn is_visible(vis: &Visibility, allowed: &HashSet<String>) -> bool {
@@ -557,22 +624,24 @@ fn extract_doc_targets(attrs: &[Attribute], converter: &PositionConverter) -> Ve
         let Some(doc_value) = doc_attribute_value(attr) else {
             continue;
         };
-        for target in find_doc_targets(&doc_value) {
-            let attr_start = converter.line_column(attr.span().start());
-            let range = Some(SourceRange {
-                start: Position {
-                    line: attr_start.line,
-                    column: attr_start.column,
-                },
-                end: Position {
-                    line: attr_start.line,
-                    column: attr_start.column + target.encode_utf16().count(),
-                },
-            });
+        let attr_start_offset = converter.byte_offset(attr.span().start());
+        let attr_end_offset = converter.byte_offset(attr.span().end());
+        let attr_source = converter.slice(attr_start_offset, attr_end_offset);
+        let mut source_cursor = 0;
+        for doc_match in find_doc_targets(&doc_value) {
+            let relative_offset = attr_source[source_cursor..]
+                .find(&doc_match.target)
+                .map(|offset| source_cursor + offset)
+                .unwrap_or(doc_match.byte_offset);
+            let target_start_offset = attr_start_offset + relative_offset;
+            let target_end_offset = target_start_offset + doc_match.target.len();
+            let range = Some(converter.range_from_offsets(target_start_offset, target_end_offset));
+            let start = converter.position_at_offset(target_start_offset);
+            source_cursor = relative_offset + doc_match.target.len();
             targets.push(DocTarget {
-                target,
-                line: attr_start.line,
-                column: attr_start.column,
+                target: doc_match.target,
+                line: start.line,
+                column: start.column,
                 range,
             });
         }
@@ -580,7 +649,12 @@ fn extract_doc_targets(attrs: &[Attribute], converter: &PositionConverter) -> Ve
     targets
 }
 
-fn find_doc_targets(doc_value: &str) -> Vec<String> {
+struct DocMatch {
+    target: String,
+    byte_offset: usize,
+}
+
+fn find_doc_targets(doc_value: &str) -> Vec<DocMatch> {
     let mut targets = Vec::new();
     let bytes = doc_value.as_bytes();
     let mut index = 0;
@@ -598,7 +672,10 @@ fn find_doc_targets(doc_value: &str) -> Vec<String> {
                 }
                 if cursor > start {
                     if let Ok(target) = std::str::from_utf8(&bytes[start..cursor]) {
-                        targets.push(target.to_string());
+                        targets.push(DocMatch {
+                            target: target.to_string(),
+                            byte_offset: start,
+                        });
                     }
                 }
                 index = cursor;
@@ -684,6 +761,51 @@ impl PositionConverter {
         Position {
             line,
             column: utf16_col,
+        }
+    }
+
+    fn byte_offset(&self, loc: LineColumn) -> usize {
+        let line_index = loc.line.saturating_sub(1);
+        let line_start = self.line_starts.get(line_index).copied().unwrap_or(0);
+        let line_end = self
+            .line_starts
+            .get(line_index + 1)
+            .copied()
+            .unwrap_or(self.content.len());
+        let line_text = &self.content[line_start..line_end];
+        let column_offset = line_text
+            .char_indices()
+            .nth(loc.column)
+            .map_or(line_text.len(), |(offset, _)| offset);
+        line_start + column_offset
+    }
+
+    fn position_at_offset(&self, offset: usize) -> Position {
+        let clamped = offset.min(self.content.len());
+        let line_index = self.line_starts.partition_point(|start| *start <= clamped) - 1;
+        let line_start = self.line_starts[line_index];
+        let utf16_column = self.content[line_start..clamped].encode_utf16().count() + 1;
+        Position {
+            line: line_index + 1,
+            column: utf16_column,
+        }
+    }
+
+    fn slice(&self, start: usize, end: usize) -> &str {
+        &self.content[start.min(self.content.len())..end.min(self.content.len())]
+    }
+
+    fn range(&self, start: LineColumn, end: LineColumn) -> SourceRange {
+        SourceRange {
+            start: self.line_column(start),
+            end: self.line_column(end),
+        }
+    }
+
+    fn range_from_offsets(&self, start: usize, end: usize) -> SourceRange {
+        SourceRange {
+            start: self.position_at_offset(start),
+            end: self.position_at_offset(end),
         }
     }
 
