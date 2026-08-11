@@ -6,10 +6,10 @@ pattern. Each slice should leave the repository in a working state.
 
 Normative behavior is reflected in these specs as the slices land:
 
-- [Configuration](../specs/configuration.md)
-- [Scanning](../specs/scanning.md)
-- [Annotations](../specs/annotations.md)
-- [Diagnostics](../specs/diagnostics.md)
+- [Configuration](../../specs/configuration.md)
+- [Scanning](../../specs/scanning.md)
+- [Annotations](../../specs/annotations.md)
+- [Diagnostics](../../specs/diagnostics.md)
 
 ## Status
 
