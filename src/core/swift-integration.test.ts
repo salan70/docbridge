@@ -3,11 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { check } from "./resolver";
+import { definition, references } from "../lsp/navigation";
+import { Project } from "../lsp/project";
 import { context, formatContextResult } from "./context";
 import { graph } from "./graph-output";
-import { Project } from "../lsp/project";
-import { definition, references } from "../lsp/navigation";
+import { check } from "./resolver";
 
 function withSwiftProject(run: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-swift-"));

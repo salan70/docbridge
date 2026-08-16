@@ -8,9 +8,9 @@ ambiguous.
 Normative behavior should be reflected in these specs and docs as the slices
 land:
 
-- [CLI](../specs/cli.md)
-- [Codex Integration](../integrations/codex.md)
-- [Claude Code Integration](../integrations/claude-code.md)
+- [CLI](../../specs/cli.md)
+- [Codex Integration](../../integrations/codex.md)
+- [Claude Code Integration](../../integrations/claude-code.md)
 
 ## Status
 

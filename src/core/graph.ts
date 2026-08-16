@@ -1,4 +1,5 @@
 import type { CodeScanResult } from "./code-scanner";
+import { compareEndpointOrder } from "./endpoint";
 import type { MarkdownScanResult } from "./markdown";
 import type { CodeSymbolEndpoint, DocAnchorEndpoint } from "./types";
 
@@ -86,10 +87,7 @@ export function buildLinkGraph(
  * carrying their ranges. The result is deterministically ordered by file path
  * then position so one-to-many pickers are stable.
  */
-export function counterpartsOf(
-  graph: LinkGraph,
-  endpoint: string,
-): GraphEndpoint[] {
+export function counterpartsOf(graph: LinkGraph, endpoint: string): GraphEndpoint[] {
   const targets = graph.counterparts.get(endpoint);
   if (targets === undefined) {
     return [];
@@ -108,14 +106,11 @@ export function counterpartsOf(
     }
   }
 
-  return resolved.sort(compareEndpoints);
+  return resolved.toSorted(compareEndpoints);
 }
 
 /** Look up a recorded endpoint object (code or doc) by its endpoint string. */
-export function endpointObject(
-  graph: LinkGraph,
-  endpoint: string,
-): GraphEndpoint | undefined {
+export function endpointObject(graph: LinkGraph, endpoint: string): GraphEndpoint | undefined {
   return graph.codeByEndpoint.get(endpoint) ?? graph.docByEndpoint.get(endpoint);
 }
 
@@ -129,14 +124,8 @@ function addTo(map: Map<string, Set<string>>, key: string, value: string): void 
 }
 
 function compareEndpoints(left: GraphEndpoint, right: GraphEndpoint): number {
-  return (
-    compareString(left.location.filePath, right.location.filePath) ||
-    left.location.line - right.location.line ||
-    left.location.column - right.location.column ||
-    compareString(left.endpoint, right.endpoint)
+  return compareEndpointOrder(
+    { ...left.location, endpoint: left.endpoint },
+    { ...right.location, endpoint: right.endpoint },
   );
-}
-
-function compareString(left: string, right: string): number {
-  return left.localeCompare(right);
 }

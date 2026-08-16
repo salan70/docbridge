@@ -8,10 +8,10 @@ reviewable implementation slices.
 Normative behavior will be reflected in these specs and docs as the slices
 land:
 
-- [CLI](../specs/cli.md)
-- [Scanning](../specs/scanning.md)
-- [Configuration](../specs/configuration.md)
-- [Testing](../contributing/testing.md)
+- [CLI](../../specs/cli.md)
+- [Scanning](../../specs/scanning.md)
+- [Configuration](../../specs/configuration.md)
+- [Testing](../../contributing/testing.md)
 
 ## Status
 

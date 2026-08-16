@@ -1,16 +1,15 @@
 import {
   collectCodeFiles,
   KNOWN_CODE_LANGUAGES,
-  scanCodeFiles,
   type CodeFileRead,
   type CodeInclude,
   type CollectedCodeFile,
 } from "../core/code-language";
-import { loadConfig } from "../core/config";
 import { sortDiagnostics } from "../core/diagnostics";
-import { buildLinkGraph, type LinkGraph } from "../core/graph";
 import { collectFiles, matchGlob, readManagedFile } from "../core/glob";
-import { scanMarkdown, type MarkdownScanResult } from "../core/markdown";
+import { buildLinkGraph, type LinkGraph } from "../core/graph";
+import { comparePaths } from "../core/path-order";
+import { scanProject } from "../core/project-scan";
 import { resolveLinks } from "../core/resolver";
 import type { DocBridgeDiagnostic } from "../core/types";
 import { buildPositionIndex, type PositionIndex } from "./index-lookup";
@@ -46,54 +45,49 @@ export class Project {
     return this.current;
   }
 
-  /** Record (or replace) the buffer overlay for an open document. */
+  /**
+   * Record (or replace) the buffer overlay for an open document.
+   *
+   * @doc docs/specs/lsp.md#document-synchronization
+   */
   setOverlay(relPath: string, content: string): void {
     this.overlay.set(relPath, content);
   }
 
-  /** Drop a buffer overlay; the file reverts to its on-disk version. */
+  /**
+   * Drop a buffer overlay; the file reverts to its on-disk version.
+   *
+   * @doc docs/specs/lsp.md#document-synchronization
+   */
   clearOverlay(relPath: string): void {
     this.overlay.delete(relPath);
   }
 
   /** Re-scan and re-resolve the whole project, returning the new state. */
   resolve(): ProjectState {
-    const configResult = loadConfig(this.projectRoot);
-    if (!configResult.ok) {
+    const outcome = scanProject({
+      projectRoot: this.projectRoot,
+      collectCode: (_projectRoot, include) => this.collectCode(include),
+      collectDocs: (_projectRoot, patterns) => this.collect(patterns, false),
+      readFile: (relPath) => this.readContent(relPath),
+      buildGraph: true,
+      keepContent: true,
+    });
+    if (!outcome.ok) {
       this.current = {
         ...emptyState(),
-        diagnostics: sortDiagnostics(configResult.diagnostics),
+        diagnostics: sortDiagnostics(outcome.diagnostics),
       };
       return this.current;
     }
 
-    const codeInclude = configResult.config.include.code;
-    const docPaths = this.collect(configResult.config.include.docs, false);
-
-    const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
-    const contentByFile = new Map<string, string>();
-
-    const codeScan = scanCodeFiles(
-      this.projectRoot,
-      this.collectCode(codeInclude),
-      codeInclude,
-      (relPath) => this.readContent(relPath),
-      (relPath, content) => contentByFile.set(relPath, content),
-    );
-    const codeFiles = codeScan.codeFiles;
-    scanDiagnostics.push(...codeScan.diagnostics);
-
-    const docFiles: MarkdownScanResult[] = [];
-    for (const relPath of docPaths) {
-      const content = this.contentFor(relPath, scanDiagnostics);
-      if (content === undefined) {
-        continue;
-      }
-      contentByFile.set(relPath, content);
-      const scan = scanMarkdown(relPath, content);
-      scanDiagnostics.push(...scan.diagnostics);
-      docFiles.push(scan);
-    }
+    const {
+      codeFiles,
+      docFiles,
+      diagnostics: scanDiagnostics,
+      contentByFile,
+      graph,
+    } = outcome.scan;
 
     const relationship = resolveLinks({
       codeFiles,
@@ -102,7 +96,6 @@ export class Project {
       audit: false,
     });
 
-    const graph = buildLinkGraph(codeFiles, docFiles);
     this.current = {
       graph,
       index: buildPositionIndex(graph),
@@ -139,9 +132,7 @@ export class Project {
         }
       }
     }
-    return all.sort((left, right) =>
-      left.relPath < right.relPath ? -1 : left.relPath > right.relPath ? 1 : 0,
-    );
+    return all.toSorted((left, right) => comparePaths(left.relPath, right.relPath));
   }
 
   /** Resolve content for a code path: buffer overlay first, then on-disk. */
@@ -153,10 +144,7 @@ export class Project {
     return readManagedFile(this.projectRoot, relPath);
   }
 
-  /**
-   * Collect the set of files for the given include patterns: disk matches plus
-   * any open-buffer path that matches but is not (yet) on disk.
-   */
+  /** Collect disk matches plus matching open buffers that do not exist on disk. */
   private collect(patterns: string[], isCode: boolean): string[] {
     const paths = new Set(collectFiles(this.projectRoot, patterns));
     for (const relPath of this.overlay.keys()) {
@@ -170,24 +158,7 @@ export class Project {
         paths.add(relPath);
       }
     }
-    return [...paths].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
-  }
-
-  /** Resolve content for a path: buffer overlay first, then on-disk. */
-  private contentFor(
-    relPath: string,
-    scanDiagnostics: DocBridgeDiagnostic[],
-  ): string | undefined {
-    const overlaid = this.overlay.get(relPath);
-    if (overlaid !== undefined) {
-      return overlaid;
-    }
-    const read = readManagedFile(this.projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      return undefined;
-    }
-    return read.content;
+    return [...paths].toSorted(comparePaths);
   }
 }
 

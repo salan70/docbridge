@@ -1,0 +1,3 @@
+[global]
+disable = ["MD013", "MD024", "MD041", "MD048"]
+exclude = [".claude/skills/**", "test-fixtures/diagnostics/**"]

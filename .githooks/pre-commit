@@ -5,18 +5,23 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 run_just() {
-  if command -v just >/dev/null 2>&1; then
+  if [[ -n "${IN_NIX_SHELL:-}" ]]; then
     just "$@"
   else
     nix develop -c just "$@"
   fi
 }
 
-echo "Running pre-commit guard: just check"
-run_just check
+echo "Running pre-commit guard: just verify"
+run_just verify
 
-echo "Running pre-commit guard: just typecheck"
-run_just typecheck
-
-echo "Running pre-commit guard: just test"
-run_just test
+# Awareness, not a verdict: list the staged changes' linked counterparts that
+# were not staged, with their content, then let the commit proceed. Judgment
+# about counterparts belongs to the pull request, where CI re-runs the gate over
+# the whole change set and a human approves the merge.
+echo "Reporting DocBridge related-gate over the staged files"
+gate_status=0
+run_just related-gate-report || gate_status=$?
+if [[ "$gate_status" -ne 0 ]]; then
+  echo "pre-commit: the related-gate report failed (exit $gate_status); continuing." >&2
+fi

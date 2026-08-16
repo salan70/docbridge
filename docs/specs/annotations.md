@@ -27,10 +27,20 @@ declarations:
 void login(String email, String password) {}
 ```
 
+Rust uses documentation comments with `@doc` attached to supported
+declarations (`///`, `//!`, and `/** */`, including forms that syn surfaces as
+`#[doc]` attributes):
+
+```rust
+/// @doc docs/specs/auth.md#login-flow
+pub fn login(email: &str, password: &str) {}
+```
+
 Markdown uses standalone HTML comments with `@code` attached to the next heading:
 
 ```md
 <!-- @code src/cli/index.ts#runCheck -->
+
 ## Check Command
 ```
 
@@ -57,6 +67,17 @@ Supported TypeScript declarations are top-level exported:
 - named default `class`
 - `declare` forms of supported declarations inside `.ts` files
 
+TypeScript type members are also supported and are listed in
+[Scanning](./scanning.md#typescript-members). Member endpoints are
+type-qualified without parameter signatures, so Markdown backlinks must use the
+scanner-produced canonical ID exactly:
+
+```md
+<!-- @code src/auth/service.ts#AuthService.login -->
+
+## Login Flow
+```
+
 Unsupported declarations with `@doc` produce `unsupported_declaration`. Unsupported declarations without `@doc` are ignored.
 
 Unsupported examples include:
@@ -66,6 +87,8 @@ Unsupported examples include:
 - namespace and module declarations
 - re-exports, including type-only re-exports
 - non-exported declarations with `@doc`
+- members whose name is not a plain identifier, enum members, index signatures,
+  call and construct signatures, and constructor parameter properties
 
 DocBridge relies on the TypeScript Compiler API to associate JSDoc with declarations. Orphan `@doc` comments that are not associated with a declaration are not detected in v0.1.
 
@@ -75,6 +98,7 @@ Markdown backlinks must use the scanner-produced canonical ID exactly:
 
 ```md
 <!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+
 ## Login Flow
 ```
 
@@ -85,6 +109,7 @@ canonical ID exactly:
 
 ```md
 <!-- @code lib/auth_service.dart#AuthService.login -->
+
 ## Login Flow
 ```
 

@@ -1,0 +1,71 @@
+name: Maintenance task
+description: Define routine upkeep with a concrete outcome
+title: "[Maintenance]: "
+labels:
+  - maintenance
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for routine upkeep that is not a bug, feature, technical design proposal, or documentation issue. Non-trivial implementation begins only after the issue receives the `status: accepted` label, regardless of who will implement it.
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched open and closed issues and did not find the same maintenance task.
+          required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: State the concrete maintenance outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Explain why the maintenance is needed now and provide supporting evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Identify the files, systems, or artifacts included in the task.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Identify adjacent work that is intentionally excluded.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that make the task complete.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: List the commands, inspections, or external checks that should verify completion.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies-risks
+    attributes:
+      label: Dependencies and risks
+      description: Identify prerequisites, coordination needs, rollback concerns, or risks.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add related issues, plans, release context, or implementation notes.

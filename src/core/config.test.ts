@@ -3,7 +3,12 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { loadConfig, resolveConfig } from "./config";
+import Ajv2020 from "ajv/dist/2020";
+
+import configSchema from "../../schemas/docbridge.schema.json";
+import { KNOWN_CODE_LANGUAGES } from "./code-language";
+import { LANGUAGE_SUFFIX, LANGUAGE_VISIBILITY, loadConfig, resolveConfig } from "./config";
+import { codes } from "./test-support";
 
 const TS_CONFIG = {
   include: {
@@ -12,9 +17,62 @@ const TS_CONFIG = {
   },
 };
 
-function codes(result: ReturnType<typeof resolveConfig>): string[] {
-  return result.diagnostics.map((diagnostic) => diagnostic.code);
-}
+const validateConfigSchema = new Ajv2020({ allErrors: true, strict: true }).compile(configSchema);
+
+test("published config schema enforces language suffixes and visibility values", () => {
+  expect(validateConfigSchema(TS_CONFIG), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { swift: { patterns: ["Sources/**/*.ts"], visibility: ["private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], visibility: ["internal"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+  expect(
+    validateConfigSchema({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.d.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  ).toBe(false);
+});
+
+test("published config schema mirrors every CLI language contract", () => {
+  const codeProperties = configSchema.properties.include.properties.code.properties;
+
+  expect(Object.keys(codeProperties).toSorted()).toEqual([...KNOWN_CODE_LANGUAGES].toSorted());
+  for (const language of KNOWN_CODE_LANGUAGES) {
+    const reference = codeProperties[language].$ref;
+    const definitionName = reference.slice("#/$defs/".length) as keyof typeof configSchema.$defs;
+    const definition = configSchema.$defs[definitionName];
+
+    expect(definition.properties.visibility.items.enum).toEqual([...LANGUAGE_VISIBILITY[language]]);
+    expect(
+      validateConfigSchema({
+        include: {
+          code: {
+            [language]: {
+              patterns: [`src/**/*${LANGUAGE_SUFFIX[language]}`],
+              visibility: [...LANGUAGE_VISIBILITY[language]],
+            },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+      JSON.stringify(validateConfigSchema.errors),
+    ).toBe(true);
+  }
+});
 
 test("resolveConfig rejects a missing config file", () => {
   const result = resolveConfig(undefined);
@@ -88,6 +146,23 @@ test("resolveConfig accepts a dart entry with the public visibility option", () 
   });
 });
 
+test("resolveConfig accepts a typescript entry with a visibility option", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["public", "private"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+
+  expect(result.ok).toBe(true);
+  expect(result.config.include.code.typescript).toEqual({
+    patterns: ["src/**/*.ts"],
+    visibility: ["public", "private"],
+  });
+});
+
 test("resolveConfig rejects unsupported dart visibility options", () => {
   const result = resolveConfig(
     JSON.stringify({
@@ -107,7 +182,7 @@ test("resolveConfig rejects the old include.code array form", () => {
     JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("resolveConfig rejects an unknown language ID", () => {
@@ -117,7 +192,7 @@ test("resolveConfig rejects an unknown language ID", () => {
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("resolveConfig rejects a shorthand array language entry", () => {
@@ -127,7 +202,7 @@ test("resolveConfig rejects a shorthand array language entry", () => {
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("resolveConfig rejects an unknown key inside a language entry", () => {
@@ -140,7 +215,7 @@ test("resolveConfig rejects an unknown key inside a language entry", () => {
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_unknown_key");
+  expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
 
 test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
@@ -156,7 +231,7 @@ test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
 test("resolveConfig reports config_unknown_key for unknown top-level keys", () => {
   const result = resolveConfig(JSON.stringify({ ...TS_CONFIG, extra: true }));
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_unknown_key");
+  expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
 
 test("resolveConfig reports config_unknown_key for unknown include keys", () => {
@@ -166,7 +241,7 @@ test("resolveConfig reports config_unknown_key for unknown include keys", () => 
     }),
   );
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_unknown_key");
+  expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
 
 test.each([
@@ -212,11 +287,11 @@ test.each([
   [
     {
       include: {
-        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["public"] } },
+        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["internal"] } },
         docs: ["docs/**/*.md"],
       },
     },
-    "typescript visibility unsupported",
+    "typescript visibility value unsupported",
   ],
   [
     { include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.ts"] } },
@@ -234,7 +309,7 @@ test.each([
 ])("resolveConfig reports config_invalid_value for %s", (raw) => {
   const result = resolveConfig(JSON.stringify(raw));
   expect(result.ok).toBe(false);
-  expect(codes(result)).toContain("config_invalid_value");
+  expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
 test("loadConfig reads docbridge.config.json from project root", () => {

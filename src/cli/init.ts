@@ -1,10 +1,4 @@
-import {
-  cpSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { discoverRepository } from "../core/init-discovery";
@@ -20,9 +14,8 @@ import {
   type InitSharedOptions,
   type PlannedFileOp,
 } from "../core/init-plan";
+import { agentTargetGuidance, commandHelpGuidance, InitCliError, rootPathGuidance } from "./errors";
 import type { CliIo } from "./index";
-
-class InitCliError extends Error {}
 
 export type InitPrompts = {
   isInteractive: boolean;
@@ -42,10 +35,7 @@ const AGENT_TARGETS = new Set<AgentTarget>(["codex", "claude", "both", "none"]);
  *
  * @doc docs/specs/cli.md#init-command
  */
-export function parseInitOptions(
-  args: string[],
-  command: InitCommandKind,
-): InitSharedOptions {
+export function parseInitOptions(args: string[], command: InitCommandKind): InitSharedOptions {
   const options: InitSharedOptions = {
     root: ".",
     yes: false,
@@ -78,7 +68,7 @@ export function parseInitOptions(
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new InitCliError("--root requires a path.");
+        throw new InitCliError("--root requires a path.", rootPathGuidance(command));
       }
       options.root = root;
       index += 1;
@@ -88,15 +78,19 @@ export function parseInitOptions(
     if (arg === "--agent-target") {
       const target = args[index + 1];
       if (target === undefined) {
-        throw new InitCliError("--agent-target requires a value.");
+        throw new InitCliError("--agent-target requires a value.", agentTargetGuidance(command));
       }
       if (!AGENT_TARGETS.has(target as AgentTarget)) {
         throw new InitCliError(
           `Unknown agent target: ${target}. Supported values: codex, claude, both${command === "init" ? ", none" : ""}.`,
+          agentTargetGuidance(command),
         );
       }
       if (command === "init-with-agent" && target === "none") {
-        throw new InitCliError("init-with-agent requires an agent target other than none.");
+        throw new InitCliError(
+          "init-with-agent requires an agent target other than none.",
+          agentTargetGuidance(command),
+        );
       }
       options.agentTarget = target as AgentTarget;
       index += 1;
@@ -104,10 +98,10 @@ export function parseInitOptions(
     }
 
     if (arg.startsWith("--")) {
-      throw new InitCliError(`Unknown option: ${arg}`);
+      throw new InitCliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
     }
 
-    throw new InitCliError(`Unexpected argument: ${arg}`);
+    throw new InitCliError(`Unexpected argument: ${arg}`, commandHelpGuidance(command));
   }
 
   return options;
@@ -156,12 +150,9 @@ export function createDefaultPrompts(isInteractive = process.stdin.isTTY): InitP
  * Run CLI-driven first-time DocBridge setup.
  *
  * @doc docs/specs/cli.md#init-command
+ * @doc docs/user/getting-started.md#set-up-a-project
  */
-export function runInit(
-  options: InitSharedOptions,
-  io: CliIo,
-  runtime: InitRuntime = { prompts: createDefaultPrompts(false) },
-): number {
+export function runInit(options: InitSharedOptions, io: CliIo, runtime: InitRuntime): number {
   return runInitCommand("init", options, io, runtime);
 }
 
@@ -169,11 +160,12 @@ export function runInit(
  * Prepare agent-guided adoption by installing docbridge-adopt and printing setup guidance.
  *
  * @doc docs/specs/cli.md#init-with-agent-command
+ * @doc docs/user/agent-integration.md#install-agent-skills
  */
 export function runInitWithAgent(
   options: InitSharedOptions,
   io: CliIo,
-  runtime: InitRuntime = { prompts: createDefaultPrompts(false) },
+  runtime: InitRuntime,
 ): number {
   return runInitCommand("init-with-agent", options, io, runtime);
 }
@@ -184,7 +176,7 @@ function runInitCommand(
   io: CliIo,
   runtime: InitRuntime,
 ): number {
-  const projectRoot = resolveProjectRoot(options.root);
+  const projectRoot = resolveProjectRoot(options.root, command);
   const discovery = discoverRepository(projectRoot);
   // init-with-agent never generates docbridge.config.json; scope confirmation
   // is deferred to the docbridge-adopt skill, so skip it here.
@@ -235,7 +227,9 @@ function resolveConfirmedScope(input: {
   }
 
   if (!input.prompts.isInteractive) {
-    throw new InitCliError("Interactive setup requires a TTY. Re-run with --yes for non-interactive mode.");
+    throw new InitCliError(
+      "Interactive setup requires a TTY. Re-run with --yes for non-interactive mode.",
+    );
   }
 
   if (input.discovery.docs.ambiguous) {
@@ -245,11 +239,7 @@ function resolveConfirmedScope(input: {
         "Docs scope is ambiguous and no candidates were detected. Create docbridge.config.json manually.",
       );
     }
-    const docsPattern = input.prompts.select(
-      "Choose docs scope:",
-      choices,
-      choices[0] ?? "",
-    );
+    const docsPattern = input.prompts.select("Choose docs scope:", choices, choices[0] ?? "");
     const languages = selectLanguages(input.discovery.code.languages, input.prompts);
     return { docsPattern, languages };
   }
@@ -259,12 +249,7 @@ function resolveConfirmedScope(input: {
   }
 
   let docsPattern = input.discovery.docs.recommended.pattern;
-  if (
-    !input.prompts.confirm(
-      `Use docs scope ${docsPattern}?`,
-      true,
-    )
-  ) {
+  if (!input.prompts.confirm(`Use docs scope ${docsPattern}?`, true)) {
     const choices = input.discovery.docs.candidates.map((candidate) => candidate.pattern);
     docsPattern = input.prompts.select("Choose docs scope:", choices, docsPattern);
   }
@@ -362,18 +347,18 @@ function executeSkillOperation(
   cpSync(sourceDir, destinationDir, { recursive: true, force: true });
 }
 
-function resolveProjectRoot(root: string): string {
+function resolveProjectRoot(root: string, command: InitCommandKind): string {
   const projectRoot = resolve(root);
 
   let stats;
   try {
     stats = statSync(projectRoot);
   } catch {
-    throw new InitCliError(`Root path does not exist: ${root}`);
+    throw new InitCliError(`Root path does not exist: ${root}`, rootPathGuidance(command));
   }
 
   if (!stats.isDirectory()) {
-    throw new InitCliError(`Root path is not a directory: ${root}`);
+    throw new InitCliError(`Root path is not a directory: ${root}`, rootPathGuidance(command));
   }
 
   return projectRoot;

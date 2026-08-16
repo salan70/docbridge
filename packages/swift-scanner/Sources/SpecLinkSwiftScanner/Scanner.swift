@@ -102,11 +102,43 @@ public final class Scanner {
       symbols.append(symbol)
 
       var seenTargets = Set<String>()
-      for docTarget in declaration.docTargets where !seenTargets.contains(docTarget.target) {
+      for docTarget in declaration.docTargets {
+        if !isValidLinkTarget(docTarget.target, sourceFilePath: file.filePath) {
+          diagnostics.append(
+            diagnostic(
+              code: "invalid_link_target",
+              target: docTarget.target,
+              source: symbol.endpoint,
+              message:
+                "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+              filePath: file.filePath,
+              line: docTarget.line,
+              column: docTarget.column,
+              range: docTarget.range
+            )
+          )
+          continue
+        }
+
+        if seenTargets.contains(docTarget.target) {
+          diagnostics.append(
+            diagnostic(
+              code: "duplicate_link",
+              target: docTarget.target,
+              source: symbol.endpoint,
+              severity: "warning",
+              message: "Duplicate @doc link from \(symbol.endpoint) to \(docTarget.target).",
+              filePath: file.filePath,
+              line: docTarget.line,
+              column: docTarget.column,
+              range: docTarget.range
+            )
+          )
+          continue
+        }
         seenTargets.insert(docTarget.target)
         links.append(
           DocLink(
-            direction: "code-to-doc",
             source: symbol.endpoint,
             target: docTarget.target,
             location: SourceLocation(
@@ -167,7 +199,7 @@ private func collectDeclarations(
   return collector.declarations
 }
 
-private let SUPPORTED_VISIBILITY_KEYWORDS: Set<String> = [
+private let supportedVisibilityKeywords: Set<String> = [
   "open", "public", "internal", "fileprivate", "private",
 ]
 
@@ -338,7 +370,7 @@ private struct DeclarationCollector {
       // determine the declaration's own access level.
       if modifier.detail != nil { continue }
       let name = modifier.name.text
-      if SUPPORTED_VISIBILITY_KEYWORDS.contains(name) {
+      if supportedVisibilityKeywords.contains(name) {
         return name
       }
     }
@@ -347,7 +379,9 @@ private struct DeclarationCollector {
 
   /// Extract `@doc` targets from the leading doc comments (`///` and `/** */`)
   /// of a node, with source positions for each target.
-  private func docTargets(for node: some SyntaxProtocol) -> (targets: [DocTarget], startOffset: Int?) {
+  private func docTargets(for node: some SyntaxProtocol) -> (
+    targets: [DocTarget], startOffset: Int?
+  ) {
     var targets: [DocTarget] = []
     var startOffset: Int? = nil
     var offset = node.position.utf8Offset
@@ -392,11 +426,17 @@ private struct DocMatch {
   let byteOffset: Int
 }
 
-private let DOC_REGEX = try! NSRegularExpression(pattern: #"@doc\s+(\S+)"#)
+private let docRegex: NSRegularExpression = {
+  do {
+    return try NSRegularExpression(pattern: #"@doc\s+(\S+)"#)
+  } catch {
+    preconditionFailure("Invalid static @doc regular expression: \(error)")
+  }
+}()
 
 private func docMatches(in text: String) -> [DocMatch] {
   let ns = text as NSString
-  let matches = DOC_REGEX.matches(in: text, range: NSRange(location: 0, length: ns.length))
+  let matches = docRegex.matches(in: text, range: NSRange(location: 0, length: ns.length))
   return matches.compactMap { match in
     let group = match.range(at: 1)
     guard group.location != NSNotFound else { return nil }
@@ -496,7 +536,8 @@ private func makeSymbol(filePath: String, declaration: Declaration) -> CodeSymbo
     symbolName: declaration.symbolName,
     canonicalId: declaration.canonicalId,
     endpoint: "\(filePath)#\(declaration.canonicalId)",
-    location: SourceLocation(filePath: filePath, line: declaration.line, column: declaration.column),
+    location: SourceLocation(
+      filePath: filePath, line: declaration.line, column: declaration.column),
     nameRange: declaration.nameRange,
     declarationRange: declaration.declarationRange,
     signatureRange: declaration.signatureRange
@@ -506,6 +547,8 @@ private func makeSymbol(filePath: String, declaration: Declaration) -> CodeSymbo
 private func diagnostic(
   code: String,
   target: String,
+  source: String? = nil,
+  severity: String = "error",
   message: String,
   filePath: String,
   line: Int,
@@ -513,15 +556,37 @@ private func diagnostic(
   range: SourceRange? = nil
 ) -> Diagnostic {
   Diagnostic(
-    severity: "error",
+    severity: severity,
     code: code,
     target: target,
     language: "swift",
-    source: nil,
+    source: source,
     message: message,
     location: SourceLocation(filePath: filePath, line: line, column: column),
     range: range
   )
+}
+
+func isValidLinkTarget(_ target: String, sourceFilePath: String) -> Bool {
+  let parts = target.split(separator: "#", omittingEmptySubsequences: false)
+  guard parts.count == 2 else { return false }
+
+  let filePath = String(parts[0])
+  let fragment = String(parts[1])
+  guard
+    !filePath.isEmpty,
+    !filePath.hasPrefix("/"),
+    !filePath.hasPrefix("./"),
+    !filePath.hasPrefix("../"),
+    !filePath.contains("\\"),
+    !filePath.contains(where: \.isWhitespace),
+    !filePath.split(separator: "/").contains(".."),
+    filePath != sourceFilePath,
+    !fragment.isEmpty,
+    !fragment.contains(where: \.isWhitespace)
+  else { return false }
+
+  return true
 }
 
 // MARK: - Position conversion

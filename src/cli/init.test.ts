@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
+import { resolvePackageRoot } from "../core/init-plan";
+import { makeProject } from "../core/test-support";
 import { run } from "./index";
 import {
   InitCliError,
@@ -11,43 +12,7 @@ import {
   runInitWithAgent,
   type InitPrompts,
 } from "./init";
-import { resolvePackageRoot } from "../core/init-plan";
-
-type Captured = {
-  out: string;
-  err: string;
-  io: { stdout: (text: string) => void; stderr: (text: string) => void };
-};
-
-function capture(): Captured {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text: string) => {
-        state.out += text;
-      },
-      stderr: (text: string) => {
-        state.err += text;
-      },
-    },
-  };
-}
-
-function makeProject(structure: Record<string, string>): string {
-  const project = mkdtempSync(join(tmpdir(), "docbridge-init-cli-"));
-  for (const [relPath, content] of Object.entries(structure)) {
-    const absolutePath = join(project, relPath);
-    mkdirSync(join(absolutePath, ".."), { recursive: true });
-    writeFileSync(absolutePath, content);
-  }
-  return project;
-}
+import { capture } from "./test-support";
 
 const nonInteractivePrompts: InitPrompts = {
   isInteractive: false,
@@ -191,11 +156,9 @@ test("run enters interactive init setup without --yes", () => {
   });
   try {
     const c = capture();
-    const code = run(
-      ["init", "--root", project, "--dry-run", "--agent-target", "codex"],
-      c.io,
-      { prompts: interactivePrompts },
-    );
+    const code = run(["init", "--root", project, "--dry-run", "--agent-target", "codex"], c.io, {
+      prompts: interactivePrompts,
+    });
 
     expect(code).toBe(0);
     expect(c.out).toContain("would create docbridge.config.json");

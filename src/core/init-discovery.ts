@@ -1,19 +1,20 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, join } from "node:path";
 
+import { KNOWN_CODE_LANGUAGES } from "./code-language";
 import { collectFiles } from "./glob";
 import type { CodeLanguage } from "./types";
 
 export type AgentTarget = "codex" | "claude" | "both" | "none";
 
-export type DocsScopeCandidate = {
+type DocsScopeCandidate = {
   directory: string;
   pattern: string;
   score: number;
   fileCount: number;
 };
 
-export type DocsScopeDiscovery = {
+type DocsScopeDiscovery = {
   candidates: DocsScopeCandidate[];
   recommended: DocsScopeCandidate | undefined;
   ambiguous: boolean;
@@ -26,13 +27,13 @@ export type CodeLanguageCandidate = {
   fileCount: number;
 };
 
-export type CodeScopeDiscovery = {
+type CodeScopeDiscovery = {
   languages: CodeLanguageCandidate[];
   ambiguous: boolean;
   message: string | undefined;
 };
 
-export type AgentTargetDiscovery = {
+type AgentTargetDiscovery = {
   hasAgentsDir: boolean;
   hasClaudeDir: boolean;
   defaultTarget: AgentTarget;
@@ -91,10 +92,13 @@ const SWIFT_PATTERNS = ["Sources/**/*.swift", "*/Sources/**/*.swift"] as const;
 
 const DART_PATTERNS = ["lib/**/*.dart"] as const;
 
+const RUST_PATTERNS = ["src/**/*.rs", "*/src/**/*.rs"] as const;
+
 const LANGUAGE_PATTERNS: Record<CodeLanguage, readonly string[]> = {
   typescript: TYPESCRIPT_PATTERNS,
   swift: SWIFT_PATTERNS,
   dart: DART_PATTERNS,
+  rust: RUST_PATTERNS,
 };
 
 /**
@@ -140,7 +144,7 @@ export function discoverDocsScope(projectRoot: string): DocsScopeDiscovery {
       score: scoreDocsDirectory(directory),
       fileCount: files.length,
     }))
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       right.score !== left.score
         ? right.score - left.score
         : left.directory.localeCompare(right.directory),
@@ -179,7 +183,7 @@ export function discoverDocsScope(projectRoot: string): DocsScopeDiscovery {
 export function discoverCodeScope(projectRoot: string): CodeScopeDiscovery {
   const languages: CodeLanguageCandidate[] = [];
 
-  for (const language of ["typescript", "swift", "dart"] as const) {
+  for (const language of KNOWN_CODE_LANGUAGES) {
     const patterns = activeCodePatterns(projectRoot, language);
     if (patterns.length > 0) {
       languages.push({
@@ -313,7 +317,7 @@ function collectMarkdownFiles(projectRoot: string, currentDir = "."): string[] {
     }
   }
 
-  return files.sort();
+  return files.toSorted();
 }
 
 function isEligibleDocsFile(filePath: string): boolean {
@@ -336,7 +340,10 @@ function scoreDocsDirectory(directory: string): number {
 
   for (let index = 0; index < segments.length; index += 1) {
     const tail = segments.slice(index).join("/");
-    if (HIGH_CONFIDENCE_DIR_NAMES.has(tail) || HIGH_CONFIDENCE_DIR_NAMES.has(segments[index] ?? "")) {
+    if (
+      HIGH_CONFIDENCE_DIR_NAMES.has(tail) ||
+      HIGH_CONFIDENCE_DIR_NAMES.has(segments[index] ?? "")
+    ) {
       score = Math.max(score, 2);
     } else if (
       MEDIUM_CONFIDENCE_DIR_NAMES.has(tail) ||
@@ -355,11 +362,7 @@ function activeCodePatterns(projectRoot: string, language: CodeLanguage): string
   );
 }
 
-function countCodeFiles(
-  projectRoot: string,
-  patterns: string[],
-  language: CodeLanguage,
-): number {
+function countCodeFiles(projectRoot: string, patterns: string[], language: CodeLanguage): number {
   const seen = new Set<string>();
   for (const pattern of patterns) {
     for (const filePath of collectFiles(projectRoot, [pattern])) {
@@ -391,17 +394,24 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
   }
 
   if (language === "swift") {
-    if (
-      lower.endsWith("tests.swift") ||
-      segments.includes("Tests") ||
-      segments.includes("tests")
-    ) {
+    if (lower.endsWith("tests.swift") || segments.includes("Tests") || segments.includes("tests")) {
       return true;
     }
   }
 
   if (language === "dart") {
     if (lower.endsWith("_test.dart") || segments.includes("test")) {
+      return true;
+    }
+  }
+
+  if (language === "rust") {
+    if (
+      segments.includes("target") ||
+      segments.includes("tests") ||
+      segments.includes("benches") ||
+      segments.includes("examples")
+    ) {
       return true;
     }
   }

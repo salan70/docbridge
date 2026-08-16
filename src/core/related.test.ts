@@ -1,23 +1,24 @@
 import { expect, test } from "bun:test";
 
-import { buildLinkGraph, type LinkGraph } from "./graph";
-import { scanMarkdown } from "./markdown";
 import { collectGateViolations, computeRelated, normalizeChangedPaths } from "./related";
-import { scanTypeScript } from "./typescript";
+import { graphFrom } from "./test-support";
 
-const LOGIN_TS = ["/**", " * @doc docs/auth.md#login-spec", " */", "export function login() {}", ""].join("\n");
+const LOGIN_TS = [
+  "/**",
+  " * @doc docs/auth.md#login-spec",
+  " */",
+  "export function login() {}",
+  "",
+].join("\n");
 
 const AUTH_MD = ["<!-- @code src/auth/login.ts#login -->", "## Login Spec", ""].join("\n");
-
-function graphFrom(code: Array<[string, string]>, docs: Array<[string, string]>): LinkGraph {
-  return buildLinkGraph(
-    code.map(([filePath, content]) => scanTypeScript(filePath, content)),
-    docs.map(([filePath, content]) => scanMarkdown(filePath, content)),
-  );
-}
+const BASIC_SOURCES = {
+  code: [["src/auth/login.ts", LOGIN_TS]],
+  docs: [["docs/auth.md", AUTH_MD]],
+} satisfies Parameters<typeof graphFrom>[0];
 
 test("computeRelated lists the doc counterpart of a changed code file", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts"]);
 
@@ -44,7 +45,7 @@ test("computeRelated lists the doc counterpart of a changed code file", () => {
 });
 
 test("computeRelated marks counterparts that are themselves in the change set", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts", "docs/auth.md"]);
 
@@ -54,7 +55,7 @@ test("computeRelated marks counterparts that are themselves in the change set", 
   ]);
 });
 test("computeRelated excludes changed files without counterparts but counts them", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts", "bun.lock", "src/other.ts"]);
 
@@ -63,7 +64,7 @@ test("computeRelated excludes changed files without counterparts but counts them
 });
 
 test("computeRelated lists the code counterpart of a changed doc file", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["docs/auth.md"]);
 
@@ -74,7 +75,11 @@ test("computeRelated lists the code counterpart of a changed doc file", () => {
         {
           endpoint: "docs/auth.md#login-spec",
           counterparts: [
-            { endpoint: "src/auth/login.ts#login", filePath: "src/auth/login.ts", inChangeSet: false },
+            {
+              endpoint: "src/auth/login.ts#login",
+              filePath: "src/auth/login.ts",
+              inChangeSet: false,
+            },
           ],
         },
       ],
@@ -85,7 +90,10 @@ test("computeRelated lists the code counterpart of a changed doc file", () => {
 test("computeRelated includes resolvable one-way links", () => {
   // The doc heading exists but has no @code backlink: still a counterpart.
   const oneWayDoc = "## Login Spec\n";
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", oneWayDoc]]);
+  const graph = graphFrom({
+    code: [["src/auth/login.ts", LOGIN_TS]],
+    docs: [["docs/auth.md", oneWayDoc]],
+  });
 
   const result = computeRelated(graph, ["src/auth/login.ts"]);
 
@@ -95,7 +103,7 @@ test("computeRelated includes resolvable one-way links", () => {
 });
 
 test("computeRelated dedupes repeated changed paths", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts", "src/auth/login.ts"]);
 
@@ -104,7 +112,13 @@ test("computeRelated dedupes repeated changed paths", () => {
 });
 
 test("computeRelated orders files by path and endpoints by position", () => {
-  const zTs = ["/**", " * @doc docs/auth.md#login-spec", " */", "export function zeta() {}", ""].join("\n");
+  const zTs = [
+    "/**",
+    " * @doc docs/auth.md#login-spec",
+    " */",
+    "export function zeta() {}",
+    "",
+  ].join("\n");
   const multiDoc = [
     "<!-- @code src/auth/login.ts#login -->",
     "## Login Spec",
@@ -113,17 +127,21 @@ test("computeRelated orders files by path and endpoints by position", () => {
     "## Another Spec",
     "",
   ].join("\n");
-  const graph = graphFrom(
-    [
+  const graph = graphFrom({
+    code: [
       ["src/z.ts", zTs],
       ["src/auth/login.ts", LOGIN_TS],
     ],
-    [["docs/auth.md", multiDoc]],
-  );
+    docs: [["docs/auth.md", multiDoc]],
+  });
 
   const result = computeRelated(graph, ["src/z.ts", "docs/auth.md", "src/auth/login.ts"]);
 
-  expect(result.files.map((file) => file.filePath)).toEqual(["docs/auth.md", "src/auth/login.ts", "src/z.ts"]);
+  expect(result.files.map((file) => file.filePath)).toEqual([
+    "docs/auth.md",
+    "src/auth/login.ts",
+    "src/z.ts",
+  ]);
   expect(result.files[0]?.endpoints.map((endpoint) => endpoint.endpoint)).toEqual([
     "docs/auth.md#login-spec",
     "docs/auth.md#another-spec",
@@ -131,7 +149,7 @@ test("computeRelated orders files by path and endpoints by position", () => {
 });
 
 test("collectGateViolations lists counterparts that are not in the change set", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts"]);
 
@@ -146,7 +164,7 @@ test("collectGateViolations lists counterparts that are not in the change set", 
 });
 
 test("collectGateViolations returns no violations when every counterpart is in the change set", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts", "docs/auth.md"]);
 
@@ -154,7 +172,7 @@ test("collectGateViolations returns no violations when every counterpart is in t
 });
 
 test("collectGateViolations reports the unchanged code counterpart of a changed doc", () => {
-  const graph = graphFrom([["src/auth/login.ts", LOGIN_TS]], [["docs/auth.md", AUTH_MD]]);
+  const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["docs/auth.md"]);
 
@@ -169,7 +187,10 @@ test("collectGateViolations reports the unchanged code counterpart of a changed 
 });
 
 test("normalizeChangedPaths keeps root-relative paths as-is", () => {
-  expect(normalizeChangedPaths("/repo", ["src/a.ts", "docs/b.md"])).toEqual(["src/a.ts", "docs/b.md"]);
+  expect(normalizeChangedPaths("/repo", ["src/a.ts", "docs/b.md"])).toEqual([
+    "src/a.ts",
+    "docs/b.md",
+  ]);
 });
 
 test("normalizeChangedPaths relativizes absolute paths against the root", () => {
@@ -185,5 +206,7 @@ test("normalizeChangedPaths drops empty and whitespace-only entries", () => {
 });
 
 test("normalizeChangedPaths dedupes paths that normalize to the same file", () => {
-  expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual(["src/a.ts"]);
+  expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual([
+    "src/a.ts",
+  ]);
 });

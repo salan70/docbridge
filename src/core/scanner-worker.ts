@@ -1,11 +1,17 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
+import Ajv2020, { type ErrorObject, type ValidateFunction } from "ajv/dist/2020";
+
+import commonOutputSchema from "../../schemas/common-output.schema.json";
+import scannerWorkerSchema from "../../schemas/scanner-worker.schema.json";
 import type { CodeScanOptions, CodeScanResult } from "./code-scanner";
+import { reasonOf } from "./error";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
-export type ScannerWorkerFile = {
+type ScannerWorkerFile = {
   filePath: string;
   content: string;
 };
@@ -19,16 +25,16 @@ export type ScannerWorkerRequest = {
   options: CodeScanOptions;
 };
 
-export type ScannerWorkerResponse = {
+type ScannerWorkerResponse = {
   schemaVersion: 1;
   requestId: string;
   language: CodeLanguage;
   files: ScannerWorkerResponseFile[];
 };
 
-export type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
+type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
 
-export type ScannerWorkerProcessInput = {
+type ScannerWorkerProcessInput = {
   command: string[];
   stdin: string;
 };
@@ -46,23 +52,42 @@ export type ScannerWorkerProcessResult =
       stderr: string;
     };
 
-export type ScannerWorkerRun = (
-  input: ScannerWorkerProcessInput,
-) => ScannerWorkerProcessResult;
+export type ScannerWorkerRun = (input: ScannerWorkerProcessInput) => ScannerWorkerProcessResult;
 
-export type ScannerWorkerSuccess = {
+type ScannerWorkerSuccess = {
   ok: true;
   codeFiles: CodeScanResult[];
   stderr: string;
 };
 
-export type ScannerWorkerFailure = {
+type ScannerWorkerFailure = {
   ok: false;
   diagnostic: DocBridgeDiagnostic;
   stderr: string;
 };
 
-export type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
+type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
+
+/** @internal Exported only to make the lazy initialization contract executable in tests. */
+export function createLazyWorkerResponseValidator<T>(compile: () => T): () => T {
+  let validator: T | undefined;
+  return () => {
+    validator ??= compile();
+    return validator;
+  };
+}
+
+const responseValidator = createLazyWorkerResponseValidator(compileWorkerResponseValidator);
+
+function compileWorkerResponseValidator(): ValidateFunction {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  ajv.addSchema(commonOutputSchema);
+  return ajv.compile({
+    $schema: scannerWorkerSchema.$schema,
+    $defs: scannerWorkerSchema.$defs,
+    $ref: "#/$defs/response",
+  });
+}
 
 export function invokeScannerWorker(
   request: ScannerWorkerRequest,
@@ -77,7 +102,7 @@ export function invokeScannerWorker(
   if (!processResult.ok) {
     return {
       ok: false,
-      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error),
+      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error, command[0]),
       stderr: processResult.stderr,
     };
   }
@@ -135,61 +160,74 @@ export function clangModuleCachePath(): string {
   return join(tmpdir(), `docbridge-clang-module-cache-${owner}`);
 }
 
-function runScannerWorkerProcess(
+/**
+ * Default worker process runner. Spawns via `node:child_process` so the
+ * bundled CLI runs under both Node.js and Bun. `maxBuffer` must exceed Node's
+ * 1 MiB default because worker responses embed scanned file contents.
+ */
+export function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
   try {
     const moduleCachePath = clangModuleCachePath();
     mkdirSync(moduleCachePath, { recursive: true });
-    const result = Bun.spawnSync({
-      cmd: input.command,
+    const [executable = "", ...args] = input.command;
+    const result = spawnSync(executable, args, {
       env: {
-        ...Bun.env,
+        ...process.env,
         CLANG_MODULE_CACHE_PATH: moduleCachePath,
       },
-      stdin: new TextEncoder().encode(input.stdin),
-      stdout: "pipe",
-      stderr: "pipe",
+      input: input.stdin,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024 * 1024,
     });
+    const stderr = result.stderr ?? "";
+    if (result.error !== undefined) {
+      return { ok: false, error: result.error, stderr };
+    }
+    if (result.status === null) {
+      return {
+        ok: false,
+        error: new Error(`worker terminated by signal ${result.signal ?? "unknown"}`),
+        stderr,
+      };
+    }
     return {
       ok: true,
-      exitCode: result.exitCode,
-      stdout: new TextDecoder().decode(result.stdout),
-      stderr: new TextDecoder().decode(result.stderr),
+      exitCode: result.status,
+      stdout: result.stdout ?? "",
+      stderr,
     };
   } catch (error) {
     return { ok: false, error, stderr: "" };
   }
 }
 
-function validateWorkerResponse(
-  value: unknown,
-  request: ScannerWorkerRequest,
-): string | undefined {
-  if (!isRecord(value)) {
-    return "worker response must be a JSON object";
+function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {
+  const validator = responseValidator();
+  if (!validator(value)) {
+    return formatSchemaError(validator.errors);
   }
-  if (value.schemaVersion !== 1) {
-    return "worker response schemaVersion must be 1";
-  }
-  if (value.requestId !== request.requestId) {
+  const response = value as ScannerWorkerResponse;
+  if (response.requestId !== request.requestId) {
     return "worker response requestId does not match the request";
   }
-  if (value.language !== request.language) {
+  if (response.language !== request.language) {
     return "worker response language does not match the request";
   }
-  if (!Array.isArray(value.files)) {
-    return "worker response files must be an array";
-  }
-  if (!responseFilesMatchRequest(value.files, request.files)) {
+  if (!responseFilesMatchRequest(response.files, request.files)) {
     return "worker response files must match requested files";
   }
-  for (const file of value.files) {
-    if (!isResponseFile(file)) {
-      return "worker response files contain an invalid scan result";
-    }
-  }
   return undefined;
+}
+
+function formatSchemaError(errors: ErrorObject[] | null | undefined): string {
+  const error = errors?.[0];
+  if (error === undefined) {
+    return "worker response does not match scanner-worker.schema.json";
+  }
+  const path = error.instancePath || "/";
+  return `worker response does not match scanner-worker.schema.json at ${path}: ${error.message ?? "invalid value"}`;
 }
 
 function responseFilesMatchRequest(
@@ -207,19 +245,6 @@ function responseFilesMatchRequest(
   });
 }
 
-function isResponseFile(value: unknown): value is ScannerWorkerResponseFile {
-  if (!isRecord(value)) {
-    return false;
-  }
-  return (
-    typeof value.filePath === "string" &&
-    Array.isArray(value.symbols) &&
-    Array.isArray(value.undocumentedSymbols) &&
-    Array.isArray(value.links) &&
-    Array.isArray(value.diagnostics)
-  );
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -227,6 +252,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function scannerUnavailableDiagnostic(
   language: CodeLanguage,
   error: unknown,
+  executable?: string,
 ): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
@@ -234,14 +260,40 @@ function scannerUnavailableDiagnostic(
     code: "code_scanner_unavailable",
     language,
     target: language,
-    message: `${label} scanner worker is unavailable: ${reasonOf(error)}`,
+    message: `${label} scanner worker is unavailable: ${spawnFailureReason(error, executable)}`,
   };
 }
 
-function scannerFailedDiagnostic(
-  language: CodeLanguage,
-  reason: string,
-): DocBridgeDiagnostic {
+/**
+ * Explain a spawn failure the executable bit cannot account for.
+ *
+ * Scanner resolution restores the executable bit before spawning, so a
+ * permission error here is not about the mode: the filesystem refuses to
+ * execute the file at all, which is what a `noexec` mount does. `bunx` caches
+ * packages under the OS temp dir, which is `noexec` on some hosts.
+ */
+function spawnFailureReason(error: unknown, executable?: string): string {
+  const reason = reasonOf(error);
+  if (!isExecDenied(error) || executable === undefined) {
+    return reason;
+  }
+  return (
+    `${reason}; the scanner is executable but ${dirname(executable)} refuses to ` +
+    `execute it, which a \`noexec\` mount does. Install DocBridge as a project ` +
+    `dependency, or point the installer cache at an exec-capable directory, ` +
+    `instead of running through \`bunx\``
+  );
+}
+
+function isExecDenied(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const code = (error as { code?: unknown }).code;
+  return code === "EACCES" || code === "EPERM";
+}
+
+function scannerFailedDiagnostic(language: CodeLanguage, reason: string): DocBridgeDiagnostic {
   const label = languageLabel(language);
   return {
     severity: "error",
@@ -250,10 +302,6 @@ function scannerFailedDiagnostic(
     target: language,
     message: `${label} scanner worker failed: ${reason}`,
   };
-}
-
-function reasonOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function languageLabel(language: CodeLanguage): string {

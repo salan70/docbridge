@@ -1,10 +1,13 @@
 import { expect, test } from "bun:test";
 import {
+  accessSync,
   chmodSync,
+  constants,
   mkdtempSync,
   mkdirSync,
   realpathSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -21,17 +24,16 @@ import {
   resolveScannerWorkerCommand,
   scanCodeFiles,
   scannerRootsFromModuleUrl,
-  setCodeAdapterForTest,
+  supportedScannerExecutableNames,
+  supportedScannerPlatformKeys,
   type CodeInclude,
 } from "./code-language";
+import { setCodeAdapterForTest } from "./code-language.test-support";
 import { readManagedFile } from "./glob";
 import { check } from "./resolver";
 import type { ScannerWorkerProcessResult } from "./scanner-worker";
 
-function withProject(
-  files: Record<string, string>,
-  run: (root: string) => void,
-): void {
+function withProject(files: Record<string, string>, run: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-lang-"));
   try {
     for (const [relPath, content] of Object.entries(files)) {
@@ -49,46 +51,50 @@ test("isCodeLanguage accepts the fixed language IDs and rejects others", () => {
   expect(isCodeLanguage("typescript")).toBe(true);
   expect(isCodeLanguage("swift")).toBe(true);
   expect(isCodeLanguage("dart")).toBe(true);
+  expect(isCodeLanguage("rust")).toBe(true);
   expect(isCodeLanguage("kotlin")).toBe(false);
 });
 
-test("TypeScript has an in-process adapter and Swift/Dart have worker-backed adapters", () => {
+test("scanner packaging metadata exposes every supported platform and executable", () => {
+  expect(supportedScannerPlatformKeys()).toEqual(["darwin-arm64", "linux-x64"]);
+  expect(supportedScannerExecutableNames()).toEqual([
+    "docbridge-swift-scanner",
+    "docbridge_dart_scanner",
+    "docbridge-rust-scanner",
+  ]);
+});
+
+test("TypeScript has an in-process adapter and Swift/Dart/Rust have worker-backed adapters", () => {
   expect(getCodeAdapter("typescript")?.language).toBe("typescript");
   expect(getCodeAdapter("swift")?.language).toBe("swift");
   expect(getCodeAdapter("dart")?.language).toBe("dart");
+  expect(getCodeAdapter("rust")?.language).toBe("rust");
 });
 
 test("resolveScannerWorkerCommand selects the dist scanner for a supported platform", () => {
-  withProject(
-    { "dist/bin/darwin-arm64/speclink-swift-scanner": "#!/bin/sh\n" },
-    (root) => {
-      const scannerPath = join(
-        root,
-        "dist/bin/darwin-arm64/speclink-swift-scanner",
-      );
-      chmodSync(scannerPath, 0o755);
+  withProject({ "dist/bin/darwin-arm64/docbridge-swift-scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/darwin-arm64/docbridge-swift-scanner");
+    chmodSync(scannerPath, 0o755);
 
-      const result = resolveScannerWorkerCommand("swift", {
-        platformKey: "darwin-arm64",
-        sourceRoot: join(root, "missing-source"),
-        distRoot: join(root, "dist"),
-      });
+    const result = resolveScannerWorkerCommand("swift", {
+      platformKey: "darwin-arm64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
 
-      expect(result).toEqual({ ok: true, command: [scannerPath] });
-    },
-  );
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+  });
 });
 
 test("resolveScannerWorkerCommand selects source scanners on unsupported dist platforms", () => {
   withProject(
     {
-      "packages/swift-scanner/.build/release/speclink-swift-scanner":
-        "#!/bin/sh\n",
+      "packages/swift-scanner/.build/release/docbridge-swift-scanner": "#!/bin/sh\n",
     },
     (root) => {
       const scannerPath = join(
         root,
-        "packages/swift-scanner/.build/release/speclink-swift-scanner",
+        "packages/swift-scanner/.build/release/docbridge-swift-scanner",
       );
       chmodSync(scannerPath, 0o755);
 
@@ -115,15 +121,140 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
     const shim = join(binDir, "docbridge");
     symlinkSync(relative(binDir, realCli), shim);
 
-    const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(
-      pathToFileURL(shim).href,
-    );
+    const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(pathToFileURL(shim).href);
 
     // Compare against the canonical root: realpath also normalizes symlinks in
     // the temp path itself (e.g. macOS /var -> /private/var).
     const realRoot = realpathSync(root);
     expect(distRoot).toBe(join(realRoot, "pkg/dist"));
     expect(sourceRoot).toBe(realRoot);
+  });
+});
+
+// Consumers install DocBridge with an installer that drops the executable bit
+// on the bundled scanner binaries, so the CLI must restore it on its own
+// artifacts instead of requiring a caller-side `chmod +x`. See issue #74.
+test("resolveScannerWorkerCommand restores the executable bit on a bundled dist scanner", () => {
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
+    chmodSync(scannerPath, 0o644);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+    expect(statSync(scannerPath).mode & 0o111).not.toBe(0);
+  });
+});
+
+test("resolveScannerWorkerCommand restores the executable bit on a source-checkout scanner", () => {
+  withProject(
+    { "packages/swift-scanner/.build/release/docbridge-swift-scanner": "#!/bin/sh\n" },
+    (root) => {
+      const scannerPath = join(
+        root,
+        "packages/swift-scanner/.build/release/docbridge-swift-scanner",
+      );
+      chmodSync(scannerPath, 0o644);
+
+      const result = resolveScannerWorkerCommand("swift", {
+        platformKey: "darwin-arm64",
+        sourceRoot: root,
+        distRoot: join(root, "missing-dist"),
+      });
+
+      expect(result).toEqual({ ok: true, command: [scannerPath] });
+      expect(statSync(scannerPath).mode & 0o111).not.toBe(0);
+    },
+  );
+});
+
+test("resolveScannerWorkerCommand leaves an already-executable scanner's mode untouched", () => {
+  withProject({ "dist/bin/darwin-arm64/docbridge-swift-scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/darwin-arm64/docbridge-swift-scanner");
+    // Owner-and-group only: repair must not widen permissions it did not need
+    // to touch, so this must not become 0755.
+    chmodSync(scannerPath, 0o750);
+
+    const result = resolveScannerWorkerCommand("swift", {
+      platformKey: "darwin-arm64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(statSync(scannerPath).mode & 0o7777).toBe(0o750);
+  });
+});
+
+// Slice 2 reports an EACCES at spawn time as a `noexec` mount on the grounds
+// that resolution already made the binary executable. That only holds if the
+// probe asks whether *this* process can execute the file, not whether any
+// execute bit is set somewhere in the mode. Root bypasses the distinction.
+const skipIfRoot =
+  typeof process.getuid === "function" && process.getuid() === 0 ? test.skip : test;
+
+skipIfRoot("resolveScannerWorkerCommand repairs a scanner the current user cannot execute", () => {
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
+    // Executable for group and other but not for the owner, which is us: the
+    // mode has execute bits, yet this process still cannot run the file.
+    chmodSync(scannerPath, 0o011);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+    accessSync(scannerPath, constants.X_OK);
+  });
+});
+
+test("resolveScannerWorkerCommand restores execution without widening read access", () => {
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
+    // A restrictive umask can install the scanner owner-only. Repair restores
+    // execution and nothing else: group and other must not gain read access.
+    chmodSync(scannerPath, 0o600);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [scannerPath] });
+    expect(statSync(scannerPath).mode & 0o7777).toBe(0o711);
+  });
+});
+
+test("resolveScannerWorkerCommand reports an unrepairable executable bit", () => {
+  withProject({ "dist/bin/linux-x64/docbridge_dart_scanner": "#!/bin/sh\n" }, (root) => {
+    const scannerPath = join(root, "dist/bin/linux-x64/docbridge_dart_scanner");
+    chmodSync(scannerPath, 0o644);
+
+    const result = resolveScannerWorkerCommand("dart", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+      chmod: () => {
+        throw new Error("EROFS: read-only file system");
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostic.code).toBe("code_scanner_unavailable");
+      expect(result.diagnostic.message).toContain(scannerPath);
+      expect(result.diagnostic.message).toContain("0644");
+      expect(result.diagnostic.message).toContain("EROFS");
+      expect(result.diagnostic.message).toContain(`chmod +x ${scannerPath}`);
+    }
   });
 });
 
@@ -161,11 +292,8 @@ test("scanCodeFiles reports scanner resolution diagnostics without starting a wo
     );
     try {
       const include: CodeInclude = { dart: { patterns: ["lib/**/*.dart"] } };
-      const result = scanCodeFiles(
-        root,
-        collectCodeFiles(root, include),
-        include,
-        (relPath) => readManagedFile(root, relPath),
+      const result = scanCodeFiles(root, collectCodeFiles(root, include), include, (relPath) =>
+        readManagedFile(root, relPath),
       );
 
       expect(result.diagnostics).toEqual([
@@ -264,18 +392,13 @@ test("scanCodeFiles dispatches configured non-TypeScript files to a worker adapt
     );
     try {
       const include: CodeInclude = { swift: { patterns: ["Sources/**/*.swift"] } };
-      const result = scanCodeFiles(
-        root,
-        collectCodeFiles(root, include),
-        include,
-        (relPath) => readManagedFile(root, relPath),
+      const result = scanCodeFiles(root, collectCodeFiles(root, include), include, (relPath) =>
+        readManagedFile(root, relPath),
       );
       expect(result.diagnostics).toEqual([]);
       expect(result.codeFiles).toHaveLength(1);
       expect(result.codeFiles[0]?.language).toBe("swift");
-      expect(result.codeFiles[0]?.symbols[0]?.endpoint).toBe(
-        "Sources/Auth.swift#AuthService",
-      );
+      expect(result.codeFiles[0]?.symbols[0]?.endpoint).toBe("Sources/Auth.swift#AuthService");
     } finally {
       restore();
     }
@@ -327,7 +450,6 @@ test("check resolves links from a worker-backed language scan", () => {
                   undocumentedSymbols: [],
                   links: [
                     {
-                      direction: "code-to-doc",
                       source: "Sources/Auth.swift#AuthService",
                       target: "docs/auth.md#auth-service",
                       location: {

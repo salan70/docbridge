@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { hover } from "./hover";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
+import { hover } from "./hover";
 
 const CODE = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
 const DOC = "<!-- @code src/auth/login.ts#login -->\n## Login Spec\n\nLogin flow specification.\n";
@@ -27,7 +27,8 @@ describe(hover, () => {
   });
 
   test("concatenates one-to-many sections with a divider", () => {
-    const code = "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";
+    const code =
+      "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";
     const doc = "## Login Spec\n\nFirst section.\n\n## Flow\n\nSecond section.\n";
 
     const result = hover(stateOf(code, doc), CODE_FILE, { line: 5, column: 18 });

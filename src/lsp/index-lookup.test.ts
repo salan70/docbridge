@@ -4,12 +4,7 @@ import { buildLinkGraph } from "../core/graph";
 import { scanMarkdown } from "../core/markdown";
 import { scanTypeScript } from "../core/typescript";
 import { buildPositionIndex, endpointAt } from "./index-lookup";
-import {
-  fromLspPosition,
-  rangeContains,
-  toLspPosition,
-  toLspRange,
-} from "./position";
+import { fromLspPosition, rangeContains, toLspPosition, toLspRange } from "./position";
 
 const CODE_FILE = "src/auth/login.ts";
 const DOC_FILE = "docs/auth.md";

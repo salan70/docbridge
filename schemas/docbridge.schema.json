@@ -18,23 +18,25 @@
           "additionalProperties": false,
           "minProperties": 1,
           "properties": {
-            "typescript": { "$ref": "#/$defs/codeLanguageEntry" },
-            "swift": { "$ref": "#/$defs/codeLanguageEntry" },
-            "dart": { "$ref": "#/$defs/codeLanguageEntry" }
+            "typescript": { "$ref": "#/$defs/typescriptEntry" },
+            "swift": { "$ref": "#/$defs/swiftEntry" },
+            "dart": { "$ref": "#/$defs/dartEntry" },
+            "rust": { "$ref": "#/$defs/rustEntry" }
           }
         },
         "docs": {
           "type": "array",
           "minItems": 1,
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "\\.md$"
           }
         }
       }
     }
   },
   "$defs": {
-    "codeLanguageEntry": {
+    "typescriptEntry": {
       "type": "object",
       "additionalProperties": false,
       "required": ["patterns"],
@@ -43,13 +45,81 @@
           "type": "array",
           "minItems": 1,
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?!.*\\.d\\.ts$).*\\.ts$"
           }
         },
         "visibility": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "enum": ["public", "protected", "private"]
+          }
+        }
+      }
+    },
+    "swiftEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.swift$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "open", "internal"]
+          }
+        }
+      }
+    },
+    "dartEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.dart$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public"]
+          }
+        }
+      }
+    },
+    "rustEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.rs$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["pub", "private"]
           }
         }
       }

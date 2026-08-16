@@ -15,13 +15,7 @@ import { run } from "./index";
  * reproducible from checked-in files. It is covered by unit tests instead.
  */
 
-const FIXTURES_ROOT = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "test-fixtures",
-  "diagnostics",
-);
+const FIXTURES_ROOT = join(import.meta.dir, "..", "..", "test-fixtures", "diagnostics");
 
 type ObservedDiagnostic = {
   code: DiagnosticCode;
@@ -92,6 +86,9 @@ test("fixture invalid_link_target fires exactly invalid_link_target", () => {
   const { exitCode, diagnostics } = checkFixture("invalid_link_target");
 
   expect(diagnostics).toEqual([
+    { code: "invalid_link_target", filePath: "lib/example.dart", line: 1 },
+    { code: "invalid_link_target", filePath: "Sources/Example.swift", line: 1 },
+    { code: "invalid_link_target", filePath: "src/example.rs", line: 1 },
     { code: "invalid_link_target", filePath: "src/example.ts", line: 4 },
   ]);
   expect(exitCode).toBe(1);
@@ -118,9 +115,7 @@ test("fixture doc_anchor_not_found fires exactly doc_anchor_not_found", () => {
 test("fixture code_file_not_found fires exactly code_file_not_found", () => {
   const { exitCode, diagnostics } = checkFixture("code_file_not_found");
 
-  expect(diagnostics).toEqual([
-    { code: "code_file_not_found", filePath: "docs/spec.md", line: 1 },
-  ]);
+  expect(diagnostics).toEqual([{ code: "code_file_not_found", filePath: "docs/spec.md", line: 1 }]);
   expect(exitCode).toBe(1);
 });
 
@@ -158,6 +153,7 @@ test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => 
 
   expect(diagnostics).toEqual([
     { code: "duplicate_code_symbol", filePath: "src/example.ts", line: 11 },
+    { code: "duplicate_code_symbol", filePath: "src/member.ts", line: 12 },
   ]);
   expect(exitCode).toBe(1);
 });
@@ -165,9 +161,7 @@ test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => 
 test("fixture code_parse_error fires exactly code_parse_error", () => {
   const { exitCode, diagnostics } = checkFixture("code_parse_error");
 
-  expect(diagnostics).toEqual([
-    { code: "code_parse_error", filePath: "src/example.ts", line: 1 },
-  ]);
+  expect(diagnostics).toEqual([{ code: "code_parse_error", filePath: "src/example.ts", line: 1 }]);
   expect(exitCode).toBe(1);
 });
 
@@ -177,6 +171,9 @@ test("fixture duplicate_link fires exactly duplicate_link", () => {
   const { exitCode, diagnostics } = checkFixture("duplicate_link");
 
   expect(diagnostics).toEqual([
+    { code: "duplicate_link", filePath: "lib/example.dart", line: 2 },
+    { code: "duplicate_link", filePath: "Sources/Example.swift", line: 2 },
+    { code: "duplicate_link", filePath: "src/example.rs", line: 2 },
     { code: "duplicate_link", filePath: "src/example.ts", line: 5 },
   ]);
   expect(exitCode).toBe(0);
@@ -196,6 +193,7 @@ test("fixture unsupported_declaration fires exactly unsupported_declaration", ()
 
   expect(diagnostics).toEqual([
     { code: "unsupported_declaration", filePath: "src/example.ts", line: 4 },
+    { code: "unsupported_declaration", filePath: "src/member.ts", line: 5 },
   ]);
   expect(exitCode).toBe(0);
 });
@@ -211,6 +209,26 @@ test("fixture undocumented_symbol fires exactly undocumented_symbol under --audi
 
 test("fixture undocumented_symbol is clean without --audit", () => {
   const { exitCode, diagnostics } = checkFixture("undocumented_symbol");
+
+  expect(diagnostics).toEqual([]);
+  expect(exitCode).toBe(0);
+});
+
+test("fixture unlinked_doc_section fires exactly unlinked_doc_section under --audit", () => {
+  const { exitCode, diagnostics } = checkFixture("unlinked_doc_section", { audit: true });
+
+  // `# Spec` is unannotated but its subtree carries a link, so it is suppressed.
+  // The empty `##` closes `## Unlinked`, making `### Below Empty` a separate
+  // region rather than a suppressed descendant.
+  expect(diagnostics).toEqual([
+    { code: "unlinked_doc_section", filePath: "docs/spec.md", line: 9 },
+    { code: "unlinked_doc_section", filePath: "docs/spec.md", line: 15 },
+  ]);
+  expect(exitCode).toBe(0);
+});
+
+test("fixture unlinked_doc_section is clean without --audit", () => {
+  const { exitCode, diagnostics } = checkFixture("unlinked_doc_section");
 
   expect(diagnostics).toEqual([]);
   expect(exitCode).toBe(0);

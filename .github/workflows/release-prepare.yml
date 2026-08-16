@@ -27,7 +27,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           fetch-depth: 0
@@ -37,12 +37,17 @@ jobs:
           git config user.name "$GIT_USER_NAME"
           git config user.email "$GIT_USER_EMAIL"
 
-      - name: Bump version in package.json
+      # Only Bun is needed here: the bump script imports node builtins alone, so
+      # the full Nix dev shell used by CI would just add download time.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Bump every versioned manifest
+        env:
+          BUMP: ${{ github.event.inputs.bump }}
         run: |
-          # npm ships on ubuntu-latest; --no-git-tag-version edits package.json
-          # without creating a commit or tag.
-          version="$(npm version "${{ github.event.inputs.bump }}" --no-git-tag-version)"
-          version="${version#v}"
+          # Bumps package.json and editors/vscode/package.json together; the
+          # VSIX packaging contract rejects any drift between the two.
+          version="$(bun run scripts/set-release-version.ts "$BUMP")"
           echo "VERSION=${version}" >> "$GITHUB_ENV"
           echo "Bumped to ${version}"
 
@@ -59,7 +64,7 @@ jobs:
         run: |
           branch="release/v${VERSION}"
           git switch -c "$branch"
-          git add package.json CHANGELOG.md
+          git add package.json editors/vscode/package.json CHANGELOG.md
           git commit -m "🔖 chore(release): v${VERSION}"
           git push -u origin "$branch"
 

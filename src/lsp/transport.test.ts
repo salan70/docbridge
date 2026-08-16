@@ -35,7 +35,12 @@ describe("encodeMessage", () => {
 
 describe("MessageReader", () => {
   test("round-trips an encoded ASCII message", () => {
-    const message = { jsonrpc: "2.0", id: 7, method: "initialize", params: { rootUri: "file:///tmp" } };
+    const message = {
+      jsonrpc: "2.0",
+      id: 7,
+      method: "initialize",
+      params: { rootUri: "file:///tmp" },
+    };
     const reader = new MessageReader();
 
     reader.append(encodeMessage(message));

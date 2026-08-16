@@ -31,11 +31,11 @@
           },
           "language": {
             "type": "string",
-            "enum": ["typescript", "swift", "dart"],
+            "enum": ["typescript", "swift", "dart", "rust"],
             "description": "Code language for code nodes."
           },
-          "location": { "$ref": "#/$defs/location" },
-          "range": { "$ref": "#/$defs/range" },
+          "location": { "$ref": "common-output.schema.json#/$defs/location" },
+          "range": { "$ref": "common-output.schema.json#/$defs/range" },
           "content": {
             "oneOf": [
               {
@@ -85,8 +85,8 @@
             "type": "string",
             "description": "Resolved target endpoint of the annotation edge."
           },
-          "location": { "$ref": "#/$defs/location" },
-          "range": { "$ref": "#/$defs/range" }
+          "location": { "$ref": "common-output.schema.json#/$defs/location" },
+          "range": { "$ref": "common-output.schema.json#/$defs/range" }
         }
       }
     },
@@ -112,7 +112,7 @@
     },
     "diagnostics": {
       "type": "array",
-      "items": { "$ref": "#/$defs/diagnostic" }
+      "items": { "$ref": "common-output.schema.json#/$defs/diagnostic" }
     },
     "summary": {
       "type": "object",
@@ -134,52 +134,6 @@
         "bidirectionalPairs": { "type": "integer", "minimum": 0 },
         "oneWayEdges": { "type": "integer", "minimum": 0 },
         "diagnostics": { "type": "integer", "minimum": 0 }
-      }
-    }
-  },
-  "$defs": {
-    "location": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["filePath", "line", "column"],
-      "properties": {
-        "filePath": { "type": "string" },
-        "line": { "type": "integer", "minimum": 1 },
-        "column": { "type": "integer", "minimum": 1 }
-      }
-    },
-    "position": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["line", "column"],
-      "properties": {
-        "line": { "type": "integer", "minimum": 1 },
-        "column": { "type": "integer", "minimum": 1 }
-      }
-    },
-    "range": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["start", "end"],
-      "properties": {
-        "start": { "$ref": "#/$defs/position" },
-        "end": { "$ref": "#/$defs/position" }
-      }
-    },
-    "diagnostic": {
-      "type": "object",
-      "required": ["severity", "code", "target", "message"],
-      "properties": {
-        "severity": {
-          "type": "string",
-          "enum": ["error", "warning"]
-        },
-        "code": { "type": "string" },
-        "target": { "type": "string" },
-        "source": { "type": "string" },
-        "message": { "type": "string" },
-        "location": { "$ref": "#/$defs/location" },
-        "range": { "$ref": "#/$defs/range" }
       }
     }
   }

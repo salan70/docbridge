@@ -3,7 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import Ajv2020 from "ajv/dist/2020";
+
 import pkg from "../../package.json";
+import commonOutputSchema from "../../schemas/common-output.schema.json";
+import contextOutputSchema from "../../schemas/context-output.schema.json";
+import graphOutputSchema from "../../schemas/graph-output.schema.json";
 import {
   parseCheckOptions,
   parseContextOptions,
@@ -11,32 +16,12 @@ import {
   parseRelatedOptions,
   run,
 } from "./index";
+import { capture } from "./test-support";
 
-type Captured = {
-  out: string;
-  err: string;
-  io: { stdout: (text: string) => void; stderr: (text: string) => void };
-};
-
-function capture(): Captured {
-  const state = { out: "", err: "" };
-  return {
-    get out() {
-      return state.out;
-    },
-    get err() {
-      return state.err;
-    },
-    io: {
-      stdout: (text: string) => {
-        state.out += text;
-      },
-      stderr: (text: string) => {
-        state.err += text;
-      },
-    },
-  };
-}
+const outputSchemaAjv = new Ajv2020({ allErrors: true, strict: true });
+outputSchemaAjv.addSchema(commonOutputSchema);
+const validateContextOutput = outputSchemaAjv.compile(contextOutputSchema);
+const validateGraphOutput = outputSchemaAjv.compile(graphOutputSchema);
 
 test("parseCheckOptions reads root, json, and audit flags", () => {
   expect(parseCheckOptions(["--root", "examples/typescript", "--json", "--audit"])).toEqual({
@@ -88,33 +73,6 @@ test("run prints the package version for -v and exits 0", () => {
   expect(code).toBe(0);
   expect(c.out).toBe(`${pkg.version}\n`);
   expect(c.err).toBe("");
-});
-
-test("run reports an unknown command on stderr and exits 1", () => {
-  const c = capture();
-  const code = run(["bogus"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("Unknown command");
-  expect(c.out).toBe("");
-});
-
-test("run reports an unknown option on stderr and exits 1 without JSON", () => {
-  const c = capture();
-  const code = run(["check", "--bogus", "--json"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("Unknown option");
-  expect(c.out).toBe("");
-});
-
-test("run reports a missing --root value on stderr and exits 1", () => {
-  const c = capture();
-  const code = run(["check", "--root"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("--root");
-  expect(c.out).toBe("");
 });
 
 test("run reports a non-existent root on stderr and exits 1", () => {
@@ -177,7 +135,9 @@ test("run exits 0 when only warnings exist", () => {
   try {
     writeFileSync(
       join(errProject, "docbridge.config.json"),
-      JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
+      JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
     );
     // No source files: no diagnostics at all -> exit 0.
     const c = capture();
@@ -193,7 +153,9 @@ test("run exits 1 when check errors exist", () => {
   try {
     writeFileSync(
       join(project, "docbridge.config.json"),
-      JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
+      JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
     );
     // A code file with a @doc link to a non-existent doc -> doc_file_not_found error.
     const srcDir = join(project, "src");
@@ -216,7 +178,14 @@ test("run exits 1 when check errors exist", () => {
 
 test("parseRelatedOptions reads root, json, stdin, and positional files", () => {
   expect(
-    parseRelatedOptions(["--root", "examples/typescript", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
+    parseRelatedOptions([
+      "--root",
+      "examples/typescript",
+      "--json",
+      "--stdin",
+      "src/a.ts",
+      "docs/b.md",
+    ]),
   ).toEqual({
     root: "examples/typescript",
     json: true,
@@ -257,7 +226,9 @@ function makeRelatedProject(): string {
   const project = mkdtempSync(join(tmpdir(), "docbridge-related-"));
   writeFileSync(
     join(project, "docbridge.config.json"),
-    JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
   );
   mkdirSync(join(project, "src", "auth"), { recursive: true });
   writeFileSync(
@@ -480,7 +451,14 @@ test("run related reports config errors on stderr and exits 1", () => {
 
 test("parseContextOptions reads root, json, stdin, and positional files", () => {
   expect(
-    parseContextOptions(["--root", "examples/typescript", "--json", "--stdin", "src/a.ts", "docs/b.md"]),
+    parseContextOptions([
+      "--root",
+      "examples/typescript",
+      "--json",
+      "--stdin",
+      "src/a.ts",
+      "docs/b.md",
+    ]),
   ).toEqual({
     root: "examples/typescript",
     json: true,
@@ -510,7 +488,9 @@ function makeContextProject(): string {
   const project = mkdtempSync(join(tmpdir(), "docbridge-context-"));
   writeFileSync(
     join(project, "docbridge.config.json"),
-    JSON.stringify({ include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] } }),
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
   );
   mkdirSync(join(project, "src", "auth"), { recursive: true });
   writeFileSync(
@@ -587,7 +567,9 @@ test("run context --json emits contexts, diagnostics, and summary as JSON", () =
     const code = run(["context", "--root", project, "--json", "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
-    expect(JSON.parse(c.out)).toEqual({
+    const output: unknown = JSON.parse(c.out);
+    expect(validateContextOutput(output), JSON.stringify(validateContextOutput.errors)).toBe(true);
+    expect(output).toEqual({
       contexts: [
         {
           endpoint: "docs/auth.md#login-spec",
@@ -676,14 +658,16 @@ test("run graph --json emits nodes, edges, pairs, diagnostics, and summary", () 
       };
     };
 
-    expect(parsed.nodes.map((node) => node.endpoint).sort()).toEqual([
+    expect(validateGraphOutput(parsed), JSON.stringify(validateGraphOutput.errors)).toBe(true);
+
+    expect(parsed.nodes.map((node) => node.endpoint).toSorted()).toEqual([
       "docs/auth.md#login-spec",
       "src/auth/login.ts#login",
     ]);
     expect(
       parsed.edges
         .map((edge) => ({ kind: edge.kind, source: edge.source, target: edge.target }))
-        .sort((left, right) => left.kind.localeCompare(right.kind)),
+        .toSorted((left, right) => left.kind.localeCompare(right.kind)),
     ).toEqual([
       {
         kind: "code",
@@ -809,7 +793,7 @@ test("run graph --json scopes output to input files and direct counterparts", ()
       }>;
       summary: { nodes: number; edges: number };
     };
-    expect(parsed.nodes.map((node) => node.endpoint).sort()).toEqual([
+    expect(parsed.nodes.map((node) => node.endpoint).toSorted()).toEqual([
       "docs/auth.md#login-spec",
       "src/auth/login.ts#login",
     ]);
@@ -827,6 +811,157 @@ test("run graph --json scopes output to input files and direct counterparts", ()
   }
 });
 
+function makeMemberProject(): string {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-member-"));
+  writeFileSync(
+    join(project, "docbridge.config.json"),
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  mkdirSync(join(project, "src", "auth"), { recursive: true });
+  writeFileSync(
+    join(project, "src", "auth", "service.ts"),
+    [
+      "export class AuthService {",
+      "  /**",
+      "   * @doc docs/auth.md#login-spec",
+      "   */",
+      "  login(email: string) {",
+      "    return email;",
+      "  }",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  mkdirSync(join(project, "docs"), { recursive: true });
+  writeFileSync(
+    join(project, "docs", "auth.md"),
+    "<!-- @code src/auth/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+  );
+  return project;
+}
+
+test("run check honors typescript visibility opting into private members", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-visibility-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: {
+            typescript: { patterns: ["src/**/*.ts"], visibility: ["public", "private"] },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "service.ts"),
+      [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  private login() {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(project, "docs"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "auth.md"),
+      "<!-- @code src/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+    );
+
+    const c = capture();
+    const code = run(["check", "--root", project], c.io);
+
+    expect(c.out).toContain("0 errors, 0 warnings");
+    expect(code).toBe(0);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --json --include-content dedents a member signature", () => {
+  const project = makeMemberProject();
+  try {
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/**\n * @doc docs/auth.md#login-spec\n */\nlogin(email: string)",
+    });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("run graph --json --include-content keeps an object-typed parameter in the signature", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-object-param-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
+    );
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(
+      join(project, "src", "service.ts"),
+      [
+        "export class AuthService {",
+        "  /** @doc docs/auth.md#login-spec */",
+        "  login(options: { verbose: boolean }) {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(project, "docs"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "auth.md"),
+      "<!-- @code src/service.ts#AuthService.login -->\n## Login Spec\n\nThe login flow.\n",
+    );
+
+    const c = capture();
+    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+
+    expect(code).toBe(0);
+    const parsed = JSON.parse(c.out) as {
+      nodes: Array<{
+        kind: "code" | "doc";
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
+      }>;
+    };
+    const codeNode = parsed.nodes.find((node) => node.kind === "code");
+
+    expect(codeNode?.content).toEqual({
+      kind: "code",
+      symbolName: "login",
+      signature: "/** @doc docs/auth.md#login-spec */\nlogin(options: { verbose: boolean })",
+    });
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("run graph --json --include-content includes lightweight node content", () => {
   const project = makeContextProject();
   try {
@@ -837,7 +972,9 @@ test("run graph --json --include-content includes lightweight node content", () 
     const parsed = JSON.parse(c.out) as {
       nodes: Array<{
         kind: "code" | "doc";
-        content?: { kind: "code"; symbolName: string; signature: string } | { kind: "doc"; headingText: string };
+        content?:
+          | { kind: "code"; symbolName: string; signature: string }
+          | { kind: "doc"; headingText: string };
       }>;
     };
     const codeNode = parsed.nodes.find((node) => node.kind === "code");

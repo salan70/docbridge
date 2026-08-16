@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "speclink-vscode",
+      "name": "docbridge",
       "dependencies": {
         "vscode-languageclient": "^9.0.1",
       },

@@ -34,12 +34,15 @@ jobs:
       matrix:
         include:
           - platform: linux-x64
-            os: ubuntu-latest
+            # Build against the oldest supported Ubuntu glibc instead of the
+            # newer glibc from the Nix dev shell. The packed-package smoke test
+            # below then runs the Dart scanner on this plain Linux host.
+            os: ubuntu-22.04
           - platform: darwin-arm64
             os: macos-15
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
@@ -49,6 +52,14 @@ jobs:
         uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
           swift-version: "6.2"
+
+      - name: Install Dart
+        uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1 # v1.8.0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.83.0"
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
@@ -68,7 +79,16 @@ jobs:
         run: swift build --package-path packages/swift-scanner -c release
 
       - name: Build Dart scanner
-        run: nix develop -c just build-dart-scanner
+        # Deliberately run outside `nix develop`: a Nix-built Linux executable
+        # embeds a /nix/store ELF interpreter and is not portable to plain
+        # Ubuntu hosts.
+        run: |
+          cd packages/dart-scanner
+          dart pub get
+          dart compile exe bin/docbridge_dart_scanner.dart -o bin/docbridge_dart_scanner
+
+      - name: Build Rust scanner
+        run: cargo build --manifest-path packages/rust-scanner/Cargo.toml --release
 
       - name: Build dist CLI
         run: nix develop -c just build
@@ -89,7 +109,7 @@ jobs:
       - name: Generate scanner checksums
         run: |
           cd "dist/bin/${{ matrix.platform }}"
-          shasum -a 256 speclink-swift-scanner speclink_dart_scanner > SHA256SUMS
+          shasum -a 256 docbridge-swift-scanner docbridge_dart_scanner docbridge-rust-scanner > SHA256SUMS
 
       - name: Upload scanner artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -124,7 +144,7 @@ jobs:
             echo "version=" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.target.outputs.sha }}
 
@@ -188,7 +208,7 @@ jobs:
           path: dist/bin/darwin-arm64
 
       - name: Restore scanner executable bits
-        run: chmod 755 dist/bin/*/speclink-swift-scanner dist/bin/*/speclink_dart_scanner
+        run: chmod 755 dist/bin/*/docbridge-swift-scanner dist/bin/*/docbridge_dart_scanner dist/bin/*/docbridge-rust-scanner
 
       - name: Verify dist package
         run: nix develop -c just verify-dist

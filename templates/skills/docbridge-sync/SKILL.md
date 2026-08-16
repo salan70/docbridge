@@ -1,6 +1,6 @@
 ---
 name: docbridge-sync
-description: Triage DocBridge related-gate findings — linked counterparts of changed files that were not themselves updated. Use when a Stop-hook message, CI comment, or docbridge related --gate run flags unchanged counterparts, to judge divergence with docbridge context and then update or justify each one.
+description: Triage DocBridge related-gate findings — linked counterparts of changed files that were not themselves updated. Use when a Git hook, CI comment, or docbridge related --gate run flags unchanged counterparts, to judge divergence with docbridge context and then update or justify each one.
 ---
 
 # docbridge-sync
@@ -16,8 +16,8 @@ repo recipe such as `just related-gate`, or
 
 ## Procedure
 
-1. **Collect the violations.** Use the gate report you were given (Stop-hook
-   message, CI comment), or produce one over the change set:
+1. **Collect the violations.** Use the gate report you were given (a Git
+   hook's output, a CI comment), or produce one over the change set:
 
    ```sh
    git diff --name-only HEAD | docbridge related --stdin --gate
@@ -62,7 +62,7 @@ repo recipe such as `just related-gate`, or
   the link; that defeats the graph the gate protects.
 - Do not rubber-stamp: if the counterpart content was not read, the judgment
   has no basis.
-- Updating a spec section to match changed code is a *decision about the
-  contract*, not bookkeeping — when the change contradicts an explicit
+- Updating a spec section to match changed code is a _decision about the
+  contract_, not bookkeeping — when the change contradicts an explicit
   documented promise, surface it to the user instead of quietly rewriting the
   promise.

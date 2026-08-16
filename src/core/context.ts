@@ -1,13 +1,11 @@
-import { collectCodeFiles, scanCodeFiles } from "./code-language";
-import type { CodeScanResult } from "./code-scanner";
-import { loadConfig } from "./config";
-import { sortDiagnostics } from "./diagnostics";
-import { collectFiles, readManagedFile } from "./glob";
-import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import { pluralize, sortDiagnostics } from "./diagnostics";
+import { compareEndpointOrder } from "./endpoint";
+import { counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
+import { scanProject } from "./project-scan";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
+import { sliceSourceRange } from "./source-range";
 import type { EndpointKind, DocBridgeDiagnostic } from "./types";
 import type { CodeLanguage } from "./types";
 
@@ -25,17 +23,17 @@ export type ContextBlock = {
   content: string;
 };
 
-export type ContextSummary = {
+type ContextSummary = {
   inputFiles: number;
   contexts: number;
 };
 
-export type ContextData = {
+type ContextData = {
   contexts: ContextBlock[];
   summary: ContextSummary;
 };
 
-export type ContextResult = ContextData & {
+type ContextResult = ContextData & {
   /** Check diagnostics located in the input files, in check order. */
   diagnostics: DocBridgeDiagnostic[];
 };
@@ -73,10 +71,10 @@ export function computeContext(
     }
   }
 
-  const contexts = [...blockByEndpoint.values()].sort(compareBlocks);
+  const contexts = [...blockByEndpoint.values()].toSorted(compareBlocks);
   for (const block of contexts) {
-    block.linkedFrom = [...(linkedFromByEndpoint.get(block.endpoint) ?? [])].sort((left, right) =>
-      left.localeCompare(right),
+    block.linkedFrom = [...(linkedFromByEndpoint.get(block.endpoint) ?? [])].toSorted(
+      (left, right) => left.localeCompare(right),
     );
   }
 
@@ -86,13 +84,13 @@ export function computeContext(
   };
 }
 
-export type ContextOptions = {
+type ContextOptions = {
   projectRoot: string;
   /** Raw input file paths; normalized with `normalizeChangedPaths`. */
   inputFiles: string[];
 };
 
-export type ContextOutcome =
+type ContextOutcome =
   | { ok: true; result: ContextResult }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
@@ -106,38 +104,16 @@ export type ContextOutcome =
  * @doc docs/specs/cli.md#context-command
  */
 export function context(options: ContextOptions): ContextOutcome {
-  const configResult = loadConfig(options.projectRoot);
-  if (!configResult.ok) {
-    return { ok: false, diagnostics: configResult.diagnostics };
+  const outcome = scanProject({
+    projectRoot: options.projectRoot,
+    buildGraph: true,
+    keepContent: true,
+  });
+  if (!outcome.ok) {
+    return { ok: false, diagnostics: outcome.diagnostics };
   }
 
-  const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
-  const contentByFile = new Map<string, string>();
-
-  const codeScan = scanCodeFiles(
-    options.projectRoot,
-    collectCodeFiles(options.projectRoot, configResult.config.include.code),
-    configResult.config.include.code,
-    (relPath) => readManagedFile(options.projectRoot, relPath),
-    (relPath, content) => contentByFile.set(relPath, content),
-  );
-  const codeFiles: CodeScanResult[] = codeScan.codeFiles;
-  scanDiagnostics.push(...codeScan.diagnostics);
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(options.projectRoot, configResult.config.include.docs)) {
-    const read = readManagedFile(options.projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      continue;
-    }
-    contentByFile.set(relPath, read.content);
-    const scan = scanMarkdown(relPath, read.content);
-    scanDiagnostics.push(...scan.diagnostics);
-    docFiles.push(scan);
-  }
-
-  const graph = buildLinkGraph(codeFiles, docFiles);
+  const { codeFiles, docFiles, diagnostics: scanDiagnostics, contentByFile, graph } = outcome.scan;
   const inputFiles = normalizeChangedPaths(options.projectRoot, options.inputFiles);
   const data = computeContext(graph, contentByFile, inputFiles);
 
@@ -149,8 +125,7 @@ export function context(options: ContextOptions): ContextOutcome {
   });
   const inputSet = new Set(inputFiles);
   const diagnostics = sortDiagnostics([...scanDiagnostics, ...relationshipDiagnostics]).filter(
-    (diagnostic) =>
-      diagnostic.location !== undefined && inputSet.has(diagnostic.location.filePath),
+    (diagnostic) => diagnostic.location !== undefined && inputSet.has(diagnostic.location.filePath),
   );
 
   return { ok: true, result: { ...data, diagnostics } };
@@ -163,7 +138,7 @@ export function context(options: ContextOptions): ContextOutcome {
  * the CLI reports them on stderr.
  */
 export function formatContextResult(result: ContextResult): string {
-  const blocks = result.contexts.map(renderBlock);
+  const blocks = result.contexts.map(renderContextBlock);
   const summary = formatContextSummary(result.summary);
   if (blocks.length === 0) {
     return summary;
@@ -171,7 +146,12 @@ export function formatContextResult(result: ContextResult): string {
   return `${blocks.join("\n\n---\n\n")}\n\n${summary}`;
 }
 
-function renderBlock(block: ContextBlock): string {
+/**
+ * Render one context block: the `endpoint (linked from …)` header, then the
+ * content — raw for doc sections, fenced with the code language for code
+ * declarations.
+ */
+export function renderContextBlock(block: ContextBlock): string {
   const header = `${block.endpoint} (linked from ${block.linkedFrom.join(", ")})`;
   if (block.kind !== "code") {
     return `${header}\n\n${block.content}`;
@@ -187,6 +167,9 @@ function fenceLanguage(language: CodeLanguage | undefined): string {
   if (language === "dart") {
     return "dart";
   }
+  if (language === "rust") {
+    return "rust";
+  }
   return "ts";
 }
 
@@ -200,9 +183,7 @@ function codeFence(content: string): string {
 }
 
 function formatContextSummary(summary: ContextSummary): string {
-  const fileWord = summary.inputFiles === 1 ? "file" : "files";
-  const blockWord = summary.contexts === 1 ? "block" : "blocks";
-  return `${summary.inputFiles} input ${fileWord}, ${summary.contexts} context ${blockWord}`;
+  return `${summary.inputFiles} input ${pluralize("file", summary.inputFiles)}, ${summary.contexts} context ${pluralize("block", summary.contexts)}`;
 }
 
 /** Every graph endpoint whose file is in the input set, in graph order. */
@@ -252,36 +233,22 @@ function extractBlock(
   if (range === undefined) {
     return null;
   }
-  const startLine = range.start.line;
-  // The range end is exclusive; an end at column 1 means the declaration ends
-  // exactly at the previous line's newline.
-  const endLine = range.end.column === 1 ? range.end.line - 1 : range.end.line;
-  const lines = content.split("\n").slice(startLine - 1, endLine);
-  const lastIndex = lines.length - 1;
-  const lastLine = lines[lastIndex];
-  if (lastLine !== undefined && range.end.column > 1) {
-    lines[lastIndex] = lastLine.slice(0, range.end.column - 1);
-  }
-  const firstLine = lines[0];
-  if (firstLine !== undefined) {
-    lines[0] = firstLine.slice(range.start.column - 1);
-  }
+  const sliced = sliceSourceRange(content, range);
   return {
     endpoint: counterpart.endpoint,
     kind: "code",
     filePath: counterpart.filePath,
     language: counterpart.language,
-    startLine,
-    endLine,
+    startLine: sliced.startLine,
+    endLine: sliced.endLine,
     linkedFrom: [],
-    content: lines.join("\n"),
+    content: sliced.content,
   };
 }
 
 function compareBlocks(left: ContextBlock, right: ContextBlock): number {
-  return (
-    left.filePath.localeCompare(right.filePath) ||
-    left.startLine - right.startLine ||
-    left.endpoint.localeCompare(right.endpoint)
+  return compareEndpointOrder(
+    { filePath: left.filePath, line: left.startLine, column: 0, endpoint: left.endpoint },
+    { filePath: right.filePath, line: right.startLine, column: 0, endpoint: right.endpoint },
   );
 }

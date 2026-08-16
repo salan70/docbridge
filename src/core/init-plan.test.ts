@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { resolveConfig } from "./config";
 import { discoverRepository } from "./init-discovery";
 import {
   buildConfigFromScope,
@@ -11,17 +12,7 @@ import {
   planInitCommand,
   resolvePackageRoot,
 } from "./init-plan";
-import { resolveConfig } from "./config";
-
-function makeProject(structure: Record<string, string>): string {
-  const project = mkdtempSync(join(tmpdir(), "docbridge-init-plan-"));
-  for (const [relPath, content] of Object.entries(structure)) {
-    const absolutePath = join(project, relPath);
-    mkdirSync(join(absolutePath, ".."), { recursive: true });
-    writeFileSync(absolutePath, content);
-  }
-  return project;
-}
+import { makeProject } from "./test-support";
 
 test("resolvePackageRoot finds templates/skills for source-layout execution", () => {
   const repo = mkdtempSync(join(tmpdir(), "docbridge-pkg-src-"));
@@ -78,13 +69,17 @@ test("planInitCommand creates a new config for unambiguous --yes discovery", () 
   });
   try {
     const discovery = discoverRepository(project);
+    const recommendedDocs = discovery.docs.recommended;
+    if (recommendedDocs === undefined) {
+      throw new Error("Expected an unambiguous docs recommendation");
+    }
     const plan = planInitCommand({
       command: "init",
       projectRoot: project,
       options: { root: project, yes: true, dryRun: false, force: false, agentTarget: undefined },
       discovery,
       confirmedScope: {
-        docsPattern: discovery.docs.recommended!.pattern,
+        docsPattern: recommendedDocs.pattern,
         languages: discovery.code.languages,
       },
       packageRoot: resolvePackageRoot(),
@@ -157,13 +152,17 @@ test("planInitCommand dry-run reports config content without requiring writes", 
   });
   try {
     const discovery = discoverRepository(project);
+    const recommendedDocs = discovery.docs.recommended;
+    if (recommendedDocs === undefined) {
+      throw new Error("Expected an unambiguous docs recommendation");
+    }
     const plan = planInitCommand({
       command: "init",
       projectRoot: project,
       options: { root: project, yes: true, dryRun: true, force: false, agentTarget: undefined },
       discovery,
       confirmedScope: {
-        docsPattern: discovery.docs.recommended!.pattern,
+        docsPattern: recommendedDocs.pattern,
         languages: discovery.code.languages,
       },
       packageRoot: resolvePackageRoot(),
@@ -270,7 +269,7 @@ test("planInitCommand maps codex, claude, and both to the right destination path
 
     expect(codex.skillOps[0]?.path).toBe(".agents/skills/docbridge-adopt");
     expect(claude.skillOps[0]?.path).toBe(".claude/skills/docbridge-adopt");
-    expect(both.skillOps.map((operation) => operation.path).sort()).toEqual([
+    expect(both.skillOps.map((operation) => operation.path).toSorted()).toEqual([
       ".agents/skills/docbridge-adopt",
       ".claude/skills/docbridge-adopt",
     ]);
@@ -326,13 +325,17 @@ test("planInitCommand does not plan skill writes for init --yes with no agent di
   });
   try {
     const discovery = discoverRepository(project);
+    const recommendedDocs = discovery.docs.recommended;
+    if (recommendedDocs === undefined) {
+      throw new Error("Expected an unambiguous docs recommendation");
+    }
     const plan = planInitCommand({
       command: "init",
       projectRoot: project,
       options: { root: project, yes: true, dryRun: true, force: false, agentTarget: undefined },
       discovery,
       confirmedScope: {
-        docsPattern: discovery.docs.recommended!.pattern,
+        docsPattern: recommendedDocs.pattern,
         languages: discovery.code.languages,
       },
       packageRoot: resolvePackageRoot(),
@@ -360,7 +363,9 @@ test("planInitCommand prints agent guidance for init-with-agent", () => {
     expect(plan.agentGuidance[0]?.destination).toBe(".agents/skills/docbridge-adopt/");
     expect(plan.agentGuidance[0]?.oneShotCommand).toContain(project);
     expect(plan.agentGuidance[0]?.fallbackPrompt).toContain("docbridge-adopt");
-    expect(plan.agentGuidance[0]?.fallbackPrompt).toContain("install the companion DocBridge skills");
+    expect(plan.agentGuidance[0]?.fallbackPrompt).toContain(
+      "install the companion DocBridge skills",
+    );
     expect(plan.agentGuidance[1]?.destination).toBe(".claude/skills/docbridge-adopt/");
     expect(plan.agentGuidance[1]?.oneShotCommand).toContain("/docbridge-adopt");
   } finally {

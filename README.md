@@ -6,28 +6,29 @@
 
 Bring Markdown into the LSP world.
 
-DocBridge creates bidirectional links between TypeScript, Swift, or Dart code
+DocBridge creates bidirectional links between TypeScript, Swift, Dart, or Rust code
 and Markdown documentation, enabling LSP-like experiences such as Hover,
 Definition, References, and Diagnostics across implementation and specification
 files.
 
 ## Installation
 
-DocBridge is distributed as the `docbridge` npm package and is intended to run
-with Bun:
+DocBridge is distributed as the `docbridge` npm package and runs on Node.js
+(>= 22) and Bun:
 
 ```sh
+npx docbridge check
+# or
 bunx docbridge check
 ```
 
-The current release is
-[v0.4.0](https://github.com/salan70/docbridge/releases/tag/v0.4.0), published
-as `docbridge@0.4.0` on npm.
+See the npm badge above or
+[Releases](https://github.com/salan70/docbridge/releases) for the current
+version.
 
-The npm package is Bun-only; Node.js runtime compatibility is not part of the
-initial distribution. The package includes prebuilt Swift and Dart scanner
+The package includes prebuilt Swift, Dart, and Rust scanner
 binaries for `darwin-arm64` and `linux-x64`. TypeScript and Markdown checks run
-without scanner binaries. Configured Swift or Dart projects on unsupported
+without scanner binaries. Configured Swift, Dart, or Rust projects on unsupported
 platforms report `code_scanner_unavailable` and name the supported platform
 keys.
 
@@ -83,6 +84,7 @@ Add the backlink in the Markdown file:
 
 ```md
 <!-- @code src/auth/login.ts#login -->
+
 ## Login Spec
 
 Login flow specification.
@@ -95,6 +97,16 @@ bunx docbridge check
 ```
 
 ## Usage
+
+Discover a command:
+
+```sh
+bunx docbridge --help
+bunx docbridge context --help
+```
+
+Every command accepts `--help` (alias `-h`) and prints its usage, when to use
+it, and its options on stdout.
 
 Check links:
 
@@ -122,7 +134,8 @@ bunx docbridge check --audit
 
 Audit diagnostics include:
 
-- `undocumented_symbol`
+- `undocumented_symbol` — in-scope code endpoints with no `@doc`
+- `unlinked_doc_section` — in-scope documentation sections with no `@code`
 
 List the linked counterparts of changed files:
 
@@ -191,7 +204,7 @@ Code <-> Documentation
 ```
 
 DocBridge links supported code declarations to Markdown sections. TypeScript is
-scanned in-process; Swift and Dart are scanned through bundled first-party
+scanned in-process; Swift, Dart, and Rust are scanned through bundled first-party
 worker packages.
 
 ## Supported Inputs
@@ -203,11 +216,15 @@ Supported code declarations:
 - TypeScript top-level exported declarations: `function`, `class`,
   `abstract class`, `interface`, `type`, `const`, `enum`, and supported
   `declare` / named default forms
+- TypeScript type members: class methods, properties, accessors, constructors,
+  and static members, plus interface and object-type-alias signatures
 - Swift public/open declarations and configured internal declarations:
   top-level and member types, functions, variables, constants, initializers,
   and extension members
 - Dart public declarations: top-level functions/variables, classes, enums,
   mixins, constructors, fields, accessors, methods, and extension members
+- Rust `pub` declarations (and configured non-`pub` with `visibility`):
+  modules, structs, enums, free functions, and inherent `impl` methods
 
 Supported Markdown elements:
 
@@ -215,8 +232,29 @@ Supported Markdown elements:
 - HTML comments
 - `@code` annotations attached to the next heading
 
-Swift and Dart use the same `@doc` and `@code` model. Their code fragments are
-the scanner-produced canonical IDs, so members are type-qualified:
+All four languages use the same `@doc` and `@code` model. Code fragments are
+the scanner-produced canonical IDs, so members are type-qualified.
+
+TypeScript member IDs carry no parameter signature; overload signatures and a
+getter/setter pair each collapse to one endpoint, and the constructor is
+`<Type>.constructor`. By default `public` and `protected` members are scanned;
+`private` members require `include.code.typescript.visibility`. Members are
+linkable but are never reported by `check --audit`.
+
+```ts
+export class AuthService {
+  /** @doc docs/auth.md#login-spec */
+  login(email: string, password: string): void {}
+}
+```
+
+```md
+<!-- @code src/auth/service.ts#AuthService.login -->
+
+## Login Spec
+```
+
+Swift, Dart, and Rust canonical IDs follow their own conventions:
 
 ```swift
 /// @doc docs/auth.md#login-spec
@@ -227,6 +265,7 @@ public struct AuthService {
 
 ```md
 <!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+
 ## Login Spec
 ```
 
@@ -265,27 +304,27 @@ shape is intentionally invalid; migrate it to a `typescript` entry:
 }
 ```
 
-Swift and Dart projects must build their scanner workers in source checkouts
-before checking those languages. Run `just build-swift-scanner` for Swift and
-`just build-dart-scanner` for Dart, or use the native test recipes below.
+Swift, Dart, and Rust projects must build their scanner workers in source checkouts
+before checking those languages. Run `just build-swift-scanner` for Swift,
+`just build-dart-scanner` for Dart, and `just build-rust-scanner` for Rust, or
+use the native test recipes below.
 
 ## AI agent integration
 
 DocBridge's link graph is built to be consumed by AI coding agents:
 
 - [docs/integrations](docs/integrations) — recipes for Claude Code, Codex,
-  and CI: on-edit counterpart awareness with `docbridge context`, gate triage
-  with `docbridge related --gate`, and PR reporting.
-- [examples/hooks](examples/hooks) — copyable agent hook scripts implementing
-  those recipes.
+  and CI: gate triage with `docbridge related --gate`, counterpart content with
+  `docbridge context`, and PR reporting.
 - [templates/skills](templates/skills) — distributable agent skills installed by
   `docbridge init`; `docbridge init-with-agent` installs `docbridge-adopt`
-  first, then `docbridge-adopt` installs the companion skills:
-  `docbridge-annotate`, `docbridge-sync`, `docbridge-adopt`, `docbridge-link`,
-  and `docbridge-review`.
+  alone, then `docbridge-adopt` installs the companion skills:
+  `docbridge-annotate`, `docbridge-link`, `docbridge-review`, and
+  `docbridge-sync`.
 
-This repository dogfoods the hooks and skills in its own guardrails under
-`.claude/`, `.codex/`, and `.agents/`.
+This repository dogfoods the skills under `.claude/` and `.agents/`, and keeps
+its guardrail in the Git `pre-commit` hook under `.githooks/` rather than in
+any agent's configuration.
 
 ## Editor support
 
@@ -300,9 +339,25 @@ Definition, and References across linked code and Markdown. It takes no
 options; the project root comes from the editor's `initialize` request.
 `docbridge check` is unchanged.
 
-A minimal VS Code-compatible client lives in [editors/vscode](editors/vscode);
-see its README to install it into VS Code or Cursor for local testing. Full
-behavior is specified in [docs/specs/lsp.md](docs/specs/lsp.md).
+A VS Code-compatible extension lives in [editors/vscode](editors/vscode). It
+packages the language server into a VSIX for VS Code and Cursor. The extension
+has not yet been published to VS Code Marketplace. Until the first Marketplace
+publication, stage the supported `dist/bin/darwin-arm64` and
+`dist/bin/linux-x64` scanner artifacts, then build and install the VSIX
+locally:
+
+```sh
+just package-vsix
+just verify-vsix
+```
+
+Install the generated file from `editors/vscode/.tmp/out/` with **Extensions:
+Install from VSIX...** in VS Code or Cursor. The first Marketplace publication
+is intentionally manual; the repository provides a publish command for that
+release process. Open VSX delivery is out of scope. Zed integration is tracked
+separately and is not yet implemented. MCP delivery is out of scope until a
+concrete consumer requires a long-lived tool server. Full LSP behavior is specified in
+[docs/specs/lsp.md](docs/specs/lsp.md).
 
 ## Diagnostics
 
@@ -320,6 +375,8 @@ Errors:
 - `duplicate_doc_anchor`
 - `duplicate_code_symbol`
 - `code_parse_error`
+- `code_scanner_unavailable`
+- `code_scanner_failed`
 - `file_read_error`
 
 Warnings:
@@ -328,120 +385,21 @@ Warnings:
 - `dangling_code_annotation`
 - `unsupported_declaration`
 - `undocumented_symbol` when `--audit` is enabled
+- `unlinked_doc_section` when `--audit` is enabled
 
 Exit code policy:
 
 - `1` when any error exists
 - `0` when there are only warnings or no diagnostics
 
-## Development
+## Contributing
 
-### Prerequisites
-
-Recommended:
-
-- Nix
-- direnv
-
-The Nix development shell provides the tools used by this repository:
-
-- Bun
-- just
-- Git
-- Dart SDK
-
-If you do not use Nix, install Bun and just locally before running the project
-commands. Swift scanner development also requires a Swift 6 toolchain on
-`PATH`; CI installs Swift separately from Nix.
-
-### Setup
-
-Enable the development environment with direnv:
-
-```sh
-direnv allow
-```
-
-Or enter the Nix development shell manually:
-
-```sh
-nix develop
-```
-
-Install dependencies:
-
-```sh
-bun install --frozen-lockfile
-```
-
-Install repository Git hooks:
-
-```sh
-just install-git-hooks
-```
-
-If `just` is not on `PATH` yet, run:
-
-```sh
-nix develop -c just install-git-hooks
-```
-
-The pre-commit hook runs `just check` and `just test`.
-
-### Common Tasks
-
-Run common tasks with `just`:
-
-```sh
-just --list
-just check
-just check-example
-just check-swift-example
-just check-dart-example
-just check-fixture <code>
-just audit
-just related-gate
-just test
-just test-swift-scanner
-just test-dart-scanner
-just build
-just verify-dist
-```
-
-`just check`, `just test`, and `just build` are the default local and CI gates.
-`just test` includes TypeScript, Swift, and Dart end-to-end integration tests;
-the Swift and Dart scanner binaries must be built before those integration
-tests can spawn them. Scanner-native tests are mandatory in CI and are useful
-locally when changing worker code. `just verify-dist` builds confidence in the
-npm entry point by checking the Bun shebang, executable bit, `--version`,
-`--help`, and a TypeScript example check from `dist/index.js`.
-
-### Project Constraints
-
-Runtime:
-
-- Bun
-
-Language:
-
-- TypeScript
-- Swift scanner worker package
-- Dart scanner worker package
-
-Task runner:
-
-- just
-
-Environment loader:
-
-- direnv
-
-Core dependencies should stay minimal. The CLI should primarily rely on Bun and
-the TypeScript Compiler API; Swift and Dart parser dependencies stay isolated
-inside their worker packages.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the pinned development environment,
+repository setup, testing matrix, commit convention, and pull request workflow.
 
 ## Documentation
 
+- Contributor guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Japanese documentation: [docs/ja/README.md](docs/ja/README.md)
 - Specifications: [docs/specs](docs/specs)
 - v0.1 decisions: [docs/decisions/v0.1.md](docs/decisions/v0.1.md)
@@ -449,18 +407,20 @@ inside their worker packages.
 - v0.3 decisions: [docs/decisions/v0.3.md](docs/decisions/v0.3.md)
 - AI agent integration recipes: [docs/integrations](docs/integrations)
 - Commit message convention: [docs/contributing/commits.md](docs/contributing/commits.md)
+- Pull request convention: [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
 - Testing convention: [docs/contributing/testing.md](docs/contributing/testing.md)
 
 ## Roadmap
 
-Completed v0.1–v0.4 capabilities are documented above and in
-[CHANGELOG.md](CHANGELOG.md). The current roadmap tracks upcoming work only.
+Completed v0.1–v0.6 capabilities are documented above and in
+[CHANGELOG.md](CHANGELOG.md).
 
-v0.5:
+Remaining editor delivery work:
 
-- MCP server exposing the link graph and `docbridge context` output as tools
-- Editor and agent delivery channels built on it (Claude Code, Cursor, Zed,
-  Codex)
+- Publish the first verified VSIX to VS Code Marketplace
+- Follow-up automation for GitHub Release VSIX attachment and registry
+  publishing after the manual flow is proven
+- Add a separate Zed integration path
 
 ## Vision
 

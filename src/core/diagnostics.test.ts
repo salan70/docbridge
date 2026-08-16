@@ -29,9 +29,10 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
     "dangling_code_annotation",
     "unsupported_declaration",
     "undocumented_symbol",
+    "unlinked_doc_section",
   ] satisfies DiagnosticCode[];
 
-  expect(codes).toHaveLength(19);
+  expect(codes).toHaveLength(20);
 });
 
 test("sortDiagnostics orders diagnostics deterministically", () => {
@@ -159,16 +160,10 @@ test("formatDiagnostic formats diagnostics with and without locations", () => {
       target: "docbridge.config.json",
       message: "Failed to parse config file.",
     }),
-  ).toBe(
-    "docbridge.config.json error config_file_invalid - Failed to parse config file.",
-  );
+  ).toBe("docbridge.config.json error config_file_invalid - Failed to parse config file.");
 });
 
 test("formatSummary formats singular and plural counts", () => {
-  expect(formatSummary({ errors: 1, warnings: 1 })).toBe(
-    "Summary: 1 error, 1 warning",
-  );
-  expect(formatSummary({ errors: 2, warnings: 0 })).toBe(
-    "Summary: 2 errors, 0 warnings",
-  );
+  expect(formatSummary({ errors: 1, warnings: 1 })).toBe("Summary: 1 error, 1 warning");
+  expect(formatSummary({ errors: 2, warnings: 0 })).toBe("Summary: 2 errors, 0 warnings");
 });

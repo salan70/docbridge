@@ -1,34 +1,33 @@
 import { isAbsolute, relative } from "node:path";
 
-import { collectCodeFiles, scanCodeFiles } from "./code-language";
-import { loadConfig } from "./config";
-import { collectFiles, readManagedFile } from "./glob";
-import { buildLinkGraph, counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import { pluralize } from "./diagnostics";
+import { compareEndpointOrder, fragmentOf } from "./endpoint";
+import { counterpartsOf, type GraphEndpoint, type LinkGraph } from "./graph";
+import { scanProject } from "./project-scan";
 import type { DocBridgeDiagnostic } from "./types";
 
-export type RelatedCounterpart = {
+type RelatedCounterpart = {
   endpoint: string;
   filePath: string;
   inChangeSet: boolean;
 };
 
-export type RelatedEndpoint = {
+type RelatedEndpoint = {
   endpoint: string;
   counterparts: RelatedCounterpart[];
 };
 
-export type RelatedFile = {
+type RelatedFile = {
   filePath: string;
   endpoints: RelatedEndpoint[];
 };
 
-export type RelatedSummary = {
+type RelatedSummary = {
   changedFiles: number;
   filesWithLinks: number;
 };
 
-export type RelatedResult = {
+type RelatedResult = {
   files: RelatedFile[];
   summary: RelatedSummary;
 };
@@ -60,7 +59,7 @@ export function normalizeChangedPaths(projectRoot: string, paths: string[]): str
 export function computeRelated(graph: LinkGraph, changedFiles: string[]): RelatedResult {
   const changedSet = new Set(changedFiles);
 
-  const sortedPaths = [...changedSet].sort((left, right) => left.localeCompare(right));
+  const sortedPaths = [...changedSet].toSorted((left, right) => left.localeCompare(right));
   const endpointsByFile = indexEndpointsByFile(graph);
 
   const files: RelatedFile[] = [];
@@ -119,13 +118,13 @@ export function collectGateViolations(result: RelatedResult): RelatedGateViolati
   return violations;
 }
 
-export type RelatedOptions = {
+type RelatedOptions = {
   projectRoot: string;
   /** Raw changed-file paths; normalized with `normalizeChangedPaths`. */
   changedFiles: string[];
 };
 
-export type RelatedOutcome =
+type RelatedOutcome =
   | { ok: true; result: RelatedResult }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
@@ -138,30 +137,13 @@ export type RelatedOutcome =
  * @doc docs/specs/cli.md#related-command
  */
 export function related(options: RelatedOptions): RelatedOutcome {
-  const configResult = loadConfig(options.projectRoot);
-  if (!configResult.ok) {
-    return { ok: false, diagnostics: configResult.diagnostics };
+  const outcome = scanProject({ projectRoot: options.projectRoot, buildGraph: true });
+  if (!outcome.ok) {
+    return { ok: false, diagnostics: outcome.diagnostics };
   }
 
-  // Unreadable files are skipped silently here; `docbridge check` reports them.
-  const codeFiles = scanCodeFiles(
-    options.projectRoot,
-    collectCodeFiles(options.projectRoot, configResult.config.include.code),
-    configResult.config.include.code,
-    (relPath) => readManagedFile(options.projectRoot, relPath),
-  ).codeFiles;
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(options.projectRoot, configResult.config.include.docs)) {
-    const read = readManagedFile(options.projectRoot, relPath);
-    if (read.ok) {
-      docFiles.push(scanMarkdown(relPath, read.content));
-    }
-  }
-
-  const graph = buildLinkGraph(codeFiles, docFiles);
   const changedFiles = normalizeChangedPaths(options.projectRoot, options.changedFiles);
-  return { ok: true, result: computeRelated(graph, changedFiles) };
+  return { ok: true, result: computeRelated(outcome.scan.graph, changedFiles) };
 }
 
 /**
@@ -190,7 +172,10 @@ export function formatRelatedResult(result: RelatedResult): string {
  * Render gate violations as the human-readable `docbridge related --gate`
  * report: one `changed -> counterpart` line per violation, then the summary.
  */
-export function formatGateResult(result: RelatedResult, violations: RelatedGateViolation[]): string {
+export function formatGateResult(
+  result: RelatedResult,
+  violations: RelatedGateViolation[],
+): string {
   const lines: string[] = [];
   for (const violation of violations) {
     lines.push(
@@ -205,19 +190,11 @@ export function formatGateResult(result: RelatedResult, violations: RelatedGateV
 }
 
 function formatGateSummary(changedFiles: number, violations: number): string {
-  const fileWord = changedFiles === 1 ? "file" : "files";
-  const counterpartWord = violations === 1 ? "counterpart" : "counterparts";
-  return `${changedFiles} changed ${fileWord}, ${violations} ${counterpartWord} not in change set`;
+  return `${changedFiles} changed ${pluralize("file", changedFiles)}, ${violations} ${pluralize("counterpart", violations)} not in change set`;
 }
 
 function formatRelatedSummary(summary: RelatedSummary): string {
-  const fileWord = summary.changedFiles === 1 ? "file" : "files";
-  return `${summary.changedFiles} changed ${fileWord}, ${summary.filesWithLinks} with links`;
-}
-
-function fragmentOf(endpoint: string): string {
-  const hashIndex = endpoint.indexOf("#");
-  return hashIndex === -1 ? endpoint : endpoint.slice(hashIndex + 1);
+  return `${summary.changedFiles} changed ${pluralize("file", summary.changedFiles)}, ${summary.filesWithLinks} with links`;
 }
 
 /** Index every graph endpoint by file path, each file's list sorted by position. */
@@ -238,9 +215,11 @@ function indexEndpointsByFile(graph: LinkGraph): Map<string, GraphEndpoint[]> {
     add(doc);
   }
   for (const endpoints of byFile.values()) {
-    endpoints.sort(
-      (left, right) =>
-        left.location.line - right.location.line || left.location.column - right.location.column,
+    endpoints.sort((left, right) =>
+      compareEndpointOrder(
+        { ...left.location, endpoint: left.endpoint },
+        { ...right.location, endpoint: right.endpoint },
+      ),
     );
   }
   return byFile;

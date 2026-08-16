@@ -18,9 +18,9 @@ The `examples/` and `test-fixtures/` trees both hold small DocBridge projects bu
 differ by intended audience:
 
 - `examples/` holds human-facing showcases meant to be read or copied: one per
-  language (`examples/typescript`, `examples/swift`, `examples/dart`) plus
-  copyable agent hook scripts in `examples/hooks/`. These may also serve as
-  integration test inputs; that reuse is intentional, not a reason to move them.
+  language (`examples/typescript`, `examples/swift`, `examples/dart`, `examples/rust`). These
+  may also serve as integration test inputs; that reuse is intentional, not a
+  reason to move them.
 - `test-fixtures/` holds projects that exist solely to drive automated tests.
   Per-diagnostic fixtures live under `test-fixtures/diagnostics/`.
 
@@ -33,6 +33,13 @@ Tests are colocated with the modules they cover as `*.test.ts` files under
 
 Use the repo-native commands in `justfile`:
 
+- `just setup`
+- `just doctor`
+- `just format`
+- `just format-check`
+- `just lint`
+- `just lint-fix`
+- `just verify`
 - `just check`
 - `just check-example`
 - `just check-example-json`
@@ -44,6 +51,24 @@ Use the repo-native commands in `justfile`:
 
 Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
 Compiler API for core implementation.
+
+## Lint and Formatting Policy
+
+`just verify` is the shared, read-only quality gate. It runs formatting checks,
+lint, DocBridge checks, type checking, and tests over the whole repository. Run
+`just format` to apply deterministic formatting and `just lint-fix` to apply
+only Oxlint's safe fixes; hooks and CI must never modify files automatically.
+
+Fix the underlying code instead of weakening a quality gate. Before doing any
+of the following, an AI agent must obtain explicit user approval for the
+specific exception:
+
+- adding an inline lint or formatter suppression;
+- disabling a rule or lowering its severity;
+- expanding an ignore or exclusion;
+- raising a complexity, file-size, function-size, depth, or parameter limit.
+
+Approval for one exception does not authorize similar or broader exceptions.
 
 ## Plans
 
@@ -57,37 +82,36 @@ Implementation plans live under `docs/plans/` and track their slices in a
   plan into `docs/plans/done/` in the same change, so the archive stays current
   without a separate sweep.
 
+## Issues
+
+The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
+When creating an issue, use the form that matches the work content and provide
+all of its fields. Non-trivial work begins only after the issue receives the
+`status: accepted` label; the author or implementer identity is not an
+exception.
+
 ## Local Guardrails
 
-Codex hooks live under `.codex/` (`hooks.json` plus scripts in
-`.codex/hooks/`). Codex loads project-local hooks only after they are reviewed
-and trusted with the `/hooks` command, and a hook must be re-trusted whenever
-its script changes. If hooks do not appear to fire, check `/hooks` first. Treat
-these hooks as best-effort awareness; the hard guards are the `pre-commit` git
-hook and CI.
+This repository has no agent hooks. Its guardrail is the Git `pre-commit` hook
+under `.githooks/`, which applies to every contributor and every tool. Run
+`just install-git-hooks` after cloning or when hook setup is missing; use
+`nix develop -c just install-git-hooks` if `just` is not on `PATH`. The command
+configures `core.hooksPath` for this repository.
 
-The `SessionStart` hook injects a short repository reminder. The `PostToolUse`
-hook (Edit/Write) surfaces the linked counterpart content of the file just
-edited via `docbridge context` so the change can be reconciled against it; it is
-`PostToolUse` rather than `PreToolUse` because a `PreToolUse` hook's additional
-context is delivered only after the edit runs, and files without linked
-counterparts inject nothing. The `Stop` hook runs `just check`, `just
-typecheck`, and `just test` when the working tree has changes, and blocks
-completion with the failure output if any fails; on continuation turns it
-re-runs the checks and reports
-the result without blocking again. When those checks pass, it also reports
-`just related-gate` results over uncommitted changes as information, attaching
-the flagged counterparts' content fetched via `docbridge context` and delivered
-as Stop `additionalContext` (not a user-facing `systemMessage`): either update
-each listed counterpart or state explicitly in the final report why it needs no
-update. CI re-runs the gate over the whole PR change set and maintains a sticky
-PR comment; the human merge approval is the enforcement point.
+The hook runs two stages:
 
-Git hooks live under `.githooks/`. Run `just install-git-hooks` after cloning or
-when hook setup is missing; use `nix develop -c just install-git-hooks` if
-`just` is not on `PATH`. The command configures `core.hooksPath` for this
-repository. The `pre-commit` hook runs `just check`, `just typecheck`, and
-`just test` as a mandatory guard.
+- `just verify` as a mandatory, blocking guard. Fix the failure if this change
+  caused it, then rerun the gate; if it cannot be fixed, report it explicitly.
+- `just related-gate-report` over the staged files, which lists linked
+  counterparts that were not staged and prints their content fetched via
+  `docbridge context`. This stage is informational and never blocks the commit:
+  either update each listed counterpart or state explicitly in the final report
+  why it needs no update (use the `docbridge-sync` skill for the triage). CI
+  re-runs the gate over the whole PR change set and maintains a sticky PR
+  comment; the human merge approval is the enforcement point.
+
+Because nothing runs at turn end, run `just verify` yourself on changed work
+before reporting completion.
 
 ## Skills
 
@@ -106,6 +130,7 @@ When working under `.agents/`, also follow `.agents/AGENTS.md`.
 ## Language Policy
 
 - Write deliverables in English by default, including documentation, code comments, commit messages, PR titles, and PR descriptions.
+- PR titles follow [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md) (`<gitmoji> <type>: <summary>`, whole-PR summary, no scope, no issue number).
 - Use Japanese only when the path or context explicitly identifies the content as Japanese, such as files under `docs/ja/`.
 
 ## Communication Policy
@@ -129,12 +154,12 @@ Full rules and the release procedure live in the `git-workflow` skill
 (`.agents/skills/git-workflow/`). Always-on invariants:
 
 - All changes land through a PR. Never push to `main` directly; GitHub blocks it for everyone, including administrators.
-- Before creating a branch, sync local `main`: `git switch main && git pull --ff-only`. Never branch from a stale `main`. Name branches `feat/`, `fix/`, `chore/`, or `release/vX.Y.Z`.
+- Before creating a branch, sync local `main`: `git switch main && git pull --ff-only`. Never branch from a stale `main`. Name branches per [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md) (`<feat|fix|chore>/#<issue>-<kebab-desc>`, or `release/vX.Y.Z`).
 - After a PR merges, return to an updated `main` (`git switch main && git pull --ff-only`) and delete the local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
-- CI (`just check`, `just typecheck`, `just test`, `just build`) must pass
-  before merging.
+- CI must pass `just format-check`, `just lint`, `just check`, `just typecheck`,
+  `just test`, and `just build` before merging.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR requires explicit human approval.** Release tagging and publishing are automated by GitHub Actions when the release PR is merged, so the merge is the release approval gate.
 
 ### Commit messages

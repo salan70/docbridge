@@ -11,11 +11,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: ci
-    runs-on: ubuntu-latest
+  quality:
+    name: quality
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      - name: Install Swift
+        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
+        with:
+          swift-version: "6.2.1"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.83.0"
+          components: rustfmt,clippy
+
+      - name: Install dependencies
+        run: |
+          nix develop -c bun install --frozen-lockfile
+          nix develop -c dart pub get --directory packages/dart-scanner --enforce-lockfile
+
+      - name: just format-check
+        run: nix develop -c just format-check
+
+      - name: just lint
+        run: nix develop -c just lint
+
+      - name: just check
+        run: nix develop -c just check
+
+      - name: just typecheck
+        run: nix develop -c just typecheck
+
+  test-dist:
+    name: test-dist
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
@@ -29,16 +66,20 @@ jobs:
           # "Cache the Swift scanner build" key and restore-keys below. The
           # cached .build/swiftpm artifacts are compiled by this toolchain, so a
           # stale key would restore artifacts built by a different compiler.
-          swift-version: "6.2"
+          swift-version: "6.2.1"
+
+      - name: Install Dart
+        uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1 # v1.8.0
+        with:
+          sdk: "3.11.6"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.83.0"
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
-
-      - name: just check
-        run: nix develop -c just check
-
-      - name: just typecheck
-        run: nix develop -c just typecheck
 
       # Cache the SwiftPM build directory and dependency clones so swift-syntax
       # (the dominant compile cost) is reused across runs. The cache key is
@@ -52,9 +93,9 @@ jobs:
           path: |
             packages/swift-scanner/.build
             ~/.cache/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-swift6.2-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift6.2.1-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift6.2-
+            swiftpm-${{ runner.os }}-swift6.2.1-
 
       # The Swift integration test spawns the bundled Swift scanner binary, so
       # build it (with the setup-swift toolchain, not nix) before the suite.
@@ -67,13 +108,24 @@ jobs:
       - name: Test the Swift scanner
         run: swift test --package-path packages/swift-scanner
 
-      # The Dart integration test spawns the bundled Dart scanner binary. Dart
-      # comes from the Nix dev shell, so build through nix.
+      # Build with the official SDK outside Nix so the Linux scanner remains
+      # runnable on hosts without a Nix store.
       - name: Build the Dart scanner
-        run: nix develop -c just build-dart-scanner
+        run: |
+          cd packages/dart-scanner
+          dart pub get --enforce-lockfile
+          dart compile exe bin/docbridge_dart_scanner.dart -o bin/docbridge_dart_scanner
 
       - name: Test the Dart scanner
-        run: nix develop -c just test-dart-scanner
+        run: |
+          cd packages/dart-scanner
+          dart test
+
+      - name: Build the Rust scanner
+        run: cargo build --manifest-path packages/rust-scanner/Cargo.toml
+
+      - name: Test the Rust scanner
+        run: cargo test --manifest-path packages/rust-scanner/Cargo.toml
 
       - name: just test
         run: nix develop -c just test
@@ -81,11 +133,36 @@ jobs:
       - name: just build
         run: nix develop -c just build
 
+      - name: Stage scanner binaries
+        run: >-
+          nix develop -c just stage-scanner-binaries
+          --platform linux-x64
+          --swift packages/swift-scanner/.build/debug/docbridge-swift-scanner
+          --rust packages/rust-scanner/target/debug/docbridge-rust-scanner
+
       - name: just verify-dist
         run: nix develop -c just verify-dist
 
-      - name: npm pack dry-run
-        run: npm pack --dry-run
+      - name: Pack and smoke-test npm package
+        run: |
+          tarball="$(npm pack)"
+          nix develop -c just pack-smoke "$tarball"
+
+  # Preserve the branch-protection check name while the expensive work runs in
+  # parallel. This job succeeds only when both required workloads succeed.
+  ci:
+    name: ci
+    if: always()
+    needs: [quality, test-dist]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all CI workloads
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          TEST_DIST_RESULT: ${{ needs.test-dist.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$TEST_DIST_RESULT" = success
 
   # Informational, never required for merge: runs `docbridge related --gate`
   # over the PR's whole change set and maintains one sticky comment so the
@@ -99,7 +176,12 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # fetch-depth: 0 is required: the primary changed-file derivation is
+      # `git diff BASE_SHA...HEAD_SHA`, which needs both commit objects. A
+      # shallow checkout is the one configuration that breaks this recipe.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
@@ -107,44 +189,190 @@ jobs:
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
 
-      - name: Run related-gate over the PR change set
+      - name: Derive the PR changed-file list
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
-            -q '.[].filename' > changed-files.txt
+          gh_api_with_retry() {
+            local attempt=1
+            local delay=2
+            local stderr_file
+            local stdout_file
+            stderr_file="$(mktemp)"
+            stdout_file="$(mktemp)"
+            while [ "$attempt" -le 3 ]; do
+              if gh api "$@" >"$stdout_file" 2>"$stderr_file"; then
+                cat "$stdout_file"
+                rm -f "$stderr_file" "$stdout_file"
+                return 0
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                cat "$stderr_file" >&2
+                rm -f "$stderr_file" "$stdout_file"
+                return 1
+              fi
+              sleep "$delay"
+              delay=$((delay * 2))
+              attempt=$((attempt + 1))
+            done
+          }
+
+          record_infra_error() {
+            local reason="$1"
+            {
+              echo "GATE_OUTCOME=infra-error"
+              echo "INFRA_REASON<<EOF"
+              printf '%s\n' "$reason"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          }
+
+          derived=0
+          if [ -n "${BASE_SHA:-}" ] && [ -n "${HEAD_SHA:-}" ] \
+            && git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null \
+            && git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            git_diff_err_file="$(mktemp)"
+            if git diff --name-only "${BASE_SHA}...${HEAD_SHA}" \
+              >changed-files.txt 2>"$git_diff_err_file"; then
+              echo "CHANGED_FILES_SOURCE=git" >> "$GITHUB_ENV"
+              echo "changed-file source: git"
+              derived=1
+            else
+              printf 'git diff failed: %s\n' "$(cat "$git_diff_err_file")" >&2
+            fi
+            rm -f "$git_diff_err_file"
+          fi
+
+          if [ "$derived" -ne 1 ]; then
+            rm -f changed-files.txt
+            api_err_file="$(mktemp)"
+            if gh_api_with_retry "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate \
+              -q '.[].filename' >changed-files.txt 2>"$api_err_file"; then
+              echo "CHANGED_FILES_SOURCE=api" >> "$GITHUB_ENV"
+              echo "changed-file source: api"
+              rm -f "$api_err_file"
+            else
+              api_err="$(cat "$api_err_file" 2>/dev/null || true)"
+              rm -f "$api_err_file" changed-files.txt
+              record_infra_error "changed-file list unobtainable (git derivation failed; gh api fallback failed): ${api_err:-no stderr}"
+            fi
+          fi
+
+      - name: Run related-gate over the PR change set
+        if: ${{ env.GATE_OUTCOME != 'infra-error' }}
+        run: |
           gate_status=0
           nix develop -c bun run src/cli/index.ts related --stdin --gate \
             < changed-files.txt > gate-output.txt 2>&1 || gate_status=$?
-          echo "GATE_STATUS=${gate_status}" >> "$GITHUB_ENV"
+          if [ "$gate_status" = "0" ]; then
+            echo "GATE_OUTCOME=clean" >> "$GITHUB_ENV"
+          elif [ "$gate_status" = "1" ]; then
+            echo "GATE_OUTCOME=violation" >> "$GITHUB_ENV"
+          else
+            {
+              echo "GATE_OUTCOME=infra-error"
+              echo "INFRA_REASON<<EOF"
+              echo "docbridge related --gate exited ${gate_status}"
+              tail -n 40 gate-output.txt
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
           cat gate-output.txt
 
       - name: Create or update the sticky PR comment
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          gh_api_with_retry() {
+            local attempt=1
+            local delay=2
+            local stderr_file
+            local stdout_file
+            stderr_file="$(mktemp)"
+            stdout_file="$(mktemp)"
+            while [ "$attempt" -le 3 ]; do
+              if gh api "$@" >"$stdout_file" 2>"$stderr_file"; then
+                cat "$stdout_file"
+                rm -f "$stderr_file" "$stdout_file"
+                return 0
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                cat "$stderr_file" >&2
+                rm -f "$stderr_file" "$stdout_file"
+                return 1
+              fi
+              sleep "$delay"
+              delay=$((delay * 2))
+              attempt=$((attempt + 1))
+            done
+          }
+
+          outcome="${GATE_OUTCOME:-infra-error}"
+          reason="${INFRA_REASON:-GATE_OUTCOME was unset; prior step likely aborted before recording an outcome}"
+
           marker='<!-- docbridge-related-gate -->'
           {
             echo "$marker"
             echo "## DocBridge related-gate"
             echo
-            if [ "$GATE_STATUS" = "0" ]; then
+            if [ "$outcome" = "clean" ]; then
               echo "All linked counterparts of the changed files are part of this PR's change set."
-            else
+            elif [ "$outcome" = "violation" ]; then
               echo "Changed files have linked counterparts that this PR does not update."
               echo "For each entry, either update the counterpart or make sure the PR explains why no update is needed."
               echo
               echo '```'
               cat gate-output.txt
               echo '```'
+            else
+              echo "DocBridge related-gate could not run — infrastructure failure."
+              echo
+              echo "Reason:"
+              echo '```'
+              printf '%s\n' "$reason"
+              echo '```'
             fi
           } > comment.md
-          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+
+          {
+            echo "## DocBridge related-gate"
+            echo
+            echo "Outcome: \`${outcome}\`"
+            if [ -n "${CHANGED_FILES_SOURCE:-}" ]; then
+              echo "Source: \`${CHANGED_FILES_SOURCE}\`"
+            fi
+            if [ "$outcome" = "infra-error" ]; then
+              echo
+              echo "Reason:"
+              echo '```'
+              printf '%s\n' "$reason"
+              echo '```'
+            elif [ "$outcome" = "clean" ]; then
+              echo
+              echo "All linked counterparts of the changed files are part of this PR's change set."
+            else
+              echo
+              echo "Changed files have linked counterparts that this PR does not update."
+              echo
+              echo '```'
+              cat gate-output.txt
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          comment_id="$(gh_api_with_retry "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
             -q ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)"
           if [ -n "$comment_id" ]; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -F body=@comment.md
+            gh_api_with_retry -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -F body=@comment.md
           else
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@comment.md
+            gh_api_with_retry -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@comment.md
+          fi
+
+          if [ "$outcome" = "infra-error" ]; then
+            exit 1
           fi

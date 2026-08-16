@@ -1,48 +1,54 @@
 {
   "name": "docbridge",
-  "version": "0.4.1",
-  "description": "A Bun CLI that links Markdown specifications and code declarations.",
-  "license": "MIT",
-  "type": "module",
-  "bin": {
-    "docbridge": "./dist/index.js"
+  "version": "0.6.1",
+  "description": "A CLI that links Markdown specifications and code declarations. Runs on Node.js and Bun.",
+  "keywords": [
+    "bun",
+    "cli",
+    "documentation",
+    "lsp",
+    "markdown",
+    "node",
+    "specification"
+  ],
+  "homepage": "https://github.com/salan70/docbridge#readme",
+  "bugs": {
+    "url": "https://github.com/salan70/docbridge/issues"
   },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/salan70/docbridge.git"
   },
-  "bugs": {
-    "url": "https://github.com/salan70/docbridge/issues"
-  },
-  "homepage": "https://github.com/salan70/docbridge#readme",
-  "keywords": [
-    "documentation",
-    "markdown",
-    "specification",
-    "cli",
-    "bun",
-    "lsp"
-  ],
-  "engines": {
-    "bun": ">=1.1.31"
+  "bin": {
+    "docbridge": "./dist/index.js"
   },
   "files": [
     "dist",
+    "docs/user",
     "schemas",
     "templates/skills",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
+  "type": "module",
   "scripts": {
     "docbridge": "bun run src/cli/index.ts",
     "check": "bun run src/cli/index.ts check",
     "check:example": "bun run src/cli/index.ts check --root examples/typescript",
     "test": "bun test",
-    "build": "bun build src/cli/index.ts --outdir dist --target bun"
+    "build": "bun build src/cli/index.ts --outdir dist --target node"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
+    "ajv": "^8.20.0",
+    "oxfmt": "0.57.0",
+    "oxlint": "1.73.0",
     "typescript": "^5.9.0"
+  },
+  "engines": {
+    "bun": ">=1.1.31",
+    "node": ">=22"
   }
 }

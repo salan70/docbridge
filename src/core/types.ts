@@ -7,9 +7,9 @@ export type LinkTarget = {
  * Fixed lowercase identifiers for the code languages DocBridge understands. The
  * set is closed; configuration rejects any other value.
  */
-export type CodeLanguage = "typescript" | "swift" | "dart";
+export type CodeLanguage = "typescript" | "swift" | "dart" | "rust";
 
-export type DiagnosticSeverity = "error" | "warning";
+type DiagnosticSeverity = "error" | "warning";
 
 export type DiagnosticCode =
   | "config_file_invalid"
@@ -30,7 +30,8 @@ export type DiagnosticCode =
   | "duplicate_link"
   | "dangling_code_annotation"
   | "unsupported_declaration"
-  | "undocumented_symbol";
+  | "undocumented_symbol"
+  | "unlinked_doc_section";
 
 export type SourceLocation = {
   filePath: string;
@@ -127,21 +128,32 @@ export type DocAnchorEndpoint = {
   headingTextRange?: Range;
 };
 
-export type LinkAnnotationDirection = "code-to-doc" | "doc-to-code";
+/**
+ * One ATX heading in document order, including empty headings that create no
+ * anchor. This is the document's structural outline: it preserves the heading
+ * levels needed to rebuild the nesting used by section extraction, which
+ * anchors alone cannot express because empty headings are missing from them.
+ */
+export type DocHeadingOutline = {
+  /** ATX heading level, 1–6. */
+  level: number;
+  /**
+   * Whether at least one `@code` annotation is attached to this heading,
+   * regardless of whether its target parses or resolves. Audit rules treat an
+   * attempted-but-broken annotation as a link attempt, so this cannot be
+   * derived from `MarkdownScanResult.links`, which drops unparsable targets.
+   * Always `false` for empty headings, whose annotations become
+   * `dangling_code_annotation`.
+   */
+  hasCodeAnnotation: boolean;
+  /** The anchor this heading created. Absent for empty headings. */
+  anchor?: DocAnchorEndpoint;
+};
 
 export type LinkAnnotation = {
-  direction: LinkAnnotationDirection;
   source: string;
   target: string;
   location: SourceLocation;
   /** Range of the annotation target string (the `file#fragment` text). */
   targetRange?: Range;
-};
-
-export type DocLinkAnnotation = LinkAnnotation & {
-  direction: "code-to-doc";
-};
-
-export type CodeLinkAnnotation = LinkAnnotation & {
-  direction: "doc-to-code";
 };

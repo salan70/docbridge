@@ -5,27 +5,26 @@
 
 Markdown を LSP の世界へ。
 
-DocBridge は TypeScript、Swift、Dart のコードと Markdown ドキュメントの間に双方向リンクを作るツールです。実装ファイルと仕様ファイルをまたいで、Hover、Definition、References、Diagnostics のような LSP 的体験を実現することを目指します。
+DocBridge は TypeScript、Swift、Dart、Rust のコードと Markdown ドキュメントの間に双方向リンクを作るツールです。実装ファイルと仕様ファイルをまたいで、Hover、Definition、References、Diagnostics のような LSP 的体験を実現することを目指します。
 
 ## インストール
 
-DocBridge は npm package `docbridge` として配布し、Bun で実行します。
+DocBridge は npm package `docbridge` として配布し、Node.js (>= 22) と Bun の
+どちらでも実行できます。
 
 ```sh
+npx docbridge check
+# または
 bunx docbridge check
 ```
 
-現在のリリースは
-[v0.4.0](https://github.com/salan70/docbridge/releases/tag/v0.4.0) で、npm では
-`docbridge@0.4.0` として公開されています。
+現在のバージョンは、冒頭の npm バッジまたは
+[Releases](https://github.com/salan70/docbridge/releases) を参照してください。
 
-初期の npm package は Bun 専用で、Node.js runtime 互換は対象外です。
-Swift / Dart scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
+Swift / Dart / Rust scanner binary は `darwin-arm64` と `linux-x64` を同梱します。
 TypeScript と Markdown の check は scanner binary なしで実行できます。
-未対応 platform で Swift / Dart project を設定した場合は
+未対応 platform で Swift / Dart / Rust project を設定した場合は
 `code_scanner_unavailable` を報告し、対応 platform key を表示します。
-
-## クイックスタート
 
 ## クイックスタート
 
@@ -79,6 +78,7 @@ Markdown file に backlink を追加します。
 
 ```md
 <!-- @code src/auth/login.ts#login -->
+
 ## Login Spec
 
 Login flow specification.
@@ -91,6 +91,16 @@ bunx docbridge check
 ```
 
 ## 使い方
+
+コマンドの使い方を調べる:
+
+```sh
+bunx docbridge --help
+bunx docbridge context --help
+```
+
+すべてのコマンドが `--help`（別名 `-h`）を受け付け、使用方法・使いどころ・
+オプションを stdout に出力します。
 
 リンクを検査する:
 
@@ -118,7 +128,13 @@ bunx docbridge check --audit
 
 監査診断には以下を含めます。
 
-- `undocumented_symbol`
+- `undocumented_symbol` — 対象範囲のコードエンドポイントのうち `@doc` がないもの
+- `unlinked_doc_section` — 対象範囲のドキュメントセクションのうち `@code` がないもの
+
+`unlinked_doc_section` は見出しツリー単位でロールアップして報告します。`@code` を
+持たない見出しであっても、その配下のいずれかの見出しが `@code` を持つ場合は報告しま
+せん。報告するのは、自身と全子孫が `@code` を持たないサブツリーの最上位の見出しだけ
+です。
 
 変更したファイルにリンクされたカウンターパートを一覧する:
 
@@ -183,7 +199,7 @@ DocBridge は双方向の関係を扱います。
 Code <-> Documentation
 ```
 
-DocBridge は、対応しているコード宣言と Markdown セクションをリンクします。TypeScript はプロセス内でスキャンし、Swift と Dart は同梱する first-party worker package でスキャンします。
+DocBridge は、対応しているコード宣言と Markdown セクションをリンクします。TypeScript はプロセス内でスキャンし、Swift、Dart、Rust は同梱する first-party worker package でスキャンします。
 
 ## 対応入力
 
@@ -192,8 +208,10 @@ DocBridge は以下の要素を対象にします。
 対象にするコード宣言:
 
 - TypeScript のトップレベル export 宣言: `function`、`class`、`abstract class`、`interface`、`type`、`const`、`enum`、および対応する `declare` / 名前付き default 形式
+- TypeScript の型 member: class の method、property、accessor、constructor、static member、および interface と object 型 alias の signature
 - Swift の `public` / `open` 宣言と、設定で含めた `internal` 宣言: トップレベルと member の型、関数、変数、定数、initializer、extension member
 - Dart の public 宣言: トップレベル関数/変数、class、enum、mixin、constructor、field、accessor、method、extension member
+- Rust の `pub` 宣言（`visibility` で非 `pub` も設定可）: module、struct、enum、自由関数、inherent `impl` method
 
 対象にする Markdown 要素:
 
@@ -201,8 +219,29 @@ DocBridge は以下の要素を対象にします。
 - HTML コメント
 - 次の見出しに紐づく `@code` アノテーション
 
-Swift と Dart も同じ `@doc` / `@code` モデルを使います。コード側 fragment は
+4 言語とも同じ `@doc` / `@code` モデルを使います。コード側 fragment は
 scanner が生成する canonical ID で、member は型名で修飾されます。
+
+TypeScript の member ID は引数シグネチャを持ちません。overload signature と
+getter/setter のペアはそれぞれ 1 つのエンドポイントに集約され、constructor は
+`<型名>.constructor` になります。既定では `public` と `protected` の member を
+対象にし、`private` を含めるには `include.code.typescript.visibility` の設定が
+必要です。member はリンク可能ですが、`check --audit` の報告対象にはなりません。
+
+```ts
+export class AuthService {
+  /** @doc docs/auth.md#login-spec */
+  login(email: string, password: string): void {}
+}
+```
+
+```md
+<!-- @code src/auth/service.ts#AuthService.login -->
+
+## Login Spec
+```
+
+Swift、Dart、Rust の canonical ID はそれぞれの慣習に従います。
 
 ```swift
 /// @doc docs/auth.md#login-spec
@@ -213,6 +252,7 @@ public struct AuthService {
 
 ```md
 <!-- @code Sources/AuthService.swift#AuthService.login(email:password:) -->
+
 ## Login Spec
 ```
 
@@ -250,7 +290,7 @@ TypeScript 向けの最小設定:
 }
 ```
 
-source checkout から Swift / Dart project を検査するには、先に scanner worker を build します。Swift は `just build-swift-scanner`、Dart は `just build-dart-scanner` を使ってください。
+source checkout から Swift / Dart / Rust project を検査するには、先に scanner worker を build します。Swift は `just build-swift-scanner`、Dart は `just build-dart-scanner`、Rust は `just build-rust-scanner` を使ってください。
 
 ## AI エージェント統合
 
@@ -258,19 +298,18 @@ DocBridge のリンクグラフは、AI コーディングエージェントか�
 設計されています。
 
 - [../integrations](../integrations) — Claude Code、Codex、CI 向けのレシピ:
-  `docbridge context` による編集時のカウンターパート把握、`docbridge related --gate`
-  によるゲートのトリアージ、PR へのレポート。
-- [../../examples/hooks](../../examples/hooks) — レシピを実装した、コピーして使える
-  エージェントフックスクリプト。
+  `docbridge related --gate` によるゲートのトリアージ、`docbridge context` による
+  カウンターパートの内容取得、PR へのレポート。
 - [../../templates/skills](../../templates/skills) — `docbridge init` が
   インストールする配布用エージェントスキル。`docbridge init-with-agent` は
-  まず `docbridge-adopt` をインストールし、`docbridge-adopt` が残りの
+  `docbridge-adopt` のみをインストールし、`docbridge-adopt` が残りの
   スキルをインストールします:
-  `docbridge-annotate`、`docbridge-sync`、`docbridge-adopt`、`docbridge-link`、
-  `docbridge-review`。
+  `docbridge-annotate`、`docbridge-link`、`docbridge-review`、
+  `docbridge-sync`。
 
-このリポジトリ自身も、`.claude/`、`.codex/`、`.agents/` のガードレールで
-これらをドッグフーディングしています。
+このリポジトリ自身も `.claude/` と `.agents/` でこれらのスキルをドッグフーディング
+しており、ガードレールはエージェントの設定ではなく `.githooks/` の Git `pre-commit`
+フックに置いています。
 
 ## エディタ対応
 
@@ -285,9 +324,23 @@ docbridge lsp
 受け取らず、プロジェクト root はエディタの `initialize` リクエストから決まります。
 `docbridge check` は変更ありません。
 
-最小の VS Code クライアントは [../../editors/vscode](../../editors/vscode) にあり、
-Extension Development Host での起動手順はその README を参照してください。詳細な
-挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
+VS Code 互換の extension は [../../editors/vscode](../../editors/vscode) に
+あります。Language Server を VS Code と Cursor 向けの VSIX に同梱します。
+現在、extension は VS Code Marketplace にはまだ公開されていません。
+初回の Marketplace 公開までは、対応済みの `dist/bin/darwin-arm64` /
+`dist/bin/linux-x64` scanner artifact を準備し、VSIX をローカルで生成・検証します:
+
+```sh
+just package-vsix
+just verify-vsix
+```
+
+生成した `editors/vscode/.tmp/out/` 下のファイルは、VS Code または
+Cursor の **Extensions: Install from VSIX...** からインストールできます。
+Marketplace への初回公開は意図的に手動で、リポジトリにはその公開コマンドが
+あります。Open VSX 配信は対象外です。Zed 統合は別タスクで、まだ実装されていません。
+MCP 配信は、長時間動作する tool server を必要とする具体的な consumer が現れるまで
+対象外です。詳細な LSP の挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
 
 ## Diagnostics
 
@@ -305,6 +358,8 @@ Errors:
 - `duplicate_doc_anchor`
 - `duplicate_code_symbol`
 - `code_parse_error`
+- `code_scanner_unavailable`
+- `code_scanner_failed`
 - `file_read_error`
 
 Warnings:
@@ -313,115 +368,21 @@ Warnings:
 - `dangling_code_annotation`
 - `unsupported_declaration`
 - `--audit` 有効時の `undocumented_symbol`
+- `--audit` 有効時の `unlinked_doc_section`
 
 終了コード:
 
 - error が 1 件以上あれば `1`
 - warning のみ、または診断なしなら `0`
 
-## 開発
+## コントリビューション
 
-### 前提
-
-推奨:
-
-- Nix
-- direnv
-
-Nix development shell には、このリポジトリで使う以下のツールが含まれます。
-
-- Bun
-- just
-- Git
-- Dart SDK
-
-Nix を使わない場合は、Bun と just をローカルにインストールしてから
-プロジェクトのコマンドを実行してください。Swift scanner の開発には、`PATH`
-上の Swift 6 toolchain も必要です。CI では Swift を Nix とは別にインストールします。
-
-### セットアップ
-
-direnv で開発環境を有効にする:
-
-```sh
-direnv allow
-```
-
-または手動で Nix development shell に入る:
-
-```sh
-nix develop
-```
-
-依存関係をインストールする:
-
-```sh
-bun install --frozen-lockfile
-```
-
-リポジトリの Git hooks をインストールする:
-
-```sh
-just install-git-hooks
-```
-
-まだ `just` が `PATH` にない場合:
-
-```sh
-nix develop -c just install-git-hooks
-```
-
-pre-commit hook は `just check` と `just test` を実行します。
-
-### 共通タスク
-
-共通タスクは `just` で実行します。
-
-```sh
-just --list
-just check
-just check-example
-just check-swift-example
-just check-dart-example
-just check-fixture <code>
-just audit
-just related-gate
-just test
-just test-swift-scanner
-just test-dart-scanner
-just build
-just verify-dist
-```
-
-`just check`、`just test`、`just build` が標準の local / CI gate です。
-`just test` には TypeScript、Swift、Dart の end-to-end integration test が含まれます。Swift / Dart の integration test は scanner binary を起動するため、事前に worker を build しておく必要があります。worker code を変更する場合は native scanner test も実行します。CI では必須です。
-`just verify-dist` は `dist/index.js` の Bun shebang、実行 bit、`--version`、
-`--help`、TypeScript example check を確認します。
-
-### プロジェクト制約
-
-Runtime:
-
-- Bun
-
-Language:
-
-- TypeScript
-- Swift scanner worker package
-- Dart scanner worker package
-
-Task runner:
-
-- just
-
-Environment loader:
-
-- direnv
-
-コア依存は最小限にします。CLI は主に Bun と TypeScript Compiler API に依存し、Swift / Dart parser への依存は worker package 内に分離します。
+固定された開発環境、リポジトリのセットアップ、テスト範囲、コミット規約、
+Pull Request の流れは [CONTRIBUTING.md](../../CONTRIBUTING.md) を参照してください。
 
 ## 関連ドキュメント
 
+- コントリビュータガイド: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
 - 英語 README: [../../README.md](../../README.md)
 - 仕様: [../specs](../specs)
 - v0.1 決定事項: [../decisions/v0.1.md](../decisions/v0.1.md)
@@ -430,19 +391,20 @@ Environment loader:
 - AI エージェント統合レシピ: [../integrations](../integrations)
 - Commit message convention: [contributing/commits.md](contributing/commits.md)
 - English commit message convention: [../contributing/commits.md](../contributing/commits.md)
+- Pull Request 規約: [../contributing/pull-requests.md](../contributing/pull-requests.md)
 - テスト規約: [contributing/testing.md](contributing/testing.md)
 - English testing convention: [../contributing/testing.md](../contributing/testing.md)
 
 ## Roadmap
 
-完了済みの v0.1〜v0.4 の機能は、上記の説明と
-[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。現在の Roadmap では
-今後の作業のみを扱います。
+完了済みの v0.1〜v0.6 の機能は、上記の説明と
+[../../CHANGELOG.md](../../CHANGELOG.md) に記載しています。
 
-v0.5:
+残っている editor 配信作業:
 
-- リンクグラフと `docbridge context` の出力をツールとして公開する MCP サーバー
-- それを基盤としたエディタ・エージェント連携(Claude Code、Cursor、Zed、Codex)
+- 最初の検証済み VSIX を VS Code Marketplace へ公開する
+- 手動フローが安定したあとの GitHub Release VSIX 添付と registry publish の自動化
+- Zed 向けの独立した統合経路を追加する
 
 ## Vision
 

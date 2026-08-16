@@ -3,6 +3,93 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 default:
     just --list
 
+# Install locked dependencies, build test scanner workers, and configure Git hooks.
+setup:
+    bun install --frozen-lockfile
+    just build-test-scanners
+    just install-git-hooks
+
+# Print the contributor toolchain versions and validate the required Swift version.
+doctor:
+    bun --version
+    node --version
+    dart --version
+    rustc --version
+    cargo --version
+    swift --version | rg 'Swift version 6\.2\.1'
+    just --version
+    git --version
+
+# Run every formatter in write mode. This is always an explicit operation.
+format:
+    bun run oxfmt .
+    swift format format --configuration .swift-format --in-place --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
+    dart format packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
+    cargo fmt --manifest-path packages/rust-scanner/Cargo.toml
+    just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
+    nixfmt flake.nix
+
+# Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
+[private]
+shell-sources:
+    @git ls-files -z '*.sh' '.githooks/*'
+
+# Check formatting without modifying the worktree.
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-shell format-check-nix
+
+format-check-ox:
+    bun run oxfmt --check .
+
+format-check-swift:
+    swift --version | rg 'Swift version 6\.2\.1'
+    swift format lint --configuration .swift-format --strict --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
+
+format-check-dart:
+    dart format --output=none --set-exit-if-changed packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
+
+format-check-rust:
+    cargo fmt --manifest-path packages/rust-scanner/Cargo.toml -- --check
+
+format-check-shell:
+    just shell-sources | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
+
+format-check-nix:
+    nixfmt --check flake.nix
+
+# Run every linter over the whole repository.
+lint: lint-ox lint-markdown lint-swift lint-dart lint-rust lint-shell lint-nix lint-actions
+
+lint-ox:
+    bun run oxlint . --deny-warnings
+
+lint-markdown:
+    rumdl check .
+
+lint-swift: format-check-swift
+
+lint-dart:
+    cd packages/dart-scanner && dart analyze --fatal-infos --fatal-warnings
+
+lint-rust:
+    cargo clippy --manifest-path packages/rust-scanner/Cargo.toml --all-targets -- -D warnings
+
+lint-shell:
+    just shell-sources | xargs -0 shellcheck --severity=style
+
+lint-nix:
+    statix check flake.nix
+    deadnix --fail flake.nix
+
+lint-actions:
+    actionlint
+
+# Apply only Oxlint's safe fixes; suggestions and dangerous fixes stay opt-in.
+lint-fix:
+    bun run oxlint . --fix --deny-warnings
+
+# Offline, read-only common gate shared by the pre-commit hook and CI.
+verify: format-check lint check typecheck test
+
 check:
     bun run src/cli/index.ts check
 
@@ -15,6 +102,9 @@ check-swift-example:
 check-dart-example:
     bun run src/cli/index.ts check --root examples/dart
 
+check-rust-example:
+    bun run src/cli/index.ts check --root examples/rust
+
 check-example-json:
     bun run src/cli/index.ts check --root examples/typescript --json
 
@@ -24,11 +114,20 @@ audit:
 # Run check against one diagnostic fixture (see test-fixtures/diagnostics/). The
 # fixture is expected to report its diagnostic, so a non-zero exit is ignored.
 check-fixture code:
-    -bun run src/cli/index.ts check --root test-fixtures/diagnostics/{{ code }} {{ if code == "undocumented_symbol" { "--audit" } else { "" } }}
+    -bun run src/cli/index.ts check --root test-fixtures/diagnostics/{{ code }} {{ if code =~ '^(undocumented_symbol|unlinked_doc_section)$' { "--audit" } else { "" } }}
 
 # List counterparts of uncommitted changes that are themselves unchanged; exit 1 if any.
 related-gate:
     { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | bun run src/cli/index.ts related --stdin --gate
+
+# Same verdict over the staged change set only, which is what `pre-commit` gates on.
+related-gate-staged:
+    git diff --cached --name-only | bun run src/cli/index.ts related --stdin --gate
+
+# Report the staged change set's gate violations with the flagged counterparts'
+# content on stderr. Always exits 0; the pre-commit hook uses it as awareness.
+related-gate-report:
+    git diff --cached --name-only | bun run scripts/related-gate-report.ts
 
 # Print the linked counterpart content of the uncommitted changes.
 context:
@@ -40,23 +139,38 @@ test:
 test-swift-scanner:
     swift test --package-path packages/swift-scanner
 
+# Build the debug Swift/Rust workers and compiled Dart worker required by `just test`.
+build-test-scanners:
+    swift build --package-path packages/swift-scanner
+    just build-dart-scanner
+    just build-rust-scanner-debug
+
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
 
 test-dart-scanner:
-    cd packages/dart-scanner && dart pub get && dart test
+    cd packages/dart-scanner && dart pub get --enforce-lockfile && dart test
 
 build-dart-scanner:
-    cd packages/dart-scanner && dart pub get && dart compile exe bin/speclink_dart_scanner.dart -o bin/speclink_dart_scanner
+    cd packages/dart-scanner && dart pub get --enforce-lockfile && dart compile exe bin/docbridge_dart_scanner.dart -o bin/docbridge_dart_scanner
+
+test-rust-scanner:
+    cargo test --manifest-path packages/rust-scanner/Cargo.toml
+
+build-rust-scanner:
+    cargo build --manifest-path packages/rust-scanner/Cargo.toml --release
+
+build-rust-scanner-debug:
+    cargo build --manifest-path packages/rust-scanner/Cargo.toml
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.
 typecheck:
-    bunx tsc --noEmit
+    bun run tsc --noEmit
 
 build:
     rm -rf dist
-    bun build src/cli/index.ts --outdir dist --target bun
+    bun build src/cli/index.ts --outdir dist --target node
     chmod +x dist/index.js
 
 stage-scanner-binaries *ARGS:
@@ -67,6 +181,18 @@ verify-dist:
 
 pack-smoke *ARGS:
     bun run scripts/smoke-packed-package.ts {{ ARGS }}
+
+# Build a release VSIX under editors/vscode/.tmp/out.
+package-vsix:
+    bun run scripts/vscode-extension.ts package
+
+# Verify a release VSIX. Pass a path to verify a non-default artifact.
+verify-vsix *ARGS:
+    bun run scripts/vscode-extension.ts verify {{ ARGS }}
+
+# Publish a verified VSIX to VS Code Marketplace. Requires VSCE_PAT.
+publish-vscode-extension *ARGS:
+    bun run scripts/vscode-extension.ts publish-vscode {{ ARGS }}
 
 # Exercise the language server (hover, definition, references, diagnostics) over stdio.
 verify-lsp:

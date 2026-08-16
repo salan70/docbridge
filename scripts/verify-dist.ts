@@ -4,12 +4,12 @@ import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import {
+  supportedScannerExecutableNames,
+  supportedScannerPlatformKeys,
+} from "../src/core/code-language";
+
 const repoRoot = resolve(import.meta.dir, "..");
-const scannerPlatformKeys = ["darwin-arm64", "linux-x64"] as const;
-const scannerExecutableNames = [
-  "speclink-swift-scanner",
-  "speclink_dart_scanner",
-] as const;
 
 export type VerifyDistOptions = {
   run?: (command: string[], cwd: string) => void;
@@ -26,8 +26,8 @@ export async function verifyDistPackage(
   }
 
   const content = await readFile(distCli, "utf8");
-  if (!content.startsWith("#!/usr/bin/env bun\n")) {
-    throw new Error("dist/index.js does not preserve the Bun shebang.");
+  if (!content.startsWith("#!/usr/bin/env node\n")) {
+    throw new Error("dist/index.js does not preserve the Node shebang.");
   }
 
   assertExecutable(root, distCli);
@@ -36,12 +36,14 @@ export async function verifyDistPackage(
   const runCommand = options.run ?? run;
   runCommand([distCli, "--version"], root);
   runCommand([distCli, "--help"], root);
+  runCommand([distCli, "docs", "list", "--json"], root);
+  runCommand([distCli, "docs", "show", "getting-started"], root);
   runCommand([distCli, "check", "--root", "examples/typescript"], root);
 }
 
 function assertPackagedScannersExecutable(root: string): void {
-  for (const platform of scannerPlatformKeys) {
-    for (const executable of scannerExecutableNames) {
+  for (const platform of supportedScannerPlatformKeys()) {
+    for (const executable of supportedScannerExecutableNames()) {
       const scannerPath = join(root, "dist/bin", platform, executable);
       if (existsSync(scannerPath)) {
         assertExecutable(root, scannerPath);

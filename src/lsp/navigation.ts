@@ -1,4 +1,5 @@
-import { counterpartsOf, type GraphEndpoint } from "../core/graph";
+import { endpointRange } from "../core/endpoint";
+import { counterpartsOf } from "../core/graph";
 import type { Position, Range } from "../core/types";
 import { endpointAt } from "./index-lookup";
 import type { ProjectState } from "./project";
@@ -16,11 +17,7 @@ export type Locator = {
  *
  * @doc docs/specs/lsp.md#definition
  */
-export function definition(
-  state: ProjectState,
-  filePath: string,
-  position: Position,
-): Locator[] {
+export function definition(state: ProjectState, filePath: string, position: Position): Locator[] {
   return counterpartLocators(state, filePath, position);
 }
 
@@ -31,35 +28,17 @@ export function definition(
  *
  * @doc docs/specs/lsp.md#references
  */
-export function references(
-  state: ProjectState,
-  filePath: string,
-  position: Position,
-): Locator[] {
+export function references(state: ProjectState, filePath: string, position: Position): Locator[] {
   return counterpartLocators(state, filePath, position);
 }
 
-function counterpartLocators(
-  state: ProjectState,
-  filePath: string,
-  position: Position,
-): Locator[] {
+function counterpartLocators(state: ProjectState, filePath: string, position: Position): Locator[] {
   const element = endpointAt(state.index, filePath, position);
   if (element === undefined) {
     return [];
   }
   return counterpartsOf(state.graph, element.endpoint).map((counterpart) => ({
     filePath: counterpart.filePath,
-    range: elementRange(counterpart),
+    range: endpointRange(counterpart),
   }));
-}
-
-/** The element range used as a navigation target: name or heading-text range. */
-function elementRange(element: GraphEndpoint): Range {
-  const range = element.kind === "code" ? element.nameRange : element.headingTextRange;
-  if (range !== undefined) {
-    return range;
-  }
-  const { line, column } = element.location;
-  return { start: { line, column }, end: { line, column } };
 }

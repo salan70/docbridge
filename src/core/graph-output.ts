@@ -1,24 +1,24 @@
-import { collectCodeFiles, scanCodeFiles, type CodeInclude } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
-import { loadConfig } from "./config";
-import { sortDiagnostics } from "./diagnostics";
-import { collectFiles, readManagedFile } from "./glob";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
+import { pluralize, sortDiagnostics } from "./diagnostics";
+import { compareEndpointOrder, filePathOf, fragmentOf } from "./endpoint";
+import { buildLinkGraph, type LinkGraph } from "./graph";
+import type { MarkdownScanResult } from "./markdown";
+import { scanProject } from "./project-scan";
 import { normalizeChangedPaths } from "./related";
 import { resolveLinks } from "./resolver";
 import { extractDocSection } from "./section";
+import { sliceSourceRange } from "./source-range";
 import type {
   CodeLanguage,
-  CodeLinkAnnotation,
   CodeSymbolEndpoint,
   DocAnchorEndpoint,
-  DocLinkAnnotation,
+  LinkAnnotation,
   Range,
   SourceLocation,
   DocBridgeDiagnostic,
 } from "./types";
 
-export type GraphNode = {
+type GraphNode = {
   id: string;
   kind: "code" | "doc";
   endpoint: string;
@@ -29,7 +29,7 @@ export type GraphNode = {
   content?: GraphNodeContent;
 };
 
-export type GraphNodeContent =
+type GraphNodeContent =
   | {
       kind: "code";
       symbolName: string;
@@ -40,7 +40,7 @@ export type GraphNodeContent =
       headingText: string;
     };
 
-export type GraphEdge = {
+type GraphEdge = {
   kind: "doc" | "code";
   source: string;
   target: string;
@@ -48,14 +48,14 @@ export type GraphEdge = {
   range?: Range;
 };
 
-export type GraphPair = {
+type GraphPair = {
   codeEndpoint: string;
   docEndpoint: string;
   hasDocEdge: boolean;
   hasCodeEdge: boolean;
 };
 
-export type GraphSummary = {
+type GraphSummary = {
   nodes: number;
   edges: number;
   codeNodes: number;
@@ -65,7 +65,7 @@ export type GraphSummary = {
   diagnostics: number;
 };
 
-export type GraphResult = {
+type GraphResult = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   pairs: GraphPair[];
@@ -73,13 +73,13 @@ export type GraphResult = {
   summary: GraphSummary;
 };
 
-export type GraphOptions = {
+type GraphOptions = {
   projectRoot: string;
   inputFiles?: string[];
   includeContent?: boolean;
 };
 
-export type GraphOutcome =
+type GraphOutcome =
   | { ok: true; result: GraphResult }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
@@ -88,6 +88,7 @@ type ScanData = {
   docFiles: MarkdownScanResult[];
   diagnostics: DocBridgeDiagnostic[];
   contentByFile: Map<string, string>;
+  graph?: LinkGraph;
 };
 
 /**
@@ -97,12 +98,16 @@ type ScanData = {
  * @doc docs/specs/cli.md#graph-command
  */
 export function graph(options: GraphOptions): GraphOutcome {
-  const configResult = loadConfig(options.projectRoot);
-  if (!configResult.ok) {
-    return { ok: false, diagnostics: configResult.diagnostics };
+  const outcome = scanProject({
+    projectRoot: options.projectRoot,
+    buildGraph: true,
+    keepContent: true,
+  });
+  if (!outcome.ok) {
+    return { ok: false, diagnostics: outcome.diagnostics };
   }
 
-  const scan = scanManagedFiles(options.projectRoot, configResult.config.include);
+  const scan = outcome.scan;
   const relationshipDiagnostics = resolveLinks({
     codeFiles: scan.codeFiles,
     docFiles: scan.docFiles,
@@ -131,31 +136,20 @@ type ComputeGraphOptions = ScanData & {
 };
 
 export function computeGraphResult(options: ComputeGraphOptions): GraphResult {
-  const codeByEndpoint = new Map<string, CodeSymbolEndpoint>();
-  for (const file of options.codeFiles) {
-    for (const symbol of file.symbols) {
-      codeByEndpoint.set(symbol.endpoint, symbol);
-    }
-  }
-
-  const docByEndpoint = new Map<string, DocAnchorEndpoint>();
-  for (const file of options.docFiles) {
-    for (const anchor of file.anchors) {
-      docByEndpoint.set(anchor.endpoint, anchor);
-    }
-  }
+  const linkGraph = options.graph ?? buildLinkGraph(options.codeFiles, options.docFiles);
+  const { codeByEndpoint, docByEndpoint } = linkGraph;
 
   const allEdges: GraphEdge[] = [];
   for (const file of options.codeFiles) {
     for (const link of file.links) {
-      if (codeByEndpoint.has(link.source) && docByEndpoint.has(link.target)) {
+      if (linkGraph.counterparts.get(link.source)?.has(link.target) === true) {
         allEdges.push(edgeFromDocLink(link));
       }
     }
   }
   for (const file of options.docFiles) {
     for (const link of file.links) {
-      if (docByEndpoint.has(link.source) && codeByEndpoint.has(link.target)) {
+      if (linkGraph.counterparts.get(link.source)?.has(link.target) === true) {
         allEdges.push(edgeFromCodeLink(link));
       }
     }
@@ -182,9 +176,9 @@ export function computeGraphResult(options: ComputeGraphOptions): GraphResult {
       return undefined;
     })
     .filter((node): node is GraphNode => node !== undefined)
-    .sort(compareNodes);
+    .toSorted(compareNodes);
 
-  const pairs = computePairs(includedEdges).sort(comparePairs);
+  const pairs = computePairs(includedEdges).toSorted(comparePairs);
   const diagnostics = filterDiagnostics(options.diagnostics, nodes, options.inputFiles);
 
   const bidirectionalPairs = pairs.filter((pair) => pair.hasDocEdge && pair.hasCodeEdge).length;
@@ -209,7 +203,7 @@ export function computeGraphResult(options: ComputeGraphOptions): GraphResult {
   };
 }
 
-export function formatGraphResult(result: GraphResult, inputFiles: string[] = []): string {
+export function formatGraphResult(result: GraphResult, inputFiles: string[]): string {
   const lines: string[] = [];
   if (inputFiles.length === 0) {
     appendDocsOrientedLines(lines, result);
@@ -223,40 +217,7 @@ export function formatGraphResult(result: GraphResult, inputFiles: string[] = []
   return lines.join("\n");
 }
 
-function scanManagedFiles(
-  projectRoot: string,
-  include: { code: CodeInclude; docs: string[] },
-): ScanData {
-  const diagnostics: DocBridgeDiagnostic[] = [];
-  const contentByFile = new Map<string, string>();
-
-  const codeScan = scanCodeFiles(
-    projectRoot,
-    collectCodeFiles(projectRoot, include.code),
-    include.code,
-    (relPath) => readManagedFile(projectRoot, relPath),
-    (relPath, content) => contentByFile.set(relPath, content),
-  );
-  const codeFiles = codeScan.codeFiles;
-  diagnostics.push(...codeScan.diagnostics);
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(projectRoot, include.docs)) {
-    const read = readManagedFile(projectRoot, relPath);
-    if (!read.ok) {
-      diagnostics.push(read.diagnostic);
-      continue;
-    }
-    contentByFile.set(relPath, read.content);
-    const scan = scanMarkdown(relPath, read.content);
-    diagnostics.push(...scan.diagnostics);
-    docFiles.push(scan);
-  }
-
-  return { codeFiles, docFiles, diagnostics, contentByFile };
-}
-
-function edgeFromDocLink(link: DocLinkAnnotation): GraphEdge {
+function edgeFromDocLink(link: LinkAnnotation): GraphEdge {
   const edge: GraphEdge = {
     kind: "doc",
     source: link.source,
@@ -269,7 +230,7 @@ function edgeFromDocLink(link: DocLinkAnnotation): GraphEdge {
   return edge;
 }
 
-function edgeFromCodeLink(link: CodeLinkAnnotation): GraphEdge {
+function edgeFromCodeLink(link: LinkAnnotation): GraphEdge {
   const edge: GraphEdge = {
     kind: "code",
     source: link.source,
@@ -333,7 +294,11 @@ function codeNode(
     node.content = {
       kind: "code",
       symbolName: symbol.symbolName,
-      signature: extractSignature(contentByFile.get(symbol.filePath), range),
+      signature: extractSignature(
+        contentByFile.get(symbol.filePath),
+        range,
+        symbol.signatureRange !== undefined,
+      ),
     };
   }
   return node;
@@ -382,22 +347,26 @@ function docSectionRange(content: string | undefined, startLine: number): Range 
   };
 }
 
-function extractSignature(content: string | undefined, range: Range | undefined): string {
+/**
+ * Render a code node's signature text from `range`.
+ *
+ * `bodyExcluded` says the range is a `signatureRange`, which every scanner ends
+ * at the body's opening brace, so the extracted text is already body-free.
+ * Truncating it at its first `{` would instead cut into a signature that
+ * legitimately contains one — an object-typed parameter, an object type
+ * constraint — and render `login(options: {}`. The truncation exists for the
+ * `declarationRange` fallback, whose text does contain the body.
+ */
+function extractSignature(
+  content: string | undefined,
+  range: Range | undefined,
+  bodyExcluded: boolean,
+): string {
   if (content === undefined || range === undefined) {
     return "";
   }
-  const lines = content.split("\n").slice(range.start.line - 1, range.end.line);
-  const first = lines[0];
-  if (first !== undefined) {
-    lines[0] = first.slice(range.start.column - 1);
-  }
-  const lastIndex = lines.length - 1;
-  const last = lines[lastIndex];
-  if (last !== undefined && range.end.column > 1) {
-    lines[lastIndex] = last.slice(0, range.end.column - 1);
-  }
-  const declaration = lines.join("\n");
-  const bodyStart = declaration.indexOf("{");
+  const declaration = sliceSourceRange(content, range).content;
+  const bodyStart = bodyExcluded ? -1 : declaration.indexOf("{");
   if (bodyStart === -1) {
     return declaration.trimEnd();
   }
@@ -429,7 +398,7 @@ function computePairs(edges: GraphEdge[]): GraphPair[] {
 }
 
 function appendDocsOrientedLines(lines: string[], result: GraphResult): void {
-  const docs = result.nodes.filter((node) => node.kind === "doc").sort(compareNodes);
+  const docs = result.nodes.filter((node) => node.kind === "doc").toSorted(compareNodes);
   for (const doc of docs) {
     const pairs = result.pairs.filter((pair) => pair.docEndpoint === doc.endpoint);
     if (pairs.length === 0) {
@@ -442,19 +411,15 @@ function appendDocsOrientedLines(lines: string[], result: GraphResult): void {
       lines.push("");
     }
     lines.push(doc.filePath);
-    for (const pair of pairs.sort(comparePairs)) {
-      lines.push(
-        `  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`,
-      );
+    for (const pair of pairs.toSorted(comparePairs)) {
+      lines.push(`  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`);
     }
   }
 }
 
 function appendScopedLines(lines: string[], result: GraphResult, inputFiles: string[]): void {
   const inputSet = new Set(inputFiles);
-  const nodes = result.nodes
-    .filter((node) => inputSet.has(node.filePath))
-    .sort(compareNodes);
+  const nodes = result.nodes.filter((node) => inputSet.has(node.filePath)).toSorted(compareNodes);
   for (const node of nodes) {
     if (lines.length > 0) {
       lines.push("");
@@ -463,7 +428,7 @@ function appendScopedLines(lines: string[], result: GraphResult, inputFiles: str
     const pairs = result.pairs.filter(
       (pair) => pair.codeEndpoint === node.endpoint || pair.docEndpoint === node.endpoint,
     );
-    for (const pair of pairs.sort(comparePairs)) {
+    for (const pair of pairs.toSorted(comparePairs)) {
       if (node.kind === "doc") {
         lines.push(
           `  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`,
@@ -479,11 +444,11 @@ function appendScopedLines(lines: string[], result: GraphResult, inputFiles: str
 
 function formatGraphSummary(summary: GraphSummary): string {
   return [
-    `${summary.nodes} ${word(summary.nodes, "node")}`,
-    `${summary.edges} ${word(summary.edges, "edge")}`,
-    `${summary.bidirectionalPairs} bidirectional ${word(summary.bidirectionalPairs, "pair")}`,
-    `${summary.oneWayEdges} one-way ${word(summary.oneWayEdges, "edge")}`,
-    `${summary.diagnostics} ${word(summary.diagnostics, "diagnostic")}`,
+    `${summary.nodes} ${pluralize("node", summary.nodes)}`,
+    `${summary.edges} ${pluralize("edge", summary.edges)}`,
+    `${summary.bidirectionalPairs} bidirectional ${pluralize("pair", summary.bidirectionalPairs)}`,
+    `${summary.oneWayEdges} one-way ${pluralize("edge", summary.oneWayEdges)}`,
+    `${summary.diagnostics} ${pluralize("diagnostic", summary.diagnostics)}`,
   ].join(", ");
 }
 
@@ -494,26 +459,10 @@ function pairStatus(pair: GraphPair): string {
   return pair.hasDocEdge ? "missing @code backlink" : "missing @doc backlink";
 }
 
-function word(count: number, singular: string): string {
-  return count === 1 ? singular : `${singular}s`;
-}
-
-function filePathOf(endpoint: string): string {
-  const hashIndex = endpoint.indexOf("#");
-  return hashIndex === -1 ? endpoint : endpoint.slice(0, hashIndex);
-}
-
-function fragmentOf(endpoint: string): string {
-  const hashIndex = endpoint.indexOf("#");
-  return hashIndex === -1 ? endpoint : endpoint.slice(hashIndex + 1);
-}
-
 function compareNodes(left: GraphNode, right: GraphNode): number {
-  return (
-    left.filePath.localeCompare(right.filePath) ||
-    left.location.line - right.location.line ||
-    left.location.column - right.location.column ||
-    left.endpoint.localeCompare(right.endpoint)
+  return compareEndpointOrder(
+    { ...left.location, endpoint: left.endpoint },
+    { ...right.location, endpoint: right.endpoint },
   );
 }
 

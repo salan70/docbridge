@@ -1,0 +1,85 @@
+name: Technical proposal
+description: Propose an API, architecture, refactor, build, CI, or dependency design change
+title: "[Technical]: "
+labels:
+  - technical
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a technical design change. Non-trivial implementation begins only after the issue receives the `status: accepted` label, regardless of who will implement it.
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched open and closed issues and did not find the same technical proposal.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Technical area
+      options:
+        - Public API, CLI, configuration, schema, or diagnostics
+        - Architecture or internal design
+        - Refactor
+        - Build or CI
+        - Dependency
+        - Release engineering
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and constraints
+      description: Describe the current technical problem, evidence, and constraints.
+    validations:
+      required: true
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the technical outcome that should be achieved.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Identify the components and contracts that should change.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Identify adjacent components and behavior that should remain unchanged.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List observable technical and verification conditions for completion.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Compare viable alternatives and explain their tradeoffs.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risks
+      description: Identify migration, compatibility, performance, or operational risks.
+    validations:
+      required: true
+  - type: textarea
+    id: implementation-notes
+    attributes:
+      label: Implementation notes
+      description: Add a possible approach, related code, specifications, or staged rollout notes.

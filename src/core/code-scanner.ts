@@ -1,7 +1,7 @@
 import type {
   CodeLanguage,
   CodeSymbolEndpoint,
-  DocLinkAnnotation,
+  LinkAnnotation,
   DocBridgeDiagnostic,
 } from "./types";
 
@@ -22,7 +22,7 @@ export type CodeScanResult = {
    * them by default; audit mode turns them into `undocumented_symbol`.
    */
   undocumentedSymbols: CodeSymbolEndpoint[];
-  links: DocLinkAnnotation[];
+  links: LinkAnnotation[];
   diagnostics: DocBridgeDiagnostic[];
 };
 
@@ -32,13 +32,13 @@ export type CodeScanOptions = {
 };
 
 /** Per-scan context shared by all language adapters. */
-export type CodeScanContext = {
+type CodeScanContext = {
   projectRoot: string;
 };
 
 /**
  * The internal extension point for a code language. Slice 1 ships only the
- * in-process TypeScript adapter; Swift and Dart adapters arrive as worker-backed
+ * in-process TypeScript adapter; Swift, Dart, and Rust adapters arrive as worker-backed
  * implementations in later slices.
  */
 export type CodeLanguageAdapter = {

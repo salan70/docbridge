@@ -2,10 +2,10 @@ import type { DocBridgeDiagnostic } from "../core/types";
 import { toLspRange, type LspRange } from "./position";
 
 /** LSP diagnostic severities: error and warning are the only ones DocBridge uses. */
-export type LspDiagnosticSeverity = 1 | 2;
+type LspDiagnosticSeverity = 1 | 2;
 
 /** LSP `Diagnostic` shape (the subset DocBridge produces). */
-export type LspDiagnostic = {
+type LspDiagnostic = {
   range: LspRange;
   severity: LspDiagnosticSeverity;
   code: string;
@@ -56,10 +56,7 @@ export function diagnosticsForFile(
   return result;
 }
 
-function rangeFor(
-  diagnostic: DocBridgeDiagnostic,
-  lineLengths: number[],
-): LspRange {
+function rangeFor(diagnostic: DocBridgeDiagnostic, lineLengths: number[]): LspRange {
   if (diagnostic.range !== undefined) {
     return toLspRange(diagnostic.range);
   }

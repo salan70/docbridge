@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:speclink_dart_scanner/scanner.dart';
+import 'package:docbridge_dart_scanner/scanner.dart';
 import 'package:test/test.dart';
 
 Map<String, dynamic> scan(String source, {List<String>? visibility}) {
@@ -46,6 +46,7 @@ enum Role { admin, user }
       (file['links'] as List).map((l) => (l as Map)['target']).toList(),
       ['docs/auth.md#login', 'docs/auth.md#service', 'docs/auth.md#role'],
     );
+    expect((file['links'] as List).first, isNot(contains('direction')));
   });
 
   test('canonicalizes class members, getters, setters, and constructors', () {
@@ -107,6 +108,72 @@ extension on AuthService {
 
     expect(canonicalIds(file), ['AuthService.logout']);
     expect(codes(file['diagnostics'] as List), ['duplicate_code_symbol']);
+  });
+
+  test('reports duplicate doc links', () {
+    final file = scan('''
+/// @doc docs/auth.md#login
+/// @doc docs/auth.md#login
+void login() {}
+''');
+
+    expect(
+      (file['links'] as List).map((link) => (link as Map)['target']).toList(),
+      ['docs/auth.md#login'],
+    );
+    expect(codes(file['diagnostics'] as List), ['duplicate_link']);
+    expect((file['diagnostics'] as List).single,
+        containsPair('severity', 'warning'));
+    expect((file['diagnostics'] as List).single,
+        containsPair('source', 'lib/auth.dart#login'));
+    expect(
+      (file['diagnostics'] as List).single,
+      containsPair('target', 'docs/auth.md#login'),
+    );
+  });
+
+  test('reports invalid doc link targets', () {
+    final file = scan('''
+/// @doc not-a-valid-target
+void login() {}
+''');
+
+    expect(canonicalIds(file), ['login']);
+    expect(file['links'], isEmpty);
+    expect(codes(file['diagnostics'] as List), ['invalid_link_target']);
+    expect((file['diagnostics'] as List).single,
+        containsPair('severity', 'error'));
+    expect((file['diagnostics'] as List).single,
+        containsPair('source', 'lib/auth.dart#login'));
+    expect(
+      (file['diagnostics'] as List).single,
+      containsPair('target', 'not-a-valid-target'),
+    );
+  });
+
+  test('rejects invalid link target forms', () {
+    final targets = [
+      '#check-command',
+      'docs/specs/cli.md',
+      'docs/specs/cli.md#',
+      '#anchor',
+      '/docs/specs/cli.md#check-command',
+      './docs/specs/cli.md#check-command',
+      '../docs/specs/cli.md#check-command',
+      'docs/../specs/cli.md#check-command',
+      r'docs\specs\cli.md#check-command',
+      'docs/specs/cli.md#check command',
+      'docs/specs/cli.md#check#command',
+      'docs/specs/cli.md#check-command',
+    ];
+
+    for (final target in targets) {
+      expect(
+        isValidLinkTarget(target, 'docs/specs/cli.md'),
+        isFalse,
+        reason: target,
+      );
+    }
   });
 
   test('reports unsupported annotated declarations', () {

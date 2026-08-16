@@ -104,7 +104,8 @@ class WorkerFileResponse {
   Map<String, dynamic> toJson() => {
         'filePath': filePath,
         'symbols': symbols.map((e) => e.toJson()).toList(),
-        'undocumentedSymbols': undocumentedSymbols.map((e) => e.toJson()).toList(),
+        'undocumentedSymbols':
+            undocumentedSymbols.map((e) => e.toJson()).toList(),
         'links': links.map((e) => e.toJson()).toList(),
         'diagnostics': diagnostics.map((e) => e.toJson()).toList(),
       };
@@ -159,7 +160,6 @@ class DocLink {
   final SourceRange? targetRange;
 
   Map<String, dynamic> toJson() => _pruneNulls({
-        'direction': 'code-to-doc',
         'source': source,
         'target': target,
         'location': location.toJson(),
@@ -172,21 +172,26 @@ class Diagnostic {
     required this.code,
     required this.target,
     required this.message,
+    this.severity = 'error',
+    this.source,
     this.location,
     this.range,
   });
 
+  final String severity;
   final String code;
   final String target;
+  final String? source;
   final String message;
   final SourceLocation? location;
   final SourceRange? range;
 
   Map<String, dynamic> toJson() => _pruneNulls({
-        'severity': 'error',
+        'severity': severity,
         'code': code,
         'target': target,
         'language': 'dart',
+        'source': source,
         'message': message,
         'location': location?.toJson(),
         'range': range?.toJson(),
@@ -194,7 +199,8 @@ class Diagnostic {
 }
 
 class SourceLocation {
-  SourceLocation({required this.filePath, required this.line, required this.column});
+  SourceLocation(
+      {required this.filePath, required this.line, required this.column});
 
   final String filePath;
   final int line;

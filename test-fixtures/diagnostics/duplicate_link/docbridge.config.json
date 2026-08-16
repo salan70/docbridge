@@ -6,6 +6,21 @@
         "patterns": [
           "src/**/*.ts"
         ]
+      },
+      "swift": {
+        "patterns": [
+          "Sources/**/*.swift"
+        ]
+      },
+      "dart": {
+        "patterns": [
+          "lib/**/*.dart"
+        ]
+      },
+      "rust": {
+        "patterns": [
+          "src/**/*.rs"
+        ]
       }
     },
     "docs": [

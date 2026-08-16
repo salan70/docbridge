@@ -1,9 +1,10 @@
 import { type Dirent, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { comparePaths } from "./path-order";
 import type { DocBridgeDiagnostic } from "./types";
 
-export type GlobValidation = { ok: true } | { ok: false; message: string };
+type GlobValidation = { ok: true } | { ok: false; message: string };
 
 const IGNORED_SEGMENTS = new Set(["node_modules", ".git"]);
 
@@ -129,7 +130,7 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
 
   walk("");
 
-  return [...matched].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+  return [...matched].toSorted(comparePaths);
 }
 
 /**
@@ -139,9 +140,7 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
 export function readManagedFile(
   projectRoot: string,
   relativePath: string,
-):
-  | { ok: true; content: string }
-  | { ok: false; diagnostic: DocBridgeDiagnostic } {
+): { ok: true; content: string } | { ok: false; diagnostic: DocBridgeDiagnostic } {
   try {
     const content = readFileSync(join(projectRoot, relativePath), "utf8");
     return { ok: true, content };

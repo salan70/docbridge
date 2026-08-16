@@ -3,9 +3,13 @@ import { expect, test } from "bun:test";
 import { scanMarkdown } from "./markdown";
 
 test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
-  const content = ["<!-- @code src/auth/login.ts#login -->", "## Login Spec", "", "Login flow specification.", ""].join(
-    "\n",
-  );
+  const content = [
+    "<!-- @code src/auth/login.ts#login -->",
+    "## Login Spec",
+    "",
+    "Login flow specification.",
+    "",
+  ].join("\n");
 
   const result = scanMarkdown("docs/auth.md", content);
 
@@ -23,7 +27,6 @@ test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
   ]);
   expect(result.links).toMatchObject([
     {
-      direction: "doc-to-code",
       source: "docs/auth.md#login-spec",
       target: "src/auth/login.ts#login",
       location: { filePath: "docs/auth.md", line: 1, column: 1 },
@@ -141,7 +144,6 @@ test("scanMarkdown takes only the first token after @code as the target", () => 
   const result = scanMarkdown("docs/a.md", content);
   expect(result.links).toMatchObject([
     {
-      direction: "doc-to-code",
       source: "docs/a.md#heading",
       target: "src/a.ts#foo",
       location: { filePath: "docs/a.md", line: 1, column: 1 },
@@ -157,22 +159,18 @@ test("scanMarkdown allows empty lines between pending comments and the heading",
 });
 
 test("scanMarkdown attaches multiple @code comments to one heading", () => {
-  const content = [
-    "<!-- @code src/a.ts#foo -->",
-    "<!-- @code src/b.ts#bar -->",
-    "# Heading",
-  ].join("\n");
+  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/b.ts#bar -->", "# Heading"].join(
+    "\n",
+  );
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toMatchObject([
     {
-      direction: "doc-to-code",
       source: "docs/a.md#heading",
       target: "src/a.ts#foo",
       location: { filePath: "docs/a.md", line: 1, column: 1 },
     },
     {
-      direction: "doc-to-code",
       source: "docs/a.md#heading",
       target: "src/b.ts#bar",
       location: { filePath: "docs/a.md", line: 2, column: 1 },
@@ -193,8 +191,7 @@ test("scanMarkdown reports dangling annotation before normal text", () => {
       severity: "warning",
       code: "dangling_code_annotation",
       target: "src/a.ts#foo",
-      message:
-        "@code annotation is not attached to a following heading.",
+      message: "@code annotation is not attached to a following heading.",
       location: { filePath: "docs/a.md", line: 1, column: 1 },
     },
   ]);
@@ -247,7 +244,7 @@ test("scanMarkdown reports duplicate non-empty anchors in the same file", () => 
       severity: "error",
       code: "duplicate_doc_anchor",
       target: "docs/a.md#same-title",
-      message: "Duplicate doc anchor \"same-title\" in docs/a.md.",
+      message: 'Duplicate doc anchor "same-title" in docs/a.md.',
       location: { filePath: "docs/a.md", line: 2, column: 1 },
     },
   ]);
@@ -263,11 +260,9 @@ test("scanMarkdown does not treat empty headings as duplicates", () => {
 // --- duplicate links -------------------------------------------------------
 
 test("scanMarkdown reports duplicate links from the same heading to the same endpoint", () => {
-  const content = [
-    "<!-- @code src/a.ts#foo -->",
-    "<!-- @code src/a.ts#foo -->",
-    "# Heading",
-  ].join("\n");
+  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/a.ts#foo -->", "# Heading"].join(
+    "\n",
+  );
   const result = scanMarkdown("docs/a.md", content);
 
   expect(result.links).toHaveLength(2);
@@ -278,19 +273,16 @@ test("scanMarkdown reports duplicate links from the same heading to the same end
       code: "duplicate_link",
       source: "docs/a.md#heading",
       target: "src/a.ts#foo",
-      message:
-        "Duplicate @code link from docs/a.md#heading to src/a.ts#foo.",
+      message: "Duplicate @code link from docs/a.md#heading to src/a.ts#foo.",
       location: { filePath: "docs/a.md", line: 2, column: 1 },
     },
   ]);
 });
 
 test("scanMarkdown does not report duplicate links to different endpoints", () => {
-  const content = [
-    "<!-- @code src/a.ts#foo -->",
-    "<!-- @code src/a.ts#bar -->",
-    "# Heading",
-  ].join("\n");
+  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/a.ts#bar -->", "# Heading"].join(
+    "\n",
+  );
   const result = scanMarkdown("docs/a.md", content);
   expect(result.diagnostics.filter((d) => d.code === "duplicate_link")).toEqual([]);
 });
@@ -364,4 +356,68 @@ test("scanMarkdown records the @code target range on the comment line", () => {
     start: { line: 1, column: 12 },
     end: { line: 1, column: 12 + target.length },
   });
+});
+
+// --- heading outline ------------------------------------------------------
+
+test("scanMarkdown records the heading level of each outline entry", () => {
+  const content = ["# Top", "### Deep", "## Middle"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.headings.map((heading) => [heading.anchor?.anchor, heading.level])).toEqual([
+    ["top", 1],
+    ["deep", 3],
+    ["middle", 2],
+  ]);
+});
+
+test("scanMarkdown includes empty headings in the outline but not in the anchors", () => {
+  // An empty heading creates no anchor, yet it closes the preceding section, so
+  // consumers that rebuild the document nesting still need to see it.
+  const content = ["### Parent", "##", "#### Child"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.anchors.map((anchor) => anchor.anchor)).toEqual(["parent", "child"]);
+  expect(result.headings.map((heading) => [heading.level, heading.anchor?.anchor])).toEqual([
+    [3, "parent"],
+    [2, undefined],
+    [4, "child"],
+  ]);
+});
+
+test("scanMarkdown marks a heading with an attached @code annotation as annotated", () => {
+  const content = ["<!-- @code src/auth/login.ts#login -->", "## Linked", "", "## Plain"].join(
+    "\n",
+  );
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(
+    result.headings.map((heading) => [heading.anchor?.anchor, heading.hasCodeAnnotation]),
+  ).toEqual([
+    ["linked", true],
+    ["plain", false],
+  ]);
+});
+
+test("scanMarkdown marks a heading annotated even when the @code target is invalid", () => {
+  // `src/auth/login.ts` has no `#fragment`, so the link never reaches
+  // `result.links`. The heading still carries an attempted annotation.
+  const content = ["<!-- @code src/auth/login.ts -->", "## Broken"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.links).toEqual([]);
+  expect(result.headings[0]?.hasCodeAnnotation).toBe(true);
+});
+
+test("scanMarkdown never marks an empty heading as annotated", () => {
+  // The annotation becomes dangling instead of attaching to the empty heading.
+  const content = ["<!-- @code src/auth/login.ts#login -->", "##"].join("\n");
+
+  const result = scanMarkdown("docs/a.md", content);
+
+  expect(result.headings).toEqual([{ level: 2, hasCodeAnnotation: false }]);
 });

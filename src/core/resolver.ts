@@ -1,13 +1,17 @@
-import { collectCodeFiles, scanCodeFiles } from "./code-language";
 import type { CodeScanResult } from "./code-scanner";
-import { loadConfig } from "./config";
-import { sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
-import { collectFiles, readManagedFile } from "./glob";
-import { scanMarkdown, type MarkdownScanResult } from "./markdown";
-import { parseLinkTarget } from "./links";
-import type { CheckResult, LinkAnnotation, DocBridgeDiagnostic } from "./types";
+import { pluralize, sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
+import { filePathOf } from "./endpoint";
+import type { MarkdownScanResult } from "./markdown";
+import { scanProject } from "./project-scan";
+import type {
+  CheckResult,
+  DocAnchorEndpoint,
+  DocHeadingOutline,
+  LinkAnnotation,
+  DocBridgeDiagnostic,
+} from "./types";
 
-export type ResolveInput = {
+type ResolveInput = {
   /** One per scanned code file, including files that hit a parse error. */
   codeFiles: CodeScanResult[];
   /** One per scanned `.md` file. */
@@ -173,12 +177,13 @@ export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
 
   if (input.audit) {
     diagnostics.push(...auditUndocumentedSymbols(input, erroredFiles));
+    diagnostics.push(...auditUnlinkedDocSections(input, erroredFiles));
   }
 
   return diagnostics;
 }
 
-export type CheckOptions = {
+type CheckOptions = {
   projectRoot: string;
   audit?: boolean;
 };
@@ -188,38 +193,15 @@ export type CheckOptions = {
  * resolve link relationships, then merge, sort, and summarize all diagnostics.
  */
 export function check(options: CheckOptions): CheckResult {
-  const { projectRoot } = options;
   const audit = options.audit ?? false;
-
-  const configResult = loadConfig(projectRoot);
-  if (!configResult.ok) {
+  const outcome = scanProject({ projectRoot: options.projectRoot });
+  if (!outcome.ok) {
     // Config errors short-circuit scanning; report only config diagnostics.
-    const sorted = sortDiagnostics(configResult.diagnostics);
+    const sorted = sortDiagnostics(outcome.diagnostics);
     return { diagnostics: sorted, summary: summarizeDiagnostics(sorted) };
   }
 
-  const scanDiagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
-
-  const codeScan = scanCodeFiles(
-    projectRoot,
-    collectCodeFiles(projectRoot, configResult.config.include.code),
-    configResult.config.include.code,
-    (relPath) => readManagedFile(projectRoot, relPath),
-  );
-  const codeFiles = codeScan.codeFiles;
-  scanDiagnostics.push(...codeScan.diagnostics);
-
-  const docFiles: MarkdownScanResult[] = [];
-  for (const relPath of collectFiles(projectRoot, configResult.config.include.docs)) {
-    const read = readManagedFile(projectRoot, relPath);
-    if (!read.ok) {
-      scanDiagnostics.push(read.diagnostic);
-      continue;
-    }
-    const scan = scanMarkdown(relPath, read.content);
-    scanDiagnostics.push(...scan.diagnostics);
-    docFiles.push(scan);
-  }
+  const { codeFiles, docFiles, diagnostics: scanDiagnostics } = outcome.scan;
 
   const relationshipDiagnostics = resolveLinks({
     codeFiles,
@@ -264,6 +246,130 @@ function auditUndocumentedSymbols(
   return diagnostics;
 }
 
+/** A heading and the headings nested under it, reconstructed from heading levels. */
+type HeadingNode = {
+  heading: DocHeadingOutline;
+  children: HeadingNode[];
+};
+
+/**
+ * Audit rule: emit `unlinked_doc_section` for documentation sections that have
+ * no `@code` annotation anywhere in their subtree.
+ *
+ * Reporting is rolled up: only the topmost heading of a fully unannotated
+ * subtree is reported, and its descendants are suppressed. A heading with no
+ * annotation of its own but an annotated descendant is not reported either,
+ * because the subtree is already bridged somewhere. This keeps the diagnostic
+ * proportional to the number of unbridged regions rather than to the number of
+ * headings, which is what makes it usable on a partially adopted repository.
+ *
+ * A heading counts as annotated whenever a `@code` comment is attached to it,
+ * even if that annotation is unparsable or unresolvable. Those cases already
+ * produce their own errors, and treating them as unlinked would wrongly collapse
+ * the surrounding subtree into a single roll-up.
+ */
+function auditUnlinkedDocSections(
+  input: ResolveInput,
+  erroredFiles: Set<string>,
+): DocBridgeDiagnostic[] {
+  const diagnostics: DocBridgeDiagnostic[] = [];
+
+  for (const file of input.docFiles) {
+    if (erroredFiles.has(file.filePath)) {
+      continue;
+    }
+    reportUnlinkedSections(buildHeadingTree(file.headings), diagnostics);
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Rebuild the document's heading tree from the outline in document order, using
+ * the same nesting rule as `extractDocSection` in `./section`: a heading's
+ * subtree runs until the next heading whose level is less than or equal to its
+ * own.
+ *
+ * The outline is used rather than the anchors because empty headings create no
+ * anchor yet still close the preceding section. Dropping them would let a
+ * deeper heading after an empty one be absorbed into the section before it,
+ * which is not the region `extractDocSection` would return.
+ */
+function buildHeadingTree(headings: DocHeadingOutline[]): HeadingNode[] {
+  const roots: HeadingNode[] = [];
+  const openAncestors: HeadingNode[] = [];
+
+  for (const heading of headings) {
+    const node: HeadingNode = { heading, children: [] };
+
+    while (
+      openAncestors.length > 0 &&
+      (openAncestors[openAncestors.length - 1]?.heading.level ?? 0) >= heading.level
+    ) {
+      openAncestors.pop();
+    }
+
+    const parent = openAncestors[openAncestors.length - 1];
+    if (parent === undefined) {
+      roots.push(node);
+    } else {
+      parent.children.push(node);
+    }
+    openAncestors.push(node);
+  }
+
+  return roots;
+}
+
+/**
+ * Walk the tree, reporting the topmost reportable node of every fully
+ * unannotated subtree.
+ *
+ * An empty heading has no anchor and so cannot be reported. It still shapes the
+ * tree, so reporting descends through it and reports its children instead.
+ */
+function reportUnlinkedSections(nodes: HeadingNode[], diagnostics: DocBridgeDiagnostic[]): void {
+  for (const node of nodes) {
+    const anchor = node.heading.anchor;
+    if (anchor === undefined || subtreeHasAnnotation(node)) {
+      reportUnlinkedSections(node.children, diagnostics);
+      continue;
+    }
+    diagnostics.push(unlinkedDocSectionDiagnostic(node, anchor));
+  }
+}
+
+function subtreeHasAnnotation(node: HeadingNode): boolean {
+  return node.heading.hasCodeAnnotation || node.children.some(subtreeHasAnnotation);
+}
+
+function countDescendants(node: HeadingNode): number {
+  return node.children.reduce((total, child) => total + 1 + countDescendants(child), 0);
+}
+
+function unlinkedDocSectionDiagnostic(
+  node: HeadingNode,
+  anchor: DocAnchorEndpoint,
+): DocBridgeDiagnostic {
+  const suppressed = countDescendants(node);
+  const suffix =
+    suppressed === 0
+      ? ""
+      : ` (${suppressed} descendant ${pluralize("heading", suppressed)} suppressed)`;
+
+  const diagnostic: DocBridgeDiagnostic = {
+    severity: "warning",
+    code: "unlinked_doc_section",
+    target: anchor.endpoint,
+    message: `Doc section ${anchor.endpoint} has no @code annotation${suffix}.`,
+    location: anchor.location,
+  };
+  if (anchor.headingTextRange !== undefined) {
+    diagnostic.range = anchor.headingTextRange;
+  }
+  return diagnostic;
+}
+
 function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {
   const errored = new Set<string>();
   for (const diagnostic of diagnostics) {
@@ -280,8 +386,7 @@ function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {
 
 function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean {
   return (
-    (diagnostic.code === "code_scanner_unavailable" ||
-      diagnostic.code === "code_scanner_failed") &&
+    (diagnostic.code === "code_scanner_unavailable" || diagnostic.code === "code_scanner_failed") &&
     diagnostic.language !== undefined &&
     diagnostic.target !== diagnostic.language
   );
@@ -289,17 +394,6 @@ function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean
 
 function pairKey(source: string, target: string): string {
   return `${source}->${target}`;
-}
-
-function filePathOf(endpoint: string): string {
-  // Endpoints are produced by parseLinkTarget-validated `file#fragment` forms,
-  // so they contain exactly one `#`. Split on the first to be defensive.
-  const parsed = parseLinkTarget(endpoint);
-  if (parsed.ok) {
-    return parsed.target.filePath;
-  }
-  const hashIndex = endpoint.indexOf("#");
-  return hashIndex === -1 ? endpoint : endpoint.slice(0, hashIndex);
 }
 
 function relationshipDiagnostic(

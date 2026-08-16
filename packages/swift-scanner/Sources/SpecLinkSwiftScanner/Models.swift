@@ -72,7 +72,6 @@ public struct CodeSymbol: Codable, Equatable {
 }
 
 public struct DocLink: Codable, Equatable {
-  public let direction: String
   public let source: String
   public let target: String
   public let location: SourceLocation

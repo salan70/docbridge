@@ -8,10 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
  *
  * @doc docs/specs/lsp.md#positions-and-paths
  */
-export function uriToRelativePath(
-  projectRoot: string,
-  uri: string,
-): string | undefined {
+export function uriToRelativePath(projectRoot: string, uri: string): string | undefined {
   let absolute: string;
   try {
     absolute = fileURLToPath(uri);

@@ -1,9 +1,7 @@
 import { expect, test } from "bun:test";
 
 import { computeContext, formatContextResult } from "./context";
-import { buildLinkGraph, type LinkGraph } from "./graph";
-import { scanMarkdown } from "./markdown";
-import { scanTypeScript } from "./typescript";
+import { graphFrom, type GraphSources } from "./test-support";
 
 const LOGIN_TS = [
   "/**",
@@ -23,23 +21,11 @@ const AUTH_MD = [
   "",
 ].join("\n");
 
-type Sources = {
-  code: Array<[string, string]>;
-  docs: Array<[string, string]>;
-};
-
-function graphFrom(sources: Sources): LinkGraph {
-  return buildLinkGraph(
-    sources.code.map(([filePath, content]) => scanTypeScript(filePath, content)),
-    sources.docs.map(([filePath, content]) => scanMarkdown(filePath, content)),
-  );
-}
-
-function contentMap(sources: Sources): Map<string, string> {
+function contentMap(sources: GraphSources): Map<string, string> {
   return new Map([...sources.code, ...sources.docs]);
 }
 
-const BASIC: Sources = {
+const BASIC: GraphSources = {
   code: [["src/auth/login.ts", LOGIN_TS]],
   docs: [["docs/auth.md", AUTH_MD]],
 };
@@ -88,7 +74,7 @@ test("computeContext deduplicates a counterpart linked from multiple input files
     "export function logout() {}",
     "",
   ].join("\n");
-  const sources: Sources = {
+  const sources: GraphSources = {
     code: [
       ["src/auth/login.ts", LOGIN_TS],
       ["src/auth/logout.ts", otherTs],
@@ -121,7 +107,7 @@ test("computeContext orders context blocks by file path then position", () => {
   ].join("\n");
   const aMd = ["<!-- @code src/auth/login.ts#login -->", "## A Spec", ""].join("\n");
   const bMd = ["<!-- @code src/auth/login.ts#login -->", "## B Spec", ""].join("\n");
-  const sources: Sources = {
+  const sources: GraphSources = {
     code: [["src/auth/login.ts", loginTs]],
     docs: [
       ["docs/b.md", bMd],
@@ -140,7 +126,7 @@ test("computeContext orders context blocks by file path then position", () => {
 test("computeContext slices same-line declarations by column, excluding neighbors", () => {
   const sameLineTs = "/** @doc docs/a.md#a-spec */ export const a = 1; export const b = 2;\n";
   const aMd = ["<!-- @code src/a.ts#a -->", "## A Spec", ""].join("\n");
-  const sources: Sources = {
+  const sources: GraphSources = {
     code: [["src/a.ts", sameLineTs]],
     docs: [["docs/a.md", aMd]],
   };
@@ -169,7 +155,7 @@ test("computeContext returns no blocks for input files without links", () => {
 });
 
 test("formatContextResult renders doc sections raw and code declarations fenced", () => {
-  const sources: Sources = {
+  const sources: GraphSources = {
     code: [["src/auth/login.ts", LOGIN_TS]],
     docs: [["docs/auth.md", AUTH_MD]],
   };
@@ -242,4 +228,70 @@ test("formatContextResult prints only the summary when there are no blocks", () 
   };
 
   expect(formatContextResult(result)).toBe("1 input file, 0 context blocks");
+});
+
+test("computeContext dedents a member declaration to its own indentation level", () => {
+  const sources: GraphSources = {
+    code: [
+      [
+        "src/auth/service.ts",
+        [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#login-spec",
+          "   */",
+          "  login() {",
+          "    return true;",
+          "  }",
+          "}",
+          "",
+        ].join("\n"),
+      ],
+    ],
+    docs: [
+      [
+        "docs/auth.md",
+        ["<!-- @code src/auth/service.ts#AuthService.login -->", "## Login Spec", ""].join("\n"),
+      ],
+    ],
+  };
+
+  const result = computeContext(graphFrom(sources), contentMap(sources), ["docs/auth.md"]);
+
+  expect(result.contexts[0]?.content).toBe(
+    ["/**", " * @doc docs/auth.md#login-spec", " */", "login() {", "  return true;", "}"].join(
+      "\n",
+    ),
+  );
+});
+
+test("computeContext leaves a top-level declaration unchanged", () => {
+  const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["docs/auth.md"]);
+
+  expect(result.contexts[0]?.content).toBe(LOGIN_TS.trimEnd());
+});
+
+test("computeContext keeps the indentation of a top-level declaration whose lines are all indented", () => {
+  // With the JSDoc on the declaration's own line, every line after the first is
+  // indented, which must not be mistaken for a member's enclosing indentation.
+  const sources: GraphSources = {
+    code: [
+      [
+        "src/auth/service.ts",
+        ["/** @doc docs/auth.md#login-spec */ export const login =", "  compute();", ""].join("\n"),
+      ],
+    ],
+    docs: [
+      [
+        "docs/auth.md",
+        ["<!-- @code src/auth/service.ts#login -->", "## Login Spec", ""].join("\n"),
+      ],
+    ],
+  };
+
+  const result = computeContext(graphFrom(sources), contentMap(sources), ["docs/auth.md"]);
+
+  expect(result.contexts[0]?.content).toBe(
+    ["/** @doc docs/auth.md#login-spec */ export const login =", "  compute();"].join("\n"),
+  );
 });

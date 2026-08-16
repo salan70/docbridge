@@ -1,0 +1,65 @@
+name: Documentation issue
+description: Report incorrect, missing, or substantially restructured documentation
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for documentation problems. Typo, wording, formatting, broken-link, or similarly small corrections do not require an issue; non-trivial documentation work begins after the issue receives the `status: accepted` label.
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched open and closed issues and did not find the same documentation issue.
+          required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Link or name the affected file, page, and section.
+      placeholder: docs/specs/cli.md#check-command
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Documentation problem
+      description: Explain what is incorrect, missing, ambiguous, or poorly structured.
+    validations:
+      required: true
+  - type: textarea
+    id: source-of-truth
+    attributes:
+      label: Evidence or source of truth
+      description: Link the implementation, specification, behavior, or other evidence that supports the correction.
+    validations:
+      required: true
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: Desired outcome
+      description: Describe what readers should understand after the documentation is corrected.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Identify the documentation that should change and any mirrored pages that must stay aligned.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the conditions that make the documentation change complete and verifiable.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add examples, screenshots, terminology concerns, or related issues.

@@ -1,0 +1,19 @@
+[package]
+name = "docbridge-rust-scanner"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "DocBridge first-party Rust scanner worker"
+
+[[bin]]
+name = "docbridge-rust-scanner"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+syn = { version = "2", features = ["full", "parsing", "printing", "extra-traits"] }
+proc-macro2 = { version = "1", features = ["span-locations"] }
+
+[dev-dependencies]
+serde_json = "1"

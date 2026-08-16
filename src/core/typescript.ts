@@ -1,14 +1,10 @@
 import ts from "typescript";
 
-import type {
-  CodeLanguageAdapter,
-  CodeScanOptions,
-  CodeScanResult,
-} from "./code-scanner";
+import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
 import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
 import type {
   CodeSymbolEndpoint,
-  DocLinkAnnotation,
+  LinkAnnotation,
   Range,
   SourceLocation,
   DocBridgeDiagnostic,
@@ -16,16 +12,20 @@ import type {
 
 const LANGUAGE = "typescript" as const;
 
-/**
- * The in-process TypeScript code language adapter. Visibility options are not
- * used: TypeScript scope stays exported top-level declarations.
- */
+/** The in-process TypeScript code language adapter. */
 export const typeScriptAdapter: CodeLanguageAdapter = {
   language: LANGUAGE,
-  scanFile(filePath: string, content: string, _options: CodeScanOptions) {
-    return scanTypeScript(filePath, content);
+  scanFile(filePath: string, content: string, options: CodeScanOptions) {
+    return scanTypeScript(filePath, content, options);
   },
 };
+
+/**
+ * Member visibility included when the configuration does not say otherwise.
+ * `protected` is part of the contract a subclass programs against; `private` is
+ * opt-in. Top-level declarations are unaffected: they are scoped by `export`.
+ */
+const DEFAULT_MEMBER_VISIBILITY: readonly string[] = ["public", "protected"];
 
 type DocTag = {
   rawTarget: string;
@@ -35,6 +35,13 @@ type DocTag = {
 
 type SupportedDeclaration = {
   symbolName: string;
+  canonicalId: string;
+  /**
+   * Type members are linkable but never required to be documented, so they stay
+   * out of the audit symbol set. See
+   * `docs/decisions/typescript-member-endpoints.md`.
+   */
+  isMember: boolean;
   location: SourceLocation;
   nameRange?: Range;
   declarationRange?: Range;
@@ -48,7 +55,9 @@ type SupportedDeclaration = {
 export function scanTypeScript(
   filePath: string,
   content: string,
+  options: CodeScanOptions = {},
 ): CodeScanResult {
+  const visibility = new Set(options.visibility ?? DEFAULT_MEMBER_VISIBILITY);
   const sourceFile = ts.createSourceFile(
     filePath,
     content,
@@ -73,7 +82,7 @@ export function scanTypeScript(
   const diagnostics: DocBridgeDiagnostic[] = [];
   const symbols: CodeSymbolEndpoint[] = [];
   const undocumentedSymbols: CodeSymbolEndpoint[] = [];
-  const links: DocLinkAnnotation[] = [];
+  const links: LinkAnnotation[] = [];
 
   // Collect every supported, top-level exported declaration in source order.
   // Unsupported declarations are diagnosed (when annotated) but not recorded.
@@ -81,33 +90,33 @@ export function scanTypeScript(
   for (const statement of sourceFile.statements) {
     const docTags = collectDocTags(filePath, sourceFile, statement);
 
-    const supported = describeSupportedDeclaration(
-      filePath,
-      sourceFile,
-      statement,
-      docTags,
-    );
+    const supported = describeSupportedDeclaration(filePath, sourceFile, statement, docTags);
 
     if (supported === null) {
       // Only annotated unsupported declarations are reported; bare ones are
       // ignored entirely.
       const firstDocTag = docTags[0];
       if (firstDocTag) {
-        diagnostics.push(
-          unsupportedDeclarationDiagnostic(filePath, firstDocTag.location),
-        );
+        diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
       }
-      continue;
+    } else {
+      declarations.push(supported);
     }
 
-    declarations.push(supported);
+    // Members are collected whether or not their container is itself an
+    // endpoint, so an annotated member of a non-exported type is diagnosed the
+    // same way an annotated non-exported top-level declaration already is.
+    collectMemberDeclarations(filePath, sourceFile, statement, visibility, {
+      declarations,
+      diagnostics,
+    });
   }
 
   // An endpoint is documented when any of its declarations carries @doc.
   const documentedEndpoints = new Set<string>();
   for (const declaration of declarations) {
     if (declaration.docTags.length > 0) {
-      documentedEndpoints.add(`${filePath}#${declaration.symbolName}`);
+      documentedEndpoints.add(`${filePath}#${declaration.canonicalId}`);
     }
   }
 
@@ -118,22 +127,12 @@ export function scanTypeScript(
   const undocumentedSeen = new Set<string>();
 
   for (const declaration of declarations) {
-    const endpoint = `${filePath}#${declaration.symbolName}`;
+    const endpoint = `${filePath}#${declaration.canonicalId}`;
 
     if (!documentedEndpoints.has(endpoint)) {
-      if (!undocumentedSeen.has(endpoint)) {
+      if (!declaration.isMember && !undocumentedSeen.has(endpoint)) {
         undocumentedSeen.add(endpoint);
-        undocumentedSymbols.push(
-          makeCodeSymbol(
-            filePath,
-            declaration.symbolName,
-            endpoint,
-            declaration.location,
-            declaration.nameRange,
-            declaration.declarationRange,
-            declaration.signatureRange,
-          ),
-        );
+        undocumentedSymbols.push(makeCodeSymbol(filePath, endpoint, declaration));
       }
       continue;
     }
@@ -147,11 +146,7 @@ export function scanTypeScript(
     if (endpointSeen.has(endpoint)) {
       if (!duplicateReported.has(endpoint)) {
         diagnostics.push(
-          duplicateCodeSymbolDiagnostic(
-            endpoint,
-            declaration.location,
-            declaration.nameRange,
-          ),
+          duplicateCodeSymbolDiagnostic(endpoint, declaration.location, declaration.nameRange),
         );
         duplicateReported.add(endpoint);
       }
@@ -160,17 +155,7 @@ export function scanTypeScript(
     }
     endpointSeen.add(endpoint);
 
-    symbols.push(
-      makeCodeSymbol(
-        filePath,
-        declaration.symbolName,
-        endpoint,
-        declaration.location,
-        declaration.nameRange,
-        declaration.declarationRange,
-        declaration.signatureRange,
-      ),
-    );
+    symbols.push(makeCodeSymbol(filePath, endpoint, declaration));
 
     const linkTargetsSeen = new Set<string>();
     for (const docTag of declaration.docTags) {
@@ -191,19 +176,13 @@ export function scanTypeScript(
 
       if (linkTargetsSeen.has(docTag.rawTarget)) {
         diagnostics.push(
-          duplicateLinkDiagnostic(
-            endpoint,
-            docTag.rawTarget,
-            docTag.location,
-            docTag.targetRange,
-          ),
+          duplicateLinkDiagnostic(endpoint, docTag.rawTarget, docTag.location, docTag.targetRange),
         );
         continue;
       }
       linkTargetsSeen.add(docTag.rawTarget);
 
-      const link: DocLinkAnnotation = {
-        direction: "code-to-doc",
+      const link: LinkAnnotation = {
         source: endpoint,
         target: docTag.rawTarget,
         location: docTag.location,
@@ -234,11 +213,7 @@ function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
   return withDiagnostics.parseDiagnostics ?? [];
 }
 
-function collectDocTags(
-  filePath: string,
-  sourceFile: ts.SourceFile,
-  statement: ts.Statement,
-): DocTag[] {
+function collectDocTags(filePath: string, sourceFile: ts.SourceFile, statement: ts.Node): DocTag[] {
   const node = jsDocCarrier(statement);
   const location = locationOf(filePath, sourceFile, statement);
 
@@ -263,7 +238,7 @@ function collectDocTags(
 
 // For a VariableStatement the JSDoc attaches to the statement, while
 // ts.getJSDocTags resolves tags via the node and its relevant parents.
-function jsDocCarrier(statement: ts.Statement): ts.Node {
+function jsDocCarrier(statement: ts.Node): ts.Node {
   if (ts.isVariableStatement(statement)) {
     const declaration = statement.declarationList.declarations[0];
     if (declaration !== undefined) {
@@ -285,6 +260,8 @@ function describeSupportedDeclaration(
   }
   const declaration: SupportedDeclaration = {
     symbolName: nameNode.text,
+    canonicalId: nameNode.text,
+    isMember: false,
     location: locationOf(filePath, sourceFile, statement),
     docTags,
   };
@@ -297,6 +274,230 @@ function describeSupportedDeclaration(
     signatureEndOffset(sourceFile, statement),
   );
   return declaration;
+}
+
+/**
+ * Collect the type members of a top-level container. Annotated members that are
+ * not endpoints are diagnosed here rather than ignored, so the scope limit is
+ * visible to whoever hits it.
+ */
+function collectMemberDeclarations(
+  filePath: string,
+  sourceFile: ts.SourceFile,
+  statement: ts.Statement,
+  visibility: ReadonlySet<string>,
+  sink: { declarations: SupportedDeclaration[]; diagnostics: DocBridgeDiagnostic[] },
+): void {
+  const { declarations, diagnostics } = sink;
+  const container = describeContainer(statement);
+  if (container === null) {
+    return;
+  }
+
+  for (const member of container.members) {
+    diagnoseParameterProperties(filePath, sourceFile, member, diagnostics);
+
+    const docTags = collectDocTags(filePath, sourceFile, member);
+    const described =
+      container.name === null || !isVisibleMember(member, visibility)
+        ? null
+        : describeMember(filePath, sourceFile, container.name, member, docTags);
+
+    if (described === null) {
+      const firstDocTag = docTags[0];
+      if (firstDocTag) {
+        diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
+      }
+      continue;
+    }
+
+    declarations.push(described);
+  }
+}
+
+/**
+ * A parameter property declares a class property from inside the constructor
+ * signature. It is out of scope, so an annotation on one is diagnosed rather
+ * than ignored. `ts.getJSDocTags` on a parameter does not resolve the enclosing
+ * constructor's JSDoc, so this cannot double-report the constructor's own tag.
+ *
+ * An ordinary parameter declares nothing on the type and is not a member at
+ * all, so an annotation on one is an orphan comment and stays undetected, as it
+ * does on a free function's parameter.
+ */
+function diagnoseParameterProperties(
+  filePath: string,
+  sourceFile: ts.SourceFile,
+  member: ts.Node,
+  diagnostics: DocBridgeDiagnostic[],
+): void {
+  if (!ts.isConstructorDeclaration(member)) {
+    return;
+  }
+
+  for (const parameter of member.parameters) {
+    if (!ts.isParameterPropertyDeclaration(parameter, member)) {
+      continue;
+    }
+    const firstDocTag = collectDocTags(filePath, sourceFile, parameter)[0];
+    if (firstDocTag) {
+      diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
+    }
+  }
+}
+
+type MemberContainer = {
+  /**
+   * The qualifier of every member's canonical ID, or `null` when the container
+   * cannot host endpoints at all. A `null` name still visits the members, so an
+   * annotation on one is diagnosed rather than silently ignored.
+   */
+  name: string | null;
+  members: readonly ts.Node[];
+};
+
+/**
+ * Return the member container a top-level statement exposes, or `null` when it
+ * has none.
+ *
+ * The qualifier is the statement's own top-level endpoint name, so a container
+ * that is not an endpoint — a non-exported class, an anonymous default-exported
+ * class — hosts no endpoints either. `enum` is visited despite never hosting an
+ * endpoint, because visiting is what makes `unsupported_declaration` reachable
+ * on an annotated enum member.
+ */
+function describeContainer(statement: ts.Statement): MemberContainer | null {
+  const members = containerMembers(statement);
+  if (members === null) {
+    return null;
+  }
+  return { name: supportedNameNode(statement)?.text ?? null, members };
+}
+
+function containerMembers(statement: ts.Statement): readonly ts.Node[] | null {
+  if (ts.isClassDeclaration(statement)) {
+    return statement.members;
+  }
+
+  if (ts.isInterfaceDeclaration(statement)) {
+    return statement.members;
+  }
+
+  if (ts.isEnumDeclaration(statement)) {
+    return statement.members;
+  }
+
+  // Only a type alias written directly as an object type literal has members of
+  // its own. In a union or a mapped type, a property's provenance is ambiguous.
+  if (ts.isTypeAliasDeclaration(statement)) {
+    return ts.isTypeLiteralNode(statement.type) ? statement.type.members : null;
+  }
+
+  if (ts.isVariableStatement(statement)) {
+    const declarations = statement.declarationList.declarations;
+    const initializer = declarations.length === 1 ? declarations[0]?.initializer : undefined;
+    return initializer !== undefined && ts.isClassExpression(initializer)
+      ? initializer.members
+      : null;
+  }
+
+  return null;
+}
+
+/**
+ * Describe one type member, or return `null` when it is not an endpoint.
+ */
+function describeMember(
+  filePath: string,
+  sourceFile: ts.SourceFile,
+  containerName: string,
+  member: ts.Node,
+  docTags: DocTag[],
+): SupportedDeclaration | null {
+  const identity = memberIdentity(sourceFile, member);
+  if (identity === null) {
+    return null;
+  }
+
+  const start = member.getStart(sourceFile, /* includeJsDocComment */ true);
+  return {
+    symbolName: identity.name,
+    canonicalId: `${containerName}.${identity.name}`,
+    isMember: true,
+    location: locationOf(filePath, sourceFile, member),
+    nameRange: identity.nameRange,
+    declarationRange: rangeFromOffsets(sourceFile, start, member.getEnd()),
+    signatureRange: rangeFromOffsets(
+      sourceFile,
+      start,
+      memberSignatureEndOffset(sourceFile, member),
+    ),
+    docTags,
+  };
+}
+
+/**
+ * A member's visibility tier. Members carry no `public` keyword in practice, so
+ * the absence of a modifier is what `public` means here.
+ */
+function isVisibleMember(member: ts.Node, visibility: ReadonlySet<string>): boolean {
+  if (hasModifier(member, ts.SyntaxKind.PrivateKeyword)) {
+    return visibility.has("private");
+  }
+  if (hasModifier(member, ts.SyntaxKind.ProtectedKeyword)) {
+    return visibility.has("protected");
+  }
+  return visibility.has("public");
+}
+
+type MemberIdentity = { name: string; nameRange: Range };
+
+/**
+ * Return the endpoint name of a member and the range that navigation triggers
+ * on, or `null` when the member is not an endpoint.
+ *
+ * Only identifier-named members qualify. A link target is split on `#` into
+ * exactly two parts and its fragment may not contain whitespace, so a private
+ * identifier (`#secret`), a string-literal name, a numeric name, and a computed
+ * name are all inexpressible as endpoints. Getters and setters carry no marker:
+ * a `get`/`set` pair is one property in TypeScript and collapses to one
+ * endpoint.
+ */
+function memberIdentity(sourceFile: ts.SourceFile, member: ts.Node): MemberIdentity | null {
+  if (ts.isConstructorDeclaration(member)) {
+    const keyword = member
+      .getChildren(sourceFile)
+      .find((child) => child.kind === ts.SyntaxKind.ConstructorKeyword);
+    return keyword === undefined
+      ? null
+      : { name: "constructor", nameRange: rangeOfNode(sourceFile, keyword) };
+  }
+
+  if (
+    !ts.isMethodDeclaration(member) &&
+    !ts.isPropertyDeclaration(member) &&
+    !ts.isGetAccessorDeclaration(member) &&
+    !ts.isSetAccessorDeclaration(member) &&
+    !ts.isMethodSignature(member) &&
+    !ts.isPropertySignature(member)
+  ) {
+    return null;
+  }
+
+  const name = member.name;
+  return ts.isIdentifier(name)
+    ? { name: name.text, nameRange: rangeOfNode(sourceFile, name) }
+    : null;
+}
+
+/**
+ * A member's public surface ends where its implementation body begins. Members
+ * without a body, such as properties, expose their whole declaration; a
+ * property's initializer is part of what callers depend on.
+ */
+function memberSignatureEndOffset(sourceFile: ts.SourceFile, member: ts.Node): number {
+  const body = (member as { body?: ts.Node }).body;
+  return body?.getStart(sourceFile) ?? member.getEnd();
 }
 
 /**
@@ -358,30 +559,18 @@ function hasDefaultModifier(statement: ts.Statement): boolean {
   return hasModifier(statement, ts.SyntaxKind.DefaultKeyword);
 }
 
-function hasModifier(statement: ts.Statement, kind: ts.SyntaxKind): boolean {
-  const modifiers = ts.canHaveModifiers(statement)
-    ? ts.getModifiers(statement)
-    : undefined;
+function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
+  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
   return modifiers?.some((modifier) => modifier.kind === kind) ?? false;
 }
 
-function locationOf(
-  filePath: string,
-  sourceFile: ts.SourceFile,
-  node: ts.Node,
-): SourceLocation {
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(
-    node.getStart(sourceFile),
-  );
+function locationOf(filePath: string, sourceFile: ts.SourceFile, node: ts.Node): SourceLocation {
+  const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
   return { filePath, line: line + 1, column: character + 1 };
 }
 
 /** Build a 1-based, end-exclusive range from absolute UTF-16 offsets. */
-function rangeFromOffsets(
-  sourceFile: ts.SourceFile,
-  start: number,
-  end: number,
-): Range {
+function rangeFromOffsets(sourceFile: ts.SourceFile, start: number, end: number): Range {
   const startPos = sourceFile.getLineAndCharacterOfPosition(start);
   const endPos = sourceFile.getLineAndCharacterOfPosition(end);
   return {
@@ -470,39 +659,31 @@ function targetRangeOf(
 
 function makeCodeSymbol(
   filePath: string,
-  symbolName: string,
   endpoint: string,
-  location: SourceLocation,
-  nameRange: Range | undefined,
-  declarationRange: Range | undefined,
-  signatureRange?: Range,
+  declaration: SupportedDeclaration,
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
     language: LANGUAGE,
     filePath,
-    symbolName,
-    // TypeScript endpoints are top-level declarations, so the canonical ID is
-    // the bare declaration name.
-    canonicalId: symbolName,
+    symbolName: declaration.symbolName,
+    canonicalId: declaration.canonicalId,
     endpoint,
-    location,
+    location: declaration.location,
   };
-  if (nameRange !== undefined) {
-    symbol.nameRange = nameRange;
+  if (declaration.nameRange !== undefined) {
+    symbol.nameRange = declaration.nameRange;
   }
-  if (declarationRange !== undefined) {
-    symbol.declarationRange = declarationRange;
+  if (declaration.declarationRange !== undefined) {
+    symbol.declarationRange = declaration.declarationRange;
   }
-  if (signatureRange !== undefined) {
-    symbol.signatureRange = signatureRange;
+  if (declaration.signatureRange !== undefined) {
+    symbol.signatureRange = declaration.signatureRange;
   }
   return symbol;
 }
 
-function commentText(
-  comment: string | ts.NodeArray<ts.JSDocComment> | undefined,
-): string {
+function commentText(comment: string | ts.NodeArray<ts.JSDocComment> | undefined): string {
   if (comment === undefined) {
     return "";
   }
@@ -526,14 +707,8 @@ function parseErrorDiagnostic(
   diagnostic: ts.Diagnostic | undefined,
 ): DocBridgeDiagnostic {
   const location: SourceLocation = { filePath, line: 1, column: 1 };
-  if (
-    diagnostic !== undefined &&
-    diagnostic.start !== undefined &&
-    diagnostic.file !== undefined
-  ) {
-    const { line, character } = sourceFile.getLineAndCharacterOfPosition(
-      diagnostic.start,
-    );
+  if (diagnostic !== undefined && diagnostic.start !== undefined && diagnostic.file !== undefined) {
+    const { line, character } = sourceFile.getLineAndCharacterOfPosition(diagnostic.start);
     location.line = line + 1;
     location.column = character + 1;
   }
@@ -563,7 +738,7 @@ function unsupportedDeclarationDiagnostic(
     language: LANGUAGE,
     target: filePath,
     message:
-      "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class.",
+      "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class, plus the identifier-named members of a class, interface, or object type alias.",
     location,
   };
 }

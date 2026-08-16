@@ -1,17 +1,13 @@
+import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
-import { describe, expect, test } from "bun:test";
-
 import { counterpartsOf } from "../core/graph";
+import { codes } from "../core/test-support";
 import { Project } from "./project";
 
 const EXAMPLE_ROOT = resolve(import.meta.dir, "../../examples/typescript");
 const CODE_FILE = "src/auth/login.ts";
 const DOC_FILE = "docs/auth.md";
-
-function codes(project: Project): string[] {
-  return project.state.diagnostics.map((d) => d.code);
-}
 
 describe(Project, () => {
   test("builds a correct whole-project graph from disk", () => {
@@ -35,7 +31,7 @@ describe(Project, () => {
 
     // The overlaid @doc points at a missing anchor, so a diagnostic appears that
     // does not exist for the on-disk content — proving the overlay was scanned.
-    expect(codes(project)).toContain("doc_anchor_not_found");
+    expect(codes(project.state.diagnostics)).toContain("doc_anchor_not_found");
   });
 
   test("clearOverlay reverts the file to its on-disk version", () => {
@@ -45,7 +41,7 @@ describe(Project, () => {
       "/**\n * @doc docs/auth.md#nonexistent\n */\nexport function login() {}\n",
     );
     project.resolve();
-    expect(codes(project)).toContain("doc_anchor_not_found");
+    expect(codes(project.state.diagnostics)).toContain("doc_anchor_not_found");
 
     project.clearOverlay(CODE_FILE);
     project.resolve();

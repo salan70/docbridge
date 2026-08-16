@@ -26,6 +26,7 @@ character length. The reader handles bodies split across reads and multiple
 messages arriving in one read.
 
 <!-- @code src/lsp/server.ts#Server -->
+
 ## Lifecycle
 
 The server implements the standard LSP lifecycle:
@@ -40,16 +41,17 @@ Declared server capabilities:
 
 ```jsonc
 {
-  "textDocumentSync": 1,        // Full
+  "textDocumentSync": 1, // Full
   "hoverProvider": true,
   "definitionProvider": true,
-  "referencesProvider": true
+  "referencesProvider": true,
 }
 ```
 
 `publishDiagnostics` is a server-to-client push and needs no capability flag.
 
 <!-- @code src/lsp/project.ts#Project -->
+
 ## Document model
 
 The server uses a whole-project model.
@@ -67,6 +69,9 @@ links to this spec" cannot be derived from a single open file.
 
 Single-root only. Multi-root workspaces are out of scope for v0.2.
 
+<!-- @code src/lsp/project.ts#Project.setOverlay -->
+<!-- @code src/lsp/project.ts#Project.clearOverlay -->
+
 ### Document synchronization
 
 Full synchronization (`TextDocumentSyncKind.Full`).
@@ -81,6 +86,7 @@ rapid edits before re-resolution.
 
 <!-- @code src/lsp/position.ts#toLspPosition -->
 <!-- @code src/lsp/paths.ts#uriToRelativePath -->
+
 ### Positions and paths
 
 - Position encoding is LSP-default UTF-16 code units. DocBridge positions are
@@ -98,7 +104,7 @@ v0.1 records a single point per element. v0.2 enriches the scanners to record
 ranges:
 
 - `nameRange` — the declaration name identifier in code (for example, the
-  `login` identifier in TypeScript, Swift, or Dart).
+  `login` identifier in TypeScript, Swift, Dart, or Rust).
 - `headingTextRange` — the heading text in Markdown, excluding leading `#` and
   surrounding whitespace.
 - `targetRange` — the target string of an annotation (the `file#fragment` text in
@@ -109,6 +115,7 @@ or the element range. When a range cannot be derived, the whole line is used as 
 fallback.
 
 <!-- @code src/lsp/index-lookup.ts#PositionIndex -->
+
 ## Hit testing
 
 A position hits an element when it falls within that element's range:
@@ -120,6 +127,7 @@ Positions on whitespace, parameters, or other parts of a declaration line do not
 trigger navigation.
 
 <!-- @code src/core/graph.ts#LinkGraph -->
+
 ## Navigation and resolvable one-way links
 
 Navigation follows any declared annotation whose target resolves to an existing
@@ -130,6 +138,7 @@ A target that does not resolve (missing file or missing anchor) is never
 navigable.
 
 <!-- @code src/lsp/hover.ts#hover -->
+
 ## Hover
 
 `textDocument/hover` returns Markdown content.
@@ -152,6 +161,7 @@ When the position hits a heading that links to a code symbol, the server returns
 the linked code endpoint plus the declaration's signature line.
 
 <!-- @code src/lsp/navigation.ts#definition -->
+
 ## Definition
 
 `textDocument/definition` returns the linked counterpart location(s).
@@ -164,6 +174,7 @@ The target `Location.range` uses the counterpart's `headingTextRange` or
 `nameRange`.
 
 <!-- @code src/lsp/navigation.ts#references -->
+
 ## References
 
 `textDocument/references` returns every counterpart linked to the element, using
@@ -195,3 +206,18 @@ docbridge lsp
 is taken from the `initialize` request, not from a flag.
 
 `docbridge check` is unchanged.
+
+## VS Code-Compatible Client
+
+The VS Code-compatible extension is a thin LSP client. It starts the bundled
+`docbridge lsp` server through Bun and attaches to these VS Code language IDs:
+
+- `typescript`
+- `typescriptreact`
+- `swift`
+- `dart`
+- `markdown`
+
+The extension does not duplicate DocBridge include-pattern filtering. It only
+selects candidate document languages; the server decides which files are managed
+from `docbridge.config.json`.

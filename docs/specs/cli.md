@@ -1,7 +1,7 @@
 # CLI
 
-DocBridge provides the `check`, `related`, `context`, `graph`, `init`, and
-`init-with-agent` commands.
+DocBridge provides the `check`, `related`, `context`, `graph`, `docs`, `init`,
+`init-with-agent`, and `lsp` commands.
 
 ```sh
 docbridge [--version] [--help]
@@ -9,8 +9,11 @@ docbridge check [--root <path>] [--json] [--audit]
 docbridge related [--root <path>] [--json] [--stdin] [--gate] [files...]
 docbridge context [--root <path>] [--json] [--stdin] [files...]
 docbridge graph [--root <path>] [--json] [--include-content] [--stdin] [files...]
+docbridge docs list [--json]
+docbridge docs show <name>
 docbridge init [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
 docbridge init-with-agent [--root <path>] [--yes] [--dry-run] [--force] [--agent-target <target>]
+docbridge lsp
 ```
 
 `--version` and `--help` are global flags handled before command dispatch. The
@@ -32,9 +35,9 @@ remaining options are specific to each command.
 
 `summary` counts check diagnostics only. CLI invocation errors are not included.
 
-`--audit` enables audit-only diagnostics. In v0.1, the only audit diagnostic is `undocumented_symbol`.
+`--audit` enables audit-only diagnostics: `undocumented_symbol` for in-scope code endpoints with no `@doc`, and `unlinked_doc_section` for in-scope documentation sections with no `@code`. Both are warnings, so `--audit` does not change exit codes. See [Diagnostics](diagnostics.md).
 
-`--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`.
+`--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`. See [Help](#help) for per-command help.
 
 Human-readable output prints one diagnostic per line:
 
@@ -53,13 +56,118 @@ docbridge.config.json error config_file_invalid - Failed to parse config file.
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
 
+## Error guidance
+
+CLI invocation errors keep the failure on the first line and append the next
+action below it. The complete error and its guidance are written to stderr;
+stdout remains empty. They continue to exit with code `1`.
+
+Unknown commands list every command from the dispatcher. A close spelling or
+ordered abbreviation adds a `Did you mean` line. The list and suggestion are
+derived from the same command set used by dispatch and help:
+
+```text
+Error: Unknown command: ctx
+
+Available commands:
+  check, related, context, graph, init, init-with-agent, lsp
+
+Did you mean `context`?
+
+Run `docbridge --help` for usage.
+```
+
+Unknown options and missing option values identify the command-specific help
+that explains the accepted flags. Missing project roots include a runnable
+`--root .` example. `related` and `context` require either positional input
+files or `--stdin`; when neither is supplied, the error includes both forms:
+
+```text
+Error: No input files were provided.
+
+Provide file paths as arguments:
+
+  docbridge context src/auth.ts
+
+Or read newline-separated paths from stdin:
+
+  git diff --name-only | docbridge context --stdin
+
+Run `docbridge context --help` for command usage.
+```
+
+When human-readable `check` output reports a missing configuration as
+`config_file_invalid`, setup guidance is written to stderr:
+
+```text
+Run one of:
+
+  docbridge init
+  docbridge init --dry-run
+
+For agent-guided adoption:
+
+  docbridge init-with-agent
+```
+
+The diagnostic and summary remain in the normal human-readable check output.
+If `docbridge.config.json` exists but cannot be parsed, stderr instead directs
+the user to repair or delete it before re-running `docbridge check`.
+The `--json` path emits the same JSON as before and does not include human
+guidance.
+
+<!-- @code src/cli/help.ts#commandHelp -->
+
+## Help
+
+Every command supports `--help` (alias `-h`). `docbridge <command> --help`
+prints that command's help on stdout and exits with code `0`, for all of
+`check`, `related`, `context`, `graph`, `docs`, `init`, `init-with-agent`, and
+`lsp`.
+Nothing is written to stderr.
+
+The help flag is honored before any other option is validated, so
+`docbridge context --nonexistent --help` prints help instead of an
+unknown-option error, and `docbridge lsp --help` prints help instead of
+starting the server. The flag is recognized anywhere in the argument list.
+
+Per-command help has three sections:
+
+```text
+Usage:
+  docbridge context [options] [files...]
+
+Description:
+  Print the content of the counterparts linked from the given files.
+  Use it before modifying a linked code or Markdown file, so the change can be
+  reconciled against its counterpart. The default Markdown output is suitable
+  for inclusion in an agent prompt.
+
+Options:
+  --root <path>  Project root to scan. Defaults to current directory.
+  --json         Emit machine-readable JSON.
+  --stdin        Read newline-separated file paths from stdin.
+  --help, -h     Print this help text.
+```
+
+The description states _when_ to use the command, not only what it prints, so
+that commands with adjacent purposes — `related`, `context`, and `graph` — can
+be told apart without running them. Every option the command's parser accepts
+appears in its help text; the global help lists the same option tables and one
+`when to use` summary per command, and points at `docbridge <command> --help`
+for the full description.
+
+`docbridge --version` output is unaffected: it stays exactly `<version>\n`.
+
 <!-- @code src/cli/index.ts#run -->
+
 ## Check Command
 
 The check command parses CLI options, runs the checker against the resolved
 project root, prints diagnostics, and returns the process exit code.
 
 <!-- @code src/core/related.ts#related -->
+
 ## Related Command
 
 The related command is an informational command: given a set of changed files,
@@ -147,21 +255,22 @@ it finds. Only CLI invocation errors and configuration errors exit with code
 `1`.
 
 <!-- @code src/core/related.ts#collectGateViolations -->
+
 ## Related Gate Mode
 
 `related --gate` turns the report into a verdict: it collects every
-counterpart whose file is not itself in the change set (a *violation*), prints
+counterpart whose file is not itself in the change set (a _violation_), prints
 only those, and exits with code `1` when at least one exists. The check is
 symmetric, mirroring the bidirectional link graph: a changed code file with an
 unchanged linked doc is a violation, and a changed doc with an unchanged
 linked code file is one too.
 
 A violation does not necessarily mean the counterpart must change; it means
-nobody has decided yet. The intended consumer is a guardrail (an agent Stop
-hook or a CI step) that asks the author to either update the counterpart or
-explicitly justify leaving it unchanged. Deciding what counts as the change
-set (staged files, working tree, PR diff) remains the caller's concern, the
-same as in the default mode.
+nobody has decided yet. The intended consumer is a guardrail (a Git hook or a
+CI step) that asks the author to either update the counterpart or explicitly
+justify leaving it unchanged. Deciding what counts as the change set (staged
+files, working tree, PR diff) remains the caller's concern, the same as in the
+default mode.
 
 Human-readable output prints one line per violation, then the summary line,
 which is always printed:
@@ -198,6 +307,7 @@ links — and `1` when at least one violation exists. CLI invocation errors and
 configuration errors exit with code `1` as usual.
 
 <!-- @code src/core/graph-output.ts#graph -->
+
 ## Graph Command
 
 The graph command prints the resolved DocBridge graph. It includes complete
@@ -260,17 +370,19 @@ worker, and link diagnostics are included in the output when possible; they do
 not by themselves make `graph` exit non-zero.
 
 <!-- @code src/core/context.ts#context -->
+
 ## Context Command
 
-The context command prints the *content* of the counterparts linked from a set
+The context command prints the _content_ of the counterparts linked from a set
 of input files: where `related` answers "which files are linked", `context`
-answers "what do they say". Its primary consumer is an agent hook that injects
-the linked specification (or the linked code) into the agent's context before
-it edits a file, so the default output is Markdown suitable for direct
-injection. It takes the same input forms as `related`:
+answers "what do they say". Its primary consumers are a Git hook, a CI step, or
+a direct invocation that needs the linked specification (or the linked code)
+alongside a change, so the default output is Markdown suitable for direct
+injection into a report or an agent's context. It takes the same input forms as
+`related`:
 
 ```sh
-# before editing a file
+# a single file
 docbridge context src/auth/login.ts
 
 # uncommitted changes
@@ -286,7 +398,7 @@ absolute-path relativization, `./` stripping, deduplication).
 Counterpart resolution follows the link graph semantics used by `related` and
 LSP navigation: direct links only (one hop), including resolvable one-way
 links. For every linked endpoint in the input files, each counterpart
-contributes one *context block*:
+contributes one _context block_:
 
 - A **doc counterpart** contributes its full Markdown section: the heading and
   its body up to the next heading at the same or a higher level, including
@@ -350,10 +462,59 @@ The login flow.
 diagnostics it reports. Only CLI invocation errors and configuration errors
 exit with code `1`.
 
+<!-- @code src/cli/docs.ts#runDocs -->
+
+## Documentation Commands
+
+`docbridge docs list` discovers every `.md` file under the installed package's
+`docs/user/` directory. A document name is its filename without `.md`. Every
+document must start with YAML frontmatter containing a non-empty, single-line
+`description`; an invalid document makes the command fail instead of being
+silently omitted.
+
+Human-readable list output sorts documents by name, aligns descriptions after
+the longest name, and ends with this hint:
+
+```text
+Run `docbridge docs show <name>` to read a document.
+```
+
+`docs list --json` writes a two-space-indented JSON object followed by a newline:
+
+```json
+{
+  "documents": [
+    {
+      "name": "commands",
+      "description": "Choose between check, related, context, and graph."
+    }
+  ],
+  "help": "Run `docbridge docs show <name>` to read a document."
+}
+```
+
+`docbridge docs show <name>` removes the YAML frontmatter, its single separating
+blank line, and DocBridge link-annotation comments outside fenced code blocks.
+It writes the remaining Markdown body to stdout without modifying other
+content. Every name returned by `docs list` must be readable. An unknown name
+writes an error plus all available names to stderr, leaves stdout empty, and
+exits with code `1`.
+
+If `docs/user` is missing or contains no Markdown documents, both operations
+report that documentation is unavailable, direct the user to reinstall
+DocBridge, and exit with code `1`.
+
+The package allowlist contains `docs/user` and excludes the developer-facing
+`docs/specs`, `docs/decisions`, `docs/contributing`, `docs/plans`, and `docs/ja`
+trees. The npm packed-package smoke test installs the tarball without a
+repository checkout and exercises `docs list --json` plus `docs show` for every
+shipped name under both Node.js and Bun.
+
 <!-- @code src/cli/init.ts#runInit -->
 <!-- @code src/cli/init.ts#parseInitOptions -->
 <!-- @code src/core/init-discovery.ts#discoverRepository -->
 <!-- @code src/core/init-plan.ts#planInitCommand -->
+
 ## Init Command
 
 The init command performs CLI-driven first-time setup for an existing
@@ -385,6 +546,7 @@ Existing `docbridge.config.json` files are never overwritten. Valid config is
 summarized; invalid config is reported with repair guidance.
 
 <!-- @code src/cli/init.ts#runInitWithAgent -->
+
 ## Init-With-Agent Command
 
 The init-with-agent command prepares agent-guided adoption. It installs only

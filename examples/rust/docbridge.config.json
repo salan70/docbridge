@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "rust": {
+        "patterns": ["src/**/*.rs"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

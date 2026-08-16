@@ -5,15 +5,12 @@ import { join } from "node:path";
 
 import { collectFiles, matchGlob, readManagedFile, validateGlobPattern } from "./glob";
 
-test.each([
-  "src/**/*.ts",
-  "src/*.ts",
-  "docs/specs/**/*.md",
-  "**/*.ts",
-  "a/b/c.ts",
-])("validateGlobPattern accepts %s", (pattern) => {
-  expect(validateGlobPattern(pattern)).toEqual({ ok: true });
-});
+test.each(["src/**/*.ts", "src/*.ts", "docs/specs/**/*.md", "**/*.ts", "a/b/c.ts"])(
+  "validateGlobPattern accepts %s",
+  (pattern) => {
+    expect(validateGlobPattern(pattern)).toEqual({ ok: true });
+  },
+);
 
 test.each([
   ["src/[a]/*.ts", "character class"],
@@ -111,10 +108,7 @@ test("collectFiles ignores symlink files and symlink directories", () => {
     symlinkSync(join(root, "src", "target.ts"), join(root, "src", "link.ts"));
     symlinkSync(join(root, "src", "real"), join(root, "src", "linkdir"));
 
-    expect(collectFiles(root, ["src/**/*.ts"])).toEqual([
-      "src/real/a.ts",
-      "src/target.ts",
-    ]);
+    expect(collectFiles(root, ["src/**/*.ts"])).toEqual(["src/real/a.ts", "src/target.ts"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

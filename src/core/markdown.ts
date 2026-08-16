@@ -1,7 +1,9 @@
 import { parseLinkTarget, type ParseLinkTargetOptions } from "./links";
+import { fenceMarkerOf, isFenceClose, matchAtxHeading, type FenceMarker } from "./markdown-syntax";
 import type {
-  CodeLinkAnnotation,
+  LinkAnnotation,
   DocAnchorEndpoint,
+  DocHeadingOutline,
   Range,
   SourceLocation,
   DocBridgeDiagnostic,
@@ -10,7 +12,13 @@ import type {
 export type MarkdownScanResult = {
   filePath: string;
   anchors: DocAnchorEndpoint[];
-  links: CodeLinkAnnotation[];
+  /**
+   * Every heading in document order, including empty ones absent from
+   * `anchors`. Consumers that need the document's nesting must use this rather
+   * than `anchors`, which cannot express a section closed by an empty heading.
+   */
+  headings: DocHeadingOutline[];
+  links: LinkAnnotation[];
   diagnostics: DocBridgeDiagnostic[];
 };
 
@@ -20,9 +28,6 @@ type PendingComment = {
   targetRange?: Range;
 };
 
-const atxHeadingPattern =
-  /^(?<indent> {0,3})(?<hashes>#{1,6})(?:(?<gap>[ \t]+)(?<rest>.*))?$/;
-const fenceOpenPattern = /^ {0,3}(?:`{3,}|~{3,})/;
 const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
 
 /**
@@ -32,16 +37,18 @@ const htmlCommentPattern = /^ {0,3}<!--(?<body>.*?)-->\s*$/;
  * without touching the filesystem. `filePath` must be project-root-relative.
  *
  * @doc docs/specs/scanning.md#markdown-scanning
+ * @doc docs/user/annotations.md#documentation-to-code
  */
 export function scanMarkdown(filePath: string, content: string): MarkdownScanResult {
   const anchors: DocAnchorEndpoint[] = [];
-  const links: CodeLinkAnnotation[] = [];
+  const headings: DocHeadingOutline[] = [];
+  const links: LinkAnnotation[] = [];
   const diagnostics: DocBridgeDiagnostic[] = [];
 
   const seenAnchors = new Set<string>();
   let pending: PendingComment[] = [];
   let inFence = false;
-  let fenceMarker: "`" | "~" | null = null;
+  let fenceMarker: FenceMarker | null = null;
 
   const lines = content.split("\n");
 
@@ -58,9 +65,10 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
       continue;
     }
 
-    if (fenceOpenPattern.test(line)) {
+    const openingFence = fenceMarkerOf(line);
+    if (openingFence !== null) {
       inFence = true;
-      fenceMarker = line.trimStart().startsWith("`") ? "`" : "~";
+      fenceMarker = openingFence;
       continue;
     }
 
@@ -80,13 +88,24 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
     const heading = matchHeading(line, filePath, lineNumber);
     if (heading !== null) {
       if (heading.anchor === "") {
-        // Empty headings create no anchor and invalidate pending annotations.
+        // Empty headings create no anchor and invalidate pending annotations,
+        // but they still close the preceding section, so the outline keeps them.
         flushDanglingEmptyHeading(pending, diagnostics);
+        headings.push({ level: heading.level, hasCodeAnnotation: false });
         pending = [];
         continue;
       }
 
-      attachHeading(heading, anchors, links, diagnostics, seenAnchors, pending, filePath);
+      const anchor = attachHeading(
+        heading,
+        anchors,
+        links,
+        diagnostics,
+        seenAnchors,
+        pending,
+        filePath,
+      );
+      headings.push({ level: heading.level, hasCodeAnnotation: pending.length > 0, anchor });
       pending = [];
       continue;
     }
@@ -106,36 +125,31 @@ export function scanMarkdown(filePath: string, content: string): MarkdownScanRes
   // Pending annotations at end of file never attach to a heading.
   flushDangling(pending, diagnostics);
 
-  return { filePath, anchors, links, diagnostics };
+  return { filePath, anchors, headings, links, diagnostics };
 }
 
 type HeadingMatch = {
   anchor: string;
   headingText: string;
+  level: number;
   location: SourceLocation;
   headingTextRange?: Range;
 };
 
-function matchHeading(
-  line: string,
-  filePath: string,
-  lineNumber: number,
-): HeadingMatch | null {
-  const match = atxHeadingPattern.exec(line);
-  if (match?.groups === undefined) {
+function matchHeading(line: string, filePath: string, lineNumber: number): HeadingMatch | null {
+  const match = matchAtxHeading(line);
+  if (match === null) {
     return null;
   }
 
-  const indent = match.groups.indent ?? "";
-  const hashes = match.groups.hashes ?? "";
-  const gap = match.groups.gap ?? "";
-  const rest = match.groups.rest ?? "";
+  const { indent, hashes, gap, rest } = match;
   const headingText = stripClosingHashes(rest).trim();
   const anchor = toAnchor(headingText);
 
   const heading: HeadingMatch = {
     anchor,
     headingText,
+    level: hashes.length,
     location: { filePath, line: lineNumber, column: indent.length + 1 },
   };
 
@@ -217,25 +231,15 @@ function indentWidth(line: string): number {
   return match ? match[0].length : 0;
 }
 
-function isFenceClose(line: string, marker: "`" | "~" | null): boolean {
-  if (marker === "`") {
-    return /^ {0,3}`{3,}\s*$/.test(line);
-  }
-  if (marker === "~") {
-    return /^ {0,3}~{3,}\s*$/.test(line);
-  }
-  return false;
-}
-
 function attachHeading(
   heading: HeadingMatch,
   anchors: DocAnchorEndpoint[],
-  links: CodeLinkAnnotation[],
+  links: LinkAnnotation[],
   diagnostics: DocBridgeDiagnostic[],
   seenAnchors: Set<string>,
   pending: PendingComment[],
   filePath: string,
-): void {
+): DocAnchorEndpoint {
   const endpoint = `${filePath}#${heading.anchor}`;
 
   const anchor: DocAnchorEndpoint = {
@@ -294,8 +298,7 @@ function attachHeading(
       seenLinkTargets.add(target);
     }
 
-    const link: CodeLinkAnnotation = {
-      direction: "doc-to-code",
+    const link: LinkAnnotation = {
       source: endpoint,
       target,
       location: comment.location,
@@ -305,13 +308,12 @@ function attachHeading(
     }
     links.push(link);
   }
+
+  return anchor;
 }
 
 /** Build parse options for a pending `@code` comment, carrying its target range. */
-function parseOptions(
-  comment: PendingComment,
-  source?: string,
-): ParseLinkTargetOptions {
+function parseOptions(comment: PendingComment, source?: string): ParseLinkTargetOptions {
   const options: ParseLinkTargetOptions = { location: comment.location };
   if (source !== undefined) {
     options.source = source;
@@ -322,10 +324,7 @@ function parseOptions(
   return options;
 }
 
-function flushDangling(
-  pending: PendingComment[],
-  diagnostics: DocBridgeDiagnostic[],
-): void {
+function flushDangling(pending: PendingComment[], diagnostics: DocBridgeDiagnostic[]): void {
   flushDanglingWith(
     pending,
     diagnostics,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { CodeSymbolEndpoint, DocLinkAnnotation } from "./types";
+import type { CodeSymbolEndpoint, LinkAnnotation } from "./types";
 import { scanTypeScript } from "./typescript";
 
 const FILE = "src/auth/login.ts";
@@ -26,11 +26,7 @@ describe("scanTypeScript", () => {
 
   describe("supported declarations with @doc", () => {
     const cases: Array<[string, string, string]> = [
-      [
-        "exported function",
-        "export function login() {}",
-        "login",
-      ],
+      ["exported function", "export function login() {}", "login"],
       [
         "exported async function",
         "export async function login() { return { ok: true }; }",
@@ -43,11 +39,7 @@ describe("scanTypeScript", () => {
       ["exported const single declarator", "export const login = 1;", "login"],
       ["exported enum", "export enum Login { A }", "Login"],
       ["exported const enum", "export const enum Login { A }", "Login"],
-      [
-        "named default function",
-        "export default function login() {}",
-        "login",
-      ],
+      ["named default function", "export default function login() {}", "login"],
       ["named default class", "export default class Login {}", "Login"],
       ["declare function", "export declare function login(): void;", "login"],
       ["declare const", "export declare const login: number;", "login"],
@@ -76,13 +68,12 @@ describe("scanTypeScript", () => {
         expect(result.symbols).toMatchObject([expectedSymbol]);
         expect(result.language).toBe("typescript");
 
-        const expectedLink: DocLinkAnnotation = {
-          direction: "code-to-doc",
+        const expectedLink: LinkAnnotation = {
           source: `${FILE}#${symbolName}`,
           target: "docs/auth.md#login-spec",
           location: expect.objectContaining({
             filePath: FILE,
-          }) as unknown as DocLinkAnnotation["location"],
+          }) as unknown as LinkAnnotation["location"],
         };
 
         expect(result.links).toMatchObject([expectedLink]);
@@ -215,8 +206,7 @@ describe("scanTypeScript", () => {
   });
 
   test("emits invalid_link_target for malformed @doc targets", () => {
-    const content =
-      "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
+    const content = "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
     const result = scan(content);
 
     const invalid = result.diagnostics.filter(
@@ -234,8 +224,7 @@ describe("scanTypeScript", () => {
 
   describe("parse errors", () => {
     test("emits code_parse_error and extracts nothing on syntactic errors", () => {
-      const content =
-        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login( {\n";
+      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login( {\n";
       const result = scan(content);
 
       expect(result.symbols).toEqual([]);
@@ -279,8 +268,7 @@ describe("scanTypeScript", () => {
     });
 
     test("treats an endpoint as documented when any declaration has @doc", () => {
-      const content =
-        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
+      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
       const result = scan(content);
 
       expect(result.symbols).toHaveLength(1);
@@ -292,12 +280,8 @@ describe("scanTypeScript", () => {
         "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\nexport function logout() {}\n";
       const result = scan(content);
 
-      expect(result.symbols.map((symbol) => symbol.symbolName)).toEqual([
-        "login",
-      ]);
-      expect(
-        result.undocumentedSymbols.map((symbol) => symbol.symbolName),
-      ).toEqual(["logout"]);
+      expect(result.symbols.map((symbol) => symbol.symbolName)).toEqual(["login"]);
+      expect(result.undocumentedSymbols.map((symbol) => symbol.symbolName)).toEqual(["logout"]);
     });
   });
 
@@ -318,7 +302,6 @@ describe("scanTypeScript", () => {
     ]);
     expect(result.links).toMatchObject([
       {
-        direction: "code-to-doc",
         source: "src/auth/login.ts#login",
         target: "docs/auth.md#login-spec",
         location: { filePath: "src/auth/login.ts", line: 4, column: 1 },
@@ -354,9 +337,7 @@ describe("scanTypeScript", () => {
       const content = "/**\n * @doc not-a-valid-target\n */\nexport function login() {}\n";
       const result = scan(content);
 
-      const diagnostic = result.diagnostics.find(
-        (entry) => entry.code === "invalid_link_target",
-      );
+      const diagnostic = result.diagnostics.find((entry) => entry.code === "invalid_link_target");
       expect(diagnostic?.range).toEqual({
         start: { line: 2, column: 9 },
         end: { line: 2, column: 9 + "not-a-valid-target".length },
@@ -420,12 +401,390 @@ describe("scanTypeScript", () => {
 
     test("records the declaration range of an annotated exported const including its JSDoc", () => {
       const content =
-        "import x from \"./x\";\n\n/**\n * @doc docs/auth.md#token-spec\n */\nexport const token = \"abc\";\n";
+        'import x from "./x";\n\n/**\n * @doc docs/auth.md#token-spec\n */\nexport const token = "abc";\n';
       const result = scan(content);
 
       expect(result.symbols[0]?.declarationRange).toEqual({
         start: { line: 3, column: 1 },
         end: { line: 6, column: 28 },
+      });
+    });
+  });
+
+  describe("type members", () => {
+    test("extracts a class method as a type-qualified endpoint", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  login() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols).toHaveLength(1);
+      expect(result.symbols[0]?.canonicalId).toBe("AuthService.login");
+      expect(result.symbols[0]?.endpoint).toBe(`${FILE}#AuthService.login`);
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    test("reports the bare member name as symbolName and the qualified one as canonicalId", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  login() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols[0]?.symbolName).toBe("login");
+      expect(result.symbols[0]?.canonicalId).toBe("AuthService.login");
+    });
+
+    test("keeps undocumented members out of the audit symbol set", () => {
+      const content = [
+        "/**",
+        " * @doc docs/auth.md#service-spec",
+        " */",
+        "export class AuthService {",
+        "  login() {}",
+        "  logout() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.undocumentedSymbols).toEqual([]);
+    });
+
+    test("extracts a class property", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#token-spec",
+        "   */",
+        '  token = "";',
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols[0]?.canonicalId).toBe("AuthService.token");
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    test("names the constructor after the keyword in the source", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#construction-spec",
+        "   */",
+        "  constructor() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols[0]?.canonicalId).toBe("AuthService.constructor");
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    test("collapses a getter and setter pair into one endpoint", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#token-spec",
+        "   */",
+        "  get token() {",
+        '    return "";',
+        "  }",
+        "  set token(value: string) {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols).toHaveLength(1);
+      expect(result.symbols[0]?.canonicalId).toBe("AuthService.token");
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    test("emits duplicate_code_symbol when both the getter and setter are annotated", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#token-read",
+        "   */",
+        "  get token() {",
+        '    return "";',
+        "  }",
+        "  /**",
+        "   * @doc docs/auth.md#token-write",
+        "   */",
+        "  set token(value: string) {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.diagnostics.map((d) => d.code)).toEqual(["duplicate_code_symbol"]);
+      expect(result.diagnostics[0]?.target).toBe(`${FILE}#AuthService.token`);
+    });
+
+    test("emits duplicate_code_symbol when a static and instance member share a name", () => {
+      const content = [
+        "export class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#static-create",
+        "   */",
+        "  static create() {}",
+        "  /**",
+        "   * @doc docs/auth.md#instance-create",
+        "   */",
+        "  create() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.diagnostics.map((d) => d.code)).toEqual(["duplicate_code_symbol"]);
+    });
+
+    test("extracts an interface member", () => {
+      const content = [
+        "export interface AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  login(): void;",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols[0]?.canonicalId).toBe("AuthService.login");
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    test("extracts an object type alias member", () => {
+      const content = [
+        "export type AuthConfig = {",
+        "  /**",
+        "   * @doc docs/auth.md#retries-spec",
+        "   */",
+        "  retries: number;",
+        "};",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols[0]?.canonicalId).toBe("AuthConfig.retries");
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    test("qualifies class expression members by the exported binding name", () => {
+      const content = [
+        "export const Public = class Internal {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  login() {}",
+        "};",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols.map((symbol) => symbol.canonicalId)).toContain("Public.login");
+    });
+
+    test("does not descend into a union type alias", () => {
+      const content = [
+        "export type AuthConfig =",
+        "  | {",
+        "      /**",
+        "       * @doc docs/auth.md#retries-spec",
+        "       */",
+        "      retries: number;",
+        "    }",
+        "  | undefined;",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols.map((symbol) => symbol.canonicalId)).not.toContain(
+        "AuthConfig.retries",
+      );
+    });
+
+    test("does not treat an anonymous default-exported class as a container", () => {
+      const content = [
+        "export default class {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  login() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols).toEqual([]);
+      expect(result.diagnostics.map((d) => d.code)).toEqual(["unsupported_declaration"]);
+    });
+
+    test("diagnoses an annotated member of a non-exported class", () => {
+      const content = [
+        "class AuthService {",
+        "  /**",
+        "   * @doc docs/auth.md#login-spec",
+        "   */",
+        "  login() {}",
+        "}",
+        "",
+      ].join("\n");
+
+      const result = scan(content);
+
+      expect(result.symbols).toEqual([]);
+      expect(result.diagnostics.map((d) => d.code)).toEqual(["unsupported_declaration"]);
+    });
+
+    describe("members that cannot be endpoints", () => {
+      const DOC = "  /**\n   * @doc docs/auth.md#spec\n   */\n";
+
+      const rejected: Array<[string, string]> = [
+        ["a private member", `export class C {\n${DOC}  private m() {}\n}\n`],
+        ["a private identifier member", `export class C {\n${DOC}  #m() {}\n}\n`],
+        ["a string-literal name", `export class C {\n${DOC}  "space name"() {}\n}\n`],
+        ["a computed name", `export class C {\n${DOC}  [Symbol.iterator]() {}\n}\n`],
+        ["an index signature", `export interface C {\n${DOC}  [key: string]: number;\n}\n`],
+        ["a call signature", `export interface C {\n${DOC}  (): void;\n}\n`],
+        ["a construct signature", `export interface C {\n${DOC}  new (): C;\n}\n`],
+        ["an enum member", `export enum C {\n${DOC}  A,\n}\n`],
+        [
+          "a constructor parameter property",
+          "export class C {\n  constructor(/** @doc docs/auth.md#spec */ private x: string) {}\n}\n",
+        ],
+      ];
+
+      test.each(rejected)("emits unsupported_declaration for %s", (_label, content) => {
+        const result = scan(content);
+
+        expect(result.symbols).toEqual([]);
+        expect(result.diagnostics.map((d) => d.code)).toContain("unsupported_declaration");
+      });
+
+      test("ignores an annotated ordinary constructor parameter", () => {
+        // An ordinary parameter declares nothing on the type, so its annotation
+        // is an orphan comment, which no language reports.
+        const content = [
+          "export class C {",
+          "  constructor(/** @doc docs/auth.md#spec */ x: string) {",
+          "    void x;",
+          "  }",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scan(content);
+
+        expect(result.symbols).toEqual([]);
+        expect(result.diagnostics).toEqual([]);
+      });
+
+      test("includes a private member when visibility opts into private", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  private refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scanTypeScript(FILE, content, {
+          visibility: ["public", "protected", "private"],
+        });
+
+        expect(result.symbols[0]?.canonicalId).toBe("AuthService.refresh");
+        expect(result.diagnostics).toEqual([]);
+      });
+
+      test("excludes a private member when visibility omits private", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  private refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scanTypeScript(FILE, content, { visibility: ["public"] });
+
+        expect(result.symbols).toEqual([]);
+        expect(result.diagnostics.map((d) => d.code)).toEqual(["unsupported_declaration"]);
+      });
+
+      test("excludes a protected member when visibility lists only public", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  protected refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scanTypeScript(FILE, content, { visibility: ["public"] });
+
+        expect(result.symbols).toEqual([]);
+      });
+
+      test("names members in the unsupported_declaration message", () => {
+        const content = "export class C {\n  /**\n   * @doc docs/a.md#s\n   */\n  #m() {}\n}\n";
+
+        const result = scan(content);
+
+        expect(result.diagnostics[0]?.message).toContain("member");
+      });
+
+      test("keeps a protected member as an endpoint", () => {
+        const content = [
+          "export class AuthService {",
+          "  /**",
+          "   * @doc docs/auth.md#refresh-spec",
+          "   */",
+          "  protected refresh() {}",
+          "}",
+          "",
+        ].join("\n");
+
+        const result = scan(content);
+
+        expect(result.symbols[0]?.canonicalId).toBe("AuthService.refresh");
+        expect(result.diagnostics).toEqual([]);
       });
     });
   });
