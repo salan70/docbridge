@@ -134,8 +134,6 @@ One-time repo setup:
   - Environment name: none (current identity; a GitHub environment would
     restrict which ref can publish and is a follow-up, not this migration)
   - Allowed action: `npm publish`
-- Save that identity before merging a token-free publish workflow. After the
-  first OIDC-backed release succeeds and provenance is verified against
-  `salan70/docbridge` and `.github/workflows/release-publish.yml`, delete the
-  obsolete GitHub Actions `NPM_TOKEN` secret and revoke the old npm token. Do
-  not record credential values in git, logs, or issue comments.
+- Do not add a long-lived npm write token or an `NPM_TOKEN` Actions secret.
+  Publish authenticates only through Trusted Publishing. Do not record
+  credential values in git, logs, or issue comments.
