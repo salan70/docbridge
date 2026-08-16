@@ -111,6 +111,16 @@ export function defaultVsixPath(root: string = repoRoot, version?: string): stri
   return join(root, extensionRelativeRoot, ".tmp/out", `docbridge-${resolvedVersion}.vsix`);
 }
 
+/**
+ * Bundles the CLI that ships inside the VSIX as `server/dist/index.js`. It is
+ * the same Node-targeted bundle the npm package ships: the file keeps a
+ * `#!/usr/bin/env node` shebang, `scripts/verify-dist.ts` executes it directly,
+ * and Bun — which the extension launches it with — runs it just as well.
+ */
+export function serverBundleCommand(): string[] {
+  return ["bun", "build", "src/cli/index.ts", "--outdir", "dist", "--target", "node"];
+}
+
 export function packageVsix(root: string = repoRoot): string {
   assertReleaseInputs(root);
   const rootPackage = readJson<RootPackage>(join(root, "package.json"));
@@ -131,7 +141,7 @@ export function packageVsix(root: string = repoRoot): string {
   run(["bun", "install", "--frozen-lockfile"], root);
   run(["bun", "install", "--frozen-lockfile"], extensionRoot);
   rmSync(join(root, "dist"), { recursive: true, force: true });
-  run(["bun", "build", "src/cli/index.ts", "--outdir", "dist", "--target", "bun"], root);
+  run(serverBundleCommand(), root);
   chmodSync(join(root, "dist/index.js"), 0o755);
   cpSync(preserveBin, join(root, "dist/bin"), { recursive: true });
   run(["bun", "run", "scripts/verify-dist.ts"], root);

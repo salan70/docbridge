@@ -75,6 +75,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `login(options: { verbose: boolean })` produced `login(options: {}`. A
   `signatureRange` already ends where the implementation body begins in every
   language, so no body has to be cut out of it.
+- The VS Code extension manifest is version-aligned with the npm package again
+  (`0.4.1` had drifted from `0.6.1`), so a checkout of `main` is a valid input
+  to `just package-vsix`. Release Prepare now bumps both manifests through
+  `scripts/set-release-version.ts` and stages both in the release commit, so a
+  CLI release can no longer leave the extension version behind.
+- `just package-vsix` bundles the server the VSIX ships with `--target node`,
+  matching the npm build. The Bun-targeted bundle it built before still carried
+  a `#!/usr/bin/env node` shebang and crashed with `__require is not a function`
+  when the packaging flow's own `verify-dist` step executed it.
 
 ### Removed
 

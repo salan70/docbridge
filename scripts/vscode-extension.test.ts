@@ -7,6 +7,7 @@ import {
   assertReleaseInputs,
   buildReleaseManifest,
   defaultVsixPath,
+  serverBundleCommand,
   verifyExpandedVsix,
   vscodeMarketplacePublishCommand,
 } from "./vscode-extension";
@@ -107,6 +108,20 @@ describe("defaultVsixPath", () => {
     expect(defaultVsixPath("/repo", "1.2.3")).toBe(
       "/repo/editors/vscode/.tmp/out/docbridge-1.2.3.vsix",
     );
+  });
+});
+
+describe("serverBundleCommand", () => {
+  test("bundles the VSIX server for Node, the runtime its shebang and verify-dist assume", () => {
+    expect(serverBundleCommand()).toEqual([
+      "bun",
+      "build",
+      "src/cli/index.ts",
+      "--outdir",
+      "dist",
+      "--target",
+      "node",
+    ]);
   });
 });
 

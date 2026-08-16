@@ -87,10 +87,13 @@ Releases are driven by two GitHub Actions workflows; no local tagging is needed.
 To cut release `vX.Y.Z`:
 
 1. On GitHub, run **Actions → Release Prepare** and choose the bump
-   (`patch` / `minor` / `major`). It bumps `version` in `package.json`, rolls
-   `CHANGELOG.md` (moves `## [Unreleased]` into `## [X.Y.Z] - <date>`, leaves a
-   fresh empty `## [Unreleased]`, and refreshes the link references), pushes
-   `release/vX.Y.Z`, and opens the release PR.
+   (`patch` / `minor` / `major`). It bumps `version` in every versioned
+   manifest (`package.json` and `editors/vscode/package.json`) through
+   `scripts/set-release-version.ts`, rolls `CHANGELOG.md` (moves
+   `## [Unreleased]` into `## [X.Y.Z] - <date>`, leaves a fresh empty
+   `## [Unreleased]`, and refreshes the link references), pushes
+   `release/vX.Y.Z`, and opens the release PR. The VSIX packaging contract
+   rejects any drift between the two manifests, so they always move together.
 2. Wait for CI to pass on that PR.
 3. A human merges the PR with **Create a merge commit**. This merge is the
    release approval gate.
