@@ -100,14 +100,35 @@ To cut release `vX.Y.Z`:
 4. **Release Publish** then runs automatically on the merge: it re-checks CI for
    the merge commit, builds the dist CLI with the platform scanner binaries,
    publishes the `docbridge` package to npm
-   (`npm publish --provenance --access public`, authenticated via the `NPM_TOKEN`
-   secret), then extracts the matching `CHANGELOG.md` section and creates the
+   (`npm publish --provenance --access public`, authenticated by npm Trusted
+   Publishing via GitHub Actions OIDC — no long-lived npm token), then extracts
+   the matching `CHANGELOG.md` section and creates the
    `vX.Y.Z` tag plus a GitHub Release (`gh release create`, no separate tag push
    and no PAT).
 
 A `workflow_dispatch` fallback on **Release Publish** (input: version) exists for
-recovery if the automatic run does not fire.
+recovery if the automatic run does not fire. It uses the same workflow file
+(`release-publish.yml`), so it keeps the trusted publisher identity. If publish
+fails with an authentication error, correct the npm Trusted Publisher fields
+(they are case-sensitive and are not validated when saved) and re-run that
+dispatch. Do not add a token-based fallback to the workflow.
 
-One-time repo setup: enable **Settings → Actions → General → Workflow
-permissions → Allow GitHub Actions to create and approve pull requests** so
-Release Prepare can open the PR.
+One-time repo setup:
+
+- Enable **Settings → Actions → General → Workflow permissions → Allow GitHub
+  Actions to create and approve pull requests** so Release Prepare can open
+  the PR.
+- On the npm `docbridge` package, configure one Trusted Publisher:
+  - Provider: GitHub Actions
+  - Organization or user: `salan70`
+  - Repository: `docbridge`
+  - Workflow filename: `release-publish.yml` (filename only, including the
+    extension)
+  - Environment name: none (current identity; a GitHub environment would
+    restrict which ref can publish and is a follow-up, not this migration)
+  - Allowed action: `npm publish`
+- Save that identity before merging a token-free publish workflow. After the
+  first OIDC-backed release succeeds and provenance is verified against
+  `salan70/docbridge` and `.github/workflows/release-publish.yml`, delete the
+  obsolete GitHub Actions `NPM_TOKEN` secret and revoke the old npm token. Do
+  not record credential values in git, logs, or issue comments.

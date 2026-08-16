@@ -1,11 +1,13 @@
 name: Release Publish
 
 # Runs when a `release/vX.Y.Z` pull request is merged into main: verifies CI is
-# green, extracts the matching CHANGELOG section, and creates the git tag plus a
-# GitHub Release in one step (no separate tag push, no PAT required).
+# green, publishes the public npm package through Trusted Publishing (OIDC; no
+# long-lived npm token), extracts the matching CHANGELOG section, and creates
+# the git tag plus a GitHub Release in one step (no separate tag push, no PAT).
 #
 # The merge of the release PR is the human approval gate. A workflow_dispatch
-# fallback exists for recovery if the automatic run does not fire.
+# fallback exists for recovery if the automatic run does not fire; it uses this
+# same workflow file so the npm trusted publisher identity stays valid.
 
 on:
   pull_request:
@@ -20,7 +22,6 @@ on:
 permissions:
   contents: write
   checks: read
-  id-token: write
 
 jobs:
   scanner-artifacts:
@@ -29,6 +30,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true &&
        startsWith(github.head_ref, 'release/'))
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +129,10 @@ jobs:
        startsWith(github.head_ref, 'release/'))
     needs: scanner-artifacts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      checks: read
+      id-token: write
     steps:
       - name: Resolve target commit and version
         id: target
@@ -213,6 +220,21 @@ jobs:
       - name: Verify dist package
         run: nix develop -c just verify-dist
 
+      # Do not pass registry-url: that writes _authToken=${NODE_AUTH_TOKEN}
+      # and would reintroduce a token path. The public registry is set below
+      # without an auth token; OIDC authenticates `npm publish`.
+      - name: Set up Node.js for npm publish
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Report npm toolchain
+        run: |
+          node -v
+          npm -v
+          npm config set registry https://registry.npmjs.org
+
       - name: Dry-run npm package
         run: npm pack --dry-run
 
@@ -224,19 +246,6 @@ jobs:
 
       - name: Smoke-test packed npm package
         run: nix develop -c just pack-smoke "${{ steps.pack.outputs.tarball }}" --skip-scanner-fixtures
-
-      - name: Configure npm authentication
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "${NPM_TOKEN}" ]; then
-            echo "::error::NPM_TOKEN secret is not set; cannot publish to npm." >&2
-            exit 1
-          fi
-          # Write the auth token to the user-level .npmrc so `npm publish` can
-          # authenticate. Provenance still comes from the workflow's OIDC token
-          # (id-token: write) on this public repo.
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
 
       - name: Publish npm package
         run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public
