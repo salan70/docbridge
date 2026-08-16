@@ -131,7 +131,8 @@ One-time repo setup:
   - Repository: `docbridge`
   - Workflow filename: `release-publish.yml` (filename only, including the
     extension)
-  - Environment name: none
+  - Environment name: none (current identity; a GitHub environment would
+    restrict which ref can publish and is a follow-up, not this migration)
   - Allowed action: `npm publish`
 - Save that identity before merging a token-free publish workflow. After the
   first OIDC-backed release succeeds and provenance is verified against

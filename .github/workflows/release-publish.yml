@@ -22,7 +22,6 @@ on:
 permissions:
   contents: write
   checks: read
-  id-token: write
 
 jobs:
   scanner-artifacts:
@@ -31,6 +30,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true &&
        startsWith(github.head_ref, 'release/'))
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -128,6 +129,10 @@ jobs:
        startsWith(github.head_ref, 'release/'))
     needs: scanner-artifacts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      checks: read
+      id-token: write
     steps:
       - name: Resolve target commit and version
         id: target
@@ -215,51 +220,19 @@ jobs:
       - name: Verify dist package
         run: nix develop -c just verify-dist
 
+      # Do not pass registry-url: that writes _authToken=${NODE_AUTH_TOKEN}
+      # and would reintroduce a token path. The public registry is set below
+      # without an auth token; OIDC authenticates `npm publish`.
       - name: Set up Node.js for npm publish
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
           package-manager-cache: false
 
-      - name: Require Trusted Publishing npm toolchain
+      - name: Report npm toolchain
         run: |
-          # Trusted Publishing requires Node.js >= 22.14.0 and npm >= 11.5.1.
-          # setup-node pins Node 24; still assert both floors so this job does
-          # not depend on ubuntu-latest's incidental CLI versions.
-          # Do not pass registry-url to setup-node: that writes
-          # _authToken=${NODE_AUTH_TOKEN} and would reintroduce a token path.
-          meets_min() {
-            awk -v ver="$1" -v min="$2" 'BEGIN {
-              split(ver, a, ".")
-              split(min, b, ".")
-              for (i = 1; i <= 3; i++) {
-                ai = a[i] + 0
-                bi = b[i] + 0
-                if (ai > bi) exit 0
-                if (ai < bi) exit 1
-              }
-              exit 0
-            }'
-          }
-          node_ver="$(node -v | sed 's/^v//')"
-          npm_ver="$(npm -v)"
-          echo "node ${node_ver}"
-          echo "npm ${npm_ver}"
-          if ! meets_min "$node_ver" "22.14.0"; then
-            echo "::error::Node.js ${node_ver} is below 22.14.0 required for Trusted Publishing." >&2
-            exit 1
-          fi
-          if ! meets_min "$npm_ver" "11.5.1"; then
-            echo "npm ${npm_ver} is below 11.5.1; installing npm@^11.5.1"
-            npm install -g "npm@^11.5.1"
-            npm_ver="$(npm -v)"
-            echo "npm ${npm_ver}"
-          fi
-          if ! meets_min "$npm_ver" "11.5.1"; then
-            echo "::error::npm ${npm_ver} is below 11.5.1 required for Trusted Publishing." >&2
-            exit 1
-          fi
-          # Public registry only; OIDC authenticates `npm publish`.
+          node -v
+          npm -v
           npm config set registry https://registry.npmjs.org
 
       - name: Dry-run npm package
