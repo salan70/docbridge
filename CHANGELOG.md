@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The VS Code-compatible extension `salan70.docbridge` is published on Visual
+  Studio Marketplace.
+
+### Fixed
+
+- `just package-vsix` bundles `vscode-languageclient` into the editor client.
+  Packaging with `--no-dependencies` previously omitted the module, so the
+  installed VSIX failed to activate.
+
 ## [0.7.0] - 2026-08-16
 
 ### Added

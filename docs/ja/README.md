@@ -326,21 +326,24 @@ docbridge lsp
 
 VS Code 互換の extension は [../../editors/vscode](../../editors/vscode) に
 あります。Language Server を VS Code と Cursor 向けの VSIX に同梱します。
-現在、extension は VS Code Marketplace にはまだ公開されていません。
-初回の Marketplace 公開までは、対応済みの `dist/bin/darwin-arm64` /
-`dist/bin/linux-x64` scanner artifact を準備し、VSIX をローカルで生成・検証します:
+[DocBridge (`salan70.docbridge`)](https://marketplace.visualstudio.com/items?itemName=salan70.docbridge)
+を VS Code Marketplace からインストールできます。エディタから Bun が見える必要が
+あり、GUI が `PATH` 上の `bun` を見つけられないときは `docbridge.bunPath` を
+設定します。
+
+コントリビュータは、対応済みの `dist/bin/darwin-arm64` /
+`dist/bin/linux-x64` scanner artifact を準備し、VSIX をローカルで生成・検証できます:
 
 ```sh
 just package-vsix
 just verify-vsix
 ```
 
-生成した `editors/vscode/.tmp/out/` 下のファイルは、VS Code または
-Cursor の **Extensions: Install from VSIX...** からインストールできます。
-Marketplace への初回公開は意図的に手動で、リポジトリにはその公開コマンドが
-あります。Open VSX 配信は対象外です。Zed 統合は別タスクで、まだ実装されていません。
-MCP 配信は、長時間動作する tool server を必要とする具体的な consumer が現れるまで
-対象外です。詳細な LSP の挙動は [../specs/lsp.md](../specs/lsp.md) に定義しています。
+registry への公開は引き続き手動です
+（`VSCE_PAT=<token> just publish-vscode-extension`）。Open VSX 配信は対象外です。
+Zed 統合は別タスクで、まだ実装されていません。MCP 配信は、長時間動作する tool
+server を必要とする具体的な consumer が現れるまで対象外です。詳細な LSP の挙動は
+[../specs/lsp.md](../specs/lsp.md) に定義しています。
 
 ## Diagnostics
 
@@ -402,7 +405,6 @@ Pull Request の流れは [CONTRIBUTING.md](../../CONTRIBUTING.md) を参照し�
 
 残っている editor 配信作業:
 
-- 最初の検証済み VSIX を VS Code Marketplace へ公開する
 - 手動フローが安定したあとの GitHub Release VSIX 添付と registry publish の自動化
 - Zed 向けの独立した統合経路を追加する
 
