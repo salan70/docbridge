@@ -302,3 +302,33 @@ test("runInit --force leaves a symlinked legacy skill directory in place", () =>
     rmSync(target, { recursive: true, force: true });
   }
 });
+
+test("runInit --force leaves a symlinked docbridge skill directory in place", () => {
+  const project = makeProject({
+    "docs/specs/cli.md": "# CLI\n",
+    "src/app.ts": "export const app = 1;\n",
+  });
+  const target = mkdtempSync(join(tmpdir(), "docbridge-skill-link-"));
+  try {
+    mkdirSync(join(project, ".agents/skills"), { recursive: true });
+    writeFileSync(join(target, "SKILL.md"), "# linked\n");
+    symlinkSync(target, join(project, ".agents/skills/docbridge"));
+
+    const c = capture();
+    const code = runInit(
+      { root: project, yes: true, dryRun: false, force: true, agentTarget: "codex" },
+      c.io,
+      { prompts: nonInteractivePrompts, packageRoot: resolvePackageRoot() },
+    );
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(project, ".agents/skills/docbridge/SKILL.md"), "utf8")).toBe(
+      "# linked\n",
+    );
+    expect(c.out).toContain("symlink");
+    expect(existsSync(join(project, "docbridge.config.json"))).toBe(true);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
+  }
+});

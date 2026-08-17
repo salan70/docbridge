@@ -67,6 +67,12 @@ constructors, and static members; interface property and method signatures;
 and property and method signatures of a type alias written as an object type
 literal.
 
+By default, `public` and `protected` members are included; `private` members
+are included only when `include.code.typescript.visibility` lists `private`.
+TypeScript `visibility` applies only to type members. Top-level declarations
+are scoped by `export`. Members excluded by visibility are not endpoints; an
+`@doc` on one is `unsupported_declaration`.
+
 Unsupported examples include anonymous default exports, multi-declarator
 `const`, namespaces, re-exports, non-exported declarations, members whose name
 is not a plain identifier, enum members, index signatures, call and construct
@@ -82,6 +88,11 @@ Supported forms include top-level and member `class`, `struct`, `enum`,
 `init`; and members declared in extensions, canonicalized as members of the
 extended type.
 
+By default only `public` and `open` declarations are included. `internal`
+declarations are included when `include.code.swift.visibility` lists
+`internal`. An `@doc` on a visibility-excluded declaration is
+`unsupported_declaration`.
+
 Member IDs are type-qualified and include argument labels, for example
 `AuthService.login(email:password:)`, `AuthService.refresh(_:)`, and
 `AuthService.init(email:password:)`.
@@ -92,6 +103,12 @@ Supported forms include top-level functions, getters, setters, and variables;
 `class`, `enum`, `mixin`, and their members; and members declared in
 extensions, canonicalized as members of the extended type.
 
+Only public declarations are scanned. Dart marks library-private names with a
+leading `_`, so an endpoint is excluded when any segment of its canonical ID
+starts with `_`, including a public member of a `_Private` type.
+`include.code.dart.visibility` accepts only `public`. An `@doc` on a
+visibility-excluded declaration is `unsupported_declaration`.
+
 Member IDs omit parameter signatures (`AuthService.login`). Setters carry a
 trailing `=` (`AuthService.token=`). The unnamed constructor is
 `AuthService.new`; named constructors keep their name (`AuthService.guest`).
@@ -101,6 +118,11 @@ trailing `=` (`AuthService.token=`). The unnamed constructor is
 Supported forms are `mod` (including nested modules), `struct`, `enum`, free
 `fn`, and inherent `impl` methods. Trait definitions, trait-impl methods,
 macros, const/static items, unions, and extern blocks are unsupported.
+
+By default only unrestricted `pub` declarations are included. A plain `fn` or
+`struct` without `pub` is not an endpoint. Non-`pub` items are included when
+`include.code.rust.visibility` lists `private`. An `@doc` on a
+visibility-excluded declaration is `unsupported_declaration`.
 
 Canonical IDs use `::` path qualification, for example `normalize`,
 `TypingEngine`, `TypingEngine::advance`, and `domain::typing`.

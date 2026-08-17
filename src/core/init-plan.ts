@@ -234,7 +234,7 @@ export function listDistributableSkills(packageRoot: string): string[] {
   }
 
   return entries
-    .filter((entry) => entry === "docbridge")
+    .filter((entry) => entry.startsWith("docbridge"))
     .filter((entry) => existsSync(join(skillsRoot, entry, "SKILL.md")))
     .toSorted();
 }
@@ -377,6 +377,12 @@ function planSkillOperations(input: {
       }
 
       const destinationDir = join(input.projectRoot, destination, skillName);
+      const path = relative(input.projectRoot, destinationDir);
+      if (isSymlink(destinationDir)) {
+        input.messages.push(`Skill directory ${path} is a symlink and was left in place.`);
+        continue;
+      }
+
       const exists = existsSync(destinationDir);
       let action: FileOpAction;
       let reason: string;
@@ -394,7 +400,7 @@ function planSkillOperations(input: {
 
       operations.push({
         action,
-        path: relative(input.projectRoot, destinationDir),
+        path,
         reason,
       });
     }
@@ -423,16 +429,12 @@ function planLegacySkillOperations(input: {
 
   for (const skillName of LEGACY_SKILL_NAMES) {
     const destinationDir = join(input.projectRoot, input.destination, skillName);
-    let stats;
-    try {
-      stats = lstatSync(destinationDir);
-    } catch {
+    const path = relative(input.projectRoot, destinationDir);
+    if (isSymlink(destinationDir)) {
+      input.messages.push(`Skill directory ${path} is a symlink and was left in place.`);
       continue;
     }
-
-    const path = relative(input.projectRoot, destinationDir);
-    if (stats.isSymbolicLink()) {
-      input.messages.push(`Skill directory ${path} is a symlink and was left in place.`);
+    if (!existsSync(destinationDir)) {
       continue;
     }
 
@@ -572,6 +574,14 @@ function agentDestinations(agentTarget: AgentTarget): string[] {
       return [".agents/skills", ".claude/skills"];
     default:
       return [];
+  }
+}
+
+function isSymlink(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
   }
 }
 

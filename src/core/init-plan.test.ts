@@ -187,6 +187,22 @@ test("listDistributableSkills includes the docbridge skill", () => {
   expect(listDistributableSkills(resolvePackageRoot())).toEqual(["docbridge"]);
 });
 
+test("listDistributableSkills discovers docbridge and docbridge-* templates", () => {
+  const pkg = mkdtempSync(join(tmpdir(), "docbridge-skills-discover-"));
+  try {
+    mkdirSync(join(pkg, "templates", "skills", "docbridge"), { recursive: true });
+    mkdirSync(join(pkg, "templates", "skills", "docbridge-extra"), { recursive: true });
+    mkdirSync(join(pkg, "templates", "skills", "other"), { recursive: true });
+    writeFileSync(join(pkg, "templates", "skills", "docbridge", "SKILL.md"), "# docbridge\n");
+    writeFileSync(join(pkg, "templates", "skills", "docbridge-extra", "SKILL.md"), "# extra\n");
+    writeFileSync(join(pkg, "templates", "skills", "other", "SKILL.md"), "# other\n");
+
+    expect(listDistributableSkills(pkg)).toEqual(["docbridge", "docbridge-extra"]);
+  } finally {
+    rmSync(pkg, { recursive: true, force: true });
+  }
+});
+
 test("planInitCommand installs the same single skill for init and init-with-agent", () => {
   const project = makeProject({
     ".agents/skills/.keep": "",
@@ -471,6 +487,38 @@ test("planInitCommand never removes a symlinked legacy skill directory", () => {
     expect(plan.skillOps.some((operation) => operation.action === "would-remove")).toBe(false);
     expect(plan.messages.some((message) => message.includes("symlink"))).toBe(true);
     expect(existsSync(join(project, ".agents/skills/docbridge-adopt/SKILL.md"))).toBe(true);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+test("planInitCommand never overwrites a symlinked docbridge skill directory", () => {
+  const project = makeProject({ ".agents/skills/.keep": "" });
+  const target = mkdtempSync(join(tmpdir(), "docbridge-skill-target-"));
+  try {
+    writeFileSync(join(target, "SKILL.md"), "# linked\n");
+    symlinkSync(target, join(project, ".agents/skills/docbridge"));
+
+    const discovery = discoverRepository(project);
+    const plan = planInitCommand({
+      command: "init-with-agent",
+      projectRoot: project,
+      options: {
+        root: project,
+        yes: true,
+        dryRun: false,
+        force: true,
+        agentTarget: "codex",
+      },
+      discovery,
+      packageRoot: resolvePackageRoot(),
+    });
+
+    expect(plan.skillOps.some((operation) => operation.action === "overwrite")).toBe(false);
+    expect(plan.skillOps.some((operation) => operation.action === "would-overwrite")).toBe(false);
+    expect(plan.messages.some((message) => message.includes("symlink"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge/SKILL.md"))).toBe(true);
   } finally {
     rmSync(project, { recursive: true, force: true });
     rmSync(target, { recursive: true, force: true });

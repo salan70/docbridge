@@ -39,13 +39,16 @@ remaining options are specific to each command.
 
 `--version` (alias `-v`) prints the DocBridge version on stdout and exits with code `0`. `--help` (alias `-h`) prints usage on stdout and exits with code `0`. See [Help](#help) for per-command help.
 
-Human-readable output prints one diagnostic per line:
+Human-readable output prints one diagnostic per line, then the summary, then a
+troubleshooting pointer. The pointer is printed on every human-readable `check`
+run, including clean ones, and is omitted under `--json`:
 
 ```text
 docs/specs/cli.md:12:1 error doc_anchor_not_found docs/specs/missing.md#check-command - Documentation anchor not found.
 src/cli/index.ts:3:1 warning duplicate_link docs/specs/cli.md#check-command - Duplicate link annotation.
 
 Summary: 1 error, 1 warning
+See `docbridge docs show troubleshooting` for diagnostic codes and fixes.
 ```
 
 Diagnostics without a location use the target without line and column:

@@ -358,6 +358,14 @@ function executeSkillOperation(
     return;
   }
 
+  try {
+    if (lstatSync(destinationDir).isSymbolicLink()) {
+      return;
+    }
+  } catch {
+    // Destination is absent; create proceeds to mkdirSync.
+  }
+
   const skillName = operation.path.split("/").at(-1);
   if (skillName === undefined) {
     return;
