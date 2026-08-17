@@ -194,6 +194,7 @@ type CheckOptions = {
  * resolve link relationships, then merge, sort, and summarize all diagnostics.
  *
  * @doc docs/specs/cli.md#check-command
+ * @doc docs/user/commands.md#check-validate-the-project
  */
 export function check(options: CheckOptions): CheckResult {
   const audit = options.audit ?? false;

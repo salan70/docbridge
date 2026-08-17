@@ -13,7 +13,7 @@ Use the narrowest command for the question you need to answer.
 The first argument selects a command. Global `--help` and `--version` are
 handled before project scanning, while each command validates its own options.
 
-<!-- @code src/cli/index.ts#run -->
+<!-- @code src/core/resolver.ts#check -->
 
 ### `check`: validate the project
 

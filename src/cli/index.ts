@@ -344,7 +344,6 @@ const COMMAND_HANDLERS: Record<Subcommand, CommandHandler> = {
  *
  * @doc docs/specs/cli.md#check-command
  * @doc docs/user/commands.md#command-dispatch
- * @doc docs/user/commands.md#check-validate-the-project
  */
 export function run(
   argv: string[],
