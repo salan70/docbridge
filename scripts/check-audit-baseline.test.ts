@@ -1,9 +1,11 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 
-import { check } from "../src/core/resolver";
 import {
+  BASELINE_CLASSES,
+  BASELINE_PATH,
   compareAuditBaseline,
+  compareRepositoryAuditBaseline,
   diffAuditBaseline,
   formatBaselineDiff,
   normalizeAuditKeys,
@@ -101,6 +103,10 @@ test("formatBaselineDiff names unreviewed additions and stale removals", () => {
   expect(report).toContain("undocumented_symbol src/core/new.ts#added");
   expect(report).toContain("stale baseline entry");
   expect(report).toContain("unlinked_doc_section docs/specs/old.md#gone");
+  expect(report).toContain(BASELINE_PATH);
+  for (const reviewClass of BASELINE_CLASSES) {
+    expect(report).toContain(reviewClass);
+  }
 });
 
 test("parseBaseline rejects an unknown review class", () => {
@@ -177,13 +183,7 @@ test("compareAuditBaseline fails when the live audit set diverges", () => {
 });
 
 test("the repository audit set matches the committed baseline", async () => {
-  const result = compareAuditBaseline(
-    check({
-      projectRoot: ROOT,
-      audit: true,
-    }).diagnostics,
-    parseBaseline(await Bun.file(join(ROOT, "test-fixtures/self-audit/baseline.json")).json()),
-  );
+  const result = await compareRepositoryAuditBaseline(ROOT);
 
   expect(result.ok).toBe(true);
 });

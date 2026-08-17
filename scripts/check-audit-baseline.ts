@@ -166,18 +166,25 @@ export function diffAuditBaseline(
   return { added, removed };
 }
 
+export const BASELINE_PATH = "test-fixtures/self-audit/baseline.json";
+
 export function formatBaselineDiff(diff: BaselineDiff): string {
   const lines: string[] = [];
+  const classes = BASELINE_CLASSES.join(", ");
 
   if (diff.added.length > 0) {
-    lines.push("Unreviewed audit targets (add a reciprocal link or a classified baseline entry):");
+    lines.push(
+      `Unreviewed audit targets (add a reciprocal link, or a classified entry in ${BASELINE_PATH} with one of: ${classes}):`,
+    );
     for (const key of diff.added) {
       lines.push(`  unreviewed audit target: ${key.code} ${key.target}`);
     }
   }
 
   if (diff.removed.length > 0) {
-    lines.push("Stale baseline entries (remove them in the same change that closed the gap):");
+    lines.push(
+      `Stale baseline entries (remove them from ${BASELINE_PATH} in the same change that closed the gap):`,
+    );
     for (const key of diff.removed) {
       lines.push(`  stale baseline entry: ${key.code} ${key.target}`);
     }
@@ -196,8 +203,6 @@ export function compareAuditBaseline(
   }
   return { ok: false, message: formatBaselineDiff(diff) };
 }
-
-export const BASELINE_PATH = "test-fixtures/self-audit/baseline.json";
 
 export async function compareRepositoryAuditBaseline(
   projectRoot: string,
