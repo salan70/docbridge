@@ -297,6 +297,8 @@ function resolveRoot(params: unknown): string {
  * Run the Language Server over stdio: frame outgoing messages to stdout and
  * decode incoming messages from stdin. Blocks by keeping stdin open until the
  * client sends `exit`.
+ *
+ * @doc docs/specs/lsp.md#cli
  */
 export function runLspServer(): void {
   const reader = new MessageReader();

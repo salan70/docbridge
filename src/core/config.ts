@@ -11,6 +11,12 @@ import {
 import { validateGlobPattern } from "./glob";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
+/**
+ * Parsed `docbridge.config.json`. `include.code` and `include.docs` are
+ * required; there is no `exclude` property.
+ *
+ * @doc docs/specs/configuration.md#configuration
+ */
 export type DocBridgeConfig = {
   include: {
     code: CodeInclude;

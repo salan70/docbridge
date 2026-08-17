@@ -135,6 +135,8 @@ type RelatedOutcome =
  * surface that reports them.
  *
  * @doc docs/specs/cli.md#related-command
+ * @doc docs/user/commands.md#related-find-counterpart-files
+ * @doc docs/user/agent-integration.md#editing-workflow
  */
 export function related(options: RelatedOptions): RelatedOutcome {
   const outcome = scanProject({ projectRoot: options.projectRoot, buildGraph: true });

@@ -32,6 +32,8 @@ export type LinkGraph = {
  * Build the link graph from scanner outputs. Code `@doc` links and Markdown
  * `@code` links each add a symmetric counterpart edge when their target
  * resolves to a known endpoint.
+ *
+ * @doc docs/specs/lsp.md#navigation-and-resolvable-one-way-links
  */
 export function buildLinkGraph(
   codeFiles: CodeScanResult[],

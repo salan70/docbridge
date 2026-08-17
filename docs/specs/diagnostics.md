@@ -1,3 +1,5 @@
+<!-- @code src/core/types.ts#DocBridgeDiagnostic -->
+
 # Diagnostics
 
 DocBridge v0.1 diagnostics have this JSON shape:
@@ -86,6 +88,8 @@ Exit code policy:
 
 - exit `1` when any error exists
 - exit `0` when diagnostics contain only warnings or no diagnostics
+
+<!-- @code src/core/resolver.ts#resolveLinks -->
 
 ## Unlinked Doc Sections
 

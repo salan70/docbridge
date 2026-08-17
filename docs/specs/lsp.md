@@ -8,6 +8,8 @@ change `docbridge check`.
 
 Rationale and scope decisions live in [v0.2 Decisions](../decisions/v0.2.md).
 
+<!-- @code src/lsp/transport.ts#encodeMessage -->
+
 ## Transport
 
 The server speaks LSP (JSON-RPC 2.0) over stdio. It reads requests from stdin and
@@ -127,6 +129,7 @@ Positions on whitespace, parameters, or other parts of a declaration line do not
 trigger navigation.
 
 <!-- @code src/core/graph.ts#LinkGraph -->
+<!-- @code src/core/graph.ts#buildLinkGraph -->
 
 ## Navigation and resolvable one-way links
 
@@ -195,6 +198,8 @@ diagnostic codes.
 
 The server publishes diagnostics for open documents. Because the whole graph is
 in memory, open documents receive correct cross-file diagnostics.
+
+<!-- @code src/lsp/server.ts#runLspServer -->
 
 ## CLI
 

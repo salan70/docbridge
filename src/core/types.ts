@@ -54,6 +54,11 @@ export type Range = {
   end: Position;
 };
 
+/**
+ * JSON diagnostic emitted by `docbridge check` and mapped to LSP diagnostics.
+ *
+ * @doc docs/specs/diagnostics.md#diagnostics
+ */
 export type DocBridgeDiagnostic = {
   severity: DiagnosticSeverity;
   code: DiagnosticCode;

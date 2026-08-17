@@ -7,6 +7,8 @@ description: Write @doc and @code annotations and valid link targets.
 DocBridge links supported code declarations to Markdown headings. A complete
 pair has `@doc` on the declaration and `@code` immediately before the heading.
 
+<!-- @code src/core/links.ts#parseLinkTarget -->
+
 ## Code to documentation
 
 Use a documentation path and heading anchor in a declaration's documentation

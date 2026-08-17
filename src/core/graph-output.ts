@@ -96,6 +96,7 @@ type ScanData = {
  * to input files and their direct counterparts.
  *
  * @doc docs/specs/cli.md#graph-command
+ * @doc docs/user/commands.md#graph-inspect-link-structure
  */
 export function graph(options: GraphOptions): GraphOutcome {
   const outcome = scanProject({

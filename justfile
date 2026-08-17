@@ -111,6 +111,10 @@ check-example-json:
 audit:
     bun run src/cli/index.ts check --audit
 
+# Compare live --audit keys against the committed repository baseline.
+check-audit-baseline:
+    bun run scripts/check-audit-baseline.ts
+
 # Run check against one diagnostic fixture (see test-fixtures/diagnostics/). The
 # fixture is expected to report its diagnostic, so a non-zero exit is ignored.
 check-fixture code:

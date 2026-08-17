@@ -74,6 +74,8 @@ Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 - `just check-example` — check the `examples/typescript` project
 - `just check-example-json` — check the example with JSON output
 - `just audit` — run audit diagnostics
+- `just check-audit-baseline` — compare live `--audit` keys against the committed
+  repository baseline
 - `just check-fixture <code>` — check one diagnostic fixture under
   `test-fixtures/diagnostics/`
 - `just test` — run the Bun test suite (`bun test`)

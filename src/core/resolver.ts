@@ -36,6 +36,7 @@ type ResolveInput = {
  * final, merged set.
  *
  * @doc docs/specs/link-resolution.md#resolving-links
+ * @doc docs/specs/diagnostics.md#unlinked-doc-sections
  */
 export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
   const diagnostics: DocBridgeDiagnostic[] = [];
@@ -191,6 +192,9 @@ type CheckOptions = {
 /**
  * Full orchestration: load config, collect managed files, read and scan them,
  * resolve link relationships, then merge, sort, and summarize all diagnostics.
+ *
+ * @doc docs/specs/cli.md#check-command
+ * @doc docs/user/commands.md#check-validate-the-project
  */
 export function check(options: CheckOptions): CheckResult {
   const audit = options.audit ?? false;

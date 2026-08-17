@@ -40,6 +40,8 @@ type CodeScanContext = {
  * The internal extension point for a code language. Slice 1 ships only the
  * in-process TypeScript adapter; Swift, Dart, and Rust adapters arrive as worker-backed
  * implementations in later slices.
+ *
+ * @doc docs/specs/scanning.md#code-scanning
  */
 export type CodeLanguageAdapter = {
   language: CodeLanguage;

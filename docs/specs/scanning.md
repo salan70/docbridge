@@ -1,3 +1,5 @@
+<!-- @code src/core/project-scan.ts#scanProject -->
+
 # Scanning
 
 DocBridge scans files matched by `include.code` and `include.docs`.
@@ -28,6 +30,7 @@ When a file has `file_read_error`, `code_parse_error`,
 that depend on that file are suppressed.
 
 <!-- @code src/core/code-scanner.ts#CodeScanResult -->
+<!-- @code src/core/code-scanner.ts#CodeLanguageAdapter -->
 <!-- @code src/core/code-language.ts#resolveScannerWorkerCommand -->
 
 ## Code Scanning
@@ -161,6 +164,8 @@ implementation bodies when the syntax has one, including function bodies, class
 bodies, and supported variable initializers with arrow-function, function,
 class, or object bodies. A member without a body, such as a property or an
 interface signature, exposes its whole declaration.
+
+<!-- @code src/core/typescript.ts#scanTypeScript -->
 
 ### TypeScript Members
 
