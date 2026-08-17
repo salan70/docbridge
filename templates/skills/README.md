@@ -1,34 +1,27 @@
 # DocBridge skill templates
 
-Distributable agent skills for projects that use DocBridge. Prefer
+Distributable agent skill for projects that use DocBridge. Prefer
 `docbridge init` for CLI-driven setup or `docbridge init-with-agent` for
-agent-guided adoption. `init-with-agent` installs `docbridge-adopt` first;
-`docbridge-adopt` installs the companion skills after scope is confirmed.
-Manual copy-based installation remains available: copy a
-skill directory into your repository's skill location (`.claude/skills/` for
-Claude Code or `.agents/skills/` for Codex-style project skills) and adjust
-nothing unless your DocBridge invocation differs from the examples inside.
+agent-guided adoption. Both commands install the same `docbridge` skill.
+Manual copy-based installation remains available: copy the skill directory
+into your repository's skill location (`.claude/skills/` for Claude Code or
+`.agents/skills/` for Codex-style project skills).
 
-- [`docbridge-annotate`](docbridge-annotate/SKILL.md) — create correct
-  `@doc`/`@code` link pairs and verify them with `docbridge check`.
-- [`docbridge-sync`](docbridge-sync/SKILL.md) — triage `related --gate`
-  findings: fetch the flagged counterpart content with `docbridge context`,
-  then update the counterpart or justify leaving it unchanged.
-- [`docbridge-adopt`](docbridge-adopt/SKILL.md) — adopt DocBridge in an existing
-  TypeScript, Swift, Dart, or Rust project by confirming docs/code scope, creating
-  or improving config, installing companion skills, and handling simple CI or
-  Git-hook setup.
-- [`docbridge-link`](docbridge-link/SKILL.md) — link existing docs sections to
-  existing supported code declarations through docs-first candidate discovery
-  and section-level confirmation.
-- [`docbridge-review`](docbridge-review/SKILL.md) — review the whole DocBridge
-  graph for semantic validity using `docbridge graph --json --include-content`.
+- [`docbridge`](docbridge/SKILL.md) — route adopt, discover-and-link, annotate,
+  review, and sync work. Facts about the binary live in
+  `docbridge docs show`, not in this file.
 
-This repository dogfoods the distributable DocBridge skills from both
+This repository dogfoods the distributable DocBridge skill from both
 `.claude/skills/` and `.agents/skills/` as skill-level symlinks to this
 directory. The template is the source of truth; do not edit the symlinked
 copies in place. In-repository dogfood links require symlink-capable checkouts;
 external projects should use the copy-based installation above.
 
-The Git-hook and CI integration that complements these skills is described
+Existing installs may still have the five legacy skill directories
+(`docbridge-adopt`, `docbridge-annotate`, `docbridge-link`,
+`docbridge-review`, `docbridge-sync`). `docbridge init --force` removes those
+copied directories after you review local edits. Symlinked skill directories
+are reported and left untouched.
+
+The Git-hook and CI integration that complements this skill is described
 under [`docs/integrations/`](../../docs/integrations/).

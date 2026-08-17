@@ -30,7 +30,7 @@ npx docbridge init --dry-run
 
 Then run `npx docbridge init` interactively, or use `--yes` when the detected
 scope is unambiguous. The command can create `docbridge.config.json` and install
-the distributable DocBridge skills for Codex, Claude Code, or both. It never
+the distributable `docbridge` skill for Codex, Claude Code, or both. It never
 overwrites an existing configuration.
 
 If a coding agent should choose the documentation and code scope, use:
@@ -67,5 +67,9 @@ A clean graph exits `0`. Broken links and invalid configuration exit `1`.
 
 - Read `docbridge docs show configuration` before narrowing scan scope.
 - Read `docbridge docs show annotations` for link target rules.
+- Read `docbridge docs show linking-workflow` to choose sections and propose
+  candidates.
+- Read `docbridge docs show link-review` to audit existing links for meaning.
 - Read `docbridge docs show commands` to choose an inspection command.
+- Read `docbridge docs show troubleshooting` when `check` reports a diagnostic.
 - Add `docbridge check` to CI after the local graph passes.

@@ -127,6 +127,9 @@ test("run emits a human-readable summary line for a clean project", () => {
 
   expect(code).toBe(0);
   expect(c.out).toContain("Summary: 0 errors, 0 warnings");
+  expect(c.out).toContain(
+    "See `docbridge docs show troubleshooting` for diagnostic codes and fixes.",
+  );
 });
 
 test("run exits 0 when only warnings exist", () => {
@@ -169,9 +172,21 @@ test("run exits 1 when check errors exist", () => {
     expect(code).toBe(1);
     expect(c.out).toContain("error");
     expect(c.out).toContain("Summary:");
+    expect(c.out).toContain(
+      "See `docbridge docs show troubleshooting` for diagnostic codes and fixes.",
+    );
   } finally {
     rmSync(project, { recursive: true, force: true });
   }
+});
+
+test("run check --json omits the troubleshooting hint", () => {
+  const c = capture();
+  const code = run(["check", "--root", "examples/typescript", "--json"], c.io);
+
+  expect(code).toBe(0);
+  expect(c.out).not.toContain("docbridge docs show troubleshooting");
+  expect(c.err).toBe("");
 });
 
 // --- related command ---------------------------------------------------------

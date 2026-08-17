@@ -11,12 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The VS Code-compatible extension `salan70.docbridge` is published on Visual
   Studio Marketplace.
+- Packaged user docs now cover linking workflow and semantic link review
+  (`docbridge docs show linking-workflow`, `docbridge docs show link-review`),
+  plus supported and unsupported `@doc` declaration forms, the heading-anchor
+  algorithm, and named link-authoring diagnostic codes.
+- Human-readable `docbridge check` output ends with a pointer to
+  `docbridge docs show troubleshooting`. `check --json` is unchanged.
+
+### Changed
+
+- `docbridge init` and `docbridge init-with-agent` install one skill,
+  `docbridge`, instead of the five companion skills. The skill routes adopt,
+  discover-and-link, annotate, review, and sync work; facts about the binary
+  come from `docbridge docs show`.
 
 ### Fixed
 
 - `just package-vsix` bundles `vscode-languageclient` into the editor client.
   Packaging with `--no-dependencies` previously omitted the module, so the
   installed VSIX failed to activate.
+- `docs/user/annotations.md` no longer claims GitHub-style numeric suffixes for
+  duplicate headings. Duplicate anchors in one file are `duplicate_doc_anchor`.
+
+### Upgrading
+
+- Existing installs keep the five legacy skill directories
+  (`docbridge-adopt`, `docbridge-annotate`, `docbridge-link`,
+  `docbridge-review`, `docbridge-sync`) until `docbridge init --force` is run.
+  Review locally edited copies first. Symlinked skill directories are reported
+  and left untouched.
 
 ## [0.7.0] - 2026-08-16
 

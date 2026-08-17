@@ -120,7 +120,7 @@ The hook runs two stages:
   counterparts that were not staged and prints their content fetched via
   `docbridge context`. This stage is informational and never blocks the commit:
   either update each listed counterpart or state explicitly in the final report
-  why it needs no update (use the `docbridge-sync` skill for the triage). CI
+  why it needs no update (use the `docbridge` skill for the triage). CI
   re-runs the gate over the whole PR change set and maintains a sticky PR
   comment; the human merge approval is the enforcement point.
 
@@ -152,18 +152,15 @@ invoked directly with `/<skill-name>`.
   or human reviewers), act or justify per comment, then reply to and resolve
   every thread. Use it with `/review-response`, or when a PR has review feedback
   to address.
-- `docbridge-annotate` — create `@doc`/`@code` link pairs between TypeScript
-  declarations and Markdown sections and verify them with `docbridge check`.
-  Use it with `/docbridge-annotate`, or when linking code to its specification
-  or fixing link diagnostics.
-- `docbridge-sync` — triage `related --gate` findings: judge divergence using
-  the counterpart content from `docbridge context`, then update the counterpart
-  or justify leaving it unchanged. Use it with `/docbridge-sync`, or when a
-  Stop-hook message or CI comment flags unchanged counterparts.
+- `docbridge` — adopt DocBridge, choose docs and code scope, add `@doc` /
+  `@code` annotations, fix link diagnostics, triage `related --gate` findings,
+  and review existing links for stale docs or semantic validity. Use it with
+  `/docbridge`, or when introducing DocBridge, linking code to its
+  specification, or judging whether docs still match the code.
 
-`docbridge-annotate` and `docbridge-sync` are installed copies; the distributable
-source of truth is `templates/skills/`. Apply edits there and copy them into
-`.claude/skills/`, keeping the two identical.
+The distributable `docbridge` skill is a skill-level symlink from
+`.claude/skills/docbridge` to `templates/skills/docbridge`. Apply edits to the
+template; do not edit the symlink in place.
 
 ## Language Policy
 

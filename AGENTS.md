@@ -107,7 +107,7 @@ The hook runs two stages:
   counterparts that were not staged and prints their content fetched via
   `docbridge context`. This stage is informational and never blocks the commit:
   either update each listed counterpart or state explicitly in the final report
-  why it needs no update (use the `docbridge-sync` skill for the triage). CI
+  why it needs no update (use the `docbridge` skill for the triage). CI
   re-runs the gate over the whole PR change set and maintains a sticky PR
   comment; the human merge approval is the enforcement point.
 
@@ -125,6 +125,8 @@ When the user asks to review a PR, inspect a PR for defects, or post review find
 When branching, committing, pushing, opening or merging a PR, or cutting a release, use `.agents/skills/git-workflow/SKILL.md`.
 
 When a PR has review comments to triage, reply to, and resolve, use `.agents/skills/review-response/SKILL.md`.
+
+When a Git hook, CI comment, or `docbridge related --gate` run flags unchanged counterparts, use `.agents/skills/docbridge/SKILL.md` to triage them (sync). When asked whether the docs still match the code with no change set, use the same skill's review procedure.
 
 When working under `.agents/`, also follow `.agents/AGENTS.md`.
 

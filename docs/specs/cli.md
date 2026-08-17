@@ -523,7 +523,7 @@ shipped name under both Node.js and Bun.
 The init command performs CLI-driven first-time setup for an existing
 repository. It discovers likely docs and code scope, creates
 `docbridge.config.json` only when scope is confirmed or unambiguous, and can
-install distributable DocBridge agent skills under `.agents/skills/` and/or
+install the distributable `docbridge` skill under `.agents/skills/` and/or
 `.claude/skills/`.
 
 Shared init options:
@@ -533,17 +533,22 @@ Shared init options:
   to broad globs.
 - `--dry-run` prints intended file operations and generated config content
   without writing files.
-- `--force` overwrites existing installed skills. It never replaces an existing
-  `docbridge.config.json`.
+- `--force` overwrites the installed `docbridge` skill and removes leftover
+  directories from the previous five-skill layout (`docbridge-adopt`,
+  `docbridge-annotate`, `docbridge-link`, `docbridge-review`,
+  `docbridge-sync`). It never replaces an existing `docbridge.config.json`,
+  and it never removes a skill directory that is a symlink.
 - `--agent-target <target>` selects `codex`, `claude`, `both`, or `none`
   (`none` is valid for `init` only).
 
 When no agent directory exists, `init --yes` defaults to config-only setup
 (`--agent-target none`). Interactive mode recommends Codex after confirmation.
 
-Human-readable output reports created, skipped, and would-write operations, then
-prints next steps such as reviewing `docbridge.config.json`, adding `@doc` /
-`@code` annotations, and optionally running `docbridge check`.
+Human-readable output reports created, skipped, would-write, and would-remove
+operations, then prints next steps such as reviewing `docbridge.config.json`,
+adding `@doc` / `@code` annotations, and optionally running `docbridge check`.
+Plain `init` reports leftover five-skill directories and leaves them in place;
+`--force --dry-run` shows `would-remove`.
 
 Existing `docbridge.config.json` files are never overwritten. Valid config is
 summarized; invalid config is reported with repair guidance.
@@ -552,11 +557,11 @@ summarized; invalid config is reported with repair guidance.
 
 ## Init-With-Agent Command
 
-The init-with-agent command prepares agent-guided adoption. It installs only
-`docbridge-adopt` for the selected agent target, prints one-shot command
-examples, and prints fallback prompts that explicitly ask the agent to use
-`docbridge-adopt`, confirm scope, and install the companion DocBridge skills
-after adoption. It does not launch an agent process and does not generate
+The init-with-agent command prepares agent-guided adoption. It installs the
+same `docbridge` skill as `init` for the selected agent target, prints one-shot
+command examples, and prints fallback prompts that explicitly ask the agent to
+use the `docbridge` skill, confirm scope, and suggest the next linking steps.
+It does not launch an agent process and does not generate
 `docbridge.config.json`.
 
 When no `.agents/` or `.claude/` directory exists, `init-with-agent --yes`

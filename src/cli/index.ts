@@ -106,7 +106,9 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
   } else {
     const lines = result.diagnostics.map(formatDiagnostic);
     const body = lines.length > 0 ? `${lines.join("\n")}\n\n` : "";
-    io.stdout(`${body}${formatSummary(result.summary)}\n`);
+    io.stdout(
+      `${body}${formatSummary(result.summary)}\nSee \`docbridge docs show troubleshooting\` for diagnostic codes and fixes.\n`,
+    );
     if (result.diagnostics.some((diagnostic) => diagnostic.code === "config_file_invalid")) {
       const guidance = existsSync(join(projectRoot, CONFIG_FILE_NAME))
         ? configRepairGuidance()

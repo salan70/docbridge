@@ -142,6 +142,8 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
       "annotations",
       "commands",
       "agent-integration",
+      "linking-workflow",
+      "link-review",
       "troubleshooting",
     ]) {
       run([runtime, "node_modules/.bin/docbridge", "docs", "show", document], tempRoot);

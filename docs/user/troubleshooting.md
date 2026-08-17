@@ -14,31 +14,39 @@ stderr. Use `docbridge <command> --help` for invocation errors and
 does not match the schema. Run `docbridge init --dry-run` when the file is
 missing. When it exists, repair or remove it before running `check` again.
 
-Confirm that include patterns match real files relative to the selected
-`--root`, language keys are supported, and excludes do not remove an intended
-link target.
+`config_unknown_key` and `config_invalid_value` mean a present file has a key
+or value the schema rejects. Confirm that include patterns match real files
+relative to the selected `--root`, language keys are supported, and excludes
+do not remove an intended link target.
 
 ## Scanner errors
 
-Swift, Dart, and Rust use packaged scanner workers. A `scanner_unavailable` diagnostic
-usually means the installed package lacks a binary for the current platform or
-the binary cannot execute. Reinstall the package first. If the platform is not
-supported, run DocBridge in a supported environment or build the scanner from
-the repository.
+Swift, Dart, and Rust use packaged scanner workers. A
+`code_scanner_unavailable` diagnostic usually means the installed package
+lacks a binary for the current platform or the binary cannot execute.
+Reinstall the package first. If the platform is not supported, run DocBridge
+in a supported environment or build the scanner from the repository.
 
-`scanner_failed` diagnostics contain the worker failure rather than converting
-it into a broken link. Check that the source parses with the project's own
-toolchain, then reproduce with the smallest configured file set.
+`code_scanner_failed` diagnostics contain the worker failure rather than
+converting it into a broken link. Check that the source parses with the
+project's own toolchain, then reproduce with the smallest configured file
+set.
 
-## Parsing and target errors
+## Link-authoring errors
 
-- A missing documentation file or anchor means the `@doc` path or normalized
-  heading anchor does not resolve.
-- A missing code file or symbol means the `@code` path or canonical symbol ID
-  does not resolve.
-- A missing backlink means one direction resolves but the counterpart lacks
-  the reciprocal annotation.
-- A malformed annotation means the comment syntax or target shape is invalid.
+These codes appear while writing `@doc` / `@code` pairs:
+
+| Diagnostic                                           | Meaning                                  | Usual fix                                             |
+| ---------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
+| `doc_file_not_found` / `code_file_not_found`         | target file not in the managed set       | fix the path, or extend `docbridge.config.json` globs |
+| `doc_anchor_not_found`                               | file found, anchor wrong                 | regenerate the anchor from the exact heading text     |
+| `doc_backlink_not_found` / `code_backlink_not_found` | one direction missing                    | add the missing `@code` or `@doc` side                |
+| `unsupported_declaration`                            | `@doc` on an unsupported declaration     | move the tag to a supported declaration               |
+| `dangling_code_annotation`                           | text between `@code` and the heading     | move the comment directly above the heading           |
+| `invalid_link_target`                                | malformed `file#fragment`                | rewrite the target; see `docs show annotations`       |
+| `duplicate_doc_anchor`                               | two headings share an anchor in one file | rename one heading so anchors stay unique             |
+| `duplicate_code_symbol`                              | two annotated declarations share an ID   | keep one `@doc` per canonical ID in that file         |
+| `duplicate_link`                                     | the same source repeats the same target  | remove the extra annotation                           |
 
 Use `docbridge graph --json` to inspect resolved and one-way edges. Use
 `docbridge context <file>` to confirm which counterpart content DocBridge can

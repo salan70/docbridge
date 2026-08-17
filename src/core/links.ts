@@ -22,7 +22,7 @@ const invalidLinkTargetMessage =
 
 /**
  * @doc docs/specs/link-resolution.md#parsing-link-targets
- * @doc docs/user/annotations.md#code-to-documentation
+ * @doc docs/user/annotations.md#target-grammar
  */
 export function parseLinkTarget(
   rawTarget: string,

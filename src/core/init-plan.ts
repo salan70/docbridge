@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,7 +16,14 @@ export type InitSharedOptions = {
   agentTarget: AgentTarget | undefined;
 };
 
-type FileOpAction = "create" | "skip" | "overwrite" | "would-create" | "would-overwrite";
+type FileOpAction =
+  | "create"
+  | "skip"
+  | "overwrite"
+  | "would-create"
+  | "would-overwrite"
+  | "remove"
+  | "would-remove";
 
 export type PlannedFileOp = {
   action: FileOpAction;
@@ -49,15 +56,15 @@ export type ConfirmedScope = {
 
 const CONFIG_FILE_NAME = "docbridge.config.json";
 
-const INIT_SKILL_NAMES = [
+const INIT_SKILL_NAMES = ["docbridge"] as const;
+
+const LEGACY_SKILL_NAMES = [
   "docbridge-adopt",
   "docbridge-annotate",
   "docbridge-link",
   "docbridge-review",
   "docbridge-sync",
 ] as const;
-
-const INIT_WITH_AGENT_SKILL_NAMES = ["docbridge-adopt"] as const;
 
 /**
  * Build a deterministic init plan without writing files.
@@ -131,11 +138,11 @@ export function planInitCommand(input: {
   }
 
   const skillOps = planSkillOperations({
-    command: input.command,
     projectRoot: input.projectRoot,
     packageRoot,
     agentTarget,
     options: input.options,
+    messages,
   });
 
   const agentGuidance =
@@ -146,7 +153,7 @@ export function planInitCommand(input: {
   if (input.command === "init-with-agent") {
     nextSteps.push("Run the printed one-shot command or fallback prompt in your agent.");
     nextSteps.push(
-      "Let docbridge-adopt confirm scope and create or improve docbridge.config.json.",
+      "Let the docbridge skill confirm scope and create or improve docbridge.config.json.",
     );
   }
 
@@ -227,7 +234,7 @@ export function listDistributableSkills(packageRoot: string): string[] {
   }
 
   return entries
-    .filter((entry) => entry.startsWith("docbridge-"))
+    .filter((entry) => entry === "docbridge")
     .filter((entry) => existsSync(join(skillsRoot, entry, "SKILL.md")))
     .toSorted();
 }
@@ -349,24 +356,22 @@ function inferConfirmedScope(
 }
 
 function planSkillOperations(input: {
-  command: InitCommandKind;
   projectRoot: string;
   packageRoot: string;
   agentTarget: AgentTarget;
   options: InitSharedOptions;
+  messages: string[];
 }): PlannedFileOp[] {
   if (input.agentTarget === "none") {
     return [];
   }
 
-  const skillNames =
-    input.command === "init" ? [...INIT_SKILL_NAMES] : [...INIT_WITH_AGENT_SKILL_NAMES];
   const destinations = agentDestinations(input.agentTarget);
   const availableSkills = new Set(listDistributableSkills(input.packageRoot));
   const operations: PlannedFileOp[] = [];
 
   for (const destination of destinations) {
-    for (const skillName of skillNames) {
+    for (const skillName of INIT_SKILL_NAMES) {
       if (!availableSkills.has(skillName)) {
         continue;
       }
@@ -393,6 +398,59 @@ function planSkillOperations(input: {
         reason,
       });
     }
+
+    operations.push(
+      ...planLegacySkillOperations({
+        projectRoot: input.projectRoot,
+        destination,
+        options: input.options,
+        messages: input.messages,
+      }),
+    );
+  }
+
+  return operations;
+}
+
+function planLegacySkillOperations(input: {
+  projectRoot: string;
+  destination: string;
+  options: InitSharedOptions;
+  messages: string[];
+}): PlannedFileOp[] {
+  const operations: PlannedFileOp[] = [];
+  const leftover: string[] = [];
+
+  for (const skillName of LEGACY_SKILL_NAMES) {
+    const destinationDir = join(input.projectRoot, input.destination, skillName);
+    let stats;
+    try {
+      stats = lstatSync(destinationDir);
+    } catch {
+      continue;
+    }
+
+    const path = relative(input.projectRoot, destinationDir);
+    if (stats.isSymbolicLink()) {
+      input.messages.push(`Skill directory ${path} is a symlink and was left in place.`);
+      continue;
+    }
+
+    if (input.options.force) {
+      operations.push({
+        action: input.options.dryRun ? "would-remove" : "remove",
+        path,
+        reason: "Remove leftover skill from the previous five-skill layout.",
+      });
+    } else {
+      leftover.push(path);
+    }
+  }
+
+  if (leftover.length > 0) {
+    input.messages.push(
+      `Legacy DocBridge skill directories were left in place (${leftover.join(", ")}). Re-run with --force to remove them after reviewing local edits.`,
+    );
   }
 
   return operations;
@@ -404,8 +462,8 @@ function buildAgentGuidance(projectRoot: string, agentTarget: AgentTarget): Agen
   if (agentTarget === "codex" || agentTarget === "both") {
     guidance.push({
       agent: "codex",
-      destination: ".agents/skills/docbridge-adopt/",
-      oneShotCommand: `cd ${projectRoot} && $docbridge_adopt_prompt`,
+      destination: ".agents/skills/docbridge/",
+      oneShotCommand: `cd ${projectRoot} && codex --prompt "Use the docbridge skill to adopt DocBridge in this repository."`,
       fallbackPrompt: buildFallbackPrompt(projectRoot, "codex"),
     });
   }
@@ -413,17 +471,10 @@ function buildAgentGuidance(projectRoot: string, agentTarget: AgentTarget): Agen
   if (agentTarget === "claude" || agentTarget === "both") {
     guidance.push({
       agent: "claude",
-      destination: ".claude/skills/docbridge-adopt/",
-      oneShotCommand: `cd ${projectRoot} && /docbridge-adopt`,
+      destination: ".claude/skills/docbridge/",
+      oneShotCommand: `cd ${projectRoot} && /docbridge adopt DocBridge in this repository`,
       fallbackPrompt: buildFallbackPrompt(projectRoot, "claude"),
     });
-  }
-
-  for (const entry of guidance) {
-    entry.oneShotCommand = entry.oneShotCommand.replace(
-      "$docbridge_adopt_prompt",
-      'codex --prompt "Use the docbridge-adopt skill to adopt DocBridge in this repository."',
-    );
   }
 
   return guidance;
@@ -432,9 +483,9 @@ function buildAgentGuidance(projectRoot: string, agentTarget: AgentTarget): Agen
 function buildFallbackPrompt(projectRoot: string, agent: "codex" | "claude"): string {
   const invocation =
     agent === "claude"
-      ? "Use the docbridge-adopt skill"
-      : "Use the docbridge-adopt skill from .agents/skills/docbridge-adopt";
-  return `${invocation} to adopt DocBridge in ${projectRoot}. Confirm docs and code scope, create or improve docbridge.config.json, install the companion DocBridge skills, and suggest the next linking steps.`;
+      ? "Use the docbridge skill"
+      : "Use the docbridge skill from .agents/skills/docbridge";
+  return `${invocation} to adopt DocBridge in ${projectRoot}. Confirm docs and code scope, create or improve docbridge.config.json, and suggest the next linking steps.`;
 }
 
 function resolveInitAgentTarget(
@@ -530,6 +581,8 @@ function formatFileOp(operation: PlannedFileOp): string {
     label = "would create";
   } else if (operation.action === "would-overwrite") {
     label = "would overwrite";
+  } else if (operation.action === "would-remove") {
+    label = "would remove";
   }
   const reason = operation.reason ? ` (${operation.reason})` : "";
   return `- ${label} ${operation.path}${reason}`;
