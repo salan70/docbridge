@@ -34,9 +34,8 @@ TypeScript と Markdown の check は scanner binary なしで実行できます
 bunx docbridge init
 ```
 
-エージェント主導の導入では `docbridge-adopt` をインストールし、セットアップ用コマンドを
-表示します。`docbridge-adopt` はスコープ確定後に残りの DocBridge スキルも
-インストールします。
+エージェント主導の導入では `docbridge` スキルをインストールし、セットアップ用
+コマンドを表示します。スキルは adopt / link / review / sync を振り分けます。
 
 ```sh
 bunx docbridge init-with-agent
@@ -300,12 +299,10 @@ DocBridge のリンクグラフは、AI コーディングエージェントか�
 - [../integrations](../integrations) — Claude Code、Codex、CI 向けのレシピ:
   `docbridge related --gate` によるゲートのトリアージ、`docbridge context` による
   カウンターパートの内容取得、PR へのレポート。
-- [../../templates/skills](../../templates/skills) — `docbridge init` が
-  インストールする配布用エージェントスキル。`docbridge init-with-agent` は
-  `docbridge-adopt` のみをインストールし、`docbridge-adopt` が残りの
-  スキルをインストールします:
-  `docbridge-annotate`、`docbridge-link`、`docbridge-review`、
-  `docbridge-sync`。
+- [../../templates/skills](../../templates/skills) — `docbridge init` と
+  `docbridge init-with-agent` がインストールする配布用 `docbridge` スキル。
+  バイナリの事実は `docbridge docs show` が提供します。既存の 5 スキル構成は
+  `docbridge init --force` まで残ります。
 
 このリポジトリ自身も `.claude/` と `.agents/` でこれらのスキルをドッグフーディング
 しており、ガードレールはエージェントの設定ではなく `.githooks/` の Git `pre-commit`

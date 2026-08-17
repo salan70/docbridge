@@ -1,4 +1,12 @@
-import { cpSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 
 import { discoverRepository } from "../core/init-discovery";
@@ -157,10 +165,10 @@ export function runInit(options: InitSharedOptions, io: CliIo, runtime: InitRunt
 }
 
 /**
- * Prepare agent-guided adoption by installing docbridge-adopt and printing setup guidance.
+ * Prepare agent-guided adoption by installing the docbridge skill and printing setup guidance.
  *
  * @doc docs/specs/cli.md#init-with-agent-command
- * @doc docs/user/agent-integration.md#install-agent-skills
+ * @doc docs/user/agent-integration.md#invoking-docbridge
  */
 export function runInitWithAgent(
   options: InitSharedOptions,
@@ -179,7 +187,7 @@ function runInitCommand(
   const projectRoot = resolveProjectRoot(options.root, command);
   const discovery = discoverRepository(projectRoot);
   // init-with-agent never generates docbridge.config.json; scope confirmation
-  // is deferred to the docbridge-adopt skill, so skip it here.
+  // is deferred to the docbridge skill, so skip it here.
   const confirmedScope =
     command === "init"
       ? resolveConfirmedScope({
@@ -332,8 +340,30 @@ function executeSkillOperation(
   packageRoot: string,
   operation: PlannedFileOp,
 ): void {
+  const destinationDir = join(projectRoot, operation.path);
+
+  if (operation.action === "remove") {
+    try {
+      if (lstatSync(destinationDir).isSymbolicLink()) {
+        return;
+      }
+    } catch {
+      return;
+    }
+    rmSync(destinationDir, { recursive: true, force: true });
+    return;
+  }
+
   if (operation.action !== "create" && operation.action !== "overwrite") {
     return;
+  }
+
+  try {
+    if (lstatSync(destinationDir).isSymbolicLink()) {
+      return;
+    }
+  } catch {
+    // Destination is absent; create proceeds to mkdirSync.
   }
 
   const skillName = operation.path.split("/").at(-1);
@@ -342,7 +372,6 @@ function executeSkillOperation(
   }
 
   const sourceDir = join(packageRoot, "templates", "skills", skillName);
-  const destinationDir = join(projectRoot, operation.path);
   mkdirSync(destinationDir, { recursive: true });
   cpSync(sourceDir, destinationDir, { recursive: true, force: true });
 }

@@ -1,5 +1,13 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -175,48 +183,55 @@ test("planInitCommand dry-run reports config content without requiring writes", 
   }
 });
 
-test("planInitCommand installs every DocBridge skill for init", () => {
+test("listDistributableSkills includes the docbridge skill", () => {
+  expect(listDistributableSkills(resolvePackageRoot())).toEqual(["docbridge"]);
+});
+
+test("listDistributableSkills discovers docbridge and docbridge-* templates", () => {
+  const pkg = mkdtempSync(join(tmpdir(), "docbridge-skills-discover-"));
+  try {
+    mkdirSync(join(pkg, "templates", "skills", "docbridge"), { recursive: true });
+    mkdirSync(join(pkg, "templates", "skills", "docbridge-extra"), { recursive: true });
+    mkdirSync(join(pkg, "templates", "skills", "other"), { recursive: true });
+    writeFileSync(join(pkg, "templates", "skills", "docbridge", "SKILL.md"), "# docbridge\n");
+    writeFileSync(join(pkg, "templates", "skills", "docbridge-extra", "SKILL.md"), "# extra\n");
+    writeFileSync(join(pkg, "templates", "skills", "other", "SKILL.md"), "# other\n");
+
+    expect(listDistributableSkills(pkg)).toEqual(["docbridge", "docbridge-extra"]);
+  } finally {
+    rmSync(pkg, { recursive: true, force: true });
+  }
+});
+
+test("planInitCommand installs the same single skill for init and init-with-agent", () => {
   const project = makeProject({
     ".agents/skills/.keep": "",
+    ".claude/skills/.keep": "",
     "docs/specs/cli.md": "# CLI\n",
     "src/app.ts": "export const app = 1;\n",
   });
   try {
     const discovery = discoverRepository(project);
     const packageRoot = resolvePackageRoot();
-    const plan = planInitCommand({
+    const initPlan = planInitCommand({
       command: "init",
       projectRoot: project,
-      options: { root: project, yes: true, dryRun: true, force: false, agentTarget: undefined },
+      options: { root: project, yes: true, dryRun: true, force: false, agentTarget: "both" },
+      discovery,
+      packageRoot,
+    });
+    const agentPlan = planInitCommand({
+      command: "init-with-agent",
+      projectRoot: project,
+      options: { root: project, yes: true, dryRun: true, force: false, agentTarget: "both" },
       discovery,
       packageRoot,
     });
 
-    const expectedSkills = listDistributableSkills(packageRoot);
-    expect(plan.skillOps.map((operation) => operation.path)).toEqual(
-      expectedSkills.map((skill) => `.agents/skills/${skill}`),
-    );
-  } finally {
-    rmSync(project, { recursive: true, force: true });
-  }
-});
-
-test("planInitCommand installs only docbridge-adopt for init-with-agent", () => {
-  const project = makeProject({ ".claude/skills/.keep": "" });
-  try {
-    const discovery = discoverRepository(project);
-    const plan = planInitCommand({
-      command: "init-with-agent",
-      projectRoot: project,
-      options: { root: project, yes: true, dryRun: true, force: false, agentTarget: undefined },
-      discovery,
-      packageRoot: resolvePackageRoot(),
-    });
-
-    expect(plan.skillOps.map((operation) => operation.path)).toEqual([
-      ".claude/skills/docbridge-adopt",
-    ]);
-    expect(plan.configOps).toEqual([]);
+    const expected = [".agents/skills/docbridge", ".claude/skills/docbridge"];
+    expect(initPlan.skillOps.map((operation) => operation.path).toSorted()).toEqual(expected);
+    expect(agentPlan.skillOps.map((operation) => operation.path).toSorted()).toEqual(expected);
+    expect(agentPlan.configOps).toEqual([]);
   } finally {
     rmSync(project, { recursive: true, force: true });
   }
@@ -267,11 +282,11 @@ test("planInitCommand maps codex, claude, and both to the right destination path
       packageRoot,
     });
 
-    expect(codex.skillOps[0]?.path).toBe(".agents/skills/docbridge-adopt");
-    expect(claude.skillOps[0]?.path).toBe(".claude/skills/docbridge-adopt");
+    expect(codex.skillOps[0]?.path).toBe(".agents/skills/docbridge");
+    expect(claude.skillOps[0]?.path).toBe(".claude/skills/docbridge");
     expect(both.skillOps.map((operation) => operation.path).toSorted()).toEqual([
-      ".agents/skills/docbridge-adopt",
-      ".claude/skills/docbridge-adopt",
+      ".agents/skills/docbridge",
+      ".claude/skills/docbridge",
     ]);
   } finally {
     rmSync(project, { recursive: true, force: true });
@@ -280,7 +295,7 @@ test("planInitCommand maps codex, claude, and both to the right destination path
 
 test("planInitCommand skips existing skills under --yes and overwrites under --force", () => {
   const project = makeProject({
-    ".agents/skills/docbridge-adopt/SKILL.md": "# existing\n",
+    ".agents/skills/docbridge/SKILL.md": "# existing\n",
   });
   try {
     const discovery = discoverRepository(project);
@@ -360,15 +375,152 @@ test("planInitCommand prints agent guidance for init-with-agent", () => {
     });
 
     expect(plan.agentGuidance.map((entry) => entry.agent)).toEqual(["codex", "claude"]);
-    expect(plan.agentGuidance[0]?.destination).toBe(".agents/skills/docbridge-adopt/");
+    expect(plan.agentGuidance[0]?.destination).toBe(".agents/skills/docbridge/");
     expect(plan.agentGuidance[0]?.oneShotCommand).toContain(project);
-    expect(plan.agentGuidance[0]?.fallbackPrompt).toContain("docbridge-adopt");
-    expect(plan.agentGuidance[0]?.fallbackPrompt).toContain(
+    expect(plan.agentGuidance[0]?.oneShotCommand).toContain("adopt DocBridge in this repository");
+    expect(plan.agentGuidance[0]?.fallbackPrompt).toContain("docbridge");
+    expect(plan.agentGuidance[0]?.fallbackPrompt).not.toContain(
       "install the companion DocBridge skills",
     );
-    expect(plan.agentGuidance[1]?.destination).toBe(".claude/skills/docbridge-adopt/");
-    expect(plan.agentGuidance[1]?.oneShotCommand).toContain("/docbridge-adopt");
+    expect(plan.nextSteps.some((step) => step.includes("docbridge skill"))).toBe(true);
+    expect(plan.agentGuidance[1]?.destination).toBe(".claude/skills/docbridge/");
+    expect(plan.agentGuidance[1]?.oneShotCommand).toContain(
+      "/docbridge adopt DocBridge in this repository",
+    );
   } finally {
     rmSync(project, { recursive: true, force: true });
+  }
+});
+
+const LEGACY_SKILL_FIXTURE = {
+  ".agents/skills/docbridge-adopt/SKILL.md": "# legacy adopt\n",
+  ".agents/skills/docbridge-annotate/SKILL.md": "# legacy annotate\n",
+  ".agents/skills/docbridge-link/SKILL.md": "# legacy link\n",
+  ".agents/skills/docbridge-review/SKILL.md": "# legacy review\n",
+  ".agents/skills/docbridge-sync/SKILL.md": "# legacy sync\n",
+};
+
+test("planInitCommand reports leftover legacy skill directories and leaves them in place", () => {
+  const project = makeProject(LEGACY_SKILL_FIXTURE);
+  try {
+    const discovery = discoverRepository(project);
+    const plan = planInitCommand({
+      command: "init-with-agent",
+      projectRoot: project,
+      options: {
+        root: project,
+        yes: true,
+        dryRun: true,
+        force: false,
+        agentTarget: "codex",
+      },
+      discovery,
+      packageRoot: resolvePackageRoot(),
+    });
+
+    expect(plan.skillOps.some((operation) => operation.action === "would-remove")).toBe(false);
+    expect(plan.skillOps.some((operation) => operation.path.endsWith("docbridge-adopt"))).toBe(
+      false,
+    );
+    expect(plan.messages.some((message) => message.includes("docbridge-adopt"))).toBe(true);
+    expect(plan.messages.some((message) => message.includes("--force"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge-adopt/SKILL.md"))).toBe(true);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("planInitCommand dry-run --force would-remove leftover legacy skill directories", () => {
+  const project = makeProject(LEGACY_SKILL_FIXTURE);
+  try {
+    const discovery = discoverRepository(project);
+    const plan = planInitCommand({
+      command: "init-with-agent",
+      projectRoot: project,
+      options: {
+        root: project,
+        yes: true,
+        dryRun: true,
+        force: true,
+        agentTarget: "codex",
+      },
+      discovery,
+      packageRoot: resolvePackageRoot(),
+    });
+
+    const removals = plan.skillOps.filter((operation) => operation.action === "would-remove");
+    expect(removals.map((operation) => operation.path).toSorted()).toEqual([
+      ".agents/skills/docbridge-adopt",
+      ".agents/skills/docbridge-annotate",
+      ".agents/skills/docbridge-link",
+      ".agents/skills/docbridge-review",
+      ".agents/skills/docbridge-sync",
+    ]);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("planInitCommand never removes a symlinked legacy skill directory", () => {
+  const project = makeProject({ ".agents/skills/.keep": "" });
+  const target = mkdtempSync(join(tmpdir(), "docbridge-legacy-target-"));
+  try {
+    writeFileSync(join(target, "SKILL.md"), "# linked\n");
+    symlinkSync(target, join(project, ".agents/skills/docbridge-adopt"));
+
+    const discovery = discoverRepository(project);
+    const plan = planInitCommand({
+      command: "init-with-agent",
+      projectRoot: project,
+      options: {
+        root: project,
+        yes: true,
+        dryRun: false,
+        force: true,
+        agentTarget: "codex",
+      },
+      discovery,
+      packageRoot: resolvePackageRoot(),
+    });
+
+    expect(plan.skillOps.some((operation) => operation.action === "remove")).toBe(false);
+    expect(plan.skillOps.some((operation) => operation.action === "would-remove")).toBe(false);
+    expect(plan.messages.some((message) => message.includes("symlink"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge-adopt/SKILL.md"))).toBe(true);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+test("planInitCommand never overwrites a symlinked docbridge skill directory", () => {
+  const project = makeProject({ ".agents/skills/.keep": "" });
+  const target = mkdtempSync(join(tmpdir(), "docbridge-skill-target-"));
+  try {
+    writeFileSync(join(target, "SKILL.md"), "# linked\n");
+    symlinkSync(target, join(project, ".agents/skills/docbridge"));
+
+    const discovery = discoverRepository(project);
+    const plan = planInitCommand({
+      command: "init-with-agent",
+      projectRoot: project,
+      options: {
+        root: project,
+        yes: true,
+        dryRun: false,
+        force: true,
+        agentTarget: "codex",
+      },
+      discovery,
+      packageRoot: resolvePackageRoot(),
+    });
+
+    expect(plan.skillOps.some((operation) => operation.action === "overwrite")).toBe(false);
+    expect(plan.skillOps.some((operation) => operation.action === "would-overwrite")).toBe(false);
+    expect(plan.messages.some((message) => message.includes("symlink"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge/SKILL.md"))).toBe(true);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
   }
 });

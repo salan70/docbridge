@@ -40,9 +40,8 @@ Run first-time setup in the project root:
 bunx docbridge init
 ```
 
-For agent-guided adoption, install `docbridge-adopt` and print setup commands.
-The `docbridge-adopt` skill finishes adoption and installs the remaining
-DocBridge skills after scope is confirmed:
+For agent-guided adoption, install the `docbridge` skill and print setup
+commands. The skill routes adopt, link, review, and sync work:
 
 ```sh
 bunx docbridge init-with-agent
@@ -316,11 +315,10 @@ DocBridge's link graph is built to be consumed by AI coding agents:
 - [docs/integrations](docs/integrations) — recipes for Claude Code, Codex,
   and CI: gate triage with `docbridge related --gate`, counterpart content with
   `docbridge context`, and PR reporting.
-- [templates/skills](templates/skills) — distributable agent skills installed by
-  `docbridge init`; `docbridge init-with-agent` installs `docbridge-adopt`
-  alone, then `docbridge-adopt` installs the companion skills:
-  `docbridge-annotate`, `docbridge-link`, `docbridge-review`, and
-  `docbridge-sync`.
+- [templates/skills](templates/skills) — the distributable `docbridge` skill
+  installed by `docbridge init` and `docbridge init-with-agent`. Facts about
+  the binary live in `docbridge docs show`. Existing five-skill installs remain
+  until `docbridge init --force`.
 
 This repository dogfoods the skills under `.claude/` and `.agents/`, and keeps
 its guardrail in the Git `pre-commit` hook under `.githooks/` rather than in

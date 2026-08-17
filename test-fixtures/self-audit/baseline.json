@@ -833,7 +833,17 @@
     },
     {
       "code": "unlinked_doc_section",
+      "target": "docs/user/agent-integration.md#read-more",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
       "target": "docs/user/annotations.md#anchors-and-reciprocity",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
+      "target": "docs/user/annotations.md#code-to-documentation",
       "class": "structural_doc"
     },
     {
@@ -868,12 +878,22 @@
     },
     {
       "code": "unlinked_doc_section",
+      "target": "docs/user/link-review.md#link-review",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
+      "target": "docs/user/linking-workflow.md#linking-workflow",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
       "target": "docs/user/troubleshooting.md#configuration-errors",
       "class": "structural_doc"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/troubleshooting.md#parsing-and-target-errors",
+      "target": "docs/user/troubleshooting.md#link-authoring-errors",
       "class": "structural_doc"
     },
     {

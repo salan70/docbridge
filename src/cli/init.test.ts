@@ -1,5 +1,14 @@
 import { expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { resolvePackageRoot } from "../core/init-plan";
@@ -75,7 +84,7 @@ test("runInit --yes creates config and installs skills without writing in dry-ru
 
     expect(code).toBe(0);
     expect(c.out).toContain("would create docbridge.config.json");
-    expect(c.out).toContain(".agents/skills/docbridge-adopt");
+    expect(c.out).toContain(".agents/skills/docbridge");
     expect(existsSync(join(project, "docbridge.config.json"))).toBe(false);
   } finally {
     rmSync(project, { recursive: true, force: true });
@@ -98,7 +107,7 @@ test("runInit --yes writes config and skills", () => {
 
     expect(code).toBe(0);
     expect(existsSync(join(project, "docbridge.config.json"))).toBe(true);
-    expect(existsSync(join(project, ".agents/skills/docbridge-adopt/SKILL.md"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge/SKILL.md"))).toBe(true);
     expect(JSON.parse(readFileSync(join(project, "docbridge.config.json"), "utf8"))).toMatchObject({
       include: {
         code: { typescript: { patterns: ["src/**/*.ts"] } },
@@ -121,9 +130,9 @@ test("runInitWithAgent prints agent guidance and skips config creation", () => {
     );
 
     expect(code).toBe(0);
-    expect(c.out).toContain(".claude/skills/docbridge-adopt/");
-    expect(c.out).toContain("/docbridge-adopt");
-    expect(c.out).toContain("docbridge-adopt");
+    expect(c.out).toContain(".claude/skills/docbridge/");
+    expect(c.out).toContain("/docbridge adopt DocBridge in this repository");
+    expect(c.out).toContain("docbridge");
     expect(c.out).not.toContain("Config:");
     expect(c.out).not.toContain("would create docbridge.config.json");
   } finally {
@@ -179,7 +188,7 @@ test("runInitWithAgent enters interactive setup without confirming docs scope", 
     );
 
     expect(code).toBe(0);
-    expect(c.out).toContain(".agents/skills/docbridge-adopt/");
+    expect(c.out).toContain(".agents/skills/docbridge/");
     expect(c.out).not.toContain("Config:");
   } finally {
     rmSync(project, { recursive: true, force: true });
@@ -201,7 +210,7 @@ test("run dispatches init commands through the CLI boundary", () => {
 
     expect(code).toBe(0);
     expect(c.out).toContain("would create docbridge.config.json");
-    expect(c.out).toContain(".agents/skills/docbridge-adopt");
+    expect(c.out).toContain(".agents/skills/docbridge");
   } finally {
     rmSync(project, { recursive: true, force: true });
   }
@@ -213,4 +222,113 @@ test("run help documents init commands", () => {
   expect(c.out).toContain("docbridge init");
   expect(c.out).toContain("docbridge init-with-agent");
   expect(c.out).toContain("Init options:");
+});
+
+test("runInit --force removes leftover legacy skill directories", () => {
+  const project = makeProject({
+    ".agents/skills/docbridge-adopt/SKILL.md": "# legacy\n",
+    ".agents/skills/docbridge-annotate/SKILL.md": "# legacy\n",
+    ".agents/skills/docbridge-link/SKILL.md": "# legacy\n",
+    ".agents/skills/docbridge-review/SKILL.md": "# legacy\n",
+    ".agents/skills/docbridge-sync/SKILL.md": "# legacy\n",
+    "docs/specs/cli.md": "# CLI\n",
+    "src/app.ts": "export const app = 1;\n",
+  });
+  try {
+    const c = capture();
+    const code = runInit(
+      { root: project, yes: true, dryRun: false, force: true, agentTarget: "codex" },
+      c.io,
+      { prompts: nonInteractivePrompts, packageRoot: resolvePackageRoot() },
+    );
+
+    expect(code).toBe(0);
+    expect(existsSync(join(project, ".agents/skills/docbridge/SKILL.md"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge-adopt"))).toBe(false);
+    expect(existsSync(join(project, ".agents/skills/docbridge-annotate"))).toBe(false);
+    expect(c.out).toContain("remove .agents/skills/docbridge-adopt");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("runInit leaves leftover legacy skill directories without --force", () => {
+  const project = makeProject({
+    ".agents/skills/docbridge-adopt/SKILL.md": "# legacy\n",
+    "docs/specs/cli.md": "# CLI\n",
+    "src/app.ts": "export const app = 1;\n",
+  });
+  try {
+    const c = capture();
+    const code = runInit(
+      { root: project, yes: true, dryRun: false, force: false, agentTarget: "codex" },
+      c.io,
+      { prompts: nonInteractivePrompts, packageRoot: resolvePackageRoot() },
+    );
+
+    expect(code).toBe(0);
+    expect(existsSync(join(project, ".agents/skills/docbridge/SKILL.md"))).toBe(true);
+    expect(existsSync(join(project, ".agents/skills/docbridge-adopt/SKILL.md"))).toBe(true);
+    expect(c.out).toContain("docbridge-adopt");
+    expect(c.out).not.toContain("remove .agents/skills/docbridge-adopt");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("runInit --force leaves a symlinked legacy skill directory in place", () => {
+  const project = makeProject({
+    "docs/specs/cli.md": "# CLI\n",
+    "src/app.ts": "export const app = 1;\n",
+  });
+  const target = mkdtempSync(join(tmpdir(), "docbridge-legacy-link-"));
+  try {
+    mkdirSync(join(project, ".agents/skills"), { recursive: true });
+    writeFileSync(join(target, "SKILL.md"), "# linked\n");
+    symlinkSync(target, join(project, ".agents/skills/docbridge-adopt"));
+
+    const c = capture();
+    const code = runInit(
+      { root: project, yes: true, dryRun: false, force: true, agentTarget: "codex" },
+      c.io,
+      { prompts: nonInteractivePrompts, packageRoot: resolvePackageRoot() },
+    );
+
+    expect(code).toBe(0);
+    expect(existsSync(join(project, ".agents/skills/docbridge-adopt/SKILL.md"))).toBe(true);
+    expect(c.out).toContain("symlink");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+test("runInit --force leaves a symlinked docbridge skill directory in place", () => {
+  const project = makeProject({
+    "docs/specs/cli.md": "# CLI\n",
+    "src/app.ts": "export const app = 1;\n",
+  });
+  const target = mkdtempSync(join(tmpdir(), "docbridge-skill-link-"));
+  try {
+    mkdirSync(join(project, ".agents/skills"), { recursive: true });
+    writeFileSync(join(target, "SKILL.md"), "# linked\n");
+    symlinkSync(target, join(project, ".agents/skills/docbridge"));
+
+    const c = capture();
+    const code = runInit(
+      { root: project, yes: true, dryRun: false, force: true, agentTarget: "codex" },
+      c.io,
+      { prompts: nonInteractivePrompts, packageRoot: resolvePackageRoot() },
+    );
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(project, ".agents/skills/docbridge/SKILL.md"), "utf8")).toBe(
+      "# linked\n",
+    );
+    expect(c.out).toContain("symlink");
+    expect(existsSync(join(project, "docbridge.config.json"))).toBe(true);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+    rmSync(target, { recursive: true, force: true });
+  }
 });

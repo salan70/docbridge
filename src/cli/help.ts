@@ -217,9 +217,9 @@ const COMMAND_DOCS: CommandDefinitions = {
   },
   init: {
     usage: "[options]",
-    summary: "Use once per project to set up config and agent skills.",
+    summary: "Use once per project to set up config and the agent skill.",
     description: [
-      "Create docbridge.config.json and install the DocBridge agent skills.",
+      "Create docbridge.config.json and install the DocBridge agent skill.",
       "Use it once per project, when adopting DocBridge. Run it with --dry-run",
       "first to see what would be written.",
     ].join("\n"),
@@ -235,7 +235,7 @@ const COMMAND_DOCS: CommandDefinitions = {
     usage: "[options]",
     summary: "Use to let a coding agent decide the setup instead of `init`.",
     description: [
-      "Install the docbridge-adopt skill and print the commands that let a coding",
+      "Install the docbridge skill and print the commands that let a coding",
       "agent finish the setup.",
       "Use it instead of `init` when an agent should decide the configuration",
       "rather than accepting the defaults.",
