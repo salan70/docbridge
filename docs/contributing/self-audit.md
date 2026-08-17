@@ -32,12 +32,13 @@ type beside it.
 These in-scope endpoints are expected to appear in `check --audit` and in the
 baseline. They are not missing contracts:
 
-| Class             | Meaning                                                                                                                           |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `internal_helper` | Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared type aliases that are not themselves a public contract. |
-| `test_support`    | Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`, `src/lsp/fixtures.ts`).                                        |
-| `sibling_export`  | Additional exports in a module whose primary contract is already linked.                                                          |
-| `structural_doc`  | Overviews, tutorials, catalogs, workflow prose, and headings whose parent is already bridged.                                     |
+| Class                  | Meaning                                                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `internal_helper`      | Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared type aliases that are not themselves a public contract. |
+| `test_support`         | Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`, `src/lsp/fixtures.ts`).                                        |
+| `sibling_export`       | Additional exports in a module whose primary contract is already linked.                                                          |
+| `structural_doc`       | Overviews, tutorials, catalogs, workflow prose, and headings whose parent is already bridged.                                     |
+| `actionable_follow_up` | Reviewed gap still intended for a later annotation. None are open.                                                                |
 
 Zero audit warnings is not a goal. False or low-value links are worse than a
 reviewed gap.
@@ -76,18 +77,27 @@ These pairs were missing contracts, not intentional gaps:
 - `docs/user/commands.md` command headings ↔ `check` / `related` / `context` /
   `graph` (`run` remains on Command dispatch)
 - `docs/specs/diagnostics.md#unlinked-doc-sections` ↔ `resolveLinks`
+- `src/core/typescript.ts#scanTypeScript` ↔ `docs/specs/scanning.md#typescript-members`
+- `src/core/links.ts#parseLinkTarget` ↔ `docs/user/annotations.md#code-to-documentation`
+- `src/core/context.ts#context` and `src/core/related.ts#related` ↔
+  `docs/user/agent-integration.md#editing-workflow`
+- `src/core/glob.ts#collectFiles` ↔ `docs/user/configuration.md#excluded-files`
+- `src/core/types.ts#DocBridgeDiagnostic` ↔ `docs/specs/diagnostics.md#diagnostics`
+- `src/core/config.ts#DocBridgeConfig` ↔ `docs/specs/configuration.md#configuration`
+- `src/core/project-scan.ts#scanProject` ↔ `docs/specs/scanning.md#scanning`
+- `src/core/code-scanner.ts#CodeLanguageAdapter` ↔
+  `docs/specs/scanning.md#code-scanning`
+- `src/core/graph.ts#buildLinkGraph` ↔
+  `docs/specs/lsp.md#navigation-and-resolvable-one-way-links`
+- `src/lsp/server.ts#runLspServer` ↔ `docs/specs/lsp.md#cli`
 
-## Follow-up clusters
+## Native scanner specifications
 
-The baseline class `actionable_follow_up` marks remaining high-value gaps that
-need their own reviewable change. They are not ignored; they are deferred:
+Swift, Dart, and Rust scanning headings stay unlinked. Their implementations live
+in `packages/*-scanner`, which are outside `include.code`. The in-scope
+TypeScript worker helper is the same adapter factory for every language, so
+pointing all three headings at it would be a false relationship. Expanding
+`include.code` to the native packages needs separate maintainer approval.
 
-- Language scanner spec sections (`docs/specs/scanning.md` Swift, Dart, and
-  Rust). The native scanner packages are outside `include.code`.
-- `docs/specs/scanning.md#typescript-members`
-- Remaining user-document task sections:
-  `docs/user/annotations.md#code-to-documentation`,
-  `docs/user/agent-integration.md#editing-workflow`,
-  `docs/user/configuration.md#excluded-files`
-- Type and config contracts: `DocBridgeDiagnostic`, `DocBridgeConfig`,
-  `scanProject`, `CodeLanguageAdapter`, `buildLinkGraph`, `runLspServer`
+Those three headings are classified `structural_doc`. The baseline class
+`actionable_follow_up` remains valid for a later deferred gap; none are open.

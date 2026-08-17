@@ -273,11 +273,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scanner.ts#CodeLanguageAdapter",
-      "class": "actionable_follow_up"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/code-scanner.ts#CodeScanOptions",
       "class": "sibling_export"
     },
@@ -285,11 +280,6 @@
       "code": "undocumented_symbol",
       "target": "src/core/config.ts#CONFIG_FILE_NAME",
       "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/config.ts#DocBridgeConfig",
-      "class": "actionable_follow_up"
     },
     {
       "code": "undocumented_symbol",
@@ -395,11 +385,6 @@
       "code": "undocumented_symbol",
       "target": "src/core/graph-output.ts#formatGraphResult",
       "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/graph.ts#buildLinkGraph",
-      "class": "actionable_follow_up"
     },
     {
       "code": "undocumented_symbol",
@@ -548,11 +533,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/project-scan.ts#scanProject",
-      "class": "actionable_follow_up"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/related.ts#computeRelated",
       "class": "sibling_export"
     },
@@ -678,11 +658,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#DocBridgeDiagnostic",
-      "class": "actionable_follow_up"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/types.ts#DocHeadingOutline",
       "class": "internal_helper"
     },
@@ -793,11 +768,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/server.ts#runLspServer",
-      "class": "actionable_follow_up"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/lsp/server.ts#SendFn",
       "class": "sibling_export"
     },
@@ -809,11 +779,6 @@
     {
       "code": "unlinked_doc_section",
       "target": "docs/specs/annotations.md#annotations",
-      "class": "structural_doc"
-    },
-    {
-      "code": "unlinked_doc_section",
-      "target": "docs/specs/lsp.md#cli",
       "class": "structural_doc"
     },
     {
@@ -844,32 +809,22 @@
     {
       "code": "unlinked_doc_section",
       "target": "docs/specs/scanning.md#dart-scanning",
-      "class": "actionable_follow_up"
+      "class": "structural_doc"
     },
     {
       "code": "unlinked_doc_section",
       "target": "docs/specs/scanning.md#rust-scanning",
-      "class": "actionable_follow_up"
+      "class": "structural_doc"
     },
     {
       "code": "unlinked_doc_section",
       "target": "docs/specs/scanning.md#swift-scanning",
-      "class": "actionable_follow_up"
-    },
-    {
-      "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#typescript-members",
-      "class": "actionable_follow_up"
+      "class": "structural_doc"
     },
     {
       "code": "unlinked_doc_section",
       "target": "docs/user/agent-integration.md#ci",
       "class": "structural_doc"
-    },
-    {
-      "code": "unlinked_doc_section",
-      "target": "docs/user/agent-integration.md#editing-workflow",
-      "class": "actionable_follow_up"
     },
     {
       "code": "unlinked_doc_section",
@@ -883,18 +838,8 @@
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/annotations.md#code-to-documentation",
-      "class": "actionable_follow_up"
-    },
-    {
-      "code": "unlinked_doc_section",
       "target": "docs/user/commands.md#common-options",
       "class": "structural_doc"
-    },
-    {
-      "code": "unlinked_doc_section",
-      "target": "docs/user/configuration.md#excluded-files",
-      "class": "actionable_follow_up"
     },
     {
       "code": "unlinked_doc_section",

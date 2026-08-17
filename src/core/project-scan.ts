@@ -49,7 +49,11 @@ export function scanProject(
 export function scanProject(
   options: ScanProjectBaseOptions & { buildGraph?: false; keepContent?: false },
 ): ScanProjectOutcome<ProjectScan>;
-/** Load configuration, scan every managed file, and optionally retain derived artifacts. */
+/**
+ * Load configuration, scan every managed file, and optionally retain derived artifacts.
+ *
+ * @doc docs/specs/scanning.md#scanning
+ */
 export function scanProject(
   options: ScanProjectOptions,
 ): ScanProjectOutcome<ProjectScan & Partial<ProjectScanWithGraph & ProjectScanWithContent>> {

@@ -1,3 +1,5 @@
+<!-- @code src/core/types.ts#DocBridgeDiagnostic -->
+
 # Diagnostics
 
 DocBridge v0.1 diagnostics have this JSON shape:

@@ -75,6 +75,7 @@ export function matchGlob(pattern: string, relativePath: string): boolean {
  * `.d.ts` files, which would otherwise match textually.
  *
  * @doc docs/specs/scanning.md#file-collection
+ * @doc docs/user/configuration.md#excluded-files
  */
 export function collectFiles(projectRoot: string, patterns: string[]): string[] {
   const matched = new Set<string>();

@@ -36,6 +36,8 @@ Declare documentation patterns and at least one supported code language:
 Supported language keys are `typescript`, `swift`, `dart`, and `rust`. A project can
 enable more than one language, each with its own patterns.
 
+<!-- @code src/core/glob.ts#collectFiles -->
+
 ## Excluded files
 
 The configuration has no `exclude` property. Narrow the include patterns when

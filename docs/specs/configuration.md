@@ -1,3 +1,5 @@
+<!-- @code src/core/config.ts#DocBridgeConfig -->
+
 # Configuration
 
 DocBridge reads a required `docbridge.config.json` file from the project root.

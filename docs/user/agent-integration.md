@@ -22,6 +22,9 @@ Use `claude` or `both` for other supported targets. The command installs the
 adoption skill and prints the next command or prompt; it does not launch an
 agent process.
 
+<!-- @code src/core/context.ts#context -->
+<!-- @code src/core/related.ts#related -->
+
 ## Editing workflow
 
 Before changing a linked file, provide its counterpart content:
