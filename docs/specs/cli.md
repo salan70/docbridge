@@ -56,6 +56,8 @@ docbridge.config.json error config_file_invalid - Failed to parse config file.
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
 
+<!-- @code src/cli/errors.ts#formatCliError -->
+
 ## Error guidance
 
 CLI invocation errors keep the failure on the first line and append the next
@@ -160,6 +162,7 @@ for the full description.
 `docbridge --version` output is unaffected: it stays exactly `<version>\n`.
 
 <!-- @code src/cli/index.ts#run -->
+<!-- @code src/core/resolver.ts#check -->
 
 ## Check Command
 

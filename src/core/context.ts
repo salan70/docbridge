@@ -102,6 +102,7 @@ type ContextOutcome =
  * suppress them.
  *
  * @doc docs/specs/cli.md#context-command
+ * @doc docs/user/commands.md#context-read-counterpart-content
  */
 export function context(options: ContextOptions): ContextOutcome {
   const outcome = scanProject({

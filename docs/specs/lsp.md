@@ -8,6 +8,8 @@ change `docbridge check`.
 
 Rationale and scope decisions live in [v0.2 Decisions](../decisions/v0.2.md).
 
+<!-- @code src/lsp/transport.ts#encodeMessage -->
+
 ## Transport
 
 The server speaks LSP (JSON-RPC 2.0) over stdio. It reads requests from stdin and

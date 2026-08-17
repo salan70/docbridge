@@ -94,6 +94,7 @@ export function configRepairGuidance(): string {
  * Render a CLI invocation error with its stable first-line prefix.
  *
  * @doc docs/user/troubleshooting.md#cli-invocation-errors
+ * @doc docs/specs/cli.md#error-guidance
  */
 export function formatCliError(error: unknown): string {
   if (!(error instanceof CliError)) {

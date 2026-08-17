@@ -7,6 +7,8 @@ const CONTENT_LENGTH_HEADER = "content-length";
  * The frame is the LSP base protocol envelope: a `Content-Length` header whose
  * value is the UTF-8 byte length of the body, a blank line (`\r\n\r\n`), and the
  * UTF-8 encoded JSON body.
+ *
+ * @doc docs/specs/lsp.md#transport
  */
 export function encodeMessage(message: unknown): Buffer {
   const body = Buffer.from(JSON.stringify(message), "utf8");

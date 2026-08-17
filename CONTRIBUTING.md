@@ -117,15 +117,16 @@ just build
 
 Run additional checks when the affected area requires them:
 
-| Area               | Commands                                              |
-| ------------------ | ----------------------------------------------------- |
-| Swift scanner      | `just test-swift-scanner`, `just build-swift-scanner` |
-| Dart scanner       | `just test-dart-scanner`, `just build-dart-scanner`   |
-| TypeScript example | `just check-example`                                  |
-| Swift example      | `just check-swift-example`                            |
-| Dart example       | `just check-dart-example`                             |
-| npm distribution   | `just verify-dist`                                    |
-| VS Code extension  | `just package-vsix`, `just verify-vsix`               |
+| Area                  | Commands                                                  |
+| --------------------- | --------------------------------------------------------- |
+| Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`     |
+| Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
+| TypeScript example    | `just check-example`                                      |
+| Swift example         | `just check-swift-example`                                |
+| Dart example          | `just check-dart-example`                                 |
+| npm distribution      | `just verify-dist`                                        |
+| VS Code extension     | `just package-vsix`, `just verify-vsix`                   |
+| Repository self-audit | `just check-audit-baseline` (also covered by `just test`) |
 
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.
@@ -157,6 +158,7 @@ the Bun integration tests. Rebuild both after changing worker code with
 ## Project references
 
 - [Testing](docs/contributing/testing.md)
+- [Self-audit](docs/contributing/self-audit.md)
 - [Commit messages](docs/contributing/commits.md)
 - [Pull requests](docs/contributing/pull-requests.md)
 - [Specifications](docs/specs)

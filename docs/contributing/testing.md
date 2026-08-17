@@ -54,6 +54,16 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just check-dart-example` verifies the Dart example under `examples/dart`.
 - `just check-rust-example` verifies the Rust example under `examples/rust`.
 
+## Repository self-audit
+
+`just test` compares live `check --audit` keys against
+[`test-fixtures/self-audit/baseline.json`](../../test-fixtures/self-audit/baseline.json).
+The comparison is keyed by diagnostic code and canonical target. Policy for
+which endpoints must participate, and how to refresh the baseline, lives in
+[Self-audit](self-audit.md). Run `just check-audit-baseline` for a focused
+mismatch report. Do not add `just audit` to `just verify`; audit warnings stay
+informational at the CLI boundary.
+
 ## Notes
 
 - Colocated test files never reach `dist/`: `bun build` starts from the CLI

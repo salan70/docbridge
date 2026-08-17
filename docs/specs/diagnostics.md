@@ -87,6 +87,8 @@ Exit code policy:
 - exit `1` when any error exists
 - exit `0` when diagnostics contain only warnings or no diagnostics
 
+<!-- @code src/core/resolver.ts#resolveLinks -->
+
 ## Unlinked Doc Sections
 
 `unlinked_doc_section` reports documentation sections in the configured `include.docs` scope that carry no `@code` annotation. It is located at the heading and targets the heading's `file#anchor` endpoint.
