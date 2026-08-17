@@ -11,6 +11,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
@@ -121,6 +122,26 @@ export function serverBundleCommand(): string[] {
   return ["bun", "build", "src/cli/index.ts", "--outdir", "dist", "--target", "node"];
 }
 
+/**
+ * Bundles the editor client so `vscode-languageclient` is inlined. vsce is
+ * invoked with `--no-dependencies`, which does not pack `node_modules`.
+ */
+export function extensionBundleCommand(): string[] {
+  return [
+    "bun",
+    "build",
+    "src/extension.ts",
+    "--outfile",
+    "out/extension.js",
+    "--target",
+    "node",
+    "--format",
+    "cjs",
+    "--external",
+    "vscode",
+  ];
+}
+
 export function packageVsix(root: string = repoRoot): string {
   assertReleaseInputs(root);
   const rootPackage = readJson<RootPackage>(join(root, "package.json"));
@@ -146,6 +167,7 @@ export function packageVsix(root: string = repoRoot): string {
   cpSync(preserveBin, join(root, "dist/bin"), { recursive: true });
   run(["bun", "run", "scripts/verify-dist.ts"], root);
   run(["bun", "run", "compile"], extensionRoot);
+  run(extensionBundleCommand(), extensionRoot);
 
   rmSync(stageRoot, { recursive: true, force: true });
   rmSync(outDir, { recursive: true, force: true });
@@ -186,6 +208,7 @@ export function verifyExpandedVsix(expandedRoot: string, options: VerifyOptions 
   assertFile(extensionRoot, "LICENSE.txt");
   assertFile(extensionRoot, "assets/icon.png");
   assertFile(extensionRoot, "out/extension.js");
+  assertLanguageClient(extensionRoot);
   assertFile(extensionRoot, "server/package.json");
   assertFile(extensionRoot, "server/README.md");
   assertFile(extensionRoot, "server/CHANGELOG.md");
@@ -230,7 +253,6 @@ function stageExtension(
   copyPath(join(root, "LICENSE"), join(stageRoot, "LICENSE"));
   copyPath(join(extensionRoot, "out"), join(stageRoot, "out"));
   copyPath(join(extensionRoot, "assets"), join(stageRoot, "assets"));
-  copyPath(join(extensionRoot, "node_modules"), join(stageRoot, "node_modules"));
 
   const serverRoot = join(stageRoot, "server");
   copyPath(join(root, "package.json"), join(serverRoot, "package.json"));
@@ -250,6 +272,18 @@ function assertRequiredScannerBinaries(binRoot: string): void {
         throw new Error(`${relativePath(process.cwd(), scannerPath)} is required.`);
       }
       assertExecutable(scannerPath);
+    }
+  }
+}
+
+function assertLanguageClient(extensionRoot: string): void {
+  const extensionJs = join(extensionRoot, "out/extension.js");
+  try {
+    createRequire(extensionJs).resolve("vscode-languageclient/node");
+  } catch {
+    const source = readFileSync(extensionJs, "utf8");
+    if (/\brequire\(\s*["']vscode-languageclient\/node["']\s*\)/.test(source)) {
+      throw new Error("vscode-languageclient/node is required in the VSIX.");
     }
   }
 }

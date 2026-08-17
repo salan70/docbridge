@@ -7,6 +7,7 @@ import {
   assertReleaseInputs,
   buildReleaseManifest,
   defaultVsixPath,
+  extensionBundleCommand,
   serverBundleCommand,
   verifyExpandedVsix,
   vscodeMarketplacePublishCommand,
@@ -101,6 +102,20 @@ describe("verifyExpandedVsix", () => {
       ["bun", "server/dist/index.js", "check", "--root", ".verify-fixture"],
     ]);
   });
+
+  test("rejects an extension that requires vscode-languageclient without shipping it", () => {
+    const expandedRoot = mkdtempSync(join(tmpdir(), "docbridge-vsix-expanded-"));
+    const extensionRoot = join(expandedRoot, "extension");
+    createExpandedVsixFixture(extensionRoot);
+    writeFileSync(
+      join(extensionRoot, "out/extension.js"),
+      '"use strict";\nrequire("vscode-languageclient/node");\n',
+    );
+
+    expect(() => verifyExpandedVsix(expandedRoot, { run() {} })).toThrow(
+      "vscode-languageclient/node is required in the VSIX",
+    );
+  });
 });
 
 describe("defaultVsixPath", () => {
@@ -121,6 +136,24 @@ describe("serverBundleCommand", () => {
       "dist",
       "--target",
       "node",
+    ]);
+  });
+});
+
+describe("extensionBundleCommand", () => {
+  test("bundles the editor client for Node and leaves vscode to the editor host", () => {
+    expect(extensionBundleCommand()).toEqual([
+      "bun",
+      "build",
+      "src/extension.ts",
+      "--outfile",
+      "out/extension.js",
+      "--target",
+      "node",
+      "--format",
+      "cjs",
+      "--external",
+      "vscode",
     ]);
   });
 });

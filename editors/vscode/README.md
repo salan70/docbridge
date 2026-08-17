@@ -10,29 +10,24 @@ repository. The server and `src/core/` do not depend on it.
 
 ## Install
 
-Once the extension is published, install `salan70.docbridge` from VS Code
-Marketplace. Open VSX delivery is out of scope.
+Install [DocBridge](https://marketplace.visualstudio.com/items?itemName=salan70.docbridge)
+(`salan70.docbridge`) from VS Code Marketplace in VS Code or Cursor. Open VSX
+delivery is out of scope.
 
-Until the first registry publish is complete, build and install the VSIX
-manually:
+To install a locally built VSIX instead, use **Extensions: Install from
+VSIX...** or a compatible editor CLI:
 
 ```sh
 just package-vsix
 just verify-vsix
+code --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
+cursor --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
 ```
 
 The VSIX is written to:
 
 ```text
 editors/vscode/.tmp/out/docbridge-<version>.vsix
-```
-
-Install that file through **Extensions: Install from VSIX...** in VS Code or
-with a compatible editor CLI:
-
-```sh
-code --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
-cursor --install-extension editors/vscode/.tmp/out/docbridge-<version>.vsix
 ```
 
 ## Requirements
@@ -78,8 +73,8 @@ start `docbridge lsp`, or the startup error.
 
 ## Manual Publishing
 
-The first extension publication is intentionally manual. CI/CD publishing can be
-added after the registry flow is proven.
+Registry publication is currently manual. CI/CD publishing can be added after
+the registry flow is proven.
 
 Before packaging, place the extension icon at:
 
@@ -108,6 +103,10 @@ Build and verify the VSIX:
 just package-vsix
 just verify-vsix
 ```
+
+`just package-vsix` bundles `vscode-languageclient` into `out/extension.js`.
+vsce packs with `--no-dependencies`, so an unbundled `require()` of that module
+would fail at activation.
 
 Publish the verified artifact to VS Code Marketplace:
 
