@@ -44,6 +44,7 @@ Use the repo-native commands in `justfile`:
 - `just check-example`
 - `just check-example-json`
 - `just audit`
+- `just check-audit-baseline`
 - `just check-fixture <code>`
 - `just test`
 - `just typecheck`
