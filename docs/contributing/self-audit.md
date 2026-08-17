@@ -84,14 +84,10 @@ need their own reviewable change. They are not ignored; they are deferred:
 
 - Language scanner spec sections (`docs/specs/scanning.md` Swift, Dart, and
   Rust). The native scanner packages are outside `include.code`.
-  [#120](https://github.com/salan70/docbridge/issues/120)
 - `docs/specs/scanning.md#typescript-members`
-  [#121](https://github.com/salan70/docbridge/issues/121)
 - Remaining user-document task sections:
   `docs/user/annotations.md#code-to-documentation`,
   `docs/user/agent-integration.md#editing-workflow`,
   `docs/user/configuration.md#excluded-files`
-  [#122](https://github.com/salan70/docbridge/issues/122)
 - Type and config contracts: `DocBridgeDiagnostic`, `DocBridgeConfig`,
   `scanProject`, `CodeLanguageAdapter`, `buildLinkGraph`, `runLspServer`
-  [#123](https://github.com/salan70/docbridge/issues/123)
