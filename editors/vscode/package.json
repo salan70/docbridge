@@ -1,7 +1,7 @@
 {
   "name": "docbridge",
   "displayName": "DocBridge",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Language Server support for DocBridge documentation links.",
   "categories": [
     "Linters",

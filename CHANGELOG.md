@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-18
+
 ### Added
 
 - The VS Code-compatible extension `salan70.docbridge` is published on Visual
@@ -349,7 +351,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/salan70/docbridge/releases/tag/v0.8.0
 [0.7.0]: https://github.com/salan70/docbridge/releases/tag/v0.7.0
 [0.6.1]: https://github.com/salan70/docbridge/releases/tag/v0.6.1
 [0.6.0]: https://github.com/salan70/docbridge/releases/tag/v0.6.0
