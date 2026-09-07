@@ -30,10 +30,17 @@ body:
     validations:
       required: true
   - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Compare only viable alternatives that could change the decision and state why they were not chosen.
+    validations:
+      required: true
+  - type: textarea
     id: boundaries
     attributes:
       label: Boundaries
-      description: Name what must change and only the exclusions needed to prevent likely scope drift.
+      description: Name what must change, the compatibility risks, and only the exclusions needed to prevent likely scope drift.
     validations:
       required: true
   - type: textarea
@@ -47,4 +54,4 @@ body:
     id: notes
     attributes:
       label: Notes
-      description: Add alternatives, compatibility risks, examples, or links only when they affect the decision.
+      description: Add examples or links only when they affect the decision.

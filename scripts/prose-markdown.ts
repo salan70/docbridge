@@ -11,10 +11,7 @@ export type ProseBlock = {
 
 /** Use Markdown structure so comments and code cannot change each other's boundaries. */
 export function readProseBlocks(source: string): ProseBlock[] {
-  const withoutFrontmatter = source.replace(
-    /^\uFEFF?---[ \t]*\r?\n(?:[^\n]*\n)*?(?:---|\.\.\.)[ \t]*(?=\r?\n|$)/,
-    (frontmatter) => frontmatter.replace(/[^\n]/g, ""),
-  );
+  const withoutFrontmatter = stripFrontmatter(source);
   const tokens = new MarkdownIt({ html: true, linkify: true }).parse(withoutFrontmatter, {});
   const blocks: ProseBlock[] = [];
   for (const [index, token] of tokens.entries()) {
@@ -28,6 +25,27 @@ export function readProseBlocks(source: string): ProseBlock[] {
     }
   }
   return blocks;
+}
+
+function stripFrontmatter(source: string): string {
+  const match = /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)^(?:---|\.\.\.)[ \t]*\r?(?=\n|$)/m.exec(source);
+  if (match === null || !isYamlObject(match[1] ?? "")) {
+    return source;
+  }
+  return (
+    source.slice(0, match.index) +
+    match[0].replace(/[^\n]/g, "") +
+    source.slice(match.index + match[0].length)
+  );
+}
+
+function isYamlObject(source: string): boolean {
+  try {
+    const value: unknown = Bun.YAML.parse(source);
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  } catch {
+    return false;
+  }
 }
 
 function readInlineText(tokens: MarkdownToken[]): Pick<ProseBlock, "text" | "countableText"> {

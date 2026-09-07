@@ -159,7 +159,7 @@ function sentenceWords(source: string): string[][] {
   let start = 0;
   for (const match of source.matchAll(/[.!?]+["'”’)\]]*(?:\s+|$)/g)) {
     const prefix = source.slice(Math.max(0, match.index - 8), match.index + 1);
-    if (/\b(?:e\.g|i\.e|vs|mr|mrs|ms|dr|prof|fig|no)\.$/i.test(prefix)) {
+    if (/\b(?:e\.g|i\.e|mr|mrs|dr|prof)\.$/i.test(prefix)) {
       continue;
     }
     const end = match.index + match[0].length;

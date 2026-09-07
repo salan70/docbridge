@@ -44,6 +44,7 @@ Use the repo-native commands in `justfile`:
 - `just check-example`
 - `just check-example-json`
 - `just check-docs`
+- `just prose-report <kind> <source>`
 - `just audit`
 - `just check-audit-baseline`
 - `just check-fixture <code>`
@@ -88,9 +89,9 @@ Implementation plans live under `docs/plans/` and track their slices in a
 
 The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
 When creating an issue, use the form that matches the work content and provide
-all of its fields. Non-trivial work begins only after the issue receives the
-`status: accepted` label; the author or implementer identity is not an
-exception.
+its required information. Leave an optional field empty when it has no new
+information. Non-trivial work begins only after the issue receives the `status:
+accepted` label; the author or implementer identity is not an exception.
 
 ## Local Guardrails
 

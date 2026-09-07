@@ -36,7 +36,15 @@ test.each([
   ],
   [
     ".github/ISSUE_TEMPLATE/feature_proposal.yml",
-    ["existing-issues", "problem-evidence", "desired-outcome", "boundaries", "acceptance", "notes"],
+    [
+      "existing-issues",
+      "problem-evidence",
+      "desired-outcome",
+      "alternatives",
+      "boundaries",
+      "acceptance",
+      "notes",
+    ],
   ],
   [
     ".github/ISSUE_TEMPLATE/technical_proposal.yml",

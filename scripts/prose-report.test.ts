@@ -222,6 +222,37 @@ test("empty frontmatter cannot consume prose before a later thematic break", () 
   expect(report.wordCount).toBe(2);
 });
 
+test("a leading thematic break cannot consume prose before a later thematic break", () => {
+  const source = [
+    "---",
+    "",
+    "The check now runs in under one second on the reference project.",
+    "",
+    "A second paragraph that a reviewer needs to read carefully before approving.",
+    "",
+    "---",
+    "",
+    "Tail.",
+  ].join("\n");
+
+  const report = analyzeProse(source, "pull-request");
+
+  expect(report.wordCount).toBe(25);
+  expect(report.paragraphCount).toBe(3);
+});
+
+test("a sentence ending in a time unit still counts toward the paragraph limit", () => {
+  const source =
+    "The scan finished in 120 ms. Two words. Three words. Four words. Five words. Six words.";
+
+  expect(analyzeProse(source, "document").warnings).toContainEqual({
+    code: "paragraph-sentences",
+    line: 1,
+    actual: 6,
+    limit: 5,
+  });
+});
+
 test("new warnings include actionable locations and remain advisory at the command boundary", async () => {
   const stdout: string[] = [];
   const exitCode = await runProseReport(["document", "-"], {
