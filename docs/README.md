@@ -50,6 +50,7 @@ with the specification for the interface whose exact contract you need:
 ## Contribute to DocBridge
 
 - [Contributor guide](../CONTRIBUTING.md)
+- [Writing guidelines](contributing/writing.md)
 - [Documentation guidelines](contributing/documentation.md)
 - [Testing](contributing/testing.md)
 - [Commit messages](contributing/commits.md)

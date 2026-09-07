@@ -44,8 +44,11 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
 3. Implement test-first. For logic changes, use the `tdd` skill.
 4. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
    read-only `just verify` gate.
-5. Push the branch and open a PR using the repository PR template. Write the PR
-   title per
+5. Before publishing the PR body, use the `concise-writing` skill and run
+   `just prose-report pull-request <body-file>`. Describe the delivered result,
+   deviations, verification, and review guidance; link the accepted issue
+   instead of copying its background or acceptance criteria. Then push the
+   branch and open a PR using the repository template. Write the PR title per
    [pull-requests.md](../../../docs/contributing/pull-requests.md) and the body
    in English (see the Language Policy). For tracked work, put a plain-text
    `Closes #NN` in the Issue gate section — never wrap it in backticks, or

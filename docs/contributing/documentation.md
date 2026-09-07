@@ -51,14 +51,12 @@ verify semantic parity.
 
 ## Writing rules
 
-- Lead with the result the reader wants, then give the shortest safe path.
-- Keep one authoritative explanation per concept within each language.
-- Use one term for one concept and define unfamiliar terms on first use.
-- Prefer minimal commands and examples that a reader can run or adapt.
-- Separate task guidance from exhaustive contracts; link to the specification.
-- Keep roadmap, release history, and maintainer-only process out of user guides.
-- End each task guide with purposeful next steps rather than a general link dump.
-- Remove repeated prose when a precise link preserves the reader's context.
+Follow the repository [Writing Guidelines](writing.md). For documentation, also:
+
+- separate task guidance from exhaustive contracts and link to the specification;
+- keep roadmap, release history, and maintainer-only process out of user guides;
+- prefer minimal commands and examples that a reader can run or adapt; and
+- end each task guide with purposeful next steps rather than a general link dump.
 
 ## Structural checks
 

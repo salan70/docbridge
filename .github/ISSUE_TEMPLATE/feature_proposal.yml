@@ -16,63 +16,42 @@ body:
         - label: I searched open and closed issues and did not find the same feature proposal.
           required: true
   - type: textarea
-    id: problem
+    id: problem-evidence
     attributes:
-      label: Problem or use case
-      description: Describe the concrete need, affected users, and current limitation.
+      label: Problem and evidence
+      description: State the affected users, current limitation, and the shortest evidence that establishes the need.
     validations:
       required: true
   - type: textarea
-    id: evidence
+    id: desired-outcome
     attributes:
-      label: Evidence and context
-      description: Provide examples, workflows, or other evidence that establishes the need.
-    validations:
-      required: true
-  - type: textarea
-    id: desired-behavior
-    attributes:
-      label: Desired behavior
-      description: Describe the user-visible outcome without assuming a particular implementation.
-    validations:
-      required: true
-  - type: textarea
-    id: scope
-    attributes:
-      label: Proposed scope
-      description: Identify what should change.
-    validations:
-      required: true
-  - type: textarea
-    id: out-of-scope
-    attributes:
-      label: Out of scope
-      description: Identify adjacent behavior that should remain unchanged.
-    validations:
-      required: true
-  - type: textarea
-    id: acceptance-criteria
-    attributes:
-      label: Acceptance criteria
-      description: List observable conditions that would make the feature complete.
+      label: Desired outcome
+      description: Describe the observable user result without choosing an implementation.
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives considered
-      description: Explain existing features, workarounds, or smaller changes and why they are insufficient.
+      description: Compare only viable alternatives that could change the decision and state why they were not chosen.
     validations:
       required: true
   - type: textarea
-    id: compatibility
+    id: boundaries
     attributes:
-      label: Compatibility and risks
-      description: Identify compatibility constraints, migration concerns, or meaningful risks.
+      label: Boundaries
+      description: Name what must change, the compatibility risks, and only the exclusions needed to prevent likely scope drift.
     validations:
       required: true
   - type: textarea
-    id: additional-context
+    id: acceptance
     attributes:
-      label: Additional context
-      description: Add related specifications, examples, sketches, or implementation notes.
+      label: Acceptance criteria
+      description: List observable conditions that would make the feature complete.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add examples or links only when they affect the decision.

@@ -26,9 +26,14 @@ function withDocumentation(callback: (root: string) => void): void {
   const japaneseLinks = canonicalNames.map((name) => `[${name}](user/${name}.md)`).join("\n");
 
   write(root, "README.md", "[Documentation](docs/README.md)\n[日本語](docs/ja/README.md)\n");
-  write(root, "docs/README.md", `# Documentation\n\n${englishLinks}\n`);
+  write(
+    root,
+    "docs/README.md",
+    `# Documentation\n\n${englishLinks}\n[Writing](contributing/writing.md)\n`,
+  );
   write(root, "docs/ja/README.md", `# ドキュメント\n\n${japaneseLinks}\n`);
   write(root, "docs/contributing/documentation.md", "# Documentation Guidelines\n");
+  write(root, "docs/contributing/writing.md", "# Writing Guidelines\n");
   write(root, "editors/vscode/README.md", "# VS Code\n");
   for (const name of canonicalNames) {
     write(root, `docs/user/${name}.md`, `---\ndescription: Read ${name}.\n---\n\n# ${name}\n`);
@@ -68,6 +73,26 @@ test("checkDocumentation reports a canonical guide missing from navigation", () 
 
     expect(checkDocumentation(root)).toContain(
       "docs/README.md does not link to docs/user/commands.md",
+    );
+  });
+});
+
+test("checkDocumentation requires contributor writing guidance in navigation", () => {
+  withDocumentation((root) => {
+    write(root, "docs/README.md", "# Documentation\n");
+
+    expect(checkDocumentation(root)).toContain(
+      "docs/README.md does not link to docs/contributing/writing.md",
+    );
+  });
+});
+
+test("checkDocumentation validates links in the contributor writing guidance", () => {
+  withDocumentation((root) => {
+    write(root, "docs/contributing/writing.md", "# Writing\n\n[Missing](missing.md)\n");
+
+    expect(checkDocumentation(root)).toContain(
+      "docs/contributing/writing.md links to missing file: docs/contributing/missing.md",
     );
   });
 });

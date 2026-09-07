@@ -30,56 +30,35 @@ body:
     validations:
       required: true
   - type: textarea
-    id: problem
+    id: problem-constraints
     attributes:
       label: Problem and constraints
-      description: Describe the current technical problem, evidence, and constraints.
+      description: State the current technical problem, supporting evidence, and constraints once.
     validations:
       required: true
   - type: textarea
-    id: desired-outcome
+    id: proposal-tradeoffs
     attributes:
-      label: Desired outcome
-      description: Describe the technical outcome that should be achieved.
+      label: Proposal and tradeoffs
+      description: Describe the proposed technical outcome and compare only viable alternatives that change the decision.
     validations:
       required: true
   - type: textarea
-    id: scope
+    id: boundaries-compatibility
     attributes:
-      label: Proposed scope
-      description: Identify the components and contracts that should change.
+      label: Boundaries and compatibility
+      description: Identify affected contracts, necessary exclusions, migration concerns, and operational risks.
     validations:
       required: true
   - type: textarea
-    id: out-of-scope
+    id: acceptance-verification
     attributes:
-      label: Out of scope
-      description: Identify adjacent components and behavior that should remain unchanged.
+      label: Acceptance and verification
+      description: List observable completion conditions and how they will be verified.
     validations:
       required: true
   - type: textarea
-    id: acceptance-criteria
+    id: notes
     attributes:
-      label: Acceptance criteria
-      description: List observable technical and verification conditions for completion.
-    validations:
-      required: true
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternatives considered
-      description: Compare viable alternatives and explain their tradeoffs.
-    validations:
-      required: true
-  - type: textarea
-    id: compatibility
-    attributes:
-      label: Compatibility and risks
-      description: Identify migration, compatibility, performance, or operational risks.
-    validations:
-      required: true
-  - type: textarea
-    id: implementation-notes
-    attributes:
-      label: Implementation notes
-      description: Add a possible approach, related code, specifications, or staged rollout notes.
+      label: Notes
+      description: Add related code, specifications, or rollout details only when they are needed to evaluate the proposal.

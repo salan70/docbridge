@@ -16,56 +16,28 @@ body:
         - label: I searched open and closed issues and did not find the same maintenance task.
           required: true
   - type: textarea
-    id: objective
+    id: objective-evidence
     attributes:
-      label: Objective
-      description: State the concrete maintenance outcome.
+      label: Objective and evidence
+      description: State the concrete maintenance outcome and the shortest evidence that it is needed now.
     validations:
       required: true
   - type: textarea
-    id: background
+    id: boundaries
     attributes:
-      label: Background
-      description: Explain why the maintenance is needed now and provide supporting evidence.
+      label: Boundaries
+      description: Identify included artifacts and only the exclusions needed to prevent likely scope drift.
     validations:
       required: true
   - type: textarea
-    id: scope
+    id: acceptance-verification
     attributes:
-      label: Scope
-      description: Identify the files, systems, or artifacts included in the task.
+      label: Acceptance and verification
+      description: List observable completion conditions and the commands or inspections that verify them.
     validations:
       required: true
   - type: textarea
-    id: out-of-scope
+    id: risks
     attributes:
-      label: Out of scope
-      description: Identify adjacent work that is intentionally excluded.
-    validations:
-      required: true
-  - type: textarea
-    id: acceptance-criteria
-    attributes:
-      label: Acceptance criteria
-      description: List observable conditions that make the task complete.
-    validations:
-      required: true
-  - type: textarea
-    id: verification
-    attributes:
-      label: Verification
-      description: List the commands, inspections, or external checks that should verify completion.
-    validations:
-      required: true
-  - type: textarea
-    id: dependencies-risks
-    attributes:
-      label: Dependencies and risks
-      description: Identify prerequisites, coordination needs, rollback concerns, or risks.
-    validations:
-      required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: Add related issues, plans, release context, or implementation notes.
+      label: Risks
+      description: Add dependencies, coordination needs, or rollback concerns only when they affect execution.

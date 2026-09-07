@@ -96,6 +96,10 @@ check:
 check-docs:
     bun run scripts/check-docs.ts
 
+# Report advisory length and repetition signals without failing on warnings.
+prose-report kind source:
+    bun run scripts/prose-report.ts {{ kind }} {{ source }}
+
 check-example:
     bun run src/cli/index.ts check --root examples/typescript
 

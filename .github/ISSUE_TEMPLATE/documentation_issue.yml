@@ -15,51 +15,37 @@ body:
       options:
         - label: I searched open and closed issues and did not find the same documentation issue.
           required: true
-  - type: input
-    id: location
+  - type: textarea
+    id: location-audience
     attributes:
-      label: Location
-      description: Link or name the affected file, page, and section.
-      placeholder: docs/specs/cli.md#check-command
+      label: Location and audience
+      description: Identify the affected page or section and the reader who needs it.
+      placeholder: docs/specs/cli.md#check-command; CLI integrators
     validations:
       required: true
   - type: textarea
-    id: problem
+    id: problem-evidence
     attributes:
-      label: Documentation problem
-      description: Explain what is incorrect, missing, ambiguous, or poorly structured.
+      label: Problem and evidence
+      description: Explain the reader problem and cite the implementation, behavior, or other source of truth.
     validations:
       required: true
   - type: textarea
-    id: source-of-truth
+    id: reader-outcome
     attributes:
-      label: Evidence or source of truth
-      description: Link the implementation, specification, behavior, or other evidence that supports the correction.
+      label: Reader outcome
+      description: State what the reader should understand or be able to do after the correction.
     validations:
       required: true
   - type: textarea
-    id: desired-outcome
+    id: acceptance-counterparts
     attributes:
-      label: Desired outcome
-      description: Describe what readers should understand after the documentation is corrected.
+      label: Acceptance and counterparts
+      description: List observable completion conditions and name only the mirrored or linked pages that must stay aligned.
     validations:
       required: true
   - type: textarea
-    id: scope
+    id: notes
     attributes:
-      label: Proposed scope
-      description: Identify the documentation that should change and any mirrored pages that must stay aligned.
-    validations:
-      required: true
-  - type: textarea
-    id: acceptance-criteria
-    attributes:
-      label: Acceptance criteria
-      description: List the conditions that make the documentation change complete and verifiable.
-    validations:
-      required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: Add examples, screenshots, terminology concerns, or related issues.
+      label: Notes
+      description: Add examples, screenshots, terminology concerns, or links only when they add new information.

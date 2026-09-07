@@ -81,6 +81,11 @@ dependency updates and release pull requests. The identity of the issue author
 or implementer is never an exception. When uncertain, open the matching issue
 form and wait for acceptance before writing code.
 
+Follow the [Writing Guidelines](docs/contributing/writing.md). Each form field
+owns distinct information; link to an existing fact instead of paraphrasing it.
+Before publishing a body file, run `just prose-report issue <body-file>` and use
+its advisory warnings as editing prompts.
+
 ## Making a change
 
 1. Start from an up-to-date `main` branch and create a focused branch. Name it
@@ -151,6 +156,8 @@ the Bun integration tests. Rebuild both after changing worker code with
   template instead.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
+- Run `just prose-report pull-request <body-file>` before publishing and review
+  its advisory length and repetition warnings.
 - For every `just related-gate` finding, update the linked counterpart or
   explain in the pull request why no corresponding change is needed.
 - All changes land through a pull request. Maintainers merge with a merge
@@ -159,6 +166,7 @@ the Bun integration tests. Rebuild both after changing worker code with
 ## Project references
 
 - [Testing](docs/contributing/testing.md)
+- [Writing](docs/contributing/writing.md)
 - [Documentation](docs/contributing/documentation.md)
 - [Self-audit](docs/contributing/self-audit.md)
 - [Commit messages](docs/contributing/commits.md)

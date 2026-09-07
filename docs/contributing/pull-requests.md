@@ -66,6 +66,25 @@ Rules:
   in titles, and the pull request body already carries a plain-text closing
   keyword (see [Linking issues](#linking-issues)).
 
+## Pull request body
+
+Follow the repository [Writing Guidelines](writing.md) and the pull request
+template. Summarize the delivered result in no more than three bullets. Link the
+accepted issue instead of repeating its background or acceptance criteria.
+
+Record only checks that actually ran. Keep Review notes only for decisions or
+deviations not captured by the issue, remaining risks, or focused review
+guidance. Keep Linked counterparts only for actual gate findings and their
+content-based disposition.
+
+Before publishing a body file, run:
+
+```sh
+just prose-report pull-request <body-file>
+```
+
+Its length and repetition warnings are advisory.
+
 ## Linking issues
 
 Non-trivial pull requests link their accepted issue with a GitHub closing

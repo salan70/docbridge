@@ -44,6 +44,7 @@ Use the repo-native commands in `justfile`:
 - `just check-example`
 - `just check-example-json`
 - `just check-docs`
+- `just prose-report <kind> <source>`
 - `just audit`
 - `just check-audit-baseline`
 - `just check-fixture <code>`
@@ -88,9 +89,9 @@ Implementation plans live under `docs/plans/` and track their slices in a
 
 The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
 When creating an issue, use the form that matches the work content and provide
-all of its fields. Non-trivial work begins only after the issue receives the
-`status: accepted` label; the author or implementer identity is not an
-exception.
+its required information. Leave an optional field empty when it has no new
+information. Non-trivial work begins only after the issue receives the `status:
+accepted` label; the author or implementer identity is not an exception.
 
 ## Local Guardrails
 
@@ -126,6 +127,11 @@ When the user asks to review a PR, inspect a PR for defects, or post review find
 When branching, committing, pushing, opening or merging a PR, or cutting a release, use `.agents/skills/git-workflow/SKILL.md`.
 
 When a PR has review comments to triage, reply to, and resolve, use `.agents/skills/review-response/SKILL.md`.
+
+When creating, compressing, or reviewing an issue, pull request body, plan,
+documentation page, or release note, use
+`.agents/skills/concise-writing/SKILL.md`. The canonical writing rules live in
+`docs/contributing/writing.md`; do not duplicate them here.
 
 When a Git hook, CI comment, or `docbridge related --gate` run flags unchanged counterparts, use `.agents/skills/docbridge/SKILL.md` to triage them (sync). When asked whether the docs still match the code with no change set, use the same skill's review procedure.
 

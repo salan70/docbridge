@@ -17,6 +17,7 @@ const fixedActiveSurfaces = [
   "docs/README.md",
   "docs/ja/README.md",
   "docs/contributing/documentation.md",
+  "docs/contributing/writing.md",
   "editors/vscode/README.md",
 ] as const;
 
@@ -64,7 +65,7 @@ function checkNavigation(root: string, errors: string[]): void {
   checkEntryPoint(
     root,
     "docs/README.md",
-    canonicalGuideNames.map((name) => `docs/user/${name}.md`),
+    [...canonicalGuideNames.map((name) => `docs/user/${name}.md`), "docs/contributing/writing.md"],
     errors,
   );
   checkEntryPoint(

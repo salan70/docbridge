@@ -55,9 +55,9 @@ Implementation plans live under `docs/plans/`. Each plan tracks its slices in a
 
 The issue workflow in [CONTRIBUTING.md](CONTRIBUTING.md) applies to everyone.
 When creating an issue, use the form that matches the work content and provide
-all of its fields. Non-trivial work begins only after the issue receives the
-`status: accepted` label; the author or implementer identity is not an
-exception.
+its required information. Leave an optional field empty when it has no new
+information. Non-trivial work begins only after the issue receives the `status:
+accepted` label; the author or implementer identity is not an exception.
 
 ## Commands
 
@@ -74,6 +74,7 @@ Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 - `just check-example` — check the `examples/typescript` project
 - `just check-example-json` — check the example with JSON output
 - `just check-docs` — verify bilingual user-guide structure and local links
+- `just prose-report <kind> <source>` — report advisory prose metrics
 - `just audit` — run audit diagnostics
 - `just check-audit-baseline` — compare live `--audit` keys against the committed
   repository baseline
@@ -153,6 +154,10 @@ invoked directly with `/<skill-name>`.
   or human reviewers), act or justify per comment, then reply to and resolve
   every thread. Use it with `/review-response`, or when a PR has review feedback
   to address.
+- `concise-writing` — create, compress, or review issues, pull request bodies,
+  plans, documentation, and release notes without repeating facts owned by
+  another artifact. Use it for those writing tasks and follow the canonical
+  rules in `docs/contributing/writing.md`.
 - `docbridge` — adopt DocBridge, choose docs and code scope, add `@doc` /
   `@code` annotations, fix link diagnostics, triage `related --gate` findings,
   and review existing links for stale docs or semantic validity. Use it with
@@ -162,6 +167,9 @@ invoked directly with `/<skill-name>`.
 The distributable `docbridge` skill is a skill-level symlink from
 `.claude/skills/docbridge` to `templates/skills/docbridge`. Apply edits to the
 template; do not edit the symlink in place.
+
+The repository-only `concise-writing` skill is shared from
+`.agents/skills/concise-writing`; do not create a second copy for Claude.
 
 ## Language Policy
 
