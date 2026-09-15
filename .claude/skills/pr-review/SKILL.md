@@ -65,7 +65,7 @@ user explicitly asks for a local-only review or asks not to post comments.
 
 ## Inline Comment Template
 
-~~~~text
+````text
 P2: This [specific code behavior] causes [concrete failure mode].
 
 For example:
@@ -75,7 +75,7 @@ For example:
 ```
 
 Please [specific requested fix], so [expected contract or invariant].
-~~~~
+````
 
 ## GitHub API Reference
 

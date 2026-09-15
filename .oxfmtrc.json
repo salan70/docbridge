@@ -2,7 +2,7 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "embeddedLanguageFormatting": "auto",
   "endOfLine": "lf",
-  "ignorePatterns": ["test-fixtures/diagnostics/**", ".claude/skills/**"],
+  "ignorePatterns": ["test-fixtures/diagnostics/**"],
   "insertFinalNewline": true,
   "printWidth": 100,
   "proseWrap": "preserve",
