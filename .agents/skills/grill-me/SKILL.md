@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: 計画や設計について、共通理解に達するまで一問ずつ徹底的に質問する。
+description: 計画や設計について、共通理解に達するまで一問ずつ徹底的に質問する。Use when the user says grill me, grill して, 徹底的に詰めて, or asks to deeply examine a plan or design.
 ---
 
 # grill-me

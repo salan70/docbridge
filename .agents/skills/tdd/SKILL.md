@@ -3,13 +3,6 @@ name: tdd
 description: Guides t-wada Red-Green-Refactor TDD for DocBridge. Use when implementing features, fixing bugs, or refactoring logic with strict test-first development.
 ---
 
-<!--
-Example prompts:
-  /tdd
-  /tdd implement Markdown @code diagnostics
-  /tdd fix link resolution for relative documentation paths
--->
-
 # tdd
 
 Follow strict t-wada style Test-Driven Development for DocBridge code changes.

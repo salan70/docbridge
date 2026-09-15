@@ -3,13 +3,6 @@ name: pr-review
 description: Review a pull request from the reviewer side. Use when asked to review a PR, inspect a PR for bugs, or post review findings. By default, a PR review includes posting actionable inline review comments on the diff unless the user explicitly asks for a local-only review.
 ---
 
-<!--
-Example prompts:
-  $pr-review review PR #19
-  $pr-review inspect this pull request and leave findings
-  $pr-review post the review comments inline on the PR
--->
-
 # pr-review
 
 Review a pull request as a reviewer: identify real defects, verify them, and
