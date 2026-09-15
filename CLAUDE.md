@@ -4,8 +4,9 @@ This file provides guidance for Claude Code when working in this repository.
 
 This repo also ships an `AGENTS.md` for Codex and Codex-specific assets under
 `.agents/`. Treat `CLAUDE.md` plus `.claude/` as the Claude Code equivalents.
-Keep the two stacks in sync in intent, but do not copy Claude-specific
-instructions into Codex assets or vice versa.
+Keep the two stacks in sync in intent. `CLAUDE.md` and `AGENTS.md` address their
+own tool and stay separate files; the skills under `.agents/skills/` and
+`.claude/skills/` are shared content and stay identical (see [Skills](#skills)).
 
 ## Project Context
 
@@ -74,6 +75,7 @@ Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
 - `just check-example` — check the `examples/typescript` project
 - `just check-example-json` — check the example with JSON output
 - `just check-docs` — verify bilingual user-guide structure and local links
+- `just check-ai-assets` — verify that the Claude and Codex skill trees agree
 - `just prose-report <kind> <source>` — report advisory prose metrics
 - `just audit` — run audit diagnostics
 - `just check-audit-baseline` — compare live `--audit` keys against the committed
@@ -170,6 +172,11 @@ template; do not edit the symlink in place.
 
 The repository-only `concise-writing` skill is shared from
 `.agents/skills/concise-writing`; do not create a second copy for Claude.
+
+Every other skill exists as a separate copy under `.agents/skills/` and
+`.claude/skills/`. The two copies must stay byte-identical, so edit both in the
+same change; `just check-ai-assets` fails when they differ. Tool-specific
+guidance belongs in `CLAUDE.md` or `AGENTS.md`, never inside a skill body.
 
 ## Language Policy
 

@@ -88,13 +88,17 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check check-docs typecheck test
+verify: format-check lint check check-docs check-ai-assets typecheck test
 
 check:
     bun run src/cli/index.ts check
 
 check-docs:
     bun run scripts/check-docs.ts
+
+# Fail when the Claude and Codex skill trees have drifted apart.
+check-ai-assets:
+    bun run scripts/check-ai-assets.ts
 
 # Report advisory length and repetition signals without failing on warnings.
 prose-report kind source:
