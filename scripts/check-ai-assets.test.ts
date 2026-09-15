@@ -76,6 +76,15 @@ test("checkAiAssets reports a file that exists in only one copy of a duplicated 
   });
 });
 
+test("checkAiAssets reports a duplicated skill that was replaced by a symlink", () => {
+  withAiAssets((root) => {
+    rmSync(join(root, ".claude/skills/tdd"), { recursive: true, force: true });
+    symlinkSync("../../.agents/skills/tdd", join(root, ".claude/skills/tdd"));
+
+    expect(checkAiAssets(root)).toEqual([".claude/skills/tdd must be a directory, not a symlink."]);
+  });
+});
+
 test("checkAiAssets reports a skill that exists in only one tree", () => {
   withAiAssets((root) => {
     write(root, ".claude/skills/grill-me/SKILL.md", skill("grill-me"));
@@ -144,6 +153,30 @@ test("checkAiAssets reports every configuration that excludes a skill tree", () 
 
     expect(checkAiAssets(root)).toEqual([
       '.oxlintrc.json excludes ".claude/skills/**"; both skill trees must stay formatted and linted.',
+    ]);
+  });
+});
+
+test("checkAiAssets reports an exclusion glob that covers a skill tree", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      ".oxfmtrc.json",
+      `${JSON.stringify({ ignorePatterns: [".claude/**"] }, null, 2)}\n`,
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      '.oxfmtrc.json excludes ".claude/**"; both skill trees must stay formatted and linted.',
+    ]);
+  });
+});
+
+test("checkAiAssets reports an exclusion that names a skill tree directory", () => {
+  withAiAssets((root) => {
+    write(root, ".rumdl.toml", '[global]\ndisable = ["MD013"]\nexclude = [".agents/skills"]\n');
+
+    expect(checkAiAssets(root)).toEqual([
+      '.rumdl.toml excludes ".agents/skills"; both skill trees must stay formatted and linted.',
     ]);
   });
 });

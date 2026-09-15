@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
 const codexTree = ".agents/skills";
@@ -59,12 +59,23 @@ function checkDuplicatedSkills(root: string, errors: string[]): void {
 }
 
 function compareSkill(root: string, name: string, errors: string[]): void {
+  if (isSharedSkill(name)) {
+    return;
+  }
+
+  const symlinks = [`${codexTree}/${name}`, `${claudeTree}/${name}`].filter((skillPath) =>
+    isSymbolicLink(join(root, skillPath)),
+  );
+  if (symlinks.length > 0) {
+    for (const skillPath of symlinks) {
+      errors.push(`${skillPath} must be a directory, not a symlink.`);
+    }
+    return;
+  }
+
   const codexDirectory = resolvePath(root, `${codexTree}/${name}`);
   const claudeDirectory = resolvePath(root, `${claudeTree}/${name}`);
   if (codexDirectory === undefined || claudeDirectory === undefined) {
-    return;
-  }
-  if (codexDirectory === claudeDirectory) {
     return;
   }
 
@@ -95,13 +106,35 @@ function checkExclusions(root: string, errors: string[]): void {
         ? jsonPatterns(content, config.key)
         : tomlPatterns(content, config.key);
     for (const pattern of patterns) {
-      if (pattern.includes(codexTree) || pattern.includes(claudeTree)) {
+      if (coversSkillTree(pattern)) {
         errors.push(
           `${config.path} excludes ${JSON.stringify(pattern)}; both skill trees must stay formatted and linted.`,
         );
       }
     }
   }
+}
+
+/**
+ * Report whether an ignore pattern would hide part of a skill tree. A pattern
+ * covers a tree when it matches a file inside it, or when it names one of its
+ * parent directories, so a broad glob such as `.claude/**` is caught too.
+ */
+function coversSkillTree(pattern: string): boolean {
+  const probes = [codexTree, claudeTree].flatMap((tree) => [
+    `${tree}/probe/SKILL.md`,
+    `${tree}/probe/references/probe.md`,
+  ]);
+  try {
+    const glob = new Bun.Glob(pattern);
+    if (probes.some((probe) => glob.match(probe))) {
+      return true;
+    }
+  } catch {
+    // An unparsable pattern still gets the directory-prefix test below.
+  }
+  const directory = pattern.replace(/\/\*+$/, "");
+  return probes.some((probe) => probe.startsWith(`${directory}/`));
 }
 
 function jsonPatterns(content: string, key: string): string[] {
@@ -165,6 +198,22 @@ function isDirectory(path: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isSymbolicLink(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+/** Report whether either tree declares this skill as shared instead of duplicated. */
+function isSharedSkill(name: string): boolean {
+  return (
+    sharedSkills[`${codexTree}/${name}`] !== undefined ||
+    sharedSkills[`${claudeTree}/${name}`] !== undefined
+  );
 }
 
 function readTextFile(path: string): string | undefined {
