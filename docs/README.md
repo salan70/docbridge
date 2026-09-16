@@ -57,6 +57,7 @@ with the specification for the interface whose exact contract you need:
 - [Commit messages](contributing/commits.md)
 - [Pull requests](contributing/pull-requests.md)
 - [Self-audit baseline](contributing/self-audit.md)
+- [Dogfooding review, September 2026](reports/2026-09-dogfooding-review.md)
 
 Architectural choices are recorded in [Decisions](decisions/v0.1.md).
 Completed delivery records are archived under
