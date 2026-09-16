@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Packaged user documentation is consolidated into six task-oriented names:
   `getting-started`, `configuration`, `linking`, `commands`, `automation`, and
   `troubleshooting`.
+- `just vscode-lsp` and `just cursor-lsp` build their VSIX with the same
+  implementation release packaging uses, in a local mode that requires only the
+  host platform's staged scanner binaries. Release packaging still requires
+  every supported platform.
 
 ### Deprecated
 
@@ -48,6 +52,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resolve to `linking`, while `agent-integration` resolves to `automation`.
   These hidden compatibility names warn on stderr and will be removed in
   v0.10.0.
+
+### Fixed
+
+- The locally installed editor extension shipped a raw `src/` tree without
+  `ajv` or `schemas/`, which the bundled server's imports need, so its language
+  server could not start. Both installation helpers and release packaging now
+  ship the same bundled server. `just verify-vsix` additionally initializes the
+  packaged language server outside the checkout, exercises a linked
+  TypeScript/Markdown fixture, and rejects an artifact carrying a source tree or
+  test files.
+- A type error in the editor client now fails required CI. `just verify` and the
+  CI gate run `just typecheck-extension`, which covers the separate TypeScript
+  project the root `tsconfig.json` excludes.
 
 ## [0.8.0] - 2026-08-18
 
