@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -60,6 +60,52 @@ test("hover on a linked symbol reaches the Markdown section it documents", async
   );
 
   expect(hover?.contents?.value).toContain("Auth Service");
+});
+
+describe("a server that never answers", () => {
+  test("fails the pending request when the process exits first", async () => {
+    const dead = startLspSession(["bun", "-e", "process.exit(23)"], repoRoot);
+
+    await expect(dead.initialize(repoRoot)).rejects.toThrow(
+      "Language server exited with code 23 before replying to initialize.",
+    );
+  });
+
+  test("fails the pending request when the command cannot be spawned", async () => {
+    const missing = startLspSession(["docbridge-no-such-executable"], repoRoot);
+
+    await expect(missing.initialize(repoRoot)).rejects.toThrow("Language server failed to start");
+  });
+
+  test("fails a request that is never replied to, rather than waiting forever", async () => {
+    const mute = startLspSession(["bun", "-e", "process.stdin.resume()"], repoRoot, {
+      requestTimeoutMs: 150,
+    });
+
+    try {
+      await expect(mute.initialize(repoRoot)).rejects.toThrow(
+        "Language server did not reply to initialize within 150ms.",
+      );
+    } finally {
+      await mute.stop();
+    }
+  });
+
+  test("fails a diagnostics wait once the process is gone", async () => {
+    const dead = startLspSession(["bun", "-e", "process.exit(0)"], repoRoot);
+    await dead.initialize(repoRoot).catch(() => {});
+
+    await expect(dead.waitForDiagnostics("file:///nowhere.ts")).rejects.toThrow(
+      "Language server exited with code 0",
+    );
+  });
+
+  test("stopping a server that already exited is not itself a failure", async () => {
+    const dead = startLspSession(["bun", "-e", "process.exit(0)"], repoRoot);
+    await dead.initialize(repoRoot).catch(() => {});
+
+    await expect(dead.stop()).resolves.toBeUndefined();
+  });
 });
 
 test("a broken @doc target publishes a diagnostic on the document that carries it", async () => {

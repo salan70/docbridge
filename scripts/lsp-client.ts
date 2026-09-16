@@ -7,6 +7,22 @@ import { pathToFileURL } from "node:url";
 
 type Diagnostic = Record<string, unknown>;
 
+type PendingRequest = {
+  method: string;
+  resolve: (result: unknown) => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+export type SessionOptions = {
+  /**
+   * How long one request may wait for its reply. A server that accepts the
+   * frame and then goes quiet would otherwise stall the caller forever; the
+   * default is generous enough for a cold Bun start on a bundled CLI.
+   */
+  requestTimeoutMs?: number;
+};
+
 export type LspSession = {
   /** Complete the `initialize`/`initialized` handshake against a project root. */
   initialize(projectRoot: string): Promise<void>;
@@ -30,26 +46,48 @@ export function documentUri(path: string): string {
   return pathToFileURL(path).href;
 }
 
-export function startLspSession(command: string[], cwd: string): LspSession {
+export function startLspSession(
+  command: string[],
+  cwd: string,
+  options: SessionOptions = {},
+): LspSession {
   const [executable, ...args] = command;
   if (executable === undefined) {
     throw new Error("startLspSession requires a command to run.");
   }
+  const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
 
   const child = spawn(executable, args, { cwd });
-  const pending = new Map<number, (result: unknown) => void>();
+  const pending = new Map<number, PendingRequest>();
   const diagnostics = new Map<string, Diagnostic[]>();
   const decodeMessages = createMessageDecoder();
   let capabilities: Record<string, unknown> = {};
   let nextId = 1;
+  /**
+   * Set once the server is known to be unusable. Every later request fails
+   * immediately with this, instead of waiting for a reply that cannot arrive:
+   * a packaged server that cannot start is exactly what the VSIX smoke test
+   * exists to catch, and a hang would report nothing at all.
+   */
+  let terminal: Error | undefined;
+
+  function fail(error: Error): void {
+    terminal ??= error;
+    for (const [id, waiting] of pending) {
+      clearTimeout(waiting.timer);
+      pending.delete(id);
+      waiting.reject(error);
+    }
+  }
 
   child.stdout.on("data", (chunk: Buffer) => {
     for (const message of decodeMessages(chunk)) {
       const id = typeof message.id === "number" ? message.id : undefined;
-      const settle = id === undefined ? undefined : pending.get(id);
-      if (settle !== undefined && id !== undefined) {
-        settle(message.result);
+      const settled = id === undefined ? undefined : pending.get(id);
+      if (settled !== undefined && id !== undefined) {
+        clearTimeout(settled.timer);
         pending.delete(id);
+        settled.resolve(message.result);
       } else if (message.method === "textDocument/publishDiagnostics") {
         const params = message.params as { uri: string; diagnostics: Diagnostic[] };
         diagnostics.set(params.uri, params.diagnostics);
@@ -57,6 +95,18 @@ export function startLspSession(command: string[], cwd: string): LspSession {
     }
   });
   child.stderr.on("data", (chunk: Buffer) => process.stderr.write(chunk));
+  child.on("error", (error: Error) => {
+    fail(new Error(`Language server failed to start: ${error.message}`));
+  });
+  child.on("exit", (code: number | null, signal: NodeJS.Signals | null) => {
+    const cause = code === null ? `signal ${signal}` : `code ${code}`;
+    const methods = [...pending.values()].map((waiting) => waiting.method).join(", ");
+    const replying = methods === "" ? "" : ` before replying to ${methods}`;
+    fail(new Error(`Language server exited with ${cause}${replying}.`));
+  });
+  // `stdin` errors when the server is gone; `send` reports that through the
+  // request's own failure, so the raw EPIPE must not reach the event loop.
+  child.stdin.on("error", () => {});
 
   function send(message: Record<string, unknown>): void {
     const body = JSON.stringify({ jsonrpc: "2.0", ...message });
@@ -64,9 +114,18 @@ export function startLspSession(command: string[], cwd: string): LspSession {
   }
 
   function request<T>(method: string, params: unknown): Promise<T> {
+    if (terminal !== undefined) {
+      return Promise.reject(terminal);
+    }
     const id = nextId++;
-    return new Promise<T>((settle) => {
-      pending.set(id, (result) => settle(result as T));
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(
+          new Error(`Language server did not reply to ${method} within ${requestTimeoutMs}ms.`),
+        );
+      }, requestTimeoutMs);
+      pending.set(id, { method, resolve: resolve as (result: unknown) => void, reject, timer });
       send({ id, method, params });
     });
   }
@@ -98,6 +157,9 @@ export function startLspSession(command: string[], cwd: string): LspSession {
     async waitForDiagnostics(uri: string, timeoutMs = 5000): Promise<Diagnostic[]> {
       const deadline = Date.now() + timeoutMs;
       for (;;) {
+        if (terminal !== undefined) {
+          throw terminal;
+        }
         const published = diagnostics.get(uri);
         if (published !== undefined && published.length > 0) {
           return published;
@@ -108,15 +170,32 @@ export function startLspSession(command: string[], cwd: string): LspSession {
         await sleep(25);
       }
     },
+    /**
+     * Best-effort cleanup. Callers run it from a `finally`, so it must never
+     * replace the failure that is already on its way out; a server that has
+     * died, or that ignores `shutdown`, is killed instead.
+     */
     async stop(): Promise<void> {
-      if (child.exitCode !== null || child.signalCode !== null) {
+      if (hasExited(child)) {
         return;
       }
-      await request<null>("shutdown", null);
-      send({ method: "exit", params: {} });
-      await waitForExit(child);
+      try {
+        await request<null>("shutdown", null);
+        send({ method: "exit", params: {} });
+      } catch {
+        // The server is unreachable; fall through to the kill below.
+      }
+      await Promise.race([waitForExit(child), sleep(2000)]);
+      if (!hasExited(child)) {
+        child.kill("SIGKILL");
+        await waitForExit(child);
+      }
     },
   };
+}
+
+function hasExited(child: ChildProcessWithoutNullStreams): boolean {
+  return child.exitCode !== null || child.signalCode !== null;
 }
 
 /**
