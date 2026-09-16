@@ -45,6 +45,9 @@ jobs:
       - name: just check
         run: nix develop -c just check
 
+      - name: just check-ai-assets
+        run: nix develop -c just check-ai-assets
+
       - name: just typecheck
         run: nix develop -c just typecheck
 

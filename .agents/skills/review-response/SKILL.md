@@ -3,13 +3,6 @@ name: review-response
 description: Respond to pull request review comments, whether from bots like Devin or from human reviewers. Use when a PR has review feedback to triage — decide per comment whether a change is needed, act or justify, then reply to and resolve every thread.
 ---
 
-<!--
-Example prompts:
-  $review-response
-  $review-response address the Devin comments on this PR
-  $review-response triage the review feedback and resolve the threads
--->
-
 # review-response
 
 Bring every review comment on a pull request to a consistent close-out: each

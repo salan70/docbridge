@@ -3,13 +3,6 @@ name: git-workflow
 description: DocBridge git workflow rules and procedures — branch naming, PR-based integration, merge commits, main branch protection, AI agent autonomy gates, and the semi-automated release process. Use when branching, committing, pushing, opening or merging a PR, or cutting a release.
 ---
 
-<!--
-Example prompts:
-  $git-workflow
-  $git-workflow open a PR for the current branch
-  $git-workflow cut the v0.2.0 release
--->
-
 # git-workflow
 
 DocBridge integrates every change through a pull request. `main` is protected and

@@ -10,4 +10,8 @@ This file provides guidance for Codex when working with AI assets under `.agents
   the symlinked copy.
 - Keep `.agents/skills/concise-writing/` tool-neutral because Claude shares it
   through `.claude/skills/concise-writing`.
-- Do not copy Claude-specific instructions directly into Codex assets.
+- Keep every other skill byte-identical to its copy under `.claude/skills/`.
+  Edit both copies in the same change; `just check-ai-assets` fails when they
+  differ.
+- Keep skill bodies tool-neutral. Codex-specific guidance belongs in `AGENTS.md`,
+  not in a skill.

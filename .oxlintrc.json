@@ -4,7 +4,7 @@
     "correctness": "deny",
     "suspicious": "deny"
   },
-  "ignorePatterns": ["test-fixtures/diagnostics/**", ".claude/skills/**"],
+  "ignorePatterns": ["test-fixtures/diagnostics/**"],
   "options": {
     "denyWarnings": true,
     "reportUnusedDisableDirectives": "deny"
