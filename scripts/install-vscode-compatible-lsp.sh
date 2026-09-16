@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EDITOR_DIR="$ROOT/editors/vscode"
 EDITOR="${1:-code}"
 BUN_PATH="$(command -v bun)"
 
@@ -38,17 +37,17 @@ if ! EDITOR_CMD="$(resolve_editor_command "$EDITOR")"; then
   exit 1
 fi
 
-echo "==> Installing editor client dependencies"
-(cd "$EDITOR_DIR" && bun install --frozen-lockfile)
-
-echo "==> Compiling editor client"
-(cd "$EDITOR_DIR" && bun run compile)
-
 echo "==> Configuring workspace settings"
 bun run "$ROOT/scripts/configure-editor-lsp.ts" "$ROOT" "$BUN_PATH"
 
-echo "==> Packaging editor extension"
-VSIX="$("$ROOT/scripts/package-editor-vsix.sh")"
+# Same assembly implementation as the release VSIX, in local mode: it installs
+# both lockfiles, bundles the server and the client, and stages the runtime
+# assets. Only the required scanner platforms differ.
+echo "==> Packaging editor extension" >&2
+VSIX="$(bun run "$ROOT/scripts/vscode-extension.ts" package --local)"
+
+echo "==> Verifying the packaged extension" >&2
+bun run "$ROOT/scripts/vscode-extension.ts" verify "$VSIX" --local
 
 echo "==> Installing extension into $EDITOR"
 "$EDITOR_CMD" --install-extension "$VSIX" --force

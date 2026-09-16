@@ -16,15 +16,17 @@ function nonEmpty(value: string | undefined): string | undefined {
   return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
+/**
+ * Every VSIX carries the bundled server; the source path only applies when the
+ * extension is run out of a checkout with `--extensionDevelopmentPath`. There
+ * is deliberately no raw `server/src` tier: a source tree in the artifact
+ * arrives without the dependencies its imports need, and
+ * `scripts/vscode-extension.ts` rejects one.
+ */
 function defaultCliPath(context: ExtensionContext): string {
   const bundledDistCli = context.asAbsolutePath(path.join("server", "dist", "index.js"));
   if (existsSync(bundledDistCli)) {
     return bundledDistCli;
-  }
-
-  const bundledCli = context.asAbsolutePath(path.join("server", "src", "cli", "index.ts"));
-  if (existsSync(bundledCli)) {
-    return bundledCli;
   }
 
   return context.asAbsolutePath(path.join("..", "..", "src", "cli", "index.ts"));
