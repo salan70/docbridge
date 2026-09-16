@@ -171,6 +171,7 @@ with `just install-editor-deps`.
 
 ## Project references
 
+- [Module architecture](docs/contributing/architecture.md)
 - [Testing](docs/contributing/testing.md)
 - [Writing](docs/contributing/writing.md)
 - [Documentation](docs/contributing/documentation.md)
