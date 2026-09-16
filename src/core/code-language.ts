@@ -1,15 +1,15 @@
-import { accessSync, chmodSync, constants, existsSync, realpathSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { codeAdapters } from "./code-adapter-registry";
-import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
-import { reasonOf } from "./error";
 import { collectFiles } from "./glob";
 import { comparePaths } from "./path-order";
-import { invokeScannerWorker, type ScannerWorkerRun } from "./scanner-worker";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
-import { typeScriptAdapter } from "./typescript";
+
+/**
+ * Language metadata and managed-file collection.
+ *
+ * Configuration validation and repository discovery need to know which
+ * languages exist and which files they claim, but not how to parse them. This
+ * module therefore stays free of adapter registration, concrete parsers, and
+ * worker execution; those live in `./code-scan` and `./scanner-executable`.
+ */
 
 /**
  * A configured code language entry. Every entry is an object; shorthand pattern
@@ -38,149 +38,15 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
 }
 
-Object.assign(codeAdapters, {
-  typescript: typeScriptAdapter,
-  swift: createScannerWorkerAdapter("swift", (_projectRoot) =>
-    resolveScannerWorkerCommand("swift"),
-  ),
-  dart: createScannerWorkerAdapter("dart", (_projectRoot) => resolveScannerWorkerCommand("dart")),
-  rust: createScannerWorkerAdapter("rust", (_projectRoot) => resolveScannerWorkerCommand("rust")),
-});
-
-type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
-
-const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
-const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> = {
-  swift: "docbridge-swift-scanner",
-  dart: "docbridge_dart_scanner",
-  rust: "docbridge-rust-scanner",
-};
-
-type ScannerWorkerCommandResolution =
-  | { ok: true; command: string[] }
-  | { ok: false; diagnostic: DocBridgeDiagnostic };
-
-type ScannerWorkerResolutionOptions = {
-  platformKey?: string;
-  sourceRoot?: string;
-  distRoot?: string;
-  /**
-   * Seam for the executable-bit repair. Tests inject a failing implementation
-   * because a real `chmod` failure requires a read-only filesystem or a
-   * different file owner, neither of which is reproducible in a temp directory.
-   */
-  chmod?: (path: string, mode: number) => void;
-};
-
-export function supportedScannerPlatformKeys(): readonly string[] {
-  return SUPPORTED_SCANNER_PLATFORM_KEYS;
-}
-
-export function supportedScannerExecutableNames(): readonly string[] {
-  return Object.values(SCANNER_EXECUTABLE_NAMES);
-}
-
-export function scannerPlatformKey(): string {
-  return `${process.platform}-${process.arch}`;
-}
-
-/**
- * Resolve the worker executable for source checkouts and npm dist packages.
- *
- * @doc docs/specs/scanning.md#code-scanning
- */
-export function resolveScannerWorkerCommand(
-  language: ScannerWorkerLanguage,
-  options: ScannerWorkerResolutionOptions = {},
-): ScannerWorkerCommandResolution {
-  const platformKey = options.platformKey ?? scannerPlatformKey();
-  const platformSupported = isSupportedScannerPlatformKey(platformKey);
-  const candidates = scannerExecutableCandidates(language, platformKey, platformSupported, options);
-  const found = candidates.find((candidate) => existsSync(candidate));
-  if (found !== undefined) {
-    const repair = ensureExecutable(found, options.chmod ?? chmodSync);
-    if (!repair.ok) {
-      return { ok: false, diagnostic: scannerUnavailableDiagnostic(language, repair.reason) };
-    }
-    return { ok: true, command: [found] };
-  }
-
-  if (!platformSupported) {
-    return {
-      ok: false,
-      diagnostic: scannerUnavailableDiagnostic(
-        language,
-        `platform ${platformKey} is unsupported; supported platforms: ${SUPPORTED_SCANNER_PLATFORM_KEYS.join(", ")}`,
-      ),
-    };
-  }
-
-  return {
-    ok: false,
-    diagnostic: scannerUnavailableDiagnostic(
-      language,
-      `missing ${scannerExecutableName(language)} for platform ${platformKey}; supported platforms: ${SUPPORTED_SCANNER_PLATFORM_KEYS.join(", ")}`,
-    ),
-  };
-}
-
-/** The registered adapter for a language, or `undefined` when none exists yet. */
-export function getCodeAdapter(language: CodeLanguage): CodeLanguageAdapter | undefined {
-  return codeAdapters[language];
-}
-
-type ScannerWorkerCommandFactory = (
-  projectRoot: string,
-) => string[] | ScannerWorkerCommandResolution;
-
-type ScannerWorkerAdapterOptions = {
-  requestId?: () => string;
-  run?: ScannerWorkerRun;
-};
-
-export function createScannerWorkerAdapter(
-  language: CodeLanguage,
-  command: ScannerWorkerCommandFactory,
-  adapterOptions: ScannerWorkerAdapterOptions = {},
-): CodeLanguageAdapter {
-  return {
-    language,
-    scanFile(filePath, content, options, context) {
-      const commandResolution = normalizeScannerCommand(command(context.projectRoot));
-      if (!commandResolution.ok) {
-        return {
-          ...emptyScan(language, filePath),
-          diagnostics: [fileScopedScannerDiagnostic(commandResolution.diagnostic, filePath)],
-        };
-      }
-      const result = invokeScannerWorker(
-        {
-          schemaVersion: 1,
-          requestId: adapterOptions.requestId?.() ?? crypto.randomUUID(),
-          language,
-          projectRoot: context.projectRoot,
-          files: [{ filePath, content }],
-          options,
-        },
-        commandResolution.command,
-        adapterOptions.run,
-      );
-      if (result.ok) {
-        const scan = result.codeFiles[0];
-        return scan ?? emptyScan(language, filePath);
-      }
-      return {
-        ...emptyScan(language, filePath),
-        diagnostics: [fileScopedScannerDiagnostic(result.diagnostic, filePath)],
-      };
-    },
-  };
-}
-
 export type CollectedCodeFile = {
   language: CodeLanguage;
   relPath: string;
 };
+
+/** The outcome of reading one managed code file, from disk or an editor buffer. */
+export type CodeFileRead =
+  | { ok: true; content: string }
+  | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 /**
  * Collect every managed code file across configured languages, each tagged with
@@ -212,54 +78,6 @@ export function collectCodeFiles(
   return collected;
 }
 
-export type CodeFileRead =
-  | { ok: true; content: string }
-  | { ok: false; diagnostic: DocBridgeDiagnostic };
-
-type ScanCodeFilesResult = {
-  codeFiles: CodeScanResult[];
-  diagnostics: DocBridgeDiagnostic[];
-};
-
-/**
- * Read and scan each collected code file through its language adapter. The
- * `read` callback lets callers source content from disk or from editor buffer
- * overlays; `onContent` receives the resolved content for callers that cache it.
- * Configured languages are dispatched through the registered in-process or
- * worker-backed adapter.
- */
-export function scanCodeFiles(
-  projectRoot: string,
-  files: CollectedCodeFile[],
-  codeInclude: CodeInclude,
-  read: (relPath: string) => CodeFileRead,
-  onContent?: (relPath: string, content: string) => void,
-): ScanCodeFilesResult {
-  const codeFiles: CodeScanResult[] = [];
-  const diagnostics: DocBridgeDiagnostic[] = [];
-  for (const { language, relPath } of files) {
-    const result = read(relPath);
-    if (!result.ok) {
-      diagnostics.push(result.diagnostic);
-      continue;
-    }
-    onContent?.(relPath, result.content);
-    const adapter = getCodeAdapter(language);
-    if (adapter === undefined) {
-      continue;
-    }
-    const entry = codeInclude[language];
-    const options: CodeScanOptions =
-      entry?.visibility !== undefined ? { visibility: entry.visibility } : {};
-    const scan = adapter.scanFile(relPath, result.content, options, {
-      projectRoot,
-    });
-    diagnostics.push(...scan.diagnostics);
-    codeFiles.push(scan);
-  }
-  return { codeFiles, diagnostics };
-}
-
 /**
  * Map each managed code file to the configured languages whose patterns match
  * it. Used by config validation to reject a file claimed by multiple languages.
@@ -284,172 +102,4 @@ export function codeFileOwners(
     }
   }
   return owners;
-}
-
-function emptyScan(language: CodeLanguage, filePath: string): CodeScanResult {
-  return {
-    language,
-    filePath,
-    symbols: [],
-    undocumentedSymbols: [],
-    links: [],
-    diagnostics: [],
-  };
-}
-
-function fileScopedScannerDiagnostic(
-  diagnostic: DocBridgeDiagnostic,
-  filePath: string,
-): DocBridgeDiagnostic {
-  return { ...diagnostic, target: filePath };
-}
-
-function normalizeScannerCommand(
-  value: string[] | ScannerWorkerCommandResolution,
-): ScannerWorkerCommandResolution {
-  return Array.isArray(value) ? { ok: true, command: value } : value;
-}
-
-function scannerExecutableCandidates(
-  language: ScannerWorkerLanguage,
-  platformKey: string,
-  platformSupported: boolean,
-  options: ScannerWorkerResolutionOptions,
-): string[] {
-  const sourceRoot = options.sourceRoot ?? sourceRootPath();
-  const distRoot = options.distRoot ?? distRootPath();
-  const executable = scannerExecutableName(language);
-  if (language === "swift") {
-    return [
-      join(sourceRoot, "packages/swift-scanner/.build/release", executable),
-      join(sourceRoot, "packages/swift-scanner/.build/debug", executable),
-      ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
-    ];
-  }
-  if (language === "rust") {
-    return [
-      join(sourceRoot, "packages/rust-scanner/target/release", executable),
-      join(sourceRoot, "packages/rust-scanner/target/debug", executable),
-      ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
-    ];
-  }
-  return [
-    join(sourceRoot, "packages/dart-scanner/bin", executable),
-    ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
-  ];
-}
-
-type ExecutableRepair = { ok: true } | { ok: false; reason: string };
-
-/**
- * Restore the executable bit on a resolved scanner binary.
- *
- * Installers drop the mode bits on the binaries DocBridge bundles under
- * `dist/bin/`, so a packaged scanner routinely arrives non-executable. Every
- * path handled here is a DocBridge build output or a DocBridge-packaged binary,
- * never a path derived from user configuration.
- *
- * Repair is best-effort: on a read-only store `chmod` fails, and the caller
- * degrades to `code_scanner_unavailable` rather than throwing.
- *
- * The probe asks whether *this* process can execute the file rather than
- * whether any execute bit is set, because a mode like `0011` carries execute
- * bits that do not apply to the owner. That precision is what lets a later
- * `EACCES` at spawn time be attributed to the filesystem instead of the mode.
- */
-function ensureExecutable(
-  path: string,
-  chmod: (path: string, mode: number) => void,
-): ExecutableRepair {
-  let mode: number;
-  try {
-    mode = statSync(path).mode;
-  } catch (error) {
-    return { ok: false, reason: `cannot stat ${path}: ${reasonOf(error)}` };
-  }
-  if (isExecutableByThisProcess(path)) {
-    return { ok: true };
-  }
-  try {
-    // Execute bits only. Widening to `0o755` would also grant group and other
-    // read access to a scanner a restrictive umask installed as `0o600`, which
-    // is more than restoring execution.
-    chmod(path, mode | 0o111);
-  } catch (error) {
-    return {
-      ok: false,
-      reason:
-        `${path} is not executable (mode ${formatMode(mode)}) and the executable ` +
-        `bit could not be restored: ${reasonOf(error)}; run \`chmod +x ${path}\` ` +
-        `or reinstall DocBridge into a writable location`,
-    };
-  }
-  return { ok: true };
-}
-
-function isExecutableByThisProcess(path: string): boolean {
-  try {
-    accessSync(path, constants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function formatMode(mode: number): string {
-  return `0${(mode & 0o7777).toString(8).padStart(3, "0")}`;
-}
-
-function isSupportedScannerPlatformKey(platformKey: string): boolean {
-  return SUPPORTED_SCANNER_PLATFORM_KEYS.includes(platformKey as never);
-}
-
-/**
- * Resolve the dist and source roots from the URL of this module's file.
- *
- * npm installs the CLI as `node_modules/.bin/docbridge`, a symlink to the
- * packaged `dist/index.js`. The bundled scanner binaries live next to that real
- * file under `dist/bin/`, so the symlink must be resolved to its target before
- * deriving the roots. Bun resolves the bin symlink for `import.meta.url` on
- * macOS but not on Linux, so realpath it explicitly to behave the same on both.
- */
-export function scannerRootsFromModuleUrl(moduleUrl: string): {
-  distRoot: string;
-  sourceRoot: string;
-} {
-  const modulePath = fileURLToPath(moduleUrl);
-  let resolved: string;
-  try {
-    resolved = realpathSync(modulePath);
-  } catch {
-    resolved = modulePath;
-  }
-  const moduleDir = dirname(resolved);
-  return { distRoot: moduleDir, sourceRoot: resolve(moduleDir, "..", "..") };
-}
-
-function sourceRootPath(): string {
-  return scannerRootsFromModuleUrl(import.meta.url).sourceRoot;
-}
-
-function distRootPath(): string {
-  return scannerRootsFromModuleUrl(import.meta.url).distRoot;
-}
-
-export function scannerExecutableName(language: ScannerWorkerLanguage): string {
-  return SCANNER_EXECUTABLE_NAMES[language];
-}
-
-function scannerUnavailableDiagnostic(
-  language: ScannerWorkerLanguage,
-  reason: string,
-): DocBridgeDiagnostic {
-  const label = language.charAt(0).toUpperCase() + language.slice(1);
-  return {
-    severity: "error",
-    code: "code_scanner_unavailable",
-    language,
-    target: language,
-    message: `${label} scanner worker is unavailable: ${reason}`,
-  };
 }

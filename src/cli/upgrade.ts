@@ -1,18 +1,18 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { discoverRepository } from "../core/init-discovery";
-import type { AgentTarget } from "../core/init-discovery";
-import { resolvePackageRoot } from "../core/init-plan";
-import type { LatestVersionLookup } from "../core/registry";
-import { applySkillOperation } from "../core/skill-assets";
-import { detectUpgradeGuidance } from "../core/upgrade-guidance";
+import { resolvePackageRoot } from "../core/package-root";
+import { discoverRepository } from "../setup/init-discovery";
+import type { AgentTarget } from "../setup/init-discovery";
+import type { LatestVersionLookup } from "../setup/registry";
+import { applySkillOperation } from "../setup/skill-assets";
+import { detectUpgradeGuidance } from "../setup/upgrade-guidance";
 import {
   formatUpgradePlan,
   planUpgrade,
   type UpgradeOptions,
   type UpgradePlan,
-} from "../core/upgrade-plan";
+} from "../setup/upgrade-plan";
 import {
   agentTargetGuidance,
   CliError,
@@ -20,8 +20,8 @@ import {
   rootPathGuidance,
   upgradeConfirmationGuidance,
 } from "./errors";
-import type { CliIo } from "./index";
 import type { InitRuntime } from "./init";
+import type { CliIo } from "./io";
 
 const AGENT_TARGETS = new Set<AgentTarget>(["codex", "claude", "both", "none"]);
 

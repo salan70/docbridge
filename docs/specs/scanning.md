@@ -31,7 +31,7 @@ that depend on that file are suppressed.
 
 <!-- @code src/core/code-scanner.ts#CodeScanResult -->
 <!-- @code src/core/code-scanner.ts#CodeLanguageAdapter -->
-<!-- @code src/core/code-language.ts#resolveScannerWorkerCommand -->
+<!-- @code src/core/scanner-executable.ts#resolveScannerWorkerCommand -->
 
 ## Code Scanning
 

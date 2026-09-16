@@ -1,4 +1,4 @@
-import type { CliIo } from "./index";
+import type { CliIo } from "./io";
 
 export type Captured = {
   readonly out: string;

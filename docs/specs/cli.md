@@ -535,8 +535,8 @@ compatibility aliases, and an unknown name under both Node.js and Bun.
 
 <!-- @code src/cli/init.ts#runInit -->
 <!-- @code src/cli/init.ts#parseInitOptions -->
-<!-- @code src/core/init-discovery.ts#discoverRepository -->
-<!-- @code src/core/init-plan.ts#planInitCommand -->
+<!-- @code src/setup/init-discovery.ts#discoverRepository -->
+<!-- @code src/setup/init-plan.ts#planInitCommand -->
 
 ## Init Command
 
@@ -573,8 +573,8 @@ Plain `init` reports leftover five-skill directories and leaves them in place;
 Existing `docbridge.config.json` files are never overwritten. Valid config is
 summarized; invalid config is reported with repair guidance.
 
-<!-- @code src/core/version.ts#isNewerStableVersion -->
-<!-- @code src/core/registry.ts#resolveLatestStableVersion -->
+<!-- @code src/setup/version.ts#isNewerStableVersion -->
+<!-- @code src/setup/registry.ts#resolveLatestStableVersion -->
 
 ## Version Discovery
 
@@ -594,7 +594,7 @@ timeout, offline, non-2xx response, unparsable body, prerelease version —
 resolves to `unavailable` rather than raising. No lookup failure ever changes a
 command's exit code or its stdout.
 
-<!-- @code src/core/update-cache.ts#resolveUpdateCachePath -->
+<!-- @code src/setup/update-cache.ts#resolveUpdateCachePath -->
 
 ### Update Check Cache
 
@@ -619,8 +619,8 @@ included: the variable names the check, not the notice, so setting it keeps
 DocBridge off the network entirely. `upgrade` then reports the latest version as
 `unknown` and still reports local asset state.
 
-<!-- @code src/core/update-notice.ts#decideUpdateCheck -->
-<!-- @code src/core/update-notice.ts#formatUpdateNotice -->
+<!-- @code src/setup/update-notice.ts#decideUpdateCheck -->
+<!-- @code src/setup/update-notice.ts#formatUpdateNotice -->
 
 ## Update Notification
 
@@ -651,7 +651,7 @@ the following holds:
 `lsp` is suppressed because the language server owns the stream; `upgrade`
 reports the same information in its own output.
 
-<!-- @code src/core/upgrade-guidance.ts#detectUpgradeGuidance -->
+<!-- @code src/setup/upgrade-guidance.ts#detectUpgradeGuidance -->
 
 ## Upgrade Guidance
 
@@ -688,9 +688,9 @@ Upgrade command (project install): bun add -d docbridge@latest
 Other package managers: npm install --save-dev docbridge@latest, pnpm add -D docbridge@latest, yarn add -D docbridge@latest
 ```
 
-<!-- @code src/core/skill-assets.ts#classifyManagedPath -->
-<!-- @code src/core/skill-assets.ts#compareSkillTree -->
-<!-- @code src/core/skill-assets.ts#applySkillOperation -->
+<!-- @code src/setup/skill-assets.ts#classifyManagedPath -->
+<!-- @code src/setup/skill-assets.ts#compareSkillTree -->
+<!-- @code src/setup/skill-assets.ts#applySkillOperation -->
 
 ## Managed Skill Assets
 
@@ -732,7 +732,7 @@ template file by file. The comparison reports changed files (present in both,
 differing bytes), missing files (in the template, absent locally), and extra
 files (local only). Any non-empty list makes the directory _modified_.
 
-<!-- @code src/core/upgrade-plan.ts#planUpgrade -->
+<!-- @code src/setup/upgrade-plan.ts#planUpgrade -->
 <!-- @code src/cli/upgrade.ts#parseUpgradeOptions -->
 <!-- @code src/cli/upgrade.ts#runUpgrade -->
 

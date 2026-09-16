@@ -8,8 +8,7 @@ import { CONFIG_FILE_NAME } from "../core/config";
 import { context as runContextCore, formatContextResult } from "../core/context";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import { formatGraphResult, graph as runGraphCore } from "../core/graph-output";
-import { resolvePackageRoot } from "../core/init-plan";
-import { resolveLatestStableVersion, type LatestVersionLookup } from "../core/registry";
+import { resolvePackageRoot } from "../core/package-root";
 import {
   collectGateViolations,
   formatGateResult,
@@ -19,13 +18,14 @@ import {
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
 import type { DocBridgeDiagnostic } from "../core/types";
+import { runLspServer } from "../lsp/server";
+import { resolveLatestStableVersion, type LatestVersionLookup } from "../setup/registry";
 import {
   decideUpdateCheck,
   formatUpdateNotice,
   isUpdateCheckOptedOut,
-} from "../core/update-notice";
-import { detectUpgradeGuidance } from "../core/upgrade-guidance";
-import { runLspServer } from "../lsp/server";
+} from "../setup/update-notice";
+import { detectUpgradeGuidance } from "../setup/upgrade-guidance";
 import { parseDocsCommand, runDocs } from "./docs";
 import {
   CliError,
@@ -54,6 +54,7 @@ import {
   runInitWithAgent,
   type InitRuntime,
 } from "./init";
+import type { CliIo } from "./io";
 import { parseUpgradeOptions, runUpgrade } from "./upgrade";
 
 const VERSION = pkg.version;
@@ -72,13 +73,6 @@ export type CliRuntime = {
   isTty?: boolean;
   /** Defaults to the process working directory; injectable for tests. */
   currentDirectory?: string;
-};
-
-export type CliIo = {
-  stdout: (text: string) => void;
-  stderr: (text: string) => void;
-  /** Read all of stdin; injectable for tests. Used by `related --stdin`. */
-  stdin?: () => string;
 };
 
 export function parseCheckOptions(args: string[]): CliCheckOptions {

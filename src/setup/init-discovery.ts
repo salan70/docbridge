@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { KNOWN_CODE_LANGUAGES } from "./code-language";
-import { collectFiles } from "./glob";
-import type { CodeLanguage } from "./types";
+import { KNOWN_CODE_LANGUAGES } from "../core/code-language";
+import { collectFiles } from "../core/glob";
+import type { CodeLanguage } from "../core/types";
 
 export type AgentTarget = "codex" | "claude" | "both" | "none";
 

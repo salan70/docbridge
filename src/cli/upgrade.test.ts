@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { LatestVersionLookup } from "../core/registry";
+import type { LatestVersionLookup } from "../setup/registry";
 import { run } from "./index";
 import type { InitPrompts, InitRuntime } from "./init";
 import { capture } from "./test-support";

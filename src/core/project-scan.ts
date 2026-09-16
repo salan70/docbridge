@@ -1,10 +1,10 @@
 import {
   collectCodeFiles,
-  scanCodeFiles,
   type CodeFileRead,
   type CodeInclude,
   type CollectedCodeFile,
 } from "./code-language";
+import { scanCodeFiles } from "./code-scan";
 import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { collectFiles, readManagedFile } from "./glob";

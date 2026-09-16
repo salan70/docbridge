@@ -1,10 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { resolvePackageRoot } from "../core/init-plan";
 import { scanMarkdown } from "../core/markdown";
+import { resolvePackageRoot } from "../core/package-root";
 import { CliError, commandHelpGuidance } from "./errors";
-import type { CliIo } from "./index";
+import type { CliIo } from "./io";
 
 export type DocumentationSummary = {
   name: string;
