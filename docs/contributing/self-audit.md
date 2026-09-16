@@ -21,7 +21,8 @@ A relationship belongs in the graph when both sides describe the same contract:
 - Task-oriented behavior in `docs/user/` (packaged user documents stay in
   `include.docs`; see #90).
 - One primary exported production contract per concern under `src/core/`,
-  `src/cli/`, and `src/lsp/`.
+  `src/setup/`, `src/cli/`, and `src/lsp/`. See
+  [Module architecture](architecture.md).
 
 The existing dogfooding style is intentional: annotate the orchestration or
 entry symbol (`resolveLinks`, `loadConfig`, `run`, `Server`), not every helper

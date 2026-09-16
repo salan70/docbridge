@@ -138,11 +138,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#CliIo",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/cli/index.ts#CliRelatedOptions",
       "class": "sibling_export"
     },
@@ -188,6 +183,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/cli/io.ts#CliIo",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/cli/test-support.ts#capture",
       "class": "test_support"
     },
@@ -205,11 +205,6 @@
       "code": "undocumented_symbol",
       "target": "src/core/code-adapter-registry.ts#codeAdapters",
       "class": "internal_helper"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/code-language.test-support.ts#setCodeAdapterForTest",
-      "class": "test_support"
     },
     {
       "code": "undocumented_symbol",
@@ -238,16 +233,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#createScannerWorkerAdapter",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#getCodeAdapter",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/code-language.ts#isCodeLanguage",
       "class": "sibling_export"
     },
@@ -258,32 +243,22 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#scanCodeFiles",
+      "target": "src/core/code-scan.test-support.ts#setCodeAdapterForTest",
+      "class": "test_support"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/code-scan.ts#createScannerWorkerAdapter",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#scannerExecutableName",
+      "target": "src/core/code-scan.ts#getCodeAdapter",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#scannerPlatformKey",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#scannerRootsFromModuleUrl",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#supportedScannerExecutableNames",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#supportedScannerPlatformKeys",
+      "target": "src/core/code-scan.ts#scanCodeFiles",
       "class": "sibling_export"
     },
     {
@@ -423,106 +398,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#AgentTarget",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#CodeLanguageCandidate",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#discoverAgentTarget",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#discoverCodeScope",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#discoverDocsScope",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#RepositoryDiscovery",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#resolveAgentTargetForInit",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-discovery.ts#resolveAgentTargetForInitWithAgent",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#agentDestinations",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#buildConfigFromScope",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#ConfirmedScope",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#formatFileOp",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#formatInitPlan",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#INIT_SKILL_NAMES",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#InitCommandKind",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#InitPlan",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#InitSharedOptions",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#LEGACY_SKILL_NAMES",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#listDistributableSkills",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/init-plan.ts#resolvePackageRoot",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/links.ts#ParseLinkTargetOptions",
       "class": "sibling_export"
     },
@@ -558,53 +433,13 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/core/package-root.ts#resolvePackageRoot",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/core/path-order.ts#comparePaths",
       "class": "internal_helper"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#fetchLatestStableVersion",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#FetchLike",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#LatestVersionLookup",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#LatestVersionSource",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#NPM_REGISTRY_LATEST_URL",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#REGISTRY_TIMEOUT_MS",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#ResolveLatestOptions",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#resolveRegistryUrl",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/registry.ts#selectStableVersion",
-      "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
@@ -629,6 +464,36 @@
     {
       "code": "undocumented_symbol",
       "target": "src/core/related.ts#RelatedGateViolation",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/scanner-executable.ts#scannerExecutableName",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/scanner-executable.ts#scannerPlatformKey",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/scanner-executable.ts#scannerRootsFromModuleUrl",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/scanner-executable.ts#ScannerWorkerCommandResolution",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/scanner-executable.ts#supportedScannerExecutableNames",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/scanner-executable.ts#supportedScannerPlatformKeys",
       "class": "sibling_export"
     },
     {
@@ -680,41 +545,6 @@
       "code": "undocumented_symbol",
       "target": "src/core/section.ts#MAX_SECTION_LENGTH",
       "class": "internal_helper"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#FileOpAction",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#isSymlink",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#listSkillFiles",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#ManagedPathKind",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#PlannedFileOp",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#SkillTreeComparison",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/skill-assets.ts#unmanageablePathMessage",
-      "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
@@ -813,171 +643,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/update-cache.ts#isUpdateCacheFresh",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-cache.ts#readUpdateCache",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-cache.ts#UPDATE_CACHE_SCHEMA_VERSION",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-cache.ts#UPDATE_CACHE_TTL_MS",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-cache.ts#UpdateCacheRecord",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-cache.ts#writeUpdateCache",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-notice.ts#isUpdateCheckOptedOut",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-notice.ts#shouldCheckForUpdates",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-notice.ts#UpdateCheckDecision",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/update-notice.ts#UpdateCheckSuppressionReason",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-guidance.ts#detectInstallScope",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-guidance.ts#detectPackageManager",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-guidance.ts#formatUpgradeGuidance",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-guidance.ts#InstallScope",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-guidance.ts#PackageManager",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-guidance.ts#UpgradeGuidance",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#CliVersionReport",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#CliVersionStatus",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#formatUpgradePlan",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#inspectLegacySkills",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#inspectManagedSkill",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#LegacySkillKind",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#LegacySkillReport",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#ManagedSkillReport",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#ManagedSkillState",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#reportCliVersion",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#resolveUpgradeAgentTarget",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#UpgradeMode",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#UpgradeOptions",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/upgrade-plan.ts#UpgradePlan",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/version.ts#compareStableVersions",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/version.ts#parseStableVersion",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/version.ts#StableVersion",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/lsp/diagnostics.ts#diagnosticsForFile",
       "class": "sibling_export"
     },
@@ -1049,6 +714,346 @@
     {
       "code": "undocumented_symbol",
       "target": "src/lsp/transport.ts#MessageReader",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#AgentTarget",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#CodeLanguageCandidate",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#discoverAgentTarget",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#discoverCodeScope",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#discoverDocsScope",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#RepositoryDiscovery",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#resolveAgentTargetForInit",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-discovery.ts#resolveAgentTargetForInitWithAgent",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#agentDestinations",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#buildConfigFromScope",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#ConfirmedScope",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#formatFileOp",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#formatInitPlan",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#INIT_SKILL_NAMES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#InitCommandKind",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#InitPlan",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#InitSharedOptions",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#LEGACY_SKILL_NAMES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/init-plan.ts#listDistributableSkills",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#fetchLatestStableVersion",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#FetchLike",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#LatestVersionLookup",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#LatestVersionSource",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#NPM_REGISTRY_LATEST_URL",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#REGISTRY_TIMEOUT_MS",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#ResolveLatestOptions",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#resolveRegistryUrl",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/registry.ts#selectStableVersion",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#FileOpAction",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#isSymlink",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#listSkillFiles",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#ManagedPathKind",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#PlannedFileOp",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#SkillTreeComparison",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/skill-assets.ts#unmanageablePathMessage",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-cache.ts#isUpdateCacheFresh",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-cache.ts#readUpdateCache",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-cache.ts#UPDATE_CACHE_SCHEMA_VERSION",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-cache.ts#UPDATE_CACHE_TTL_MS",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-cache.ts#UpdateCacheRecord",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-cache.ts#writeUpdateCache",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-notice.ts#isUpdateCheckOptedOut",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-notice.ts#shouldCheckForUpdates",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-notice.ts#UpdateCheckDecision",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/update-notice.ts#UpdateCheckSuppressionReason",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-guidance.ts#detectInstallScope",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-guidance.ts#detectPackageManager",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-guidance.ts#formatUpgradeGuidance",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-guidance.ts#InstallScope",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-guidance.ts#PackageManager",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-guidance.ts#UpgradeGuidance",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#CliVersionReport",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#CliVersionStatus",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#formatUpgradePlan",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#inspectLegacySkills",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#inspectManagedSkill",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#LegacySkillKind",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#LegacySkillReport",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#ManagedSkillReport",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#ManagedSkillState",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#reportCliVersion",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#resolveUpgradeAgentTarget",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#UpgradeMode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#UpgradeOptions",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/upgrade-plan.ts#UpgradePlan",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/version.ts#compareStableVersions",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/version.ts#parseStableVersion",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/setup/version.ts#StableVersion",
       "class": "sibling_export"
     },
     {

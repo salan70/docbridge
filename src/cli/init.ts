@@ -1,22 +1,22 @@
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { discoverRepository } from "../core/init-discovery";
-import type { AgentTarget } from "../core/init-discovery";
+import { resolvePackageRoot } from "../core/package-root";
+import { discoverRepository } from "../setup/init-discovery";
+import type { AgentTarget } from "../setup/init-discovery";
 import {
   buildConfigFromScope,
   formatInitPlan,
   planInitCommand,
-  resolvePackageRoot,
   type ConfirmedScope,
   type InitCommandKind,
   type InitPlan,
   type InitSharedOptions,
   type PlannedFileOp,
-} from "../core/init-plan";
-import { applySkillOperation } from "../core/skill-assets";
+} from "../setup/init-plan";
+import { applySkillOperation } from "../setup/skill-assets";
 import { agentTargetGuidance, commandHelpGuidance, InitCliError, rootPathGuidance } from "./errors";
-import type { CliIo } from "./index";
+import type { CliIo } from "./io";
 
 export type InitPrompts = {
   isInteractive: boolean;

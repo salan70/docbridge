@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { resolvePackageRoot } from "../core/init-plan";
+import { resolvePackageRoot } from "../core/package-root";
 import { makeProject } from "../core/test-support";
 import { run } from "./index";
 import {
