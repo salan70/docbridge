@@ -7,6 +7,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -16,9 +17,21 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 import {
+  scannerPlatformKey,
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
 } from "../src/core/code-language";
+import { documentUri, startLspSession, type LspSession } from "./lsp-client";
+
+/**
+ * Which machines the artifact has to run on.
+ *
+ * `release` ships to every supported platform, so it must carry every scanner
+ * binary. `local` is installed into the editor on the machine that built it,
+ * where cross-compiling the other platforms' scanners would cost far more than
+ * the coverage is worth.
+ */
+export type PackageMode = "release" | "local";
 
 type JsonObject = Record<string, unknown>;
 
@@ -47,9 +60,15 @@ type ExtensionPackage = JsonObject & {
 
 type Run = (command: string[], cwd: string) => void;
 
+type StartSession = (command: string[], cwd: string) => LspSession;
+
 type VerifyOptions = {
   run?: Run;
+  mode?: PackageMode;
+  startSession?: StartSession;
 };
+
+const requiredServerCapabilities = ["hoverProvider", "definitionProvider", "referencesProvider"];
 
 const repoRoot = resolve(import.meta.dir, "..");
 const extensionRelativeRoot = "editors/vscode";
@@ -88,7 +107,25 @@ export function buildReleaseManifest(
   };
 }
 
-export function assertReleaseInputs(root: string = repoRoot): void {
+export function requiredScannerPlatformKeys(
+  mode: PackageMode,
+  hostKey: string = scannerPlatformKey(),
+): readonly string[] {
+  if (mode === "release") {
+    return supportedScannerPlatformKeys();
+  }
+  if (!supportedScannerPlatformKeys().includes(hostKey)) {
+    throw new Error(
+      `platform ${hostKey} is unsupported; supported platforms: ${supportedScannerPlatformKeys().join(", ")}`,
+    );
+  }
+  return [hostKey];
+}
+
+export function assertPackagingInputs(
+  root: string = repoRoot,
+  mode: PackageMode = "release",
+): void {
   const rootPackage = readJson<RootPackage>(join(root, "package.json"));
   const extensionPackage = readJson<ExtensionPackage>(
     join(root, extensionRelativeRoot, "package.json"),
@@ -104,12 +141,24 @@ export function assertReleaseInputs(root: string = repoRoot): void {
     );
   }
 
-  assertRequiredScannerBinaries(join(root, "dist/bin"));
+  // Fail here rather than let `packageVsix` trip over a missing `dist/bin` when
+  // it preserves that tree across the rebuild: this message names the fix.
+  assertRequiredScannerBinaries(join(root, "dist/bin"), mode, stagingHint);
 }
 
-export function defaultVsixPath(root: string = repoRoot, version?: string): string {
+export function defaultVsixPath(
+  root: string = repoRoot,
+  version?: string,
+  mode: PackageMode = "release",
+): string {
   const resolvedVersion = version ?? readJson<RootPackage>(join(root, "package.json")).version;
-  return join(root, extensionRelativeRoot, ".tmp/out", `docbridge-${resolvedVersion}.vsix`);
+  const suffix = mode === "local" ? "-local" : "";
+  return join(
+    root,
+    extensionRelativeRoot,
+    ".tmp/out",
+    `docbridge-${resolvedVersion}${suffix}.vsix`,
+  );
 }
 
 /**
@@ -142,8 +191,8 @@ export function extensionBundleCommand(): string[] {
   ];
 }
 
-export function packageVsix(root: string = repoRoot): string {
-  assertReleaseInputs(root);
+export function packageVsix(root: string = repoRoot, mode: PackageMode = "release"): string {
+  assertPackagingInputs(root, mode);
   const rootPackage = readJson<RootPackage>(join(root, "package.json"));
   const extensionPackage = readJson<ExtensionPackage>(
     join(root, extensionRelativeRoot, "package.json"),
@@ -153,7 +202,7 @@ export function packageVsix(root: string = repoRoot): string {
   const preserveBin = join(tmpRoot, "preserved-dist-bin");
   const stageRoot = join(tmpRoot, "stage");
   const outDir = join(tmpRoot, "out");
-  const outPath = defaultVsixPath(root, rootPackage.version);
+  const outPath = defaultVsixPath(root, rootPackage.version, mode);
 
   rmSync(preserveBin, { recursive: true, force: true });
   mkdirSync(join(preserveBin, ".."), { recursive: true });
@@ -170,7 +219,9 @@ export function packageVsix(root: string = repoRoot): string {
   run(extensionBundleCommand(), extensionRoot);
 
   rmSync(stageRoot, { recursive: true, force: true });
-  rmSync(outDir, { recursive: true, force: true });
+  // Only this mode's artifact: release and local builds share `out/`, and
+  // rebuilding one must not delete the other.
+  rmSync(outPath, { force: true });
   mkdirSync(stageRoot, { recursive: true });
   mkdirSync(outDir, { recursive: true });
 
@@ -180,22 +231,29 @@ export function packageVsix(root: string = repoRoot): string {
   return outPath;
 }
 
-export function verifyVsix(vsixPath: string = defaultVsixPath()): void {
-  const resolvedVsix = resolve(vsixPath);
+export async function verifyVsix(vsixPath?: string, mode: PackageMode = "release"): Promise<void> {
+  const resolvedVsix = resolve(vsixPath ?? defaultVsixPath(repoRoot, undefined, mode));
   if (!existsSync(resolvedVsix)) {
-    throw new Error(`${resolvedVsix} does not exist. Run \`just package-vsix\` first.`);
+    const recipe = mode === "local" ? "just package-vsix-local" : "just package-vsix";
+    throw new Error(`${resolvedVsix} does not exist. Run \`${recipe}\` first.`);
   }
+  // Expanding outside the checkout is the point: the packaged server has to
+  // start with no repository `node_modules` and no repository `schemas/`
+  // reachable from it.
   const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-vsix-verify-"));
   try {
     run(["unzip", "-q", resolvedVsix, "-d", tempRoot], process.cwd());
-    verifyExpandedVsix(tempRoot);
+    await verifyExpandedVsix(tempRoot, { mode });
     console.log(`Verified ${basename(resolvedVsix)}`);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-export function verifyExpandedVsix(expandedRoot: string, options: VerifyOptions = {}): void {
+export async function verifyExpandedVsix(
+  expandedRoot: string,
+  options: VerifyOptions = {},
+): Promise<void> {
   const extensionRoot = join(expandedRoot, "extension");
   const manifest = readJson<ExtensionPackage>(join(extensionRoot, "package.json"));
 
@@ -214,18 +272,83 @@ export function verifyExpandedVsix(expandedRoot: string, options: VerifyOptions 
   assertFile(extensionRoot, "server/CHANGELOG.md");
   assertFile(extensionRoot, "server/LICENSE");
   assertExecutable(join(extensionRoot, "server/dist/index.js"));
-  assertRequiredScannerBinaries(join(extensionRoot, "server/dist/bin"));
-  assertDirectory(extensionRoot, "server/schemas");
+  assertRequiredScannerBinaries(join(extensionRoot, "server/dist/bin"), options.mode ?? "release");
   assertDirectory(extensionRoot, "server/templates/skills");
+  // The bundle inlines the two schemas it validates against, but `docbridge
+  // init` writes `"$schema": "./schemas/docbridge.schema.json"` into generated
+  // configs, so that file has to reach the installation.
+  assertFile(extensionRoot, "server/schemas/docbridge.schema.json");
+  assertNoSourceTree(extensionRoot);
 
   writeTypeScriptFixture(extensionRoot);
   const runCommand = options.run ?? run;
   runCommand(["bun", "server/dist/index.js", "--version"], extensionRoot);
   runCommand(["bun", "server/dist/index.js", "--help"], extensionRoot);
   runCommand(["bun", "server/dist/index.js", "check", "--root", ".verify-fixture"], extensionRoot);
+  await verifyPackagedLanguageServer(extensionRoot, options.startSession ?? startLspSession);
 }
 
-export function publishVscodeExtension(vsixPath: string = defaultVsixPath()): void {
+/**
+ * The extension's only job is to launch `docbridge lsp` from the bundle, so the
+ * packaged artifact is only proven once that server initializes and answers
+ * across a linked TypeScript/Markdown pair.
+ */
+async function verifyPackagedLanguageServer(
+  extensionRoot: string,
+  startSession: StartSession,
+): Promise<void> {
+  const fixtureRoot = join(extensionRoot, ".verify-fixture");
+  const session = startSession(["bun", "server/dist/index.js", "lsp"], extensionRoot);
+
+  try {
+    await session.initialize(fixtureRoot);
+    const capabilities = session.capabilities();
+    for (const capability of requiredServerCapabilities) {
+      if (capabilities[capability] !== true) {
+        throw new Error(`packaged language server must advertise ${capability}.`);
+      }
+    }
+
+    const authUri = documentUri(join(fixtureRoot, "src/auth.ts"));
+    session.openDocument(
+      authUri,
+      "typescript",
+      readFileSync(join(fixtureRoot, "src/auth.ts"), "utf8"),
+    );
+    const position = { line: 3, character: 18 };
+    const hover = await session.request<{ contents?: { value?: string } } | null>(
+      "textDocument/hover",
+      { textDocument: { uri: authUri }, position },
+    );
+    if (!hover?.contents?.value?.includes("Auth Service")) {
+      throw new Error("packaged language server did not hover the linked Markdown section.");
+    }
+
+    const definition = await session.request<{ uri?: string } | { uri?: string }[] | null>(
+      "textDocument/definition",
+      { textDocument: { uri: authUri }, position },
+    );
+    const location = Array.isArray(definition) ? definition[0] : definition;
+    if (location?.uri?.endsWith("docs/auth.md") !== true) {
+      throw new Error("packaged language server did not resolve the link to its Markdown file.");
+    }
+
+    // An unsaved buffer, so `check --root .verify-fixture` above stays clean.
+    const brokenUri = documentUri(join(fixtureRoot, "src/broken.ts"));
+    session.openDocument(
+      brokenUri,
+      "typescript",
+      "/**\n * @doc docs/does-not-exist.md#nope\n */\nexport function broken() {}\n",
+    );
+    if ((await session.waitForDiagnostics(brokenUri)).length === 0) {
+      throw new Error("packaged language server published no diagnostic for a broken link.");
+    }
+  } finally {
+    await session.stop();
+  }
+}
+
+export function publishVscodeExtension(vsixPath: string = defaultVsixPath(repoRoot)): void {
   const token = process.env.VSCE_PAT;
   if (token === undefined || token.trim() === "") {
     throw new Error("VSCE_PAT is required to publish to VS Code Marketplace.");
@@ -264,15 +387,41 @@ function stageExtension(
   copyPath(join(root, "templates/skills"), join(serverRoot, "templates/skills"));
 }
 
-function assertRequiredScannerBinaries(binRoot: string): void {
-  for (const platform of supportedScannerPlatformKeys()) {
+const stagingHint = "Build the scanners, then run `just stage-scanner-binaries`.";
+
+function assertRequiredScannerBinaries(
+  binRoot: string,
+  mode: PackageMode = "release",
+  hint = "",
+): void {
+  const suffix = hint === "" ? "" : ` ${hint}`;
+  for (const platform of requiredScannerPlatformKeys(mode)) {
     for (const executable of supportedScannerExecutableNames()) {
       const scannerPath = join(binRoot, platform, executable);
       if (!existsSync(scannerPath)) {
-        throw new Error(`${relativePath(process.cwd(), scannerPath)} is required.`);
+        throw new Error(`${relativePath(process.cwd(), scannerPath)} is required.${suffix}`);
       }
       assertExecutable(scannerPath);
     }
+  }
+}
+
+/**
+ * The VSIX ships a bundle, never a source tree. A raw `server/src` arrives
+ * without `ajv` or the schema JSON its static imports need, so the language
+ * server cannot start; test sources are dead weight in a published artifact.
+ */
+function assertNoSourceTree(extensionRoot: string): void {
+  if (existsSync(join(extensionRoot, "server/src"))) {
+    throw new Error("server/src must not be packaged in the VSIX.");
+  }
+
+  for (const entry of readdirSync(extensionRoot, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !/\.test\.[cm]?[jt]sx?$/.test(entry.name)) {
+      continue;
+    }
+    const relative = relativePath(extensionRoot, join(entry.parentPath, entry.name));
+    throw new Error(`${relative} must not be packaged in the VSIX.`);
   }
 }
 
@@ -374,17 +523,19 @@ function run(command: string[], cwd: string): void {
 
 function usage(): never {
   throw new Error(
-    "Usage: bun run scripts/vscode-extension.ts <package|verify|publish-vscode> [vsix]",
+    "Usage: bun run scripts/vscode-extension.ts <package|verify|publish-vscode> [--local] [vsix]",
   );
 }
 
 if (import.meta.main) {
   try {
-    const [command, maybeVsix] = Bun.argv.slice(2);
+    const args = Bun.argv.slice(2);
+    const mode: PackageMode = args.includes("--local") ? "local" : "release";
+    const [command, maybeVsix] = args.filter((arg) => arg !== "--local");
     if (command === "package") {
-      packageVsix();
+      packageVsix(repoRoot, mode);
     } else if (command === "verify") {
-      verifyVsix(maybeVsix);
+      await verifyVsix(maybeVsix, mode);
     } else if (command === "publish-vscode") {
       publishVscodeExtension(maybeVsix);
     } else {

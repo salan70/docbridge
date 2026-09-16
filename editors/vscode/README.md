@@ -30,6 +30,10 @@ The VSIX is written to:
 editors/vscode/.tmp/out/docbridge-<version>.vsix
 ```
 
+`just package-vsix-local` builds the same artifact for the current machine only
+and writes it to `docbridge-<version>-local.vsix`. See
+[Development](#development) for its scanner prerequisites.
+
 ## Requirements
 
 - Bun must be installed on the machine running the editor.
@@ -137,6 +141,19 @@ just verify-lsp
 This drives `docbridge lsp` over stdio and checks Hover, Definition, References,
 and Diagnostics.
 
+Type-check the editor client:
+
+```sh
+just typecheck-extension
+```
+
+It is a separate TypeScript project that the root `tsconfig.json` does not
+include, so `just typecheck` never sees it. `just verify` and the required CI
+gate both run it. It needs the client's own dependencies, installed by
+`just setup` or `just install-editor-deps`.
+
+### Local install
+
 For local VS Code verification from a source checkout:
 
 ```sh
@@ -149,8 +166,29 @@ For local Cursor verification:
 just cursor-lsp
 ```
 
-These commands install editor client dependencies, compile the extension,
-package a local development VSIX, install it into the chosen editor, and open
-the repository. They also write the local workspace setting `docbridge.bunPath`
-to the current Bun executable so GUI editors can start the language server even
-when their environment has a different `PATH`.
+These commands write the local workspace setting `docbridge.bunPath` to the
+current Bun executable — so GUI editors can start the language server even when
+their environment has a different `PATH` — then assemble, verify, and install a
+local VSIX, and open the repository.
+
+Local and release VSIX files are built by the same implementation
+(`scripts/vscode-extension.ts`). They differ in one respect: a release artifact
+must carry scanner binaries for every supported platform, while a local
+artifact only has to run on the machine that built it. Stage the host
+platform's binaries before installing:
+
+```sh
+just build-swift-scanner
+just build-dart-scanner
+just build-rust-scanner
+just stage-scanner-binaries   # host platform only
+just vscode-lsp
+```
+
+Packaging fails with the missing path and this instruction when they are
+absent. Release validation is unchanged: `just package-vsix` still requires
+every supported platform.
+
+To develop against the checkout without reinstalling, run the extension with
+`--extensionDevelopmentPath` (see `.vscode/launch.json`), or point
+`docbridge.cliPath` at an absolute CLI entrypoint.

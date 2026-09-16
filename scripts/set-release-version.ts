@@ -2,7 +2,7 @@
 
 // Single writer for the versions that must stay aligned across a release: the
 // npm package manifest and the VS Code extension manifest. `scripts/
-// vscode-extension.ts#assertReleaseInputs` refuses to package a VSIX when the
+// vscode-extension.ts#assertPackagingInputs` refuses to package a VSIX when the
 // two disagree, so Release Prepare bumps both through this script.
 
 import { readFileSync, writeFileSync } from "node:fs";

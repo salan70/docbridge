@@ -34,6 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           nix develop -c bun install --frozen-lockfile
+          nix develop -c just install-editor-deps
           nix develop -c dart pub get --directory packages/dart-scanner --enforce-lockfile
 
       - name: just format-check
@@ -50,6 +51,11 @@ jobs:
 
       - name: just typecheck
         run: nix develop -c just typecheck
+
+      # The editor client is a separate TypeScript project the root tsconfig
+      # does not include, so this is the only gate that type-checks it.
+      - name: just typecheck-extension
+        run: nix develop -c just typecheck-extension
 
   test-dist:
     name: test-dist

@@ -131,7 +131,9 @@ Run additional checks when the affected area requires them:
 | Swift example         | `just check-swift-example`                                |
 | Dart example          | `just check-dart-example`                                 |
 | npm distribution      | `just verify-dist`                                        |
+| Editor client         | `just typecheck-extension` (also in `just verify`)        |
 | VS Code extension     | `just package-vsix`, `just verify-vsix`                   |
+| Local VSIX install    | `just package-vsix-local`, `just verify-vsix-local`       |
 | Repository self-audit | `just check-audit-baseline` (also covered by `just test`) |
 
 Use `just --list` for the complete task list. If a command must be run outside
@@ -140,6 +142,10 @@ an activated shell, prefix it with `nix develop -c`.
 `just setup` builds the debug Swift worker and compiled Dart worker required by
 the Bun integration tests. Rebuild both after changing worker code with
 `just build-test-scanners`.
+
+`just setup` also installs the editor client's own locked dependencies under
+`editors/vscode`, which `just typecheck-extension` needs. Install them alone
+with `just install-editor-deps`.
 
 ## Commits and pull requests
 

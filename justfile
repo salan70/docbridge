@@ -6,8 +6,14 @@ default:
 # Install locked dependencies, build test scanner workers, and configure Git hooks.
 setup:
     bun install --frozen-lockfile
+    just install-editor-deps
     just build-test-scanners
     just install-git-hooks
+
+# Install the editor client's own locked dependencies. It is a separate npm
+# project with its own lockfile, so the root install does not cover it.
+install-editor-deps:
+    cd editors/vscode && bun install --frozen-lockfile
 
 # Print the contributor toolchain versions and validate the required Swift version.
 doctor:
@@ -88,7 +94,7 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check check-docs check-ai-assets typecheck test
+verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test
 
 check:
     bun run src/cli/index.ts check
@@ -183,6 +189,11 @@ build-rust-scanner-debug:
 typecheck:
     bun run tsc --noEmit
 
+# Type-check the editor client. It is outside the root tsconfig's `include`, so
+# `just typecheck` never sees it. Requires `just install-editor-deps`.
+typecheck-extension:
+    cd editors/vscode && bun run tsc --noEmit -p .
+
 build:
     rm -rf dist
     bun build src/cli/index.ts --outdir dist --target node
@@ -197,13 +208,23 @@ verify-dist:
 pack-smoke *ARGS:
     bun run scripts/smoke-packed-package.ts {{ ARGS }}
 
-# Build a release VSIX under editors/vscode/.tmp/out.
+# Build a release VSIX under editors/vscode/.tmp/out. Requires every supported
+# platform's scanner binaries staged under dist/bin.
 package-vsix:
     bun run scripts/vscode-extension.ts package
+
+# Build the same VSIX for this machine only: it requires just the host
+# platform's staged scanner binaries. This is what `just vscode-lsp` installs.
+package-vsix-local:
+    bun run scripts/vscode-extension.ts package --local
 
 # Verify a release VSIX. Pass a path to verify a non-default artifact.
 verify-vsix *ARGS:
     bun run scripts/vscode-extension.ts verify {{ ARGS }}
+
+# Verify a host-only VSIX built by `just package-vsix-local`.
+verify-vsix-local *ARGS:
+    bun run scripts/vscode-extension.ts verify --local {{ ARGS }}
 
 # Publish a verified VSIX to VS Code Marketplace. Requires VSCE_PAT.
 publish-vscode-extension *ARGS:
