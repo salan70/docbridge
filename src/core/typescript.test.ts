@@ -448,7 +448,7 @@ describe("scanTypeScript", () => {
       expect(result.symbols[0]?.canonicalId).toBe("AuthService.login");
     });
 
-    test("keeps undocumented members out of the audit symbol set", () => {
+    test("reports undocumented members flagged as members", () => {
       const content = [
         "/**",
         " * @doc docs/auth.md#service-spec",
@@ -462,7 +462,21 @@ describe("scanTypeScript", () => {
 
       const result = scan(content);
 
-      expect(result.undocumentedSymbols).toEqual([]);
+      expect(
+        result.undocumentedSymbols.map(({ canonicalId, isMember }) => ({ canonicalId, isMember })),
+      ).toEqual([
+        { canonicalId: "AuthService.login", isMember: true },
+        { canonicalId: "AuthService.logout", isMember: true },
+      ]);
+    });
+
+    test("leaves a top-level declaration unflagged", () => {
+      const content = ["export function login(): void {}", ""].join("\n");
+
+      const result = scan(content);
+
+      expect(result.undocumentedSymbols[0]?.canonicalId).toBe("login");
+      expect(result.undocumentedSymbols[0]?.isMember).toBeUndefined();
     });
 
     test("extracts a class property", () => {

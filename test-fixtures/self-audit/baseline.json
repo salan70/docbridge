@@ -68,6 +68,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/cli/errors.ts#manifestRepairGuidance",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/cli/errors.ts#missingInputGuidance",
       "class": "sibling_export"
     },
@@ -308,6 +313,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/core/diagnostics.ts#collectErroredFiles",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/core/diagnostics.ts#formatDiagnostic",
       "class": "sibling_export"
     },
@@ -395,6 +405,76 @@
       "code": "undocumented_symbol",
       "target": "src/core/indent.ts#dedentBlockLines",
       "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonArrayNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonBooleanNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonMember",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonNullNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonNumberNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonObjectNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonStringNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#ParseJsonSourceResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LINK_MANIFEST_FILE_NAME",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LinkManifest",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LinkManifestEntry",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LoadLinkManifestResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#resolveLinkManifest",
+      "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",

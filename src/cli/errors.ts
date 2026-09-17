@@ -103,6 +103,10 @@ export function configRepairGuidance(): string {
   return "Repair or delete docbridge.config.json, then re-run `docbridge check`.";
 }
 
+export function manifestRepairGuidance(): string {
+  return "Repair or delete docbridge.links.json, then re-run `docbridge check`.";
+}
+
 /**
  * Render a CLI invocation error with its stable first-line prefix.
  *

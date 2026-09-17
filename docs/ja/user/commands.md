@@ -9,7 +9,8 @@
 docbridge check
 ```
 
-設定、アノテーション、target、双方向性を検証します。`--audit` は未文書化の宣言と
+設定、アノテーション、target、双方向性、および任意の link manifest を検証します。
+`--audit` は未文書化の宣言と
 未リンクの Markdown section を warning として追加し、`--json` は機械可読な結果を
 返します。error があれば終了コード `1`、warning のみなら `0` です。
 

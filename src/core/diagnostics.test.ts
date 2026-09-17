@@ -17,6 +17,7 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
     "doc_file_not_found",
     "doc_anchor_not_found",
     "code_file_not_found",
+    "code_symbol_not_found",
     "code_backlink_not_found",
     "doc_backlink_not_found",
     "duplicate_doc_anchor",
@@ -32,7 +33,7 @@ test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
     "unlinked_doc_section",
   ] satisfies DiagnosticCode[];
 
-  expect(codes).toHaveLength(20);
+  expect(codes).toHaveLength(21);
 });
 
 test("sortDiagnostics orders diagnostics deterministically", () => {

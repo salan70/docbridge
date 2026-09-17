@@ -18,8 +18,10 @@ export type CodeScanResult = {
   filePath: string;
   symbols: CodeSymbolEndpoint[];
   /**
-   * Supported code endpoints with no `@doc` annotation. The core does not report
-   * them by default; audit mode turns them into `undocumented_symbol`.
+   * Supported code endpoints with no `@doc` annotation, including type members
+   * carrying `isMember`. The core does not report them by default; audit mode
+   * turns them into `undocumented_symbol`, skipping the flagged members. A link
+   * manifest resolves its `code` target against this set as well as `symbols`.
    */
   undocumentedSymbols: CodeSymbolEndpoint[];
   links: LinkAnnotation[];

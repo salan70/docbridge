@@ -164,6 +164,26 @@ recoverable: a configuration key can add members to audit later, additively.
 Shipping the noisy behavior first and narrowing it afterwards would be a breaking
 change, so the restrictive direction is the only safe one to start from.
 
+### Amendment, 2026-09-17: The Exemption Moved, The Behavior Did Not
+
+The [link manifest](../specs/link-manifest.md) resolves a `code` target against
+the set of visible endpoints, so a member had to be visible to the core even
+without a `@doc`. Withholding members from `CodeScanResult` made every member
+unaddressable from a manifest entry.
+
+`CodeSymbolEndpoint` now carries an optional `isMember`, the TypeScript scanner
+reports undocumented members with the flag set, and the `undocumented_symbol`
+rule in `src/core/resolver.ts` skips flagged symbols. So the sentence above —
+"never enters `undocumentedSymbols`" — no longer describes the data structure.
+The decision it records is unchanged: `check --audit` output is identical, and
+a member is still linkable without being required to document itself.
+
+Issue #143 proposed instead moving the exemption into the resolver for all four
+languages under worker protocol `schemaVersion` 2. That was based on a wrong
+premise. Only TypeScript withheld members; Swift, Dart, and Rust already
+reported them. Protocol v2 would have suppressed member warnings those three
+languages emit today, which no one asked for.
+
 ## Collisions Are Diagnosed, Not Encoded
 
 **Decision.** Static and instance members of the same name share one canonical

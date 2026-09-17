@@ -1,5 +1,10 @@
 import type { CodeScanResult } from "./code-scanner";
-import { pluralize, sortDiagnostics, summarizeDiagnostics } from "./diagnostics";
+import {
+  collectErroredFiles,
+  pluralize,
+  sortDiagnostics,
+  summarizeDiagnostics,
+} from "./diagnostics";
 import { filePathOf } from "./endpoint";
 import type { MarkdownScanResult } from "./markdown";
 import { scanProject } from "./project-scan";
@@ -236,6 +241,11 @@ function auditUndocumentedSymbols(
       continue;
     }
     for (const symbol of file.undocumentedSymbols) {
+      // A member is linkable without being required to document itself. See
+      // `docs/decisions/typescript-member-endpoints.md`.
+      if (symbol.isMember === true) {
+        continue;
+      }
       diagnostics.push({
         severity: "warning",
         code: "undocumented_symbol",
@@ -372,28 +382,6 @@ function unlinkedDocSectionDiagnostic(
     diagnostic.range = anchor.headingTextRange;
   }
   return diagnostic;
-}
-
-function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {
-  const errored = new Set<string>();
-  for (const diagnostic of diagnostics) {
-    if (
-      diagnostic.code === "file_read_error" ||
-      diagnostic.code === "code_parse_error" ||
-      isFileScopedScannerDiagnostic(diagnostic)
-    ) {
-      errored.add(diagnostic.target);
-    }
-  }
-  return errored;
-}
-
-function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean {
-  return (
-    (diagnostic.code === "code_scanner_unavailable" || diagnostic.code === "code_scanner_failed") &&
-    diagnostic.language !== undefined &&
-    diagnostic.target !== diagnostic.language
-  );
 }
 
 function pairKey(source: string, target: string): string {

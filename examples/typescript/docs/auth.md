@@ -24,3 +24,9 @@ endpoint is type-qualified: `SessionStore.find`.
 
 Removes a user's session. Each specification section links to the member that
 implements it rather than to the whole `SessionStore` class.
+
+## Logout Spec
+
+Logout flow specification. This section and `logout` carry no annotation. The
+link between them is declared in `docbridge.links.json`, which is the option
+for projects that cannot add markers to their source files.

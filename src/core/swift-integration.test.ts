@@ -91,3 +91,59 @@ test("Swift worker participates in check, context, graph, and LSP navigation", (
     ]);
   });
 });
+
+test("Swift manifest entry links a member with no annotation", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-swift-manifest-"));
+  try {
+    mkdirSync(join(root, "Sources"), { recursive: true });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(
+      join(root, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: { swift: { patterns: ["Sources/**/*.swift"] } },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "docbridge.links.json"),
+      JSON.stringify({
+        links: [
+          {
+            code: "Sources/AuthService.swift#AuthService.login(email:password:)",
+            doc: "docs/auth.md#login-flow",
+          },
+        ],
+      }),
+    );
+    writeFileSync(
+      join(root, "Sources", "AuthService.swift"),
+      [
+        "public struct AuthService {",
+        "  public func login(email: String, password: String) {}",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(join(root, "docs", "auth.md"), "## Login Flow\n");
+
+    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+
+    const graphOutcome = graph({ projectRoot: root });
+    expect(graphOutcome.ok).toBe(true);
+    if (!graphOutcome.ok) {
+      return;
+    }
+    expect(graphOutcome.result.pairs).toEqual([
+      {
+        codeEndpoint: "Sources/AuthService.swift#AuthService.login(email:password:)",
+        docEndpoint: "docs/auth.md#login-flow",
+        hasDocEdge: true,
+        hasCodeEdge: true,
+      },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

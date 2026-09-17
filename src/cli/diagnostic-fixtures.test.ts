@@ -119,6 +119,15 @@ test("fixture code_file_not_found fires exactly code_file_not_found", () => {
   expect(exitCode).toBe(1);
 });
 
+test("fixture code_symbol_not_found fires exactly code_symbol_not_found", () => {
+  const { exitCode, diagnostics } = checkFixture("code_symbol_not_found");
+
+  expect(diagnostics).toEqual([
+    { code: "code_symbol_not_found", filePath: "docbridge.links.json", line: 5 },
+  ]);
+  expect(exitCode).toBe(1);
+});
+
 test("fixture code_backlink_not_found fires exactly code_backlink_not_found", () => {
   const { exitCode, diagnostics } = checkFixture("code_backlink_not_found");
 

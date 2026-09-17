@@ -36,17 +36,18 @@ set.
 
 These codes appear while writing `@doc` / `@code` pairs:
 
-| Diagnostic                                           | Meaning                                  | Usual fix                                             |
-| ---------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
-| `doc_file_not_found` / `code_file_not_found`         | target file not in the managed set       | fix the path, or extend `docbridge.config.json` globs |
-| `doc_anchor_not_found`                               | file found, anchor wrong                 | regenerate the anchor from the exact heading text     |
-| `doc_backlink_not_found` / `code_backlink_not_found` | one direction missing                    | add the missing `@code` or `@doc` side                |
-| `unsupported_declaration`                            | `@doc` on an unsupported declaration     | move the tag to a supported declaration               |
-| `dangling_code_annotation`                           | text between `@code` and the heading     | move the comment directly above the heading           |
-| `invalid_link_target`                                | malformed `file#fragment`                | rewrite the target; see `docs show linking`           |
-| `duplicate_doc_anchor`                               | two headings share an anchor in one file | rename one heading so anchors stay unique             |
-| `duplicate_code_symbol`                              | two annotated declarations share an ID   | keep one `@doc` per canonical ID in that file         |
-| `duplicate_link`                                     | the same source repeats the same target  | remove the extra annotation                           |
+| Diagnostic                                           | Meaning                                   | Usual fix                                                 |
+| ---------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| `doc_file_not_found` / `code_file_not_found`         | target file not in the managed set        | fix the path, or extend `docbridge.config.json` globs     |
+| `doc_anchor_not_found`                               | file found, anchor wrong                  | regenerate the anchor from the exact heading text         |
+| `code_symbol_not_found`                              | manifest names a symbol that is not there | rename the entry, or follow the `Did you mean` suggestion |
+| `doc_backlink_not_found` / `code_backlink_not_found` | one direction missing                     | add the missing `@code` or `@doc` side                    |
+| `unsupported_declaration`                            | `@doc` on an unsupported declaration      | move the tag to a supported declaration                   |
+| `dangling_code_annotation`                           | text between `@code` and the heading      | move the comment directly above the heading               |
+| `invalid_link_target`                                | malformed `file#fragment`                 | rewrite the target; see `docs show linking`               |
+| `duplicate_doc_anchor`                               | two headings share an anchor in one file  | rename one heading so anchors stay unique                 |
+| `duplicate_code_symbol`                              | two annotated declarations share an ID    | keep one `@doc` per canonical ID in that file             |
+| `duplicate_link`                                     | the same source repeats the same target   | remove the extra annotation                               |
 
 Use `docbridge graph --json` to inspect resolved and one-way edges. Use
 `docbridge context <file>` to confirm which counterpart content DocBridge can

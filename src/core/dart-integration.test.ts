@@ -87,3 +87,51 @@ test("Dart worker participates in check, context, graph, and LSP navigation", ()
     ]);
   });
 });
+
+test("Dart manifest entry links a member with no annotation", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-dart-manifest-"));
+  try {
+    mkdirSync(join(root, "lib"), { recursive: true });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(
+      join(root, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: { dart: { patterns: ["lib/**/*.dart"] } },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "docbridge.links.json"),
+      JSON.stringify({
+        links: [
+          { code: "lib/auth_service.dart#AuthService.login", doc: "docs/auth.md#login-flow" },
+        ],
+      }),
+    );
+    writeFileSync(
+      join(root, "lib", "auth_service.dart"),
+      ["class AuthService {", "  void login(String email, String password) {}", "}", ""].join("\n"),
+    );
+    writeFileSync(join(root, "docs", "auth.md"), "## Login Flow\n");
+
+    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+
+    const graphOutcome = graph({ projectRoot: root });
+    expect(graphOutcome.ok).toBe(true);
+    if (!graphOutcome.ok) {
+      return;
+    }
+    expect(graphOutcome.result.pairs).toEqual([
+      {
+        codeEndpoint: "lib/auth_service.dart#AuthService.login",
+        docEndpoint: "docs/auth.md#login-flow",
+        hasDocEdge: true,
+        hasCodeEdge: true,
+      },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

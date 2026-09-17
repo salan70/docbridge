@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/docbridge.links.schema.json",
+  "links": [
+    {
+      "code": "src/auth/login.ts#logout",
+      "doc": "docs/auth.md#logout-spec",
+      "note": "Declared here so neither file carries a marker."
+    }
+  ]
+}
