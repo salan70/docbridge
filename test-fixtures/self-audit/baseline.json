@@ -443,6 +443,31 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LINK_MANIFEST_FILE_NAME",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LinkManifest",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LinkManifestEntry",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#LoadLinkManifestResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/link-manifest.ts#resolveLinkManifest",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/core/links.ts#ParseLinkTargetOptions",
       "class": "sibling_export"
     },

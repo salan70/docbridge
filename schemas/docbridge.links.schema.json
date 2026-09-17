@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DocBridge Link Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["links"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/link" }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "doc"],
+      "properties": {
+        "code": {
+          "description": "Code endpoint as file#canonicalId, relative to the project root.",
+          "type": "string",
+          "pattern": "^[^/\\\\#\\s][^\\\\#\\s]*#[^#\\s]+$"
+        },
+        "doc": {
+          "description": "Documentation endpoint as file#anchor, relative to the project root.",
+          "type": "string",
+          "pattern": "^[^/\\\\#\\s][^\\\\#\\s]*\\.md#[^#\\s]+$"
+        },
+        "note": {
+          "description": "Free-form text for human readers. It reaches no command output.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

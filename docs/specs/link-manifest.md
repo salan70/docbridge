@@ -41,3 +41,23 @@ name the line and column of the offending entry. The accepted grammar is RFC
 8259 exactly, matching `JSON.parse`: no comments, no trailing commas, no
 unquoted keys, and no leading byte order mark. Columns count UTF-16 code units,
 the same unit the code scanners report.
+
+<!-- @code src/core/link-manifest.ts#loadLinkManifest -->
+
+## Loading the Manifest
+
+An absent manifest is not an error. A project that links only with annotations
+never creates one.
+
+A manifest that cannot be parsed reports `config_file_invalid`. A wrong shape
+reports `config_invalid_value`, and an unrecognized key reports
+`config_unknown_key`. Each carries `docbridge.links.json` as its target, names
+the offending path such as `links[2].code` in its message, and locates the
+line and column. All three stop scanning, the way a broken
+[configuration](configuration.md) file does, because a manifest DocBridge
+cannot read makes the whole declared link set unreliable.
+
+A `code` or `doc` value that violates the target grammar reports
+`invalid_link_target` at the value and skips that entry alone. The remaining
+entries are still trustworthy, so one typo must not hide every other entry's
+diagnostics.
