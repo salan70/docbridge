@@ -18,9 +18,9 @@ handled before project scanning, while each command validates its own options.
 ### `check`: validate the project
 
 Run `docbridge check` before committing and in CI. It validates configuration,
-annotations, targets, and reciprocal links. Add `--audit` to include warnings
-for undocumented code declarations and unlinked Markdown sections. Add
-`--json` for machine-readable diagnostics.
+annotations, targets, reciprocal links, and the optional link manifest. Add
+`--audit` to include warnings for undocumented code declarations and unlinked
+Markdown sections. Add `--json` for machine-readable diagnostics.
 
 <!-- @code src/core/related.ts#related -->
 
