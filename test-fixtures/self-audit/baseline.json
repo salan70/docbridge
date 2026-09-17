@@ -398,6 +398,51 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonArrayNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonBooleanNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonMember",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonNullNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonNumberNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonObjectNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#JsonStringNode",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/json-source.ts#ParseJsonSourceResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/core/links.ts#ParseLinkTargetOptions",
       "class": "sibling_export"
     },

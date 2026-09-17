@@ -44,6 +44,7 @@ with the specification for the interface whose exact contract you need:
 - [Annotations](specs/annotations.md)
 - [Scanning](specs/scanning.md)
 - [Link resolution](specs/link-resolution.md)
+- [Link manifest](specs/link-manifest.md)
 - [Diagnostics](specs/diagnostics.md)
 - [Language server](specs/lsp.md)
 
