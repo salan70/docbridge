@@ -18,6 +18,7 @@ context for the reader to choose the next step.
 | `docs/contributing/`                 | Repository development, testing, documentation, commit, and pull-request policy                           |
 | `docs/decisions/`                    | Durable architectural decisions and their rationale                                                       |
 | `docs/plans/`, `docs/plans/done/`    | Active implementation tracking and historical completed plans                                             |
+| `docs/reports/`                      | Dated evidence reports such as dogfooding reviews; historical observations, not current guidance          |
 
 Task guides explain how to achieve an outcome and link to specifications for
 exact contracts. Integration pages build on the general automation guide and
