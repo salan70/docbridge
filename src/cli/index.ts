@@ -17,6 +17,7 @@ import {
   related as runRelatedCore,
 } from "../core/related";
 import { check as runChecker } from "../core/resolver";
+import { nearestMatch } from "../core/suggest";
 import type { DocBridgeDiagnostic } from "../core/types";
 import { runLspServer } from "../lsp/server";
 import { resolveLatestStableVersion, type LatestVersionLookup } from "../setup/registry";
@@ -270,7 +271,7 @@ function runGraph(options: CliGraphOptions, io: CliIo): number {
 }
 
 function unknownCommandGuidance(command: string): string {
-  const suggestion = nearestSubcommand(command);
+  const suggestion = nearestMatch(command, SUBCOMMANDS);
   const lines = ["Available commands:", `  ${SUBCOMMANDS.join(", ")}`];
 
   if (suggestion !== undefined) {
@@ -279,61 +280,6 @@ function unknownCommandGuidance(command: string): string {
 
   lines.push("", "Run `docbridge --help` for usage.");
   return lines.join("\n");
-}
-
-function nearestSubcommand(input: string): Subcommand | undefined {
-  const ranked = SUBCOMMANDS.map((command, index) => ({
-    command,
-    distance: editDistance(input, command),
-    index,
-  })).toSorted((left, right) => left.distance - right.distance || left.index - right.index);
-  const abbreviation = ranked.find(({ command }) => isOrderedAbbreviation(input, command));
-  if (abbreviation !== undefined) {
-    return abbreviation.command;
-  }
-
-  const best = ranked[0];
-  if (best === undefined) {
-    return undefined;
-  }
-
-  const closeEnough = best.distance <= Math.max(1, Math.floor(best.command.length / 2));
-  return closeEnough ? best.command : undefined;
-}
-
-function isOrderedAbbreviation(input: string, command: string): boolean {
-  if (input.length < 3 || input.length >= command.length) {
-    return false;
-  }
-
-  let commandIndex = 0;
-  for (const character of input) {
-    const matchIndex = command.indexOf(character, commandIndex);
-    if (matchIndex === -1) {
-      return false;
-    }
-    commandIndex = matchIndex + 1;
-  }
-  return true;
-}
-
-function editDistance(left: string, right: string): number {
-  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-
-  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-    const current = [leftIndex];
-    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
-      current[rightIndex] = Math.min(
-        (current[rightIndex - 1] ?? Number.POSITIVE_INFINITY) + 1,
-        (previous[rightIndex] ?? Number.POSITIVE_INFINITY) + 1,
-        (previous[rightIndex - 1] ?? Number.POSITIVE_INFINITY) + substitutionCost,
-      );
-    }
-    previous = current;
-  }
-
-  return previous[right.length] ?? 0;
 }
 
 type CommandHandler = (
