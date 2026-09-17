@@ -33,6 +33,37 @@ export function formatSummary(summary: Summary): string {
   return `Summary: ${summary.errors} ${pluralize("error", summary.errors)}, ${summary.warnings} ${pluralize("warning", summary.warnings)}`;
 }
 
+/**
+ * Collect the files whose scan result is incomplete because reading, parsing,
+ * or the scanner worker failed.
+ *
+ * Anything derived from such a file would describe the failure rather than the
+ * project, so link resolution and manifest application both suppress
+ * diagnostics that touch these files.
+ */
+export function collectErroredFiles(diagnostics: DocBridgeDiagnostic[]): Set<string> {
+  const errored = new Set<string>();
+  for (const diagnostic of diagnostics) {
+    if (
+      diagnostic.code === "file_read_error" ||
+      diagnostic.code === "code_parse_error" ||
+      isFileScopedScannerDiagnostic(diagnostic)
+    ) {
+      errored.add(diagnostic.target);
+    }
+  }
+  return errored;
+}
+
+/** Whether a scanner diagnostic names one file rather than the whole language. */
+function isFileScopedScannerDiagnostic(diagnostic: DocBridgeDiagnostic): boolean {
+  return (
+    (diagnostic.code === "code_scanner_unavailable" || diagnostic.code === "code_scanner_failed") &&
+    diagnostic.language !== undefined &&
+    diagnostic.target !== diagnostic.language
+  );
+}
+
 function compareDiagnostics(left: DocBridgeDiagnostic, right: DocBridgeDiagnostic): number {
   const leftLocation = left.location;
   const rightLocation = right.location;

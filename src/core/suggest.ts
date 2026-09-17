@@ -9,6 +9,7 @@
  * confident and wrong suggestion. Ties break by candidate order.
  *
  * @doc docs/specs/cli.md#error-guidance
+ * @doc docs/specs/link-manifest.md#symbol-suggestions
  */
 export function nearestMatch<Candidate extends string>(
   input: string,

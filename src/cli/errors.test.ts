@@ -142,6 +142,27 @@ test("malformed check configuration points to manual repair instead of init", ()
   }
 });
 
+test("malformed link manifest points to the manifest, not the config", () => {
+  const project = mkdtempSync(join(tmpdir(), "docbridge-malformed-manifest-"));
+  try {
+    writeFileSync(
+      join(project, "docbridge.config.json"),
+      JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
+    );
+    writeFileSync(join(project, "docbridge.links.json"), '{ "links": [], }');
+    const c = capture();
+    const code = run(["check", "--root", project], c.io);
+
+    expect(code).toBe(1);
+    expect(c.out).toContain("config_file_invalid");
+    expect(c.err).toBe("Repair or delete docbridge.links.json, then re-run `docbridge check`.\n");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("guidance-free init failures keep the Error prefix", () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-init-error-"));
   try {

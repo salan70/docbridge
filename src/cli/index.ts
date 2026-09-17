@@ -8,6 +8,7 @@ import { CONFIG_FILE_NAME } from "../core/config";
 import { context as runContextCore, formatContextResult } from "../core/context";
 import { formatDiagnostic, formatSummary } from "../core/diagnostics";
 import { formatGraphResult, graph as runGraphCore } from "../core/graph-output";
+import { LINK_MANIFEST_FILE_NAME } from "../core/link-manifest";
 import { resolvePackageRoot } from "../core/package-root";
 import {
   collectGateViolations,
@@ -33,6 +34,7 @@ import {
   commandHelpGuidance,
   configRepairGuidance,
   configSetupGuidance,
+  manifestRepairGuidance,
   DiagnosticOutputError,
   formatCliError,
   missingInputGuidance,
@@ -127,10 +129,8 @@ function runCheck(options: CliCheckOptions, io: CliIo): number {
     io.stdout(
       `${body}${formatSummary(result.summary)}\nSee \`docbridge docs show troubleshooting\` for diagnostic codes and fixes.\n`,
     );
-    if (result.diagnostics.some((diagnostic) => diagnostic.code === "config_file_invalid")) {
-      const guidance = existsSync(join(projectRoot, CONFIG_FILE_NAME))
-        ? configRepairGuidance()
-        : configSetupGuidance();
+    const guidance = repairGuidanceFor(result.diagnostics, projectRoot);
+    if (guidance !== undefined) {
       io.stderr(`${guidance}\n`);
     }
   }
@@ -268,6 +268,29 @@ function runGraph(options: CliGraphOptions, io: CliIo): number {
       return 0;
     },
   );
+}
+
+/**
+ * Pick the next action for an unreadable configuration or link manifest.
+ *
+ * Both report `config_file_invalid`, so the target decides which file the
+ * reader is sent to. A missing configuration gets setup guidance instead of
+ * repair guidance; the manifest is optional and never missing in this sense.
+ */
+function repairGuidanceFor(
+  diagnostics: DocBridgeDiagnostic[],
+  projectRoot: string,
+): string | undefined {
+  const invalid = diagnostics.filter((diagnostic) => diagnostic.code === "config_file_invalid");
+  if (invalid.some((diagnostic) => diagnostic.target === LINK_MANIFEST_FILE_NAME)) {
+    return manifestRepairGuidance();
+  }
+  if (invalid.length === 0) {
+    return undefined;
+  }
+  return existsSync(join(projectRoot, CONFIG_FILE_NAME))
+    ? configRepairGuidance()
+    : configSetupGuidance();
 }
 
 function unknownCommandGuidance(command: string): string {

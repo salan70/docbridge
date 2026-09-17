@@ -4,6 +4,10 @@
 
 DocBridge scans files matched by `include.code` and `include.docs`.
 
+After scanning, DocBridge applies the optional
+[link manifest](link-manifest.md), so declared links reach every consumer as
+ordinary links.
+
 File matching is case-sensitive on every platform.
 
 DocBridge ignores these paths even when they match an include glob:

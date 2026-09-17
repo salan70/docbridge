@@ -80,3 +80,64 @@ test("scanProject stops after an invalid config", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("scanProject builds counterpart edges for a manifest-only project", () => {
+  const root = makeProject({
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+    "docbridge.links.json": JSON.stringify({
+      links: [{ code: "src/login.ts#login", doc: "docs/auth.md#login-spec" }],
+    }),
+    "src/login.ts": "export function login() {}\n",
+    "docs/auth.md": "## Login Spec\n",
+  });
+
+  try {
+    const outcome = scanProject({ projectRoot: root, buildGraph: true });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+    expect(outcome.scan.diagnostics).toEqual([]);
+    expect(
+      counterpartsOf(outcome.scan.graph, "src/login.ts#login").map(
+        (counterpart) => counterpart.endpoint,
+      ),
+    ).toEqual(["docs/auth.md#login-spec"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("scanProject stops scanning when the manifest is invalid", () => {
+  const root = makeProject({
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+    "docbridge.links.json": '{ "links": [], }',
+    "src/login.ts": "export function login() {}\n",
+  });
+
+  try {
+    const outcome = scanProject({ projectRoot: root });
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.diagnostics).toHaveLength(1);
+    expect(outcome.diagnostics[0]?.code).toBe("config_file_invalid");
+    expect(outcome.diagnostics[0]?.target).toBe("docbridge.links.json");
+    expect(outcome.diagnostics[0]?.location?.line).toBe(1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

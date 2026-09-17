@@ -61,3 +61,42 @@ A `code` or `doc` value that violates the target grammar reports
 `invalid_link_target` at the value and skips that entry alone. The remaining
 entries are still trustworthy, so one typo must not hide every other entry's
 diagnostics.
+
+<!-- @code src/core/link-manifest-apply.ts#applyLinkManifest -->
+
+## Applying Manifest Links
+
+Each entry becomes the two directed links an annotation pair would have
+produced, before any derived artifact is built. Link resolution, the graph,
+`related`, `context`, and the language server therefore treat a declared link
+exactly like an annotated one, including navigation between its two endpoints.
+
+An entry resolves its `code` target against every visible endpoint of the file,
+whether or not that endpoint carries a `@doc` of its own. This is what lets a
+manifest link a type member. When the target file is outside the managed code
+set, DocBridge reports `code_file_not_found`; when the file is in scope but the
+canonical ID does not exist, it reports `code_symbol_not_found`. The doc side
+reports `doc_file_not_found` and `doc_anchor_not_found` on the same terms. Each
+diagnostic is located at the offending value inside the manifest.
+
+A resolved code endpoint counts as documented, and a resolved anchor counts as
+annotated, even when the other side of the entry fails. The failure already has
+its own error, and reporting `undocumented_symbol` or `unlinked_doc_section` on
+top would contradict the link the author did write.
+
+An entry that repeats a link already declared by an annotation, or by an
+earlier entry, reports `duplicate_link`. DocBridge then adds only the direction
+that is missing, so a one-way annotation completed by a manifest entry does not
+also report a missing backlink.
+
+An entry is skipped without any diagnostic when either of its files failed to
+read, parse, or scan. Anything reported would describe that failure rather than
+the link.
+
+<!-- @code src/core/suggest.ts#nearestMatch -->
+
+## Symbol Suggestions
+
+`code_symbol_not_found` appends `Did you mean` and one canonical ID from the
+same file when a close enough candidate exists. Closeness is measured the same
+way the CLI measures an unknown subcommand.

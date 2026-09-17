@@ -48,7 +48,9 @@ If the target file had a read, parse, or scanner-worker failure, DocBridge
 suppresses relationship diagnostics that would otherwise be derived from that
 file's incomplete scan result.
 
-Duplicate `@doc` or `@code` annotations from the same source to the same target produce `duplicate_link`.
+A [link manifest](link-manifest.md) entry supplies both directions at once, so the backlink checks above cannot fire for it. DocBridge verifies only that both targets exist. The accepted loss is that a manifest link is invisible to a reader of the code or the document.
+
+Duplicate `@doc` or `@code` annotations from the same source to the same target produce `duplicate_link`. A manifest entry that repeats an existing link produces it too.
 
 If multiple `@doc`-annotated supported declarations in the same file expose the same code endpoint, DocBridge emits `duplicate_code_symbol`.
 

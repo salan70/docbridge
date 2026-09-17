@@ -20,6 +20,7 @@ visibility などの値が不正です。[設定](configuration.md) の最小例
 - `invalid_link_target`: `file#fragment` の形式を直す
 - `doc_file_not_found` / `code_file_not_found`: root 相対 path と include pattern を確認する
 - `doc_anchor_not_found`: ATX 見出しから作る anchor を確認する
+- `code_symbol_not_found`: link manifest の `code` を実在する canonical ID に直す（`Did you mean` の候補を参照）
 - `code_backlink_not_found` / `doc_backlink_not_found`: 逆向きアノテーションを追加する
 - `duplicate_doc_anchor` / `duplicate_code_symbol`: endpoint が一意になるよう整理する
 - `dangling_code_annotation`: `@code` comment を対応見出しの直前へ移す

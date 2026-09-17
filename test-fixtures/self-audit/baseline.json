@@ -68,6 +68,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/cli/errors.ts#manifestRepairGuidance",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/cli/errors.ts#missingInputGuidance",
       "class": "sibling_export"
     },
@@ -305,6 +310,11 @@
       "code": "undocumented_symbol",
       "target": "src/core/context.ts#renderContextBlock",
       "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/core/diagnostics.ts#collectErroredFiles",
+      "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
