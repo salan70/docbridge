@@ -51,6 +51,7 @@ const EMPTY_MANIFEST: LinkManifest = { entries: [] };
  * links only with annotations never creates one.
  *
  * @doc docs/specs/link-manifest.md#loading-the-manifest
+ * @doc docs/user/linking.md#declare-links-in-a-manifest
  */
 export function loadLinkManifest(projectRoot: string): LoadLinkManifestResult {
   let rawText: string | undefined;
