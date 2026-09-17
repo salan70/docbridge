@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import { rmSync } from "node:fs";
 
-import { collectGateViolations, computeRelated, normalizeChangedPaths } from "./related";
-import { graphFrom } from "./test-support";
+import { collectGateViolations, computeRelated, normalizeChangedPaths, related } from "./related";
+import { graphFrom, makeProject } from "./test-support";
 
 const LOGIN_TS = [
   "/**",
@@ -209,4 +210,43 @@ test("normalizeChangedPaths dedupes paths that normalize to the same file", () =
   expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual([
     "src/a.ts",
   ]);
+});
+
+function manifestProject(): string {
+  return makeProject({
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+    "docbridge.links.json": JSON.stringify({
+      links: [{ code: "src/auth.ts#AuthService.login", doc: "docs/auth.md#login-flow" }],
+    }),
+    "src/auth.ts": "export class AuthService {\n  login() {}\n}\n",
+    "docs/auth.md": "## Login Flow\n\nThe service authenticates by email.\n",
+  });
+}
+
+test("related --gate reports a manifest-linked counterpart", () => {
+  const root = manifestProject();
+
+  try {
+    const outcome = related({ projectRoot: root, changedFiles: ["src/auth.ts"] });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+    expect(collectGateViolations(outcome.result)).toEqual([
+      {
+        changedFilePath: "src/auth.ts",
+        changedEndpoint: "src/auth.ts#AuthService.login",
+        counterpartEndpoint: "docs/auth.md#login-flow",
+        counterpartFilePath: "docs/auth.md",
+      },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
