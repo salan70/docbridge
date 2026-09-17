@@ -205,9 +205,12 @@ included only when configured through `include.code.typescript.visibility`.
 Members of a union, intersection, mapped, or conditional type alias are not
 visited at all, so an annotation on one is not detected.
 
-Members are never reported as `undocumented_symbol`. They are linkable, not
+An undocumented member is reported with `isMember` set, and the
+`undocumented_symbol` rule skips flagged symbols. Members are linkable, not
 required to be documented, so member scanning does not change
-[`check --audit`](diagnostics.md) output.
+[`check --audit`](diagnostics.md) output. Reporting them keeps a member
+addressable from a [link manifest](link-manifest.md) entry, which needs the
+full set of visible endpoints rather than only the annotated ones.
 
 ## Swift Scanning
 

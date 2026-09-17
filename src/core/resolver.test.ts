@@ -304,6 +304,19 @@ describe(resolveLinks, () => {
     expect(diagnostics[0]?.target).toBe(`${CODE_FILE}#login`);
   });
 
+  test("skips undocumented symbols flagged as members under audit", () => {
+    const member = { ...codeSymbol("AuthService.login"), isMember: true };
+
+    const diagnostics = resolveLinks({
+      codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login"), member])],
+      docFiles: [],
+      scanDiagnostics: [],
+      audit: true,
+    });
+
+    expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${CODE_FILE}#login`]);
+  });
+
   test("suppresses undocumented_symbol for errored code files under audit", () => {
     const diagnostics = resolveLinks({
       codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login")])],

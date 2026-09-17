@@ -236,6 +236,11 @@ function auditUndocumentedSymbols(
       continue;
     }
     for (const symbol of file.undocumentedSymbols) {
+      // A member is linkable without being required to document itself. See
+      // `docs/decisions/typescript-member-endpoints.md`.
+      if (symbol.isMember === true) {
+        continue;
+      }
       diagnostics.push({
         severity: "warning",
         code: "undocumented_symbol",

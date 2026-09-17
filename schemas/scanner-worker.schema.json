@@ -29,6 +29,7 @@
         "canonicalId": { "type": "string" },
         "endpoint": { "type": "string" },
         "location": { "$ref": "common-output.schema.json#/$defs/location" },
+        "isMember": { "type": "boolean" },
         "nameRange": { "$ref": "common-output.schema.json#/$defs/range" },
         "declarationRange": { "$ref": "common-output.schema.json#/$defs/range" },
         "signatureRange": { "$ref": "common-output.schema.json#/$defs/range" }
