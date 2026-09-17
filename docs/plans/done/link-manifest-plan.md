@@ -1,26 +1,26 @@
 # Link Manifest Plan
 
-This plan implements [issue #143](https://github.com/salan70/docbridge/issues/143):
-an optional root file `docbridge.links.json` declares links with no marker in
-code or Markdown, so a team that does not accept tool-specific comments in
-source files can still adopt DocBridge.
+This plan implements [issue #143](https://github.com/salan70/docbridge/issues/143).
+An optional root file `docbridge.links.json` declares links with no marker in
+code or Markdown. A team that does not accept tool-specific comments in source
+files can then adopt DocBridge.
 
-Normative behavior lands in [Link manifest](../specs/link-manifest.md), with
-supporting changes in [Link resolution](../specs/link-resolution.md),
-[Scanning](../specs/scanning.md), and [Diagnostics](../specs/diagnostics.md).
+Normative behavior lands in [Link manifest](../../specs/link-manifest.md), with
+supporting changes in [Link resolution](../../specs/link-resolution.md),
+[Scanning](../../specs/scanning.md), and [Diagnostics](../../specs/diagnostics.md).
 
 The whole plan lands as a single pull request. Slices are commit units within
 that PR, not separate PRs.
 
 ## Status
 
-- [ ] Slice 1: Position-tracking JSON reader
-- [ ] Slice 2: Shared nearest-match helper
-- [ ] Slice 3: Member endpoints in the audit symbol set
-- [ ] Slice 4: Manifest loading and schema
-- [ ] Slice 5: Manifest application and `code_symbol_not_found`
-- [ ] Slice 6: Command surfaces and member targets in four languages
-- [ ] Slice 7: User documentation and example
+- [x] Slice 1: Position-tracking JSON reader
+- [x] Slice 2: Shared nearest-match helper
+- [x] Slice 3: Member endpoints in the audit symbol set
+- [x] Slice 4: Manifest loading and schema
+- [x] Slice 5: Manifest application and `code_symbol_not_found`
+- [x] Slice 6: Command surfaces and member targets in four languages
+- [x] Slice 7: User documentation and example
 
 ## Goals
 
@@ -79,7 +79,7 @@ language from `symbols` plus `undocumentedSymbols`, and audit output does not
 move. A cross-language member audit policy is left as follow-up work.
 
 This makes the claim in
-[TypeScript member endpoints](../decisions/typescript-member-endpoints.md) that
+[TypeScript member endpoints](../../decisions/typescript-member-endpoints.md) that
 a member "never enters `undocumentedSymbols`" inaccurate at the data-structure
 level, so that document is amended rather than left to rot.
 
@@ -97,10 +97,9 @@ how a malformed annotation behaves.
 
 ### An Attempted Link Counts For Audit
 
-When the code endpoint of an entry resolves, its symbol is treated as
-documented even if the doc side fails; when the anchor resolves, its heading is
-treated as annotated even if the code side fails. Both failures already produce
-their own error. Reporting `undocumented_symbol` or `unlinked_doc_section` on
+A resolved code endpoint counts as documented even when the doc side fails. A
+resolved anchor counts as annotated even when the code side fails. Both
+failures already produce their own error. Reporting `undocumented_symbol` or `unlinked_doc_section` on
 top would describe a link the author did write, and `unlinked_doc_section`
 would additionally collapse the surrounding subtree into one roll-up. This is
 the rule `hasCodeAnnotation` already applies to a broken `@code` comment.
@@ -123,9 +122,9 @@ in scope but whose canonical ID does not exist. The case cannot arise from
 
 ## Slice 1: Position-Tracking JSON Reader
 
-`src/core/json-source.ts` parses RFC 8259 into a node tree carrying the 1-based
-line and column of every value and object key, plus the content range of each
-string excluding its quotes. `JSON.parse` reports no usable position, and the
+`src/core/json-source.ts` parses RFC 8259 into a node tree. Every value and
+object key carries its 1-based line and column, and every string also carries
+the range between its quotes. `JSON.parse` reports no usable position, and the
 manifest needs one per entry.
 
 Accepted input matches `JSON.parse` exactly, which the tests assert in both
@@ -139,8 +138,8 @@ just typecheck
 ```
 
 Done when `src/core/json-source.test.ts` covers value parity with `JSON.parse`,
-key and value ranges, string content ranges with escapes, CRLF line counting,
-UTF-16 columns, and a located error for each rejected form.
+key and value ranges, string ranges with escapes, CRLF line counting, UTF-16
+columns, and a located error for each rejected form.
 
 ## Slice 2: Shared Nearest-Match Helper
 
@@ -168,8 +167,8 @@ Add optional `isMember` to `CodeSymbolEndpoint` and to `codeSymbol` in
 undocumented members with the flag set, and `auditUndocumentedSymbols` in
 `src/core/resolver.ts` skips flagged symbols.
 
-Reword the member paragraph in [Scanning](../specs/scanning.md) and amend
-[TypeScript member endpoints](../decisions/typescript-member-endpoints.md).
+Reword the member paragraph in [Scanning](../../specs/scanning.md) and amend
+[TypeScript member endpoints](../../decisions/typescript-member-endpoints.md).
 
 Verification:
 
@@ -242,7 +241,7 @@ links, and a member target resolves in all four languages.
 
 ## Slice 7: User Documentation and Example
 
-Document the manifest in [Linking](../user/linking.md) and its Japanese
+Document the manifest in [Linking](../../user/linking.md) and its Japanese
 counterpart, add the `code_symbol_not_found` row to both troubleshooting
 guides, and add one manifest-declared pair to `examples/typescript` so the
 showcase demonstrates coexistence.
