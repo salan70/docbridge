@@ -6,7 +6,7 @@ setting up the repository, making a change, and preparing a pull request.
 ## Development environment
 
 The recommended environment is the pinned Nix development shell. It provides
-Bun, Node.js, Dart, `just`, and every formatter and linter used by the shared
+Bun, Node.js, Dart, Rust, `just`, and every formatter and linter used by the shared
 quality gate. Install a flake-enabled Nix distribution and optionally
 [direnv](https://direnv.net/) before cloning the repository.
 
@@ -94,7 +94,8 @@ its advisory warnings as editing prompts.
 2. For non-trivial work, confirm that its matching issue has the
    `status: accepted` label before implementation.
 3. Keep code, tests, specifications, and user documentation consistent. Use
-   `just related-gate` to find linked counterparts that a change did not update.
+   `just related-gate` before committing to find linked counterparts that your
+   uncommitted changes did not update.
 4. For logic changes, write the failing test first and follow the conventions
    in [Testing](docs/contributing/testing.md).
 5. Apply deterministic formatting with `just format`. `just lint-fix` applies
@@ -114,7 +115,8 @@ just verify
 ```
 
 It runs formatting checks, lint, DocBridge's self-check, documentation structure
-checks, TypeScript type checking, and the Bun test suite. Also verify the
+and AI-asset checks, TypeScript type checking of the CLI and the editor client,
+and the Bun test suite. Also verify the
 distributable build:
 
 ```sh
@@ -127,9 +129,11 @@ Run additional checks when the affected area requires them:
 | --------------------- | --------------------------------------------------------- |
 | Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`     |
 | Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
+| Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`       |
 | TypeScript example    | `just check-example`                                      |
 | Swift example         | `just check-swift-example`                                |
 | Dart example          | `just check-dart-example`                                 |
+| Rust example          | `just check-rust-example`                                 |
 | npm distribution      | `just verify-dist`                                        |
 | Editor client         | `just typecheck-extension` (also in `just verify`)        |
 | VS Code extension     | `just package-vsix`, `just verify-vsix`                   |
@@ -139,9 +143,9 @@ Run additional checks when the affected area requires them:
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.
 
-`just setup` builds the debug Swift worker and compiled Dart worker required by
-the Bun integration tests. Rebuild both after changing worker code with
-`just build-test-scanners`.
+`just setup` builds the debug Swift, compiled Dart, and debug Rust workers
+required by the Bun integration tests. Rebuild all three after changing worker
+code with `just build-test-scanners`.
 
 `just setup` also installs the editor client's own locked dependencies under
 `editors/vscode`, which `just typecheck-extension` needs. Install them alone
@@ -164,8 +168,11 @@ with `just install-editor-deps`.
   results. Do not check a command that was not run.
 - Run `just prose-report pull-request <body-file>` before publishing and review
   its advisory length and repetition warnings.
-- For every `just related-gate` finding, update the linked counterpart or
-  explain in the pull request why no corresponding change is needed.
+- For every linked counterpart reported for the pull request's changes, update
+  it or explain in the pull request why no corresponding change is needed.
+  `just related-gate` covers only uncommitted and untracked files; on a
+  committed branch, use the CI related-gate comment, which covers the whole
+  pull request.
 - All changes land through a pull request. Maintainers merge with a merge
   commit after the required CI checks pass.
 

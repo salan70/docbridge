@@ -21,8 +21,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just typecheck` runs `tsc --noEmit` over the whole project. `bun build`
   strips types without checking them, so this is the only gate that catches
   type errors. `just verify` composes it with format checks, lint, `just check`,
-  and `just test` for the pre-commit hook; CI exposes the same
-  checks as separate steps for diagnosis.
+  `just check-docs`, `just check-ai-assets`, `just typecheck-extension`, and
+  `just test` for the pre-commit hook; CI exposes the same checks as separate
+  steps for diagnosis.
 - The TypeScript toolchain is pinned through `bun.lock` (`typescript`,
   `@types/bun`, and the transitive `@types/node`). Run installs with
   `bun install --frozen-lockfile` so every machine resolves the same types; a
@@ -32,7 +33,7 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 - `just test` includes TypeScript, Swift, Dart, and Rust end-to-end integration
   tests. The Swift, Dart, and Rust integration tests spawn the built worker binaries,
-  which `just setup` builds for a fresh source checkout. Rebuild both after
+  which `just setup` builds for a fresh source checkout. Rebuild all three after
   changing worker code with `just build-test-scanners`.
 - `just test-swift-scanner` runs the SwiftPM test suite for
   `packages/swift-scanner`. It requires a Swift 6 toolchain on `PATH`; the Nix
@@ -41,7 +42,8 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just test-dart-scanner` runs the Dart package tests for
   `packages/dart-scanner`. The Dart SDK is provided by the Nix dev shell.
 - `just test-rust-scanner` runs the Cargo test suite for
-  `packages/rust-scanner`. A Rust 1.83 toolchain is required on `PATH`.
+  `packages/rust-scanner`. The Nix dev shell provides the Rust 1.83 toolchain
+  pinned by `packages/rust-scanner/rust-toolchain.toml`.
 - CI treats the scanner-native test suites as mandatory before the shared
   `just test` gate. Local changes to scanner code should run the matching
   native test plus `just test`.
