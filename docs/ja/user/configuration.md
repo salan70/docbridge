@@ -56,7 +56,7 @@ TypeScript declaration file（`.d.ts`）は常に無視されます。
 
 ## 設定変更を検証する
 
-変更後に `docbridge check` を実行します。ファイルの欠落と JSON の不備は
+変更後に `docbridge check` を実行します。ファイルの欠落、読み取り不能、JSON の不備は
 `config_file_invalid`、未知の key は `config_unknown_key`、受け付けられない値は
 `config_invalid_value` です。既存ファイルを変更せずに開始案を確認するには
 `docbridge init --dry-run` を使います。

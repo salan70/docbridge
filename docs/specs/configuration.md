@@ -6,7 +6,7 @@ DocBridge reads a required `docbridge.config.json` file from the project root.
 
 The project root is the current working directory by default, or the value passed to `--root <path>` on `check`, `related`, `context`, or `graph`.
 
-The configuration file is required. When it is absent or is not valid JSON, DocBridge reports `config_file_invalid` and does not scan project files. There is no implicit default configuration.
+The configuration file is required. When it is absent, cannot be read, or is not valid JSON, DocBridge reports `config_file_invalid` and does not scan project files. There is no implicit default configuration.
 
 ```json
 {

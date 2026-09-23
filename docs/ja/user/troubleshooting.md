@@ -4,7 +4,9 @@
 
 ## 設定エラー
 
-`config_file_invalid` は設定ファイルの欠落または不正な JSON を示します。
+`config_file_invalid` は設定ファイルの欠落、読み取り不能（path が directory である、
+読み取り権限がないなど）、または不正な JSON を示します。欠落と読み取り不能のどちらでも
+message は file が見つからないと表示します。
 `config_unknown_key` は未対応 property、`config_invalid_value` は pattern、language、
 visibility などの値が不正です。[設定](configuration.md) の最小例と比較し、
 `docbridge init --dry-run` で生成案を確認してください。
@@ -19,8 +21,10 @@ visibility などの値が不正です。[設定](configuration.md) の最小例
 `code_scanner_failed` は worker の実行失敗です。対応 platform、実行権限、runtime、
 source syntax を順に確認します。
 
-`code_parse_error` は TypeScript ファイルの構文エラーです。そのファイルのリンクは
-抽出されないため、先に構文を直してからリンクの診断を確認します。
+`code_parse_error` は TypeScript、Swift、Dart、Rust の source file の構文エラーです。
+そのファイルからはリンクも symbol も抽出されないため、先に構文を直してから関係する
+リンクの診断を確認します。`code_scanner_failed` と違い、worker 自体は正常に動作して
+おり、source が解析できなかったことを示します。
 `file_read_error` は設定に一致したファイルを読めなかったことを示し、message に OS の
 理由が含まれます。
 

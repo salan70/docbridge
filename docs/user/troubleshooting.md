@@ -10,9 +10,12 @@ stderr. Use `docbridge <command> --help` for invocation errors and
 
 ## Configuration errors
 
-`config_file_invalid` means `docbridge.config.json` is missing or is not valid
-JSON. Run `docbridge init --dry-run` when the file is missing. When it exists,
-repair or remove it before running `check` again.
+`config_file_invalid` means `docbridge.config.json` is missing, cannot be read
+(for example, the path is a directory or lacks read permission), or is not
+valid JSON. The message says the file was not found in both of the first two
+cases. Run `docbridge init --dry-run` when the file is missing. When the path
+exists, make it a readable file with valid JSON, or remove it, before running
+`check` again.
 
 `config_unknown_key` means a parsed file has a key DocBridge does not know,
 such as a misspelled property. `config_invalid_value` means a known key has a
@@ -38,9 +41,11 @@ converting it into a broken link. Check that the source parses with the
 project's own toolchain, then reproduce with the smallest configured file
 set.
 
-`code_parse_error` means a TypeScript file has a syntax error. DocBridge
-reports the compiler message and skips links from that file, so fix the
-syntax before judging link diagnostics in it.
+`code_parse_error` means a TypeScript, Swift, Dart, or Rust source file has a
+syntax error. DocBridge extracts no links or symbols from that file, so fix the
+syntax before judging link diagnostics that involve it. Unlike
+`code_scanner_failed`, the worker ran correctly; the source itself did not
+parse.
 
 `file_read_error` means a file matched by the configuration could not be read,
 for example because of permissions or a broken symbolic link. The message
