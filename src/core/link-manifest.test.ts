@@ -142,6 +142,28 @@ test.each([
   expect(result.diagnostics[0]?.location).toBeDefined();
 });
 
+test.each([
+  [
+    '{ "links": [],\n  "links": [{ "code": "src/a.ts#A", "doc": "docs/a.md#b" }] }',
+    "links",
+    { line: 2, column: 3 },
+  ],
+  [
+    '{ "links": [{ "code": "src/a.ts#A",\n  "code": "src/b.ts#B", "doc": "docs/a.md#b" }] }',
+    "links[0].code",
+    { line: 2, column: 3 },
+  ],
+])("resolveLinkManifest rejects a duplicate key in %s", (text, path, start) => {
+  const result = resolveLinkManifest(text);
+
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics).toHaveLength(1);
+  const diagnostic = result.diagnostics[0];
+  expect(diagnostic?.code).toBe("config_invalid_value");
+  expect(diagnostic?.message).toBe(`Duplicate key ${path} in ${LINK_MANIFEST_FILE_NAME}.`);
+  expect(diagnostic?.location).toEqual({ filePath: LINK_MANIFEST_FILE_NAME, ...start });
+});
+
 test("resolveLinkManifest reports a bad target as invalid_link_target without failing", () => {
   const text = [
     "{",

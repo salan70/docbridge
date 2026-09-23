@@ -42,6 +42,11 @@ name the line and column of the offending entry. The accepted grammar is RFC
 unquoted keys, and no leading byte order mark. Columns count UTF-16 code units,
 the same unit the code scanners report.
 
+One rule is stricter than `JSON.parse`: a key repeated within one object
+reports `config_invalid_value` at the repeat. `JSON.parse` keeps the last
+duplicate, so silently keeping either one would let an edit appear in the file
+while `check` ignores it.
+
 <!-- @code src/core/link-manifest.ts#loadLinkManifest -->
 
 ## Loading the Manifest

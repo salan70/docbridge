@@ -124,6 +124,7 @@ function validateManifest(root: JsonNode): LoadLinkManifestResult {
       diagnostics.push(unknownKey(member.key, member));
     }
   }
+  reportDuplicateKeys(root, "", diagnostics);
 
   const links = root.members.find((member) => member.key === "links");
   if (links === undefined) {
@@ -171,6 +172,7 @@ function readEntry(element: JsonNode, index: number): EntryOutcome {
       diagnostics.push(unknownKey(`${path}.${member.key}`, member));
     }
   }
+  reportDuplicateKeys(element, `${path}.`, diagnostics);
 
   const code = readString(element, "code", path, diagnostics);
   const doc = readString(element, "doc", path, diagnostics);
@@ -248,6 +250,34 @@ function parseTarget(
   }
   diagnostics.push(result.diagnostic);
   return undefined;
+}
+
+/**
+ * Report every repeat of a key within one object.
+ *
+ * `JSON.parse` keeps the last duplicate while the lookups here would keep the
+ * first, so the same file could mean two different link sets. Rejecting the
+ * repeat removes that ambiguity instead of picking a side silently.
+ */
+function reportDuplicateKeys(
+  object: JsonObjectNode,
+  pathPrefix: string,
+  diagnostics: DocBridgeDiagnostic[],
+): void {
+  const seen = new Set<string>();
+  for (const member of object.members) {
+    if (seen.has(member.key)) {
+      diagnostics.push(
+        manifestDiagnostic(
+          "config_invalid_value",
+          `Duplicate key ${pathPrefix}${member.key} in ${LINK_MANIFEST_FILE_NAME}.`,
+          positionOf(member.keyRange),
+          member.keyRange,
+        ),
+      );
+    }
+    seen.add(member.key);
+  }
 }
 
 /** Whether a diagnostic makes the whole manifest untrustworthy. */
