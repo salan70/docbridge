@@ -1,13 +1,18 @@
 name: Release Publish
 
-# Runs when a `release/vX.Y.Z` pull request is merged into main: verifies CI is
-# green, publishes the public npm package through Trusted Publishing (OIDC; no
-# long-lived npm token), extracts the matching CHANGELOG section, and creates
-# the git tag plus a GitHub Release in one step (no separate tag push, no PAT).
+# Runs when a pull request labeled `release: patch`, `release: minor`, or
+# `release: major` is merged into main. That pull request already carries the
+# version bump and the rolled CHANGELOG (validated by the Release Label check).
+# This workflow verifies CI is green, publishes the public npm package through
+# Trusted Publishing (OIDC; no long-lived npm token), extracts the matching
+# CHANGELOG section, and creates the git tag plus a GitHub Release in one step
+# (no separate tag push, no PAT). A version whose tag already exists is skipped,
+# so a rerun never publishes twice.
 #
-# The merge of the release PR is the human approval gate. A workflow_dispatch
-# fallback exists for recovery if the automatic run does not fire; it uses this
-# same workflow file so the npm trusted publisher identity stays valid.
+# The merge of the labeled pull request is the human approval gate. A
+# workflow_dispatch fallback exists for recovery if the automatic run does not
+# fire; it uses this same workflow file so the npm trusted publisher identity
+# stays valid. Keep this filename: the npm trusted publisher is bound to it.
 
 on:
   pull_request:
@@ -19,17 +24,62 @@ on:
         description: Version to publish (X.Y.Z), uses current main HEAD
         required: true
 
+# Serialize releases; never cancel a run that may be mid-publish.
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
 permissions:
   contents: write
   checks: read
 
 jobs:
-  scanner-artifacts:
-    name: scanner-artifacts (${{ matrix.platform }})
+  resolve:
+    # Only on a merged pull request with a releasing label, or any manual dispatch.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true &&
-       startsWith(github.head_ref, 'release/'))
+       (contains(github.event.pull_request.labels.*.name, 'release: patch') ||
+        contains(github.event.pull_request.labels.*.name, 'release: minor') ||
+        contains(github.event.pull_request.labels.*.name, 'release: major')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+      version: ${{ steps.target.outputs.version }}
+      publish: ${{ steps.target.outputs.publish }}
+    steps:
+      # pull_request.closed: github.sha is the merge ref, not the commit on main,
+      # so check out the actual merge commit. A dispatch uses main HEAD.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Resolve target commit, version, and existing tag
+        id: target
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            version="${INPUT_VERSION#v}"
+          else
+            version="$(node -p "require('./package.json').version")"
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
+            echo "::notice::Tag v${version} already exists; nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Publishing v${version} from $(git rev-parse HEAD)"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  scanner-artifacts:
+    name: scanner-artifacts (${{ matrix.platform }})
+    needs: resolve
+    if: needs.resolve.outputs.publish == 'true'
     permissions:
       contents: read
     strategy:
@@ -46,6 +96,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
@@ -122,57 +174,22 @@ jobs:
           if-no-files-found: error
 
   publish:
-    # Only on a merged release PR, or any manual dispatch.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.merged == true &&
-       startsWith(github.head_ref, 'release/'))
-    needs: scanner-artifacts
+    needs: [resolve, scanner-artifacts]
     runs-on: ubuntu-latest
     permissions:
       contents: write
       checks: read
       id-token: write
     steps:
-      - name: Resolve target commit and version
-        id: target
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_VERSION: ${{ github.event.inputs.version }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-        run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "sha=" >> "$GITHUB_OUTPUT"   # checkout default (main HEAD)
-            echo "version=${INPUT_VERSION#v}" >> "$GITHUB_OUTPUT"
-          else
-            # pull_request.closed: github.sha is the merge ref, not the commit
-            # on main. Tag the actual merge commit instead.
-            echo "sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
-            echo "version=" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.target.outputs.sha }}
+          ref: ${{ needs.resolve.outputs.sha }}
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
-
-      - name: Determine version
-        id: version
-        env:
-          INPUT_VERSION: ${{ steps.target.outputs.version }}
-        run: |
-          if [ -n "$INPUT_VERSION" ]; then
-            version="$INPUT_VERSION"
-          else
-            version="$(node -p "require('./package.json').version")"
-          fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "Publishing v${version}"
 
       - name: Require CI to have passed for this commit
         env:
@@ -252,7 +269,7 @@ jobs:
 
       - name: Extract changelog section
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
           if [ ! -f CHANGELOG.md ]; then
             echo "CHANGELOG.md not found" >&2
@@ -278,7 +295,7 @@ jobs:
       - name: Create tag and GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
           # gh release create also creates the git tag at --target, so no
           # separate tag push (and thus no PAT) is needed.

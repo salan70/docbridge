@@ -6,3 +6,9 @@ updates:
       interval: weekly
     commit-message:
       prefix: "👷 ci"
+    # Setting labels replaces Dependabot's defaults, so keep them and add the
+    # release label that the required Release Label check expects.
+    labels:
+      - dependencies
+      - github_actions
+      - "release: none"
