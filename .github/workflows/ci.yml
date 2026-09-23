@@ -275,7 +275,7 @@ jobs:
         run: |
           gate_status=0
           nix develop -c bun run src/cli/index.ts related --stdin --gate \
-            < changed-files.txt > gate-output.txt 2>&1 || gate_status=$?
+            < changed-files.txt > gate-output.txt 2> gate-stderr.txt || gate_status=$?
           if [ "$gate_status" = "0" ]; then
             echo "GATE_OUTCOME=clean" >> "$GITHUB_ENV"
           elif [ "$gate_status" = "1" ]; then
@@ -285,11 +285,13 @@ jobs:
               echo "GATE_OUTCOME=infra-error"
               echo "INFRA_REASON<<EOF"
               echo "docbridge related --gate exited ${gate_status}"
+              tail -n 40 gate-stderr.txt
               tail -n 40 gate-output.txt
               echo "EOF"
             } >> "$GITHUB_ENV"
           fi
           cat gate-output.txt
+          cat gate-stderr.txt >&2
 
       - name: Create or update the sticky PR comment
         if: ${{ !cancelled() }}

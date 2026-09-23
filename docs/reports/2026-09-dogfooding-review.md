@@ -218,5 +218,6 @@ unchanged.
   directory exists (`src/setup/init-discovery.ts`). The adopter observation
   predates that fix.
 - [#148](https://github.com/salan70/docbridge/issues/148) updates the CI
-  recipe for F5 and improvement candidates 2 and 7. This repository's own
-  workflow still merges stderr into the gate output.
+  recipe and this repository's workflow for F5 and improvement candidate 7,
+  and documents a single version source with a `docbridge upgrade --check` CI
+  step for candidate 2.

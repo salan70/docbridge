@@ -17,6 +17,12 @@ package-manager script, or a repository recipe such as `just check`. An agent
 can discover the interface from `docbridge --help` and the packaged guides from
 `docbridge docs list`.
 
+Keep the DocBridge version in one place, such as the package manifest's
+development dependency or a single version file that hooks and CI read. When
+the same pin is copied into several scripts, the copies drift apart. After
+changing the version, run `docbridge upgrade --check` to confirm that the CLI
+and the installed skill match; see `docbridge docs show commands`.
+
 `docbridge init` can create `docbridge.config.json` and install the
 distributable `docbridge` skill for Codex, Claude Code, or both. To have an
 agent choose the initial documentation and code scope, run:

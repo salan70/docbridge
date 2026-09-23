@@ -9,6 +9,12 @@ project で統一している方法、たとえば `PATH` 上の `docbridge`、p
 `just check` のような recipe を使います。エージェントは `docbridge --help` と
 `docbridge docs list` から操作方法を確認できます。
 
+DocBridge の version は 1 か所で管理します。たとえば package manifest の
+development dependency や、hook と CI が読む単一の version file に置きます。同じ
+pin を複数の script に書き写すと、写しどうしがずれていきます。version を変えたら
+`docbridge upgrade --check` を実行し、CLI と導入済み skill が一致していることを
+確認します。詳しくは [コマンド](commands.md) を参照してください。
+
 `docbridge init` は `docbridge.config.json` を作成し、配布 `docbridge` skill を
 Codex、Claude Code、またはその両方に導入できます。
 初期対象範囲をエージェントに選ばせる場合:
