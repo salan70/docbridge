@@ -29,7 +29,7 @@ test("assertInstalledScannerExecutables rejects installed scanner binaries witho
   }
 });
 
-test("assertDocumentationCommands covers canonical, legacy, and unknown names", () => {
+test("assertDocumentationCommands covers canonical and rejected document names", () => {
   const commands: string[][] = [];
   const canonical = [
     "automation",
@@ -39,12 +39,7 @@ test("assertDocumentationCommands covers canonical, legacy, and unknown names", 
     "linking",
     "troubleshooting",
   ];
-  const aliases: Record<string, string> = {
-    annotations: "linking",
-    "linking-workflow": "linking",
-    "link-review": "linking",
-    "agent-integration": "automation",
-  };
+  const legacyNames = ["annotations", "linking-workflow", "link-review", "agent-integration"];
   const execute = (args: string[]): CommandResult => {
     commands.push(args);
     if (args.join(" ") === "docs list --json") {
@@ -58,32 +53,36 @@ test("assertDocumentationCommands covers canonical, legacy, and unknown names", 
       };
     }
     const name = args[2] ?? "";
-    if (name === "missing") {
+    if (name === "missing" || legacyNames.includes(name)) {
       return {
         exitCode: 1,
         stdout: "",
-        stderr: `Unknown documentation name: missing\nAvailable names:\n  ${canonical.join(", ")}\n`,
+        stderr: [
+          `Error: Unknown documentation name: ${name}`,
+          "",
+          "Available names:",
+          `  ${canonical.join(", ")}`,
+          "",
+          "Run `docbridge docs show <name>` to read a document.",
+          "",
+        ].join("\n"),
       };
     }
-    const resolved = aliases[name] ?? name;
     return {
       exitCode: 0,
-      stdout: `# ${resolved}\n`,
-      stderr:
-        aliases[name] === undefined
-          ? ""
-          : `Documentation name '${name}' is deprecated; use '${resolved}'.\n`,
+      stdout: `# ${name}\n`,
+      stderr: "",
     };
   };
 
   assertDocumentationCommands(execute);
 
   expect(commands).toHaveLength(12);
-  expect(commands).toContainEqual(["docs", "show", "agent-integration"]);
+  expect(commands).toContainEqual(["docs", "show", "annotations"]);
   expect(commands).toContainEqual(["docs", "show", "missing"]);
 });
 
-test("assertDocumentationCommands rejects aliases exposed by docs list", () => {
+test("assertDocumentationCommands rejects noncanonical names exposed by docs list", () => {
   expect(() =>
     assertDocumentationCommands(
       (): CommandResult => ({

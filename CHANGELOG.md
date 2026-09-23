@@ -51,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `docbridge docs show` now rejects the removed names `annotations`,
+  `linking-workflow`, and `link-review`; use `linking`. It also rejects
+  `agent-integration`; use `automation`.
 - Packaged user documentation is consolidated into six task-oriented names:
   `getting-started`, `configuration`, `linking`, `commands`, `automation`, and
   `troubleshooting`.
