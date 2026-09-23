@@ -29,12 +29,12 @@ const canonicalDocumentationNames = [
   "troubleshooting",
 ] as const;
 
-const legacyDocumentationNames = {
-  annotations: "linking",
-  "linking-workflow": "linking",
-  "link-review": "linking",
-  "agent-integration": "automation",
-} as const;
+const legacyDocumentationNames = [
+  "annotations",
+  "linking-workflow",
+  "link-review",
+  "agent-integration",
+] as const;
 
 export type CommandResult = {
   exitCode: number;
@@ -291,37 +291,28 @@ export function assertDocumentationCommands(execute: (args: string[]) => Command
     throw new Error(`docs list returned non-canonical names: ${listedNames.join(", ")}`);
   }
 
-  const canonicalBodies = new Map<string, string>();
   for (const name of canonicalDocumentationNames) {
     const result = execute(["docs", "show", name]);
     assertExitCode(result, 0, `docs show ${name}`);
     if (result.stdout === "" || result.stderr !== "") {
       throw new Error(`docs show ${name} did not return clean canonical output`);
     }
-    canonicalBodies.set(name, result.stdout);
   }
 
-  for (const [legacy, canonical] of Object.entries(legacyDocumentationNames)) {
-    const result = execute(["docs", "show", legacy]);
-    assertExitCode(result, 0, `docs show ${legacy}`);
-    if (result.stdout !== canonicalBodies.get(canonical)) {
-      throw new Error(`docs show ${legacy} did not return ${canonical}`);
-    }
-    const warning = `Documentation name '${legacy}' is deprecated; use '${canonical}'.\n`;
-    if (result.stderr !== warning) {
-      throw new Error(`docs show ${legacy} did not return the deprecation warning`);
-    }
-  }
-
-  const unknown = execute(["docs", "show", "missing"]);
-  assertExitCode(unknown, 1, "docs show missing");
-  const availableNames = `Available names:\n  ${canonicalDocumentationNames.join(", ")}`;
-  if (unknown.stdout !== "" || !unknown.stderr.includes(availableNames)) {
-    throw new Error("docs show missing did not return the canonical unknown-name error");
-  }
-  for (const legacy of Object.keys(legacyDocumentationNames)) {
-    if (unknown.stderr.includes(legacy)) {
-      throw new Error(`docs show missing exposed legacy name ${legacy}`);
+  for (const name of [...legacyDocumentationNames, "missing"]) {
+    const result = execute(["docs", "show", name]);
+    assertExitCode(result, 1, `docs show ${name}`);
+    const expectedError = [
+      `Error: Unknown documentation name: ${name}`,
+      "",
+      "Available names:",
+      `  ${canonicalDocumentationNames.join(", ")}`,
+      "",
+      "Run `docbridge docs show <name>` to read a document.",
+      "",
+    ].join("\n");
+    if (result.stdout !== "" || result.stderr !== expectedError) {
+      throw new Error(`docs show ${name} did not return the canonical unknown-name error`);
     }
   }
 }

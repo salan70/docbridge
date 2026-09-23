@@ -207,42 +207,10 @@ test("runDocs writes a selected document body verbatim", () => {
   expect(output).toBe("# Commands\n");
 });
 
-test.each([
-  ["annotations", "linking"],
-  ["linking-workflow", "linking"],
-  ["link-review", "linking"],
-  ["agent-integration", "automation"],
-])("runDocs resolves the legacy name %s to %s with a deprecation warning", (legacy, canonical) => {
-  let shownName = "";
-  let output = "";
-  let error = "";
-  const reader: DocumentationReader = {
-    list: () => [
-      { name: "automation", description: "Automate DocBridge." },
-      { name: "linking", description: "Create and review links." },
-    ],
-    show: (name) => {
-      shownName = name;
-      return `# ${name}\n`;
-    },
-  };
-
-  const exitCode = runDocs(
-    { kind: "show", name: legacy },
-    { stdout: (text) => (output += text), stderr: (text) => (error += text) },
-    reader,
-  );
-
-  expect(exitCode).toBe(0);
-  expect(shownName).toBe(canonical);
-  expect(output).toBe(`# ${canonical}\n`);
-  expect(error).toBe(`Documentation name '${legacy}' is deprecated; use '${canonical}'.\n`);
-});
-
 test("runDocs rejects an unknown name", () => {
   const reader: DocumentationReader = {
     list: () => [
-      { name: "annotations", description: "Write links." },
+      { name: "automation", description: "Automate DocBridge." },
       { name: "commands", description: "Choose a command." },
     ],
     show: () => undefined,
@@ -318,17 +286,25 @@ test("run docs show rejects an unknown name and lists available names", () => {
   expect(c.err).not.toContain("agent-integration");
 });
 
-test.each([
-  ["annotations", "linking", "# Linking\n"],
-  ["linking-workflow", "linking", "# Linking\n"],
-  ["link-review", "linking", "# Linking\n"],
-  ["agent-integration", "automation", "# Automation\n"],
-])("run docs show supports the packaged legacy name %s", (legacy, canonical, heading) => {
-  const c = capture();
+test.each(["annotations", "linking-workflow", "link-review", "agent-integration"])(
+  "run docs show rejects legacy document name %s",
+  (name) => {
+    const c = capture();
 
-  const code = run(["docs", "show", legacy], c.io);
+    const code = run(["docs", "show", name], c.io);
 
-  expect(code).toBe(0);
-  expect(c.out.startsWith(heading)).toBe(true);
-  expect(c.err).toBe(`Documentation name '${legacy}' is deprecated; use '${canonical}'.\n`);
-});
+    expect(code).toBe(1);
+    expect(c.out).toBe("");
+    expect(c.err).toBe(
+      [
+        `Error: Unknown documentation name: ${name}`,
+        "",
+        "Available names:",
+        "  automation, commands, configuration, getting-started, linking, troubleshooting",
+        "",
+        "Run `docbridge docs show <name>` to read a document.",
+        "",
+      ].join("\n"),
+    );
+  },
+);

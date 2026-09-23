@@ -509,20 +509,10 @@ content. Every name returned by `docs list` must be readable. An unknown name
 writes an error plus all available names to stderr, leaves stdout empty, and
 exits with code `1`.
 
-Through the v0.9.x release line, `docs show` also accepts these hidden aliases:
-
-| Deprecated name     | Canonical name |
-| ------------------- | -------------- |
-| `annotations`       | `linking`      |
-| `linking-workflow`  | `linking`      |
-| `link-review`       | `linking`      |
-| `agent-integration` | `automation`   |
-
-An alias prints the canonical document to stdout, writes exactly
-`Documentation name '<old-name>' is deprecated; use '<new-name>'.` followed by
-a newline to stderr, and exits with code `0`. Aliases are not files and never
-appear in human or JSON list output. They are scheduled for removal in v0.10.0;
-the removal is tracked by issue #129.
+`docs show` accepts only the canonical names returned by `docs list`. The
+removed names `annotations`, `linking-workflow`, and `link-review` use the
+unknown-name behavior; use `linking`. The removed name `agent-integration` also
+uses the unknown-name behavior; use `automation`.
 
 If `docs/user` is missing or contains no Markdown documents, both operations
 report that documentation is unavailable, direct the user to reinstall
@@ -531,8 +521,8 @@ DocBridge, and exit with code `1`.
 The package allowlist contains `docs/user` and excludes the developer-facing
 `docs/specs`, `docs/decisions`, `docs/contributing`, `docs/plans`, and `docs/ja`
 trees. The npm packed-package smoke test installs the tarball without a
-repository checkout and exercises `docs list --json`, all canonical names, all
-compatibility aliases, and an unknown name under both Node.js and Bun.
+repository checkout and exercises `docs list --json`, all canonical names, the
+removed names, and an unknown name under both Node.js and Bun.
 
 <!-- @code src/cli/init.ts#runInit -->
 <!-- @code src/cli/init.ts#parseInitOptions -->

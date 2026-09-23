@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `docbridge docs show` no longer accepts the 0.8.0 names `linking-workflow`
+  and `link-review`, or the older names `annotations` and `agent-integration`.
+  Use `linking` for the first three and `automation` for `agent-integration`.
+  Projects with a 0.8.0 `docbridge` skill should refresh it with
+  `docbridge upgrade --force` because that skill calls the removed names.
 - Packaged user documentation is consolidated into six task-oriented names:
   `getting-started`, `configuration`, `linking`, `commands`, `automation`, and
   `troubleshooting`.
@@ -58,13 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implementation release packaging uses, in a local mode that requires only the
   host platform's staged scanner binaries. Release packaging still requires
   every supported platform.
-
-### Deprecated
-
-- `docbridge docs show annotations`, `linking-workflow`, and `link-review` now
-  resolve to `linking`, while `agent-integration` resolves to `automation`.
-  These hidden compatibility names warn on stderr and will be removed in
-  v0.10.0.
 
 ### Fixed
 
