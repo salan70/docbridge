@@ -2,23 +2,35 @@
 
 This file provides guidance for Claude Code when working in this repository.
 
-This repo also ships an `AGENTS.md` for Codex and Codex-specific assets under
-`.agents/`. Treat `CLAUDE.md` plus `.claude/` as the Claude Code equivalents.
+This repo also ships an `AGENTS.md` for Codex and Codex assets under
+`.agents/`, some of which Claude Code shares (see [Skills](#skills)). Treat `CLAUDE.md` plus `.claude/` as the Claude Code equivalents.
 Keep the two stacks in sync in intent. `CLAUDE.md` and `AGENTS.md` address their
 own tool and stay separate files; the skills under `.agents/skills/` and
 `.claude/skills/` are shared content and stay identical (see [Skills](#skills)).
 
 ## Project Context
 
-DocBridge is a Bun and TypeScript CLI that creates bidirectional links between
-TypeScript code and Markdown documentation. It parses `@doc` annotations in
-JSDoc and `@code` annotations in Markdown HTML comments, then reports
-diagnostics through `docbridge check`.
+DocBridge is a TypeScript CLI that creates bidirectional links between code and
+Markdown documentation. It scans TypeScript, Swift, Dart, and Rust code. It
+parses `@doc` annotations in doc comments and `@code` annotations in Markdown
+HTML comments, reads links declared in an optional `docbridge.links.json`
+manifest, and reports diagnostics through `docbridge check`.
 
-Core implementation lives under `src/`. Specifications live under `docs/specs/`,
-Japanese documentation lives under `docs/ja/`, AI integration recipes live
-under `docs/integrations/`, and implementation plans live under `docs/plans/`
-(see [Plans](#plans)).
+Repository layout:
+
+- `src/` — the CLI, the TypeScript and Markdown scanners, the resolver, and the
+  Language Server.
+- `packages/` — the Swift, Dart, and Rust scanner workers.
+- `editors/vscode/` — the VS Code-compatible extension.
+- `docs/` — user guides (`docs/user/`, Japanese under `docs/ja/`),
+  specifications (`docs/specs/`), integration recipes (`docs/integrations/`),
+  contributor policy (`docs/contributing/`), decision records
+  (`docs/decisions/`), implementation plans (`docs/plans/`, see
+  [Plans](#plans)), and dated reports (`docs/reports/`).
+  [docs/contributing/documentation.md](docs/contributing/documentation.md)
+  owns what belongs where.
+- `scripts/` — repository tooling called by `justfile` recipes.
+- `.githooks/` — the shared Git `pre-commit` hook.
 
 The `examples/` and `test-fixtures/` trees both hold small DocBridge projects but
 differ by intended audience:
@@ -37,8 +49,9 @@ Tests are colocated with the modules they cover as `*.test.ts` files under
 `src/`; there is no separate `test/` directory. See
 [docs/contributing/testing.md](docs/contributing/testing.md).
 
-Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
-Compiler API for core implementation.
+Development uses Bun; the published CLI runs on Node.js 22+ and Bun. Keep
+dependencies minimal and prefer Bun plus the TypeScript Compiler API for core
+implementation.
 
 ## Plans
 
@@ -49,8 +62,9 @@ Implementation plans live under `docs/plans/`. Each plan tracks its slices in a
 - A plan is complete once every `## Status` checkbox is `[x]` and the work has
   merged to `main`. Completed plans are archived under `docs/plans/done/`.
 - The PR that lands a plan's final slice is responsible for checking the last
-  box and `git mv`-ing the plan into `docs/plans/done/` in the same change, so
-  the archive stays current without a separate sweep.
+  box, `git mv`-ing the plan into `docs/plans/done/`, and adding it to
+  `docs/plans/done/README.md` in the same change, so the archive stays current
+  without a separate sweep.
 
 ## Issues
 
@@ -82,10 +96,21 @@ Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
   repository baseline
 - `just check-fixture <code>` — check one diagnostic fixture under
   `test-fixtures/diagnostics/`
+- `just related-gate` — list linked counterparts of uncommitted and untracked
+  changes; it does not cover changes that are already committed
+- `just related-gate-report` — the pre-commit report over staged files,
+  including counterpart content
+- `just context` — print counterpart content for uncommitted changes
 - `just test` — run the Bun test suite (`bun test`)
+- `just build-test-scanners` — build the Swift, Dart, and Rust workers used by
+  integration tests
 - `just typecheck` — type-check the project (`tsc --noEmit`); catches type
   drift that `bun build` ignores
 - `just build` — build the CLI with Bun
+- `just install-git-hooks` — configure `core.hooksPath` for the shared hook
+
+Run `just --list` for the remaining recipes: per-language scanner tests and
+builds, example checks, packaging, and editor tooling.
 
 If `just` is not on `PATH`, prefix commands with `nix develop -c` (for example,
 `nix develop -c just check`). The dev shell is provided by `flake.nix` and
@@ -94,7 +119,9 @@ If `just` is not on `PATH`, prefix commands with `nix develop -c` (for example,
 ## Lint and Formatting Policy
 
 `just verify` is the shared, read-only quality gate. It runs formatting checks,
-lint, DocBridge checks, type checking, and tests over the whole repository.
+lint, DocBridge checks, the documentation-structure and AI-asset checks, type
+checking of the CLI and the editor extension, and tests over the whole
+repository.
 Hooks and CI must report violations, never modify files automatically.
 
 Fix the underlying code instead of weakening a quality gate. Before doing any
@@ -218,8 +245,10 @@ Full rules and the release procedure live in the `git-workflow` skill
   local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
-- CI must pass `just format-check`, `just lint`, `just check`, `just typecheck`,
-  `just test`, and `just build` before merging.
+- CI must pass before merging: `just format-check`, `just lint`, `just check`,
+  `just check-ai-assets`, `just typecheck`, `just typecheck-extension`,
+  `just test`, `just build`, and the native scanner and distribution checks in
+  `.github/workflows/ci.yml`.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR
   requires explicit human approval.** Release tagging and publishing are
   automated by GitHub Actions when the release PR is merged, so the merge is the

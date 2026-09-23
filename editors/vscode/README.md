@@ -43,7 +43,7 @@ and writes it to `docbridge-<version>-local.vsix`. See
   package platforms that are staged before packaging. The initial universal
   VSIX expects `darwin-arm64` and `linux-x64` scanner binaries.
 
-TypeScript, TSX, and Markdown support require only Bun. Swift, Dart, and Rust editor
+TypeScript and Markdown support require only Bun. Swift, Dart, and Rust editor
 support uses the bundled scanner binary for the user's platform.
 
 ## Features

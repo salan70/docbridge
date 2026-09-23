@@ -10,14 +10,23 @@ stderr. Use `docbridge <command> --help` for invocation errors and
 
 ## Configuration errors
 
-`config_file_invalid` means `docbridge.config.json` is missing, malformed, or
-does not match the schema. Run `docbridge init --dry-run` when the file is
-missing. When it exists, repair or remove it before running `check` again.
+`config_file_invalid` means `docbridge.config.json` is missing, cannot be read
+(for example, the path is a directory or lacks read permission), or is not
+valid JSON. The message says the file was not found in both of the first two
+cases. Run `docbridge init --dry-run` when the file is missing. When the path
+exists, make it a readable file with valid JSON, or remove it, before running
+`check` again.
 
-`config_unknown_key` and `config_invalid_value` mean a present file has a key
-or value the schema rejects. Confirm that include patterns match real files
-relative to the selected `--root`, language keys are supported, and excludes
-do not remove an intended link target.
+`config_unknown_key` means a parsed file has a key DocBridge does not know,
+such as a misspelled property. `config_invalid_value` means a known key has a
+value DocBridge rejects, such as an unsupported language, an empty pattern
+list, or a pattern with the wrong file suffix. Compare the file with
+[Configuration](configuration.md), and confirm that include patterns match
+real files relative to the selected `--root`.
+
+The same three codes apply to an optional `docbridge.links.json` link manifest.
+When that file cannot be read or parsed, the CLI prints guidance to repair or
+delete it. See [Linking](linking.md) for its format.
 
 ## Scanner errors
 
@@ -31,6 +40,16 @@ in a supported environment or build the scanner from the repository.
 converting it into a broken link. Check that the source parses with the
 project's own toolchain, then reproduce with the smallest configured file
 set.
+
+`code_parse_error` means a TypeScript, Swift, Dart, or Rust source file has a
+syntax error. DocBridge extracts no links or symbols from that file, so fix the
+syntax before judging link diagnostics that involve it. Unlike
+`code_scanner_failed`, the worker ran correctly; the source itself did not
+parse.
+
+`file_read_error` means a file matched by the configuration could not be read,
+for example because of permissions or a broken symbolic link. The message
+contains the operating-system reason.
 
 ## Link-authoring errors
 
@@ -49,6 +68,10 @@ These codes appear while writing `@doc` / `@code` pairs:
 | `duplicate_code_symbol`                              | two annotated declarations share an ID    | keep one `@doc` per canonical ID in that file             |
 | `duplicate_link`                                     | the same source repeats the same target   | remove the extra annotation                               |
 
+`undocumented_symbol` and `unlinked_doc_section` appear only with
+`docbridge check --audit`. They are warnings that list unlinked endpoints, not
+authoring errors.
+
 Use `docbridge graph --json` to inspect resolved and one-way edges. Use
 `docbridge context <file>` to confirm which counterpart content DocBridge can
 currently resolve.
@@ -65,3 +88,6 @@ included in diagnostic JSON because the project scan did not run.
 managed skill directory without a terminal to confirm on. Re-run it with
 `--yes`, or inspect the plan first with `docbridge upgrade --check` or
 `docbridge upgrade --force --dry-run`.
+
+When `docbridge docs show <name>` rejects a name, use a name printed by
+`docbridge docs list`. Former guide names are no longer accepted.

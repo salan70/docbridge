@@ -122,7 +122,7 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
   run: |
     gate_status=0
     docbridge related --stdin --gate \
-      < changed-files.txt > gate-output.txt 2>&1 || gate_status=$?
+      < changed-files.txt > gate-output.txt 2> gate-stderr.txt || gate_status=$?
     if [ "$gate_status" = "0" ]; then
       echo "GATE_OUTCOME=clean" >> "$GITHUB_ENV"
     elif [ "$gate_status" = "1" ]; then
@@ -132,11 +132,13 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
         echo "GATE_OUTCOME=infra-error"
         echo "INFRA_REASON<<EOF"
         echo "docbridge related --gate exited ${gate_status}"
+        tail -n 40 gate-stderr.txt
         tail -n 40 gate-output.txt
         echo "EOF"
       } >> "$GITHUB_ENV"
     fi
     cat gate-output.txt
+    cat gate-stderr.txt >&2
 
 - name: Create or update the sticky PR comment
   if: ${{ !cancelled() }}
@@ -234,6 +236,13 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
     fi
 ````
 
+The gate step writes stderr to `gate-stderr.txt`, so the sticky comment shows
+only the gate report. Tool output such as a development-shell banner or a
+package-manager notice stays in the job log, and an `infra-error` reason
+includes it. The step captures the exit status from the gate command itself;
+piping the command through `tail` or another filter would record the filter's
+status instead and hide every violation.
+
 The gate exits `1` when a changed file has a linked counterpart that the PR
 does not also change. A violation does not necessarily mean the counterpart
 must change; it means nobody has decided yet. Two reporting styles:
@@ -248,6 +257,22 @@ must change; it means nobody has decided yet. Two reporting styles:
   graph is dense enough that violations are rare; with a sparse graph it
   mostly trains people to bypass the check. Prefer leaving `infra-error`
   distinguishable even when blocking violations.
+
+## Report stale versions
+
+Add a read-only version report so stale CLI pins and stale vendored skills
+surface in the job log:
+
+```yaml
+- name: DocBridge version report
+  run: docbridge upgrade --check
+```
+
+`upgrade --check` exits `0` in every case except an invocation error, so it
+reports drift without gating the job. It compares the installed CLI with the
+latest stable release and the managed `docbridge` skill with the packaged
+template. Run it through the same pinned invocation as `docbridge check`; see
+[Invoking DocBridge](../user/automation.md#invoking-docbridge).
 
 ## Attach counterpart content to the report
 

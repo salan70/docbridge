@@ -87,6 +87,8 @@ backlinks produce diagnostics and exit `1`.
   specifications, and contributor references
 - [Getting started](docs/user/getting-started.md) — installation and project
   setup
+- [Configuration](docs/user/configuration.md) — roots, include patterns,
+  languages, and visibility
 - [Linking](docs/user/linking.md) — choose, create, and semantically review
   links
 - [Commands](docs/user/commands.md) — check, related, context, graph, docs, and

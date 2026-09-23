@@ -239,11 +239,12 @@ test("run docs list emits valid JSON for every packaged document", () => {
       },
       {
         name: "commands",
-        description: "Choose between check, related, context, and graph.",
+        description: "Choose between check, related, context, graph, docs, and upgrade.",
       },
       {
         name: "configuration",
-        description: "Configure docbridge.config.json: roots, includes, excludes, languages.",
+        description:
+          "Configure docbridge.config.json: roots, include patterns, languages, visibility.",
       },
       {
         name: "getting-started",

@@ -4,9 +4,9 @@
 
 DocBridge reads a required `docbridge.config.json` file from the project root.
 
-The project root is the current working directory by default, or the value passed to `docbridge check --root <path>`.
+The project root is the current working directory by default, or the value passed to `--root <path>` on `check`, `related`, `context`, or `graph`.
 
-The configuration file is required. When it is absent, DocBridge reports `config_file_invalid` and does not scan project files. There is no implicit default configuration.
+The configuration file is required. When it is absent, cannot be read, or is not valid JSON, DocBridge reports `config_file_invalid` and does not scan project files. There is no implicit default configuration.
 
 ```json
 {
@@ -24,7 +24,7 @@ The configuration file is required. When it is absent, DocBridge reports `config
 
 `$schema` is optional. When present, it must be a string. DocBridge does not fetch or validate the schema URL.
 
-Unknown top-level keys are errors, except `$schema`. Unknown keys under `include` are errors.
+The parsed value must be a JSON object; otherwise DocBridge reports `config_invalid_value`. Unknown keys at the top level (except `$schema`), under `include`, and inside a language entry under `include.code` report `config_unknown_key`. A known key with a rejected value reports `config_invalid_value`.
 
 Configuration defines scope only; it cannot declare a link. A project that
 declares links without annotations uses the separate
@@ -37,7 +37,7 @@ All include globs are project-root-relative POSIX-style paths. Absolute paths, `
 
 `include.docs` patterns must end with `.md`.
 
-v0.1 glob syntax supports only `*` and `**`.
+Glob syntax supports only `*` and `**`.
 
 - `*` matches within a single path segment and never crosses `/`.
 - `**` is valid only as a full path segment.
@@ -55,7 +55,8 @@ language. Shorthand pattern arrays such as `"swift": ["Sources/**/*.swift"]` are
 not supported; the old array form `"code": ["src/**/*.ts"]` is invalid.
 
 Supported language IDs are `typescript`, `swift`, `dart`, and `rust`. Any other
-key is an error.
+key is an error. `include.code` must configure at least one language; an empty
+object is an error.
 
 ```json
 {

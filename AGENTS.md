@@ -2,17 +2,33 @@
 
 This file provides guidance for Codex when working in this repository.
 
+This repo also ships `CLAUDE.md` and `.claude/` for Claude Code. Keep the two
+stacks in sync in intent. `AGENTS.md` and `CLAUDE.md` address their own tool
+and stay separate files; the skills are shared content (see [Skills](#skills)).
+
 ## Project Context
 
-DocBridge is a Bun and TypeScript CLI that creates bidirectional links between
-TypeScript code and Markdown documentation. It parses `@doc` annotations in
-JSDoc and `@code` annotations in Markdown HTML comments, then reports
-diagnostics through `docbridge check`.
+DocBridge is a TypeScript CLI that creates bidirectional links between code and
+Markdown documentation. It scans TypeScript, Swift, Dart, and Rust code. It
+parses `@doc` annotations in doc comments and `@code` annotations in Markdown
+HTML comments, reads links declared in an optional `docbridge.links.json`
+manifest, and reports diagnostics through `docbridge check`.
 
-Core implementation lives under `src/`. Specifications live under `docs/specs/`,
-Japanese documentation lives under `docs/ja/`, AI integration recipes live
-under `docs/integrations/`, and implementation plans live under `docs/plans/`
-(see [Plans](#plans)).
+Repository layout:
+
+- `src/` — the CLI, the TypeScript and Markdown scanners, the resolver, and the
+  Language Server.
+- `packages/` — the Swift, Dart, and Rust scanner workers.
+- `editors/vscode/` — the VS Code-compatible extension.
+- `docs/` — user guides (`docs/user/`, Japanese under `docs/ja/`),
+  specifications (`docs/specs/`), integration recipes (`docs/integrations/`),
+  contributor policy (`docs/contributing/`), decision records
+  (`docs/decisions/`), implementation plans (`docs/plans/`, see
+  [Plans](#plans)), and dated reports (`docs/reports/`).
+  [docs/contributing/documentation.md](docs/contributing/documentation.md)
+  owns what belongs where.
+- `scripts/` — repository tooling called by `justfile` recipes.
+- `.githooks/` — the shared Git `pre-commit` hook.
 
 The `examples/` and `test-fixtures/` trees both hold small DocBridge projects but
 differ by intended audience:
@@ -49,19 +65,32 @@ Use the repo-native commands in `justfile`:
 - `just audit`
 - `just check-audit-baseline`
 - `just check-fixture <code>`
+- `just related-gate` (uncommitted and untracked changes only)
+- `just related-gate-report`
+- `just context`
 - `just test`
+- `just build-test-scanners`
 - `just typecheck`
 - `just build`
+- `just install-git-hooks`
 
-Runtime is Bun. Keep dependencies minimal and prefer Bun plus the TypeScript
-Compiler API for core implementation.
+Run `just --list` for the remaining recipes: per-language scanner tests and
+builds, example checks, packaging, and editor tooling. If `just` is not on
+`PATH`, prefix commands with `nix develop -c` (for example,
+`nix develop -c just check`).
+
+Development uses Bun; the published CLI runs on Node.js 22+ and Bun. Keep
+dependencies minimal and prefer Bun plus the TypeScript Compiler API for core
+implementation.
 
 ## Lint and Formatting Policy
 
 `just verify` is the shared, read-only quality gate. It runs formatting checks,
-lint, DocBridge checks, type checking, and tests over the whole repository. Run
-`just format` to apply deterministic formatting and `just lint-fix` to apply
-only Oxlint's safe fixes; hooks and CI must never modify files automatically.
+lint, DocBridge checks, the documentation-structure and AI-asset checks, type
+checking of the CLI and the editor extension, and tests over the whole
+repository. Run `just format` to apply deterministic formatting and
+`just lint-fix` to apply only Oxlint's safe fixes; hooks and CI must never
+modify files automatically.
 
 Fix the underlying code instead of weakening a quality gate. Before doing any
 of the following, an AI agent must obtain explicit user approval for the
@@ -82,9 +111,9 @@ Implementation plans live under `docs/plans/` and track their slices in a
 - Active plans (any slice still unchecked) stay directly under `docs/plans/`.
 - A plan is complete once every `## Status` checkbox is `[x]` and the work has
   merged to `main`; completed plans are archived under `docs/plans/done/`.
-- The PR that lands a plan's final slice checks the last box and `git mv`-es the
-  plan into `docs/plans/done/` in the same change, so the archive stays current
-  without a separate sweep.
+- The PR that lands a plan's final slice checks the last box, `git mv`-es the
+  plan into `docs/plans/done/`, and adds it to `docs/plans/done/README.md` in
+  the same change, so the archive stays current without a separate sweep.
 
 ## Issues
 
@@ -121,6 +150,8 @@ before reporting completion.
 
 Codex skills live in `.agents/skills/`.
 
+When implementing features, fixing bugs, or refactoring logic, use `.agents/skills/tdd/SKILL.md`. All logic changes must be test-first.
+
 When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or explicitly asks to deeply examine a plan or design, use `.agents/skills/grill-me/SKILL.md`.
 
 When the user asks to review a PR, inspect a PR for defects, or post review findings, use `.agents/skills/pr-review/SKILL.md`.
@@ -134,9 +165,19 @@ documentation page, or release note, use
 `.agents/skills/concise-writing/SKILL.md`. The canonical writing rules live in
 `docs/contributing/writing.md`; do not duplicate them here.
 
-When a Git hook, CI comment, or `docbridge related --gate` run flags unchanged counterparts, use `.agents/skills/docbridge/SKILL.md` to triage them (sync). When asked whether the docs still match the code with no change set, use the same skill's review procedure.
+When introducing DocBridge, choosing docs and code scope, adding `@doc` / `@code` annotations, or fixing link diagnostics, use `.agents/skills/docbridge/SKILL.md`. When a Git hook, CI comment, or `docbridge related --gate` run flags unchanged counterparts, use the same skill to triage them (sync). When asked whether the docs still match the code with no change set, use its review procedure.
 
-When working under `.agents/`, also follow `.agents/AGENTS.md`.
+Skill copies follow these rules:
+
+- `.agents/skills/docbridge` and `.claude/skills/docbridge` are skill-level
+  symlinks to `templates/skills/docbridge`. Edit the template, not the symlink.
+- `.agents/skills/concise-writing` is shared with Claude Code through a symlink
+  from `.claude/skills/concise-writing`; do not create a second copy.
+- Every other skill exists as a copy under `.agents/skills/` and
+  `.claude/skills/`. The two copies must stay byte-identical, so edit both in
+  the same change; `just check-ai-assets` fails when they differ.
+- Keep skill bodies tool-neutral. Codex-specific guidance belongs in
+  `AGENTS.md`, not in a skill.
 
 ## Language Policy
 
@@ -169,8 +210,10 @@ Full rules and the release procedure live in the `git-workflow` skill
 - After a PR merges, return to an updated `main` (`git switch main && git pull --ff-only`) and delete the local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
-- CI must pass `just format-check`, `just lint`, `just check`, `just typecheck`,
-  `just test`, and `just build` before merging.
+- CI must pass before merging: `just format-check`, `just lint`, `just check`,
+  `just check-ai-assets`, `just typecheck`, `just typecheck-extension`,
+  `just test`, `just build`, and the native scanner and distribution checks in
+  `.github/workflows/ci.yml`.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR requires explicit human approval.** Release tagging and publishing are automated by GitHub Actions when the release PR is merged, so the merge is the release approval gate.
 
 ### Commit messages

@@ -1,12 +1,12 @@
 # Link Resolution
 
-DocBridge v0.1 uses `file#fragment` targets.
+DocBridge uses `file#fragment` targets.
 
 The file path is project-root-relative. The fragment is required. Same-file targets, fragment-only targets, and file-only targets are invalid.
 
 Targets must use `/` path separators. `./`, `../`, absolute paths, whitespace inside the target, empty file paths, empty fragments, and multiple `#` characters are invalid.
 
-DocBridge compares target fragments as raw strings. It does not URL-decode fragments in v0.1.
+DocBridge compares target fragments as raw strings. It does not URL-decode fragments.
 
 Markdown heading anchors are generated from ATX headings only.
 

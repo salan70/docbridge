@@ -9,7 +9,14 @@ project で統一している方法、たとえば `PATH` 上の `docbridge`、p
 `just check` のような recipe を使います。エージェントは `docbridge --help` と
 `docbridge docs list` から操作方法を確認できます。
 
-`docbridge init` は設定と Codex / Claude Code 向けの配布 skill を作成できます。
+DocBridge の version は 1 か所で管理します。たとえば package manifest の
+development dependency や、hook と CI が読む単一の version file に置きます。同じ
+pin を複数の script に書き写すと、写しどうしがずれていきます。version を変えたら
+`docbridge upgrade --check` を実行し、CLI と導入済み skill が一致していることを
+確認します。詳しくは [コマンド](commands.md) を参照してください。
+
+`docbridge init` は `docbridge.config.json` を作成し、配布 `docbridge` skill を
+Codex、Claude Code、またはその両方に導入できます。
 初期対象範囲をエージェントに選ばせる場合:
 
 ```sh
@@ -57,10 +64,17 @@ project 全体への `docbridge check` を hard gate にします。Pull Request
 head の差分を `related --stdin --gate` に渡し、`context` の内容を reviewer に提示
 できます。差分計算に必要な commit を checkout してください。
 
-一般的な方針はこのガイドが所有します。GitHub Actions のコピー可能な手順は
-[CI recipe](../../integrations/ci.md)、client 固有の設定は
-[Claude Code](../../integrations/claude-code.md) と
-[Codex](../../integrations/codex.md) を参照してください。
+一般的な方針はこのガイドが所有します。GitHub Actions のコピー可能な手順と sticky PR
+comment の挙動は [CI recipe](../../integrations/ci.md) を参照してください。
+
+## エージェント別の recipe
+
+配布 skill は [`templates/skills/docbridge`](../../../templates/skills/docbridge) にあります。
+client の設定や prompt の例は、次の recipe を参照してください。
+
+- [Claude Code](../../integrations/claude-code.md)
+- [Codex](../../integrations/codex.md)
+- [CI](../../integrations/ci.md)
 
 次は [コマンド](commands.md)、[リンク](linking.md)、または
 [トラブルシューティング](troubleshooting.md) を参照してください。

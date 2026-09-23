@@ -25,4 +25,4 @@
 
 ## Linked counterparts
 
-<!-- Run just related-gate. List actual findings and either the update or the content-based reason it remains unchanged. -->
+<!-- List the counterparts reported by just related-gate before committing, or by the CI related-gate comment for the whole pull request, and either the update or the content-based reason it remains unchanged. -->

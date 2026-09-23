@@ -1,6 +1,7 @@
 # Annotations
 
-DocBridge v0.1 uses explicit annotations on both sides of a link.
+DocBridge annotations declare a link explicitly on both sides. A project can
+declare links in the [link manifest](link-manifest.md) instead.
 
 TypeScript uses JSDoc `@doc` tags attached to supported declarations:
 
@@ -90,7 +91,7 @@ Unsupported examples include:
 - members whose name is not a plain identifier, enum members, index signatures,
   call and construct signatures, and constructor parameter properties
 
-DocBridge relies on the TypeScript Compiler API to associate JSDoc with declarations. Orphan `@doc` comments that are not associated with a declaration are not detected in v0.1.
+DocBridge relies on the TypeScript Compiler API to associate JSDoc with declarations. Orphan `@doc` comments that are not associated with a declaration are not detected.
 
 Supported Swift declarations are listed in [Scanning](./scanning.md#swift-scanning).
 Swift member endpoints are type-qualified and include argument labels, so

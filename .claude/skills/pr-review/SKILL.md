@@ -45,8 +45,9 @@ user explicitly asks for a local-only review or asks not to post comments.
 4. Run relevant verification:
    - Prefer repo-native `just` commands.
    - If `just` is not on `PATH`, use `nix develop -c just ...`.
-   - For DocBridge PRs, normally run `just check`, `just test`, and `just build`
-     when the change is not documentation-only.
+   - For DocBridge PRs, normally run `just verify` and `just build` when the
+     change is not documentation-only. `just verify` includes `just check`,
+     `just typecheck`, and `just test`.
 5. Post inline comments on GitHub by default for confirmed findings:
    - Get the PR head SHA from `gh pr view <n> --json headRefOid`.
    - Use `gh api repos/{owner}/{repo}/pulls/{n}/comments` with `commit_id`,
@@ -100,8 +101,8 @@ gh pr review {pr} --comment --body '...'
 
 - Conversation with the user should follow the user's language.
 - Review comments posted to GitHub should be written in English.
-- If local `just` is unavailable, use `nix develop -c just check`,
-  `nix develop -c just test`, and `nix develop -c just build`.
+- If local `just` is unavailable, use `nix develop -c just verify` and
+  `nix develop -c just build`.
 - When the user asks to review a PR, posting inline comments on the diff is the
   default scope. Only skip posting when the user explicitly requests a
   local-only review or says not to comment on GitHub.

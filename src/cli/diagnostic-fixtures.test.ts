@@ -11,8 +11,10 @@ import { run } from "./index";
  * extra diagnostics) so CI guarantees each fixture stays minimal. Messages are
  * deliberately not asserted.
  *
- * file_read_error has no fixture: I/O failures are not deterministically
- * reproducible from checked-in files. It is covered by unit tests instead.
+ * code_scanner_unavailable, code_scanner_failed, and file_read_error have no
+ * fixture: scanner availability, worker protocol failures, and I/O failures are
+ * not deterministically reproducible from checked-in files. Unit tests cover
+ * them instead.
  */
 
 const FIXTURES_ROOT = join(import.meta.dir, "..", "..", "test-fixtures", "diagnostics");
@@ -146,7 +148,7 @@ test("fixture doc_backlink_not_found fires exactly doc_backlink_not_found", () =
   expect(exitCode).toBe(1);
 });
 
-// --- scanner errors -----------------------------------------------------------
+// --- scan errors: duplicate endpoints and parse failures ----------------------
 
 test("fixture duplicate_doc_anchor fires exactly duplicate_doc_anchor", () => {
   const { exitCode, diagnostics } = checkFixture("duplicate_doc_anchor");

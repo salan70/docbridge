@@ -155,7 +155,7 @@ stays the recommended style, and the two styles work together in one project.
 
 ```json
 {
-  "$schema": "./schemas/docbridge.links.schema.json",
+  "$schema": "./node_modules/docbridge/schemas/docbridge.links.schema.json",
   "links": [
     {
       "code": "src/auth.ts#AuthService.login",
@@ -171,10 +171,10 @@ backlink. DocBridge checks only that both targets exist. `check`, `related`,
 `context`, `graph`, and editor navigation treat the result exactly like an
 annotation pair.
 
-Two diagnostics are specific to the manifest. A `code` target whose file is in
-scope but whose symbol does not exist reports `code_symbol_not_found` with a
-`Did you mean` suggestion. An entry that repeats an existing link reports
-`duplicate_link`.
+A `code` target whose file is in scope but whose symbol does not exist reports
+`code_symbol_not_found` with a `Did you mean` suggestion; this diagnostic is
+specific to the manifest. An entry that repeats an existing link, whether from
+another entry or from an annotation, reports `duplicate_link`.
 
 The cost is that a declared link is invisible to someone reading the code or
 the document. Run `related --gate` in continuous integration so a change to

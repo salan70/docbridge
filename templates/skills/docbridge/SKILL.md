@@ -79,8 +79,9 @@ A `related --gate` violation means nobody has decided yet, not that the
 counterpart must change. Read `docbridge docs show automation` for the
 three-way judgment.
 
-1. Collect violations from the hook, CI comment, or
-   `git diff --name-only HEAD | docbridge related --stdin --gate`.
+1. Collect violations from the hook, CI comment, or, for uncommitted work
+   including new files,
+   `{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | docbridge related --stdin --gate`.
 2. Fetch counterpart content with `docbridge context` over the changed files.
 3. Per counterpart: update it when the documented contract diverged; leave it
    unchanged with a written justification that cites the counterpart content;
@@ -121,4 +122,4 @@ silence uncertainty.
 - `docbridge docs show troubleshooting` — diagnostic codes and fixes
 - `docbridge docs show getting-started` — first-time setup
 - `docbridge docs show configuration` — `docbridge.config.json`
-- `docbridge docs show commands` — check, related, context, graph
+- `docbridge docs show commands` — check, related, context, graph, docs, upgrade

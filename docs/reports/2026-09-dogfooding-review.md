@@ -200,3 +200,24 @@ with the single `docbridge` skill.
   excluded because the source tree contains every code as a literal.
 - Adopter repositories are private. This report cites repository names,
   repository-relative paths, dates, and short maintainer statements only.
+
+## Follow-up, 2026-09-23
+
+This section records changes after the review. The observations above are
+unchanged.
+
+- [#129](https://github.com/salan70/docbridge/issues/129) is resolved by
+  [#147](https://github.com/salan70/docbridge/pull/147). Former guide names
+  now fail as unknown names, so vendored 0.8.0 skills need
+  `docbridge upgrade --force`.
+- [#143](https://github.com/salan70/docbridge/issues/143) is resolved by
+  [#146](https://github.com/salan70/docbridge/pull/146), which adds the
+  `docbridge.links.json` link manifest.
+- F9 and improvement candidate 6 were already fixed before this review:
+  since 2026-06-21, `init --yes` selects no agent target when no agent
+  directory exists (`src/setup/init-discovery.ts`). The adopter observation
+  predates that fix.
+- [#148](https://github.com/salan70/docbridge/issues/148) updates the CI
+  recipe and this repository's workflow for F5 and improvement candidate 7,
+  and documents a single version source with a `docbridge upgrade --check` CI
+  step for candidate 2.

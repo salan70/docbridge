@@ -17,6 +17,12 @@ package-manager script, or a repository recipe such as `just check`. An agent
 can discover the interface from `docbridge --help` and the packaged guides from
 `docbridge docs list`.
 
+Keep the DocBridge version in one place, such as the package manifest's
+development dependency or a single version file that hooks and CI read. When
+the same pin is copied into several scripts, the copies drift apart. After
+changing the version, run `docbridge upgrade --check` to confirm that the CLI
+and the installed skill match; see `docbridge docs show commands`.
+
 `docbridge init` can create `docbridge.config.json` and install the
 distributable `docbridge` skill for Codex, Claude Code, or both. To have an
 agent choose the initial documentation and code scope, run:
@@ -78,16 +84,18 @@ Git history for the comparison and calculate the changed paths from the PR's
 base and head commits.
 
 The general contract belongs here. Copyable GitHub Actions steps and sticky PR
-comment behavior belong in the [CI integration recipe](../integrations/ci.md).
+comment behavior belong in the [CI integration recipe](https://github.com/salan70/docbridge/blob/main/docs/integrations/ci.md).
 
 ## Agent-specific recipes
 
-The distributable skill is under [`templates/skills/docbridge`](../../templates/skills/docbridge).
-For client setup and prompt examples, use the specialized recipes:
+The distributable skill is under
+[`templates/skills/docbridge`](https://github.com/salan70/docbridge/tree/main/templates/skills/docbridge).
+The recipes below live in the repository, not in the installed package. For
+client setup and prompt examples, use the specialized recipes:
 
-- [Claude Code](../integrations/claude-code.md)
-- [Codex](../integrations/codex.md)
-- [CI](../integrations/ci.md)
+- [Claude Code](https://github.com/salan70/docbridge/blob/main/docs/integrations/claude-code.md)
+- [Codex](https://github.com/salan70/docbridge/blob/main/docs/integrations/codex.md)
+- [CI](https://github.com/salan70/docbridge/blob/main/docs/integrations/ci.md)
 
 ## Next steps
 

@@ -36,7 +36,9 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
    [pull-requests.md](../../../docs/contributing/pull-requests.md).
 3. Implement test-first. For logic changes, use the `tdd` skill.
 4. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
-   read-only `just verify` gate.
+   read-only `just verify` gate, then `just related-gate-report` over the
+   staged files. The report never blocks; update each listed counterpart or
+   state why it needs no update.
 5. Before publishing the PR body, use the `concise-writing` skill and run
    `just prose-report pull-request <body-file>`. Describe the delivered result,
    deviations, verification, and review guidance; link the accepted issue
@@ -47,7 +49,8 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
    `Closes #NN` in the Issue gate section — never wrap it in backticks, or
    GitHub will not auto-close the issue.
 6. Wait for CI to pass.
-7. Merge with **Create a merge commit** once CI is green.
+7. Once CI is green and a human has explicitly approved the merge, merge with
+   **Create a merge commit**.
 8. After merge, return to an updated `main` and remove the local branch:
    `git switch main && git pull --ff-only && git branch -d <branch>`.
 
