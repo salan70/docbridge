@@ -55,7 +55,7 @@ See `docbridge docs show troubleshooting` for diagnostic codes and fixes.
 Diagnostics without a location use the target without line and column:
 
 ```text
-docbridge.config.json error config_file_invalid - Failed to parse config file.
+docbridge.config.json error config_file_invalid - Failed to parse docbridge.config.json: <reason>
 ```
 
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
@@ -77,7 +77,7 @@ derived from the same command set used by dispatch and help:
 Error: Unknown command: ctx
 
 Available commands:
-  check, related, context, graph, init, init-with-agent, lsp
+  check, related, context, graph, docs, init, init-with-agent, upgrade, lsp
 
 Did you mean `context`?
 
@@ -120,6 +120,9 @@ For agent-guided adoption:
 The diagnostic and summary remain in the normal human-readable check output.
 If `docbridge.config.json` exists but cannot be parsed, stderr instead directs
 the user to repair or delete it before re-running `docbridge check`.
+When `docbridge.links.json` exists but cannot be read or parsed, stderr directs
+the user to repair or delete that file instead; this guidance takes precedence
+over the configuration guidance.
 The `--json` path emits the same JSON as before and does not include human
 guidance.
 

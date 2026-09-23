@@ -18,7 +18,7 @@ through `docbridge docs show <name>`:
 - [Linking](user/linking.md) — select sections, author annotation pairs, and
   review their meaning
 - [Commands](user/commands.md) — choose between check, related, context, graph,
-  and docs
+  docs, and upgrade
 - [Automation](user/automation.md) — connect agents, Git hooks, and CI
 - [Troubleshooting](user/troubleshooting.md) — recover from configuration,
   scanner, parsing, and link diagnostics

@@ -4,16 +4,25 @@
 
 ## 設定エラー
 
-`config_file_invalid` は設定の欠落、不正な JSON、schema 不一致を示します。
+`config_file_invalid` は設定ファイルの欠落または不正な JSON を示します。
 `config_unknown_key` は未対応 property、`config_invalid_value` は pattern、language、
 visibility などの値が不正です。[設定](configuration.md) の最小例と比較し、
 `docbridge init --dry-run` で生成案を確認してください。
 
+同じ 3 つの code は、任意の link manifest `docbridge.links.json` にも使われます。
+このファイルを読めない、または解析できない場合、CLI は修復か削除を促す案内を表示します。
+形式は [リンク](linking.md) を参照してください。
+
 ## Scanner エラー
 
 `code_scanner_unavailable` は必要な scanner を起動できない状態、
-`code_scanner_failed` は worker の実行失敗、`code_parse_error` は対象 source の解析失敗
-です。対応 platform、実行権限、runtime、source syntax を順に確認します。
+`code_scanner_failed` は worker の実行失敗です。対応 platform、実行権限、runtime、
+source syntax を順に確認します。
+
+`code_parse_error` は TypeScript ファイルの構文エラーです。そのファイルのリンクは
+抽出されないため、先に構文を直してからリンクの診断を確認します。
+`file_read_error` は設定に一致したファイルを読めなかったことを示し、message に OS の
+理由が含まれます。
 
 ## リンク作成エラー
 
@@ -25,6 +34,10 @@ visibility などの値が不正です。[設定](configuration.md) の最小例
 - `duplicate_doc_anchor` / `duplicate_code_symbol`: endpoint が一意になるよう整理する
 - `dangling_code_annotation`: `@code` comment を対応見出しの直前へ移す
 - `unsupported_declaration`: 対応形式と visibility を [リンク](linking.md) で確認する
+- `duplicate_link`: 同じ source から同じ target への重複を削除する
+
+`undocumented_symbol` と `unlinked_doc_section` は `docbridge check --audit` のときだけ
+出る warning で、リンクのない endpoint を示します。作成エラーではありません。
 
 修正後は `docbridge check` を再実行します。関係する endpoint を調べるには
 `docbridge graph --json`、相手の内容を読むには `docbridge context` を使います。
@@ -41,7 +54,7 @@ visibility などの値が不正です。[設定](configuration.md) の最小例
 確認してください。
 
 `docbridge docs show <name>` が見つからない場合は `docbridge docs list` に表示された
-canonical 名を使います。旧名には v0.9.x の間だけ置換先を示す warning が出ます。
+名前を使います。以前の guide 名は受け付けられません。
 
 通常の終了コードと出力は [コマンド](commands.md)、自動化環境での扱いは
 [自動化](automation.md) を参照してください。

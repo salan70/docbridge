@@ -82,7 +82,7 @@ backlink の欠落がある場合は診断を表示して `1` で終了します
 - [はじめに](user/getting-started.md) — インストールと初期設定
 - [設定](user/configuration.md) — 対象範囲、言語、可視性
 - [リンク](user/linking.md) — 対象選定、アノテーション、意味のレビュー
-- [コマンド](user/commands.md) — check、related、context、graph、docs
+- [コマンド](user/commands.md) — check、related、context、graph、docs、upgrade
 - [自動化](user/automation.md) — エージェント、Git hook、CI
 - [トラブルシューティング](user/troubleshooting.md) — 設定・scanner・リンク診断
 - [英語のドキュメントハブ](../README.md)

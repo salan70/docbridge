@@ -1,5 +1,5 @@
 ---
-description: "Configure docbridge.config.json: roots, includes, excludes, languages."
+description: "Configure docbridge.config.json: roots, include patterns, languages, visibility."
 ---
 
 # Configuration
@@ -71,7 +71,8 @@ coverage gaps rather than every implementation detail or general prose file.
 
 ## Validate changes
 
-Run `docbridge check` after editing configuration. A missing, malformed, or
-schema-invalid configuration produces `config_file_invalid`. Use
+Run `docbridge check` after editing configuration. A missing file or invalid
+JSON produces `config_file_invalid`. An unknown key produces
+`config_unknown_key`, and a rejected value produces `config_invalid_value`. Use
 `docbridge init --dry-run` to inspect a safe generated starting point without
 overwriting an existing file.

@@ -20,7 +20,9 @@ npx docbridge init --dry-run
 ```
 
 続けて `npx docbridge init` を対話形式で実行します。対象範囲が明確な場合は
-`--yes` を使用できます。既存の `docbridge.config.json` は上書きしません。
+`--yes` を使用できます。このコマンドは `docbridge.config.json` を作成し、配布
+`docbridge` skill を Codex、Claude Code、またはその両方に導入できます。既存の
+`docbridge.config.json` は上書きしません。
 エージェントに初期範囲を選ばせる場合は `npx docbridge init-with-agent` を使います。
 
 ## 最初の双方向リンクを作る

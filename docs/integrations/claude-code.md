@@ -24,3 +24,9 @@ This repository keeps the distributable DocBridge skill canonical under
 `templates/skills/` and dogfoods it as a skill-level symlink from
 `.claude/skills/`. External repositories should usually copy the skill
 directory so they are not tied to this repository's checkout path.
+
+A copied skill does not update with the package. After upgrading DocBridge,
+run `docbridge upgrade --check` to compare the installed skill with the
+packaged template, then `docbridge upgrade --force` to replace it. A skill
+copied from 0.8.0 calls guide names that newer versions reject, so refresh it
+before relying on it.

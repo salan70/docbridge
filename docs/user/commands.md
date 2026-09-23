@@ -1,5 +1,5 @@
 ---
-description: Choose between check, related, context, and graph.
+description: Choose between check, related, context, graph, docs, and upgrade.
 ---
 
 # Commands

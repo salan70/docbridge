@@ -1,12 +1,13 @@
 # LSP
 
-DocBridge v0.2 provides a Language Server, `docbridge lsp`, that exposes the
+DocBridge provides a Language Server, `docbridge lsp`, that exposes the
 DocBridge link graph to editors over the Language Server Protocol.
 
-The server is additive. It reuses the v0.1 scanners and resolver and does not
+The server is additive. It reuses the `check` scanners and resolver and does not
 change `docbridge check`.
 
-Rationale and scope decisions live in [v0.2 Decisions](../decisions/v0.2.md).
+The original rationale and scope decisions live in the historical
+[v0.2 decisions](../decisions/v0.2.md).
 
 <!-- @code src/lsp/transport.ts#encodeMessage -->
 
@@ -65,11 +66,14 @@ The server uses a whole-project model.
   the editor's buffer text (including unsaved edits) instead of the file on disk.
 - The whole graph is rebuilt when content changes, so cross-file diagnostics and
   References stay correct.
+- `docbridge.config.json` and the optional `docbridge.links.json` link manifest
+  are read from disk on every rebuild. Unsaved edits to them are not used; a
+  saved change takes effect at the next rebuild.
 
 A whole-project model is required: backlink diagnostics and "find all code that
 links to this spec" cannot be derived from a single open file.
 
-Single-root only. Multi-root workspaces are out of scope for v0.2.
+Single-root only. Multi-root workspaces are not supported.
 
 <!-- @code src/lsp/project.ts#Project.setOverlay -->
 <!-- @code src/lsp/project.ts#Project.clearOverlay -->
@@ -97,13 +101,13 @@ rapid edits before re-resolution.
 - LSP `Position.line` and `Position.character` are 0-based. DocBridge `line` and
   `column` are 1-based. The server converts at the protocol boundary.
 - Document URIs are `file://` URIs. The server converts them to and from
-  project-root-relative paths. Windows-specific path handling is out of scope for
-  v0.2.
+  project-root-relative paths. Windows-specific path handling is not
+  supported.
 
 ## Ranges
 
-v0.1 records a single point per element. v0.2 enriches the scanners to record
-ranges:
+Diagnostics record a single point per element. For the server, the scanners
+also record ranges:
 
 - `nameRange` — the declaration name identifier in code (for example, the
   `login` identifier in TypeScript, Swift, Dart, or Rust).
@@ -191,10 +195,10 @@ Each reference is a `Location` at the counterpart's element range.
 
 ## Diagnostics
 
-The server publishes the v0.1 diagnostics through
-`textDocument/publishDiagnostics`. The computation is unchanged; the mapping to
-LSP is defined in [Diagnostics](./diagnostics.md). v0.2 adds no new
-diagnostic codes.
+The server publishes the same diagnostics as `docbridge check` through
+`textDocument/publishDiagnostics`. The computation is shared; the mapping to
+LSP is defined in [Diagnostics](./diagnostics.md). The server adds no
+diagnostic codes of its own.
 
 The server publishes diagnostics for open documents. Because the whole graph is
 in memory, open documents receive correct cross-file diagnostics.
@@ -221,6 +225,7 @@ The VS Code-compatible extension is a thin LSP client. It starts the bundled
 - `typescriptreact`
 - `swift`
 - `dart`
+- `rust`
 - `markdown`
 
 The extension does not duplicate DocBridge include-pattern filtering. It only

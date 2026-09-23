@@ -121,4 +121,4 @@ silence uncertainty.
 - `docbridge docs show troubleshooting` — diagnostic codes and fixes
 - `docbridge docs show getting-started` — first-time setup
 - `docbridge docs show configuration` — `docbridge.config.json`
-- `docbridge docs show commands` — check, related, context, graph
+- `docbridge docs show commands` — check, related, context, graph, docs, upgrade

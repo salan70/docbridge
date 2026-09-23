@@ -98,7 +98,8 @@ const、static、union、extern block は endpoint ではありません。ID �
 ## ドキュメントからコードへ
 
 リンクする ATX 見出しの直前に、独立した HTML comment を置きます。0〜3文字の先頭
-space と、comment と見出しの間の空行は許可されます。
+space と、comment と見出しの間の空行は許可されます。それ以外の内容を挟むと
+`dangling_code_annotation` になります。
 
 ```md
 <!-- @code src/auth.ts#login -->
@@ -112,6 +113,7 @@ fragment には scanner が生成した canonical symbol ID をそのまま使�
 
 DocBridge は ATX 見出しだけを小文字化し、空白と記号の連続を `-` に変換し、先頭と
 末尾の `-` を除いて anchor を作ります。Unicode の文字と数字は保持されます。
+たとえば `## Login Spec (v2)` は `#login-spec-v2` です。
 空見出しは anchor を持たず、空見出しに付けた `@code` は
 `dangling_code_annotation` になります。同じファイルの重複 anchor は
 `duplicate_doc_anchor` で、GitHub のような連番は追加しません。
@@ -128,7 +130,7 @@ DocBridge は ATX 見出しだけを小文字化し、空白と記号の連続�
 
 ```json
 {
-  "$schema": "./schemas/docbridge.links.schema.json",
+  "$schema": "./node_modules/docbridge/schemas/docbridge.links.schema.json",
   "links": [
     {
       "code": "src/auth.ts#AuthService.login",
@@ -143,9 +145,9 @@ DocBridge は ATX 見出しだけを小文字化し、空白と記号の連続�
 DocBridge は両端の存在だけを検証します。`check`、`related`、`context`、`graph`、
 エディタのナビゲーションは、結果をアノテーション対と同じものとして扱います。
 
-manifest 固有の診断は 2 つです。`code` のファイルは scope 内なのに symbol が存在しない
-場合は `code_symbol_not_found` を `Did you mean` 候補つきで報告します。既存のリンクを
-繰り返すエントリは `duplicate_link` を報告します。
+`code` のファイルは scope 内なのに symbol が存在しない場合は、manifest 固有の
+`code_symbol_not_found` を `Did you mean` 候補つきで報告します。別のエントリや
+アノテーションと同じリンクを繰り返すエントリは `duplicate_link` を報告します。
 
 代償は、宣言されたリンクがコードやドキュメントの読み手から見えないことです。CI で
 `related --gate` を実行し、片側の変更がもう片側を必ず表面化するようにしてください。

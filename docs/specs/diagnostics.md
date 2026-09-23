@@ -2,7 +2,7 @@
 
 # Diagnostics
 
-DocBridge v0.1 diagnostics have this JSON shape:
+DocBridge diagnostics have this JSON shape:
 
 ```ts
 type DocBridgeDiagnostic = {
@@ -119,9 +119,9 @@ Content before the first heading has no anchor and is out of scope. Sections in 
 
 ## LSP Diagnostics
 
-From v0.2, the Language Server (`docbridge lsp`) publishes these same diagnostics
-through `textDocument/publishDiagnostics`. The diagnostic computation is
-unchanged. The diagnostic codes are identical; v0.2 adds no new codes.
+The Language Server (`docbridge lsp`) publishes these same diagnostics
+through `textDocument/publishDiagnostics`. The diagnostic computation and codes
+are shared with `docbridge check`.
 
 Each `DocBridgeDiagnostic` maps to the LSP `Diagnostic` shape:
 
