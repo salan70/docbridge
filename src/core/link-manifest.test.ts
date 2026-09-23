@@ -1,9 +1,12 @@
 import { expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import Ajv2020 from "ajv/dist/2020";
 
 import manifestSchema from "../../schemas/docbridge.links.schema.json";
-import { LINK_MANIFEST_FILE_NAME, resolveLinkManifest } from "./link-manifest";
+import { LINK_MANIFEST_FILE_NAME, loadLinkManifest, resolveLinkManifest } from "./link-manifest";
 
 function expectOk(rawText: string | undefined) {
   const result = resolveLinkManifest(rawText);
@@ -22,6 +25,34 @@ test("resolveLinkManifest treats an absent file as an empty manifest", () => {
 
   expect(result.manifest.entries).toEqual([]);
   expect(result.diagnostics).toEqual([]);
+});
+
+test("loadLinkManifest treats a missing file as an empty manifest", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-manifest-"));
+  try {
+    const result = loadLinkManifest(root);
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("loadLinkManifest reports a manifest path it cannot read and stops", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-manifest-"));
+  mkdirSync(join(root, LINK_MANIFEST_FILE_NAME));
+  try {
+    const result = loadLinkManifest(root);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.diagnostics[0]?.code).toBe("config_file_invalid");
+    expect(result.diagnostics[0]?.target).toBe(LINK_MANIFEST_FILE_NAME);
+    expect(result.diagnostics[0]?.message).toContain(`Failed to read ${LINK_MANIFEST_FILE_NAME}`);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("resolveLinkManifest accepts an empty links array", () => {

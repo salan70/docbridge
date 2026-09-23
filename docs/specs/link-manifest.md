@@ -47,7 +47,11 @@ the same unit the code scanners report.
 ## Loading the Manifest
 
 An absent manifest is not an error. A project that links only with annotations
-never creates one.
+never creates one. Only a missing file counts as absent. A manifest path that
+exists but cannot be read, such as a directory or a file without read
+permission, reports `config_file_invalid` without a location and stops
+scanning. Treating it as empty would let `check` pass without validating the
+declared links.
 
 A manifest that cannot be parsed reports `config_file_invalid`. A wrong shape
 reports `config_invalid_value`, and an unrecognized key reports

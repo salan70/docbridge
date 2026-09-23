@@ -57,10 +57,29 @@ export function loadLinkManifest(projectRoot: string): LoadLinkManifestResult {
   let rawText: string | undefined;
   try {
     rawText = readFileSync(join(projectRoot, LINK_MANIFEST_FILE_NAME), "utf8");
-  } catch {
+  } catch (error) {
+    // Only a missing file means "no manifest". Any other read failure, such as
+    // a directory at that path or a permission error, must not pass silently
+    // as an empty manifest, because declared links would then go unchecked.
+    if (!isMissingFileError(error)) {
+      const reason = error instanceof Error ? error.message : String(error);
+      return {
+        ok: false,
+        diagnostics: [
+          manifestDiagnostic(
+            "config_file_invalid",
+            `Failed to read ${LINK_MANIFEST_FILE_NAME}: ${reason}`,
+          ),
+        ],
+      };
+    }
     rawText = undefined;
   }
   return resolveLinkManifest(rawText);
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT";
 }
 
 /**
@@ -258,7 +277,7 @@ function invalidValue(path: string, expectation: string, node: JsonNode): DocBri
 function manifestDiagnostic(
   code: DocBridgeDiagnostic["code"],
   message: string,
-  position: { line: number; column: number },
+  position?: { line: number; column: number },
   range?: Range,
 ): DocBridgeDiagnostic {
   const diagnostic: DocBridgeDiagnostic = {
@@ -266,8 +285,14 @@ function manifestDiagnostic(
     code,
     target: LINK_MANIFEST_FILE_NAME,
     message,
-    location: { filePath: LINK_MANIFEST_FILE_NAME, line: position.line, column: position.column },
   };
+  if (position !== undefined) {
+    diagnostic.location = {
+      filePath: LINK_MANIFEST_FILE_NAME,
+      line: position.line,
+      column: position.column,
+    };
+  }
   if (range !== undefined) {
     diagnostic.range = range;
   }
