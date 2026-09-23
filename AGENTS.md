@@ -156,7 +156,7 @@ When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or e
 
 When the user asks to review a PR, inspect a PR for defects, or post review findings, use `.agents/skills/pr-review/SKILL.md`.
 
-When branching, committing, pushing, opening or merging a PR, or cutting a release, use `.agents/skills/git-workflow/SKILL.md`.
+When branching, committing, pushing, opening or merging a PR, or choosing its release label, use `.agents/skills/git-workflow/SKILL.md`.
 
 When a PR has review comments to triage, reply to, and resolve, use `.agents/skills/review-response/SKILL.md`.
 
@@ -206,7 +206,7 @@ Full rules and the release procedure live in the `git-workflow` skill
 (`.agents/skills/git-workflow/`). Always-on invariants:
 
 - All changes land through a PR. Never push to `main` directly; GitHub blocks it for everyone, including administrators.
-- Before creating a branch, sync local `main`: `git switch main && git pull --ff-only`. Never branch from a stale `main`. Name branches per [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md) (`<feat|fix|chore>/#<issue>-<kebab-desc>`, or `release/vX.Y.Z`).
+- Before creating a branch, sync local `main`: `git switch main && git pull --ff-only`. Never branch from a stale `main`. Name branches per [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md) (`<feat|fix|chore>/#<issue>-<kebab-desc>`).
 - After a PR merges, return to an updated `main` (`git switch main && git pull --ff-only`) and delete the local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
   `main` history.
@@ -214,7 +214,7 @@ Full rules and the release procedure live in the `git-workflow` skill
   `just check-ai-assets`, `just typecheck`, `just typecheck-extension`,
   `just test`, `just build`, and the native scanner and distribution checks in
   `.github/workflows/ci.yml`.
-- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR requires explicit human approval.** Release tagging and publishing are automated by GitHub Actions when the release PR is merged, so the merge is the release approval gate.
+- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR requires explicit human approval.** Merging a PR labeled `release: patch`, `release: minor`, or `release: major` publishes that release through GitHub Actions, so the merge is also the release approval gate.
 
 ### Commit messages
 
