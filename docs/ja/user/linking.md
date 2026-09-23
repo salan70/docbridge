@@ -119,6 +119,37 @@ DocBridge は ATX 見出しだけを小文字化し、空白と記号の連続�
 各方向は独立して検証されます。片方向の target が存在しても backlink がなければ
 診断になります。編集後は必ず `docbridge check` を実行します。
 
+## manifest でリンクを宣言する
+
+ソースファイルにツール固有のマーカーを置けないチームもあります。そうしたプロジェクト
+は、任意の root ファイル `docbridge.links.json` にすべてのリンクを宣言し、アノテー
+ションを一切書かずに済ませられます。推奨スタイルはアノテーションのままで、両方式は
+1 つのプロジェクトで併用できます。
+
+```json
+{
+  "$schema": "./schemas/docbridge.links.schema.json",
+  "links": [
+    {
+      "code": "src/auth.ts#AuthService.login",
+      "doc": "docs/auth.md#login-flow",
+      "note": "任意。人間の読み手向けのメモ"
+    }
+  ]
+}
+```
+
+1 エントリが双方向を宣言するため、manifest のリンクで backlink 不足は報告されません。
+DocBridge は両端の存在だけを検証します。`check`、`related`、`context`、`graph`、
+エディタのナビゲーションは、結果をアノテーション対と同じものとして扱います。
+
+manifest 固有の診断は 2 つです。`code` のファイルは scope 内なのに symbol が存在しない
+場合は `code_symbol_not_found` を `Did you mean` 候補つきで報告します。既存のリンクを
+繰り返すエントリは `duplicate_link` を報告します。
+
+代償は、宣言されたリンクがコードやドキュメントの読み手から見えないことです。CI で
+`related --gate` を実行し、片側の変更がもう片側を必ず表面化するようにしてください。
+
 ## 意味をレビューする
 
 `docbridge check` はリンクの機械的な整合性を証明します。意味のレビューでは、リンク

@@ -19,6 +19,7 @@ export type DiagnosticCode =
   | "doc_file_not_found"
   | "doc_anchor_not_found"
   | "code_file_not_found"
+  | "code_symbol_not_found"
   | "code_backlink_not_found"
   | "doc_backlink_not_found"
   | "duplicate_doc_anchor"
@@ -108,6 +109,13 @@ export type CodeSymbolEndpoint = {
   canonicalId: string;
   endpoint: string;
   location: SourceLocation;
+  /**
+   * Whether this endpoint is a member of an enclosing type rather than a
+   * top-level declaration. The `undocumented_symbol` audit rule skips flagged
+   * symbols, so a member can be a link target without being required to carry
+   * its own `@doc`.
+   */
+  isMember?: boolean;
   /** Range of the declaration name identifier, used as a navigation trigger. */
   nameRange?: Range;
   /**

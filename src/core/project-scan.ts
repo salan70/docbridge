@@ -9,6 +9,8 @@ import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { collectFiles, readManagedFile } from "./glob";
 import { buildLinkGraph, type LinkGraph } from "./graph";
+import { loadLinkManifest } from "./link-manifest";
+import { applyLinkManifest } from "./link-manifest-apply";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import type { DocBridgeDiagnostic } from "./types";
 
@@ -62,11 +64,19 @@ export function scanProject(
     return { ok: false, diagnostics: configResult.diagnostics };
   }
 
+  const manifestResult = loadLinkManifest(options.projectRoot);
+  if (!manifestResult.ok) {
+    return { ok: false, diagnostics: [...configResult.diagnostics, ...manifestResult.diagnostics] };
+  }
+
   const collectCode = options.collectCode ?? collectCodeFiles;
   const collectDocs = options.collectDocs ?? collectFiles;
   const readFile =
     options.readFile ?? ((relPath: string) => readManagedFile(options.projectRoot, relPath));
-  const diagnostics: DocBridgeDiagnostic[] = [...configResult.diagnostics];
+  const diagnostics: DocBridgeDiagnostic[] = [
+    ...configResult.diagnostics,
+    ...manifestResult.diagnostics,
+  ];
   const contentByFile = options.keepContent ? new Map<string, string>() : undefined;
 
   const codeScan = scanCodeFiles(
@@ -93,17 +103,27 @@ export function scanProject(
     docFiles.push(scan);
   }
 
-  const codeFiles = codeScan.codeFiles;
+  // Declared links become ordinary links before anything derived is built, so
+  // the resolver, the graph, and every command see one uniform link set.
+  const applied = applyLinkManifest({
+    manifest: manifestResult.manifest,
+    codeFiles: codeScan.codeFiles,
+    docFiles,
+    scanDiagnostics: diagnostics,
+  });
+  diagnostics.push(...applied.diagnostics);
+
+  const codeFiles = applied.codeFiles;
   const scan: ProjectScan & Partial<ProjectScanWithGraph & ProjectScanWithContent> = {
     codeFiles,
-    docFiles,
+    docFiles: applied.docFiles,
     diagnostics,
   };
   if (contentByFile !== undefined) {
     scan.contentByFile = contentByFile;
   }
   if (options.buildGraph === true) {
-    scan.graph = buildLinkGraph(codeFiles, docFiles);
+    scan.graph = buildLinkGraph(codeFiles, applied.docFiles);
   }
   return {
     ok: true,

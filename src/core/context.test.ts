@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import { rmSync } from "node:fs";
 
-import { computeContext, formatContextResult } from "./context";
-import { graphFrom, type GraphSources } from "./test-support";
+import { computeContext, context, formatContextResult } from "./context";
+import { graphFrom, makeProject, type GraphSources } from "./test-support";
 
 const LOGIN_TS = [
   "/**",
@@ -294,4 +295,39 @@ test("computeContext keeps the indentation of a top-level declaration whose line
   expect(result.contexts[0]?.content).toBe(
     ["/** @doc docs/auth.md#login-spec */ export const login =", "  compute();"].join("\n"),
   );
+});
+
+function manifestProject(): string {
+  return makeProject({
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+    "docbridge.links.json": JSON.stringify({
+      links: [{ code: "src/auth.ts#AuthService.login", doc: "docs/auth.md#login-flow" }],
+    }),
+    "src/auth.ts": "export class AuthService {\n  login() {}\n}\n",
+    "docs/auth.md": "## Login Flow\n\nThe service authenticates by email.\n",
+  });
+}
+
+test("context returns the counterpart block of a manifest-linked symbol", () => {
+  const root = manifestProject();
+
+  try {
+    const outcome = context({ projectRoot: root, inputFiles: ["src/auth.ts"] });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+    expect(outcome.result.contexts.map((block) => block.endpoint)).toEqual([
+      "docs/auth.md#login-flow",
+    ]);
+    expect(outcome.result.contexts[0]?.content).toContain("The service authenticates by email.");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

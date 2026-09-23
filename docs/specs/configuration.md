@@ -26,6 +26,11 @@ The configuration file is required. When it is absent, DocBridge reports `config
 
 Unknown top-level keys are errors, except `$schema`. Unknown keys under `include` are errors.
 
+Configuration defines scope only; it cannot declare a link. A project that
+declares links without annotations uses the separate
+[link manifest](link-manifest.md), which keeps scope changes and link changes
+in different files.
+
 `include.code` and `include.docs` are required. `include.docs` must be a non-empty array of strings.
 
 All include globs are project-root-relative POSIX-style paths. Absolute paths, `./` prefixes, `../` traversal, and `\` separators are invalid.

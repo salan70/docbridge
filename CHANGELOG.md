@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- An optional root file `docbridge.links.json` declares links without any
+  annotation in code or Markdown, for projects that do not accept
+  tool-specific markers in their source files. One entry declares both
+  directions, so DocBridge checks only that both targets exist and reports no
+  missing backlink. `check`, `related`, `context`, `graph`, `--audit`, and
+  editor navigation treat a declared link like an annotated one, and both
+  styles can be used in one project. A `code` target can name a type member in
+  all four supported languages. Annotation linking remains the recommended
+  style, and a declared link is invisible to a reader of either file, so
+  `related --gate` in continuous integration is the remaining safety net.
+- `code_symbol_not_found` reports a manifest `code` target whose file is in
+  scope but whose canonical ID does not exist, located at the manifest entry
+  and carrying a `Did you mean` suggestion.
 - `docbridge upgrade` reports version drift and reconciles managed agent
   assets. `--check` is a read-only diagnostic covering the installed version,
   the latest stable release, package-manager upgrade guidance, the managed

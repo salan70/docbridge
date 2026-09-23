@@ -464,3 +464,52 @@ test("invokeScannerWorker emits scanner failed for invalid stdout and preserves 
     expect(result.stderr).toBe("stack trace\n");
   }
 });
+
+test("invokeScannerWorker accepts a member symbol flagged isMember", () => {
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-5",
+      language: "swift",
+      projectRoot: "/project",
+      files: [{ filePath: "Sources/Auth.swift", content: "" }],
+      options: {},
+    },
+    ["mock-worker"],
+    (): ScannerWorkerProcessResult => ({
+      ok: true,
+      exitCode: 0,
+      stdout: JSON.stringify({
+        schemaVersion: 1,
+        requestId: "req-5",
+        language: "swift",
+        files: [
+          {
+            filePath: "Sources/Auth.swift",
+            symbols: [],
+            undocumentedSymbols: [
+              {
+                kind: "code",
+                language: "swift",
+                filePath: "Sources/Auth.swift",
+                symbolName: "login",
+                canonicalId: "AuthService.login(email:)",
+                endpoint: "Sources/Auth.swift#AuthService.login(email:)",
+                location: { filePath: "Sources/Auth.swift", line: 2, column: 3 },
+                isMember: true,
+              },
+            ],
+            links: [],
+            diagnostics: [],
+          },
+        ],
+      }),
+      stderr: "",
+    }),
+  );
+
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.codeFiles[0]?.undocumentedSymbols[0]?.isMember).toBe(true);
+  }
+});

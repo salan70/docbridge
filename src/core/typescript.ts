@@ -131,7 +131,7 @@ export function scanTypeScript(
     const endpoint = `${filePath}#${declaration.canonicalId}`;
 
     if (!documentedEndpoints.has(endpoint)) {
-      if (!declaration.isMember && !undocumentedSeen.has(endpoint)) {
+      if (!undocumentedSeen.has(endpoint)) {
         undocumentedSeen.add(endpoint);
         undocumentedSymbols.push(makeCodeSymbol(filePath, endpoint, declaration));
       }
@@ -672,6 +672,9 @@ function makeCodeSymbol(
     endpoint,
     location: declaration.location,
   };
+  if (declaration.isMember) {
+    symbol.isMember = true;
+  }
   if (declaration.nameRange !== undefined) {
     symbol.nameRange = declaration.nameRange;
   }

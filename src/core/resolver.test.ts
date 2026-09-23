@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 
 import type { CodeScanResult } from "./code-scanner";
 import { scanMarkdown, type MarkdownScanResult } from "./markdown";
 import { check, resolveLinks } from "./resolver";
-import { codes } from "./test-support";
+import { codes, makeProject } from "./test-support";
 import type {
   CodeSymbolEndpoint,
   DocAnchorEndpoint,
@@ -304,6 +305,19 @@ describe(resolveLinks, () => {
     expect(diagnostics[0]?.target).toBe(`${CODE_FILE}#login`);
   });
 
+  test("skips undocumented symbols flagged as members under audit", () => {
+    const member = { ...codeSymbol("AuthService.login"), isMember: true };
+
+    const diagnostics = resolveLinks({
+      codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login"), member])],
+      docFiles: [],
+      scanDiagnostics: [],
+      audit: true,
+    });
+
+    expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${CODE_FILE}#login`]);
+  });
+
   test("suppresses undocumented_symbol for errored code files under audit", () => {
     const diagnostics = resolveLinks({
       codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login")])],
@@ -589,4 +603,78 @@ describe(check, () => {
 
     expect(result.diagnostics).toEqual([]);
   });
+
+  test("a manifest-only project resolves to zero diagnostics", () => {
+    const root = manifestProject();
+
+    try {
+      expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("audit reports neither audit code for a manifest-linked pair", () => {
+    const root = manifestProject();
+
+    try {
+      expect(check({ projectRoot: root, audit: true }).diagnostics).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("a manifest entry naming a missing symbol reports code_symbol_not_found", () => {
+    const root = manifestProject({ symbolName: "logIn" });
+
+    try {
+      const result = check({ projectRoot: root });
+
+      expect(result.diagnostics).toHaveLength(1);
+      expect(result.diagnostics[0]?.code).toBe("code_symbol_not_found");
+      expect(result.diagnostics[0]?.message).toContain("Did you mean `logIn`?");
+      expect(result.diagnostics[0]?.location?.filePath).toBe("docbridge.links.json");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("a manifest entry duplicating an annotation pair reports duplicate_link", () => {
+    const root = manifestProject({ annotate: true });
+
+    try {
+      const result = check({ projectRoot: root });
+
+      expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["duplicate_link"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
+
+type ManifestProjectOptions = {
+  /** The declaration the source actually exports; defaults to the linked name. */
+  symbolName?: string;
+  /** Whether the source and document also carry the annotation pair. */
+  annotate?: boolean;
+};
+
+function manifestProject(options: ManifestProjectOptions = {}): string {
+  const symbolName = options.symbolName ?? "login";
+  const docTag = options.annotate ? "/** @doc docs/auth.md#login-spec */\n" : "";
+  const codeTag = options.annotate ? "<!-- @code src/login.ts#login -->\n" : "";
+
+  return makeProject({
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+    "docbridge.links.json": JSON.stringify({
+      links: [{ code: "src/login.ts#login", doc: "docs/auth.md#login-spec" }],
+    }),
+    "src/login.ts": `${docTag}export function ${symbolName}() {}\n`,
+    "docs/auth.md": `${codeTag}## Login Spec\n`,
+  });
+}

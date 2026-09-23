@@ -45,6 +45,7 @@ Error diagnostic codes:
 - [`doc_file_not_found`](../../test-fixtures/diagnostics/doc_file_not_found/)
 - [`doc_anchor_not_found`](../../test-fixtures/diagnostics/doc_anchor_not_found/)
 - [`code_file_not_found`](../../test-fixtures/diagnostics/code_file_not_found/)
+- [`code_symbol_not_found`](../../test-fixtures/diagnostics/code_symbol_not_found/)
 - [`code_backlink_not_found`](../../test-fixtures/diagnostics/code_backlink_not_found/)
 - [`doc_backlink_not_found`](../../test-fixtures/diagnostics/doc_backlink_not_found/)
 - [`duplicate_doc_anchor`](../../test-fixtures/diagnostics/duplicate_doc_anchor/)
