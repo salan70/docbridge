@@ -60,7 +60,7 @@ with the specification for the interface whose exact contract you need:
 - [Self-audit baseline](contributing/self-audit.md)
 - [Dogfooding review, September 2026](reports/2026-09-dogfooding-review.md)
 
-Architectural choices are recorded in [Decisions](decisions/v0.1.md).
+Architectural choices are recorded in [Decisions](decisions/README.md).
 Completed delivery records are archived under
-[Completed plans](plans/done/v0.1-implementation-plan.md). They are historical
-context, not current user instructions.
+[Completed plans](plans/done/README.md). They are historical context, not
+current user instructions.
