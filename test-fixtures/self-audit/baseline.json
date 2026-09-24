@@ -578,6 +578,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/core/scanner-worker.ts#createLazyWorkerResponseValidator",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/core/scanner-worker.ts#invokeScannerWorker",
       "class": "internal_helper"
     },

@@ -68,7 +68,8 @@ type ScannerWorkerFailure = {
 
 type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
 
-function createLazyWorkerResponseValidator<T>(compile: () => T): () => T {
+/** @internal Exported only to make the lazy initialization contract executable in tests. */
+export function createLazyWorkerResponseValidator<T>(compile: () => T): () => T {
   let validator: T | undefined;
   return () => {
     validator ??= compile();
