@@ -1,0 +1,39 @@
+name: Release Label
+
+# Required check for per-PR releases. Every pull request carries exactly one
+# `release: none|patch|minor|major` label, and its manifest versions and
+# CHANGELOG must match that label against the current base branch. Label
+# changes do not rerun CI, so this check runs in its own workflow.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: release-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  release-label:
+    name: release-label
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the pull request head itself, not the merge ref, and compare
+      # it with the base branch tip so a stale version bump fails.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # Only Bun is needed: the check imports node builtins alone.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Check release label against the change
+        env:
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: bun run scripts/release-label.ts

@@ -77,7 +77,7 @@ linked accepted issue may be closed without detailed review.
 
 An issue is optional only for content-based exceptions: typo, wording,
 formatting, broken-link, or similarly small corrections, plus automated
-dependency updates and release pull requests. The identity of the issue author
+dependency updates. The identity of the issue author
 or implementer is never an exception. When uncertain, open the matching issue
 form and wait for acceptance before writing code.
 

@@ -17,7 +17,6 @@ Examples:
 feat/#42-version-flag
 fix/#51-anchor-resolution
 chore/#75-rename-scanner-executables
-release/v0.1.0
 ```
 
 Rules:
@@ -30,8 +29,6 @@ Rules:
   below, but would lose that issue-number cue; keep the `#`.
 - Omit `#<issue>` only when the change legitimately needs no issue under the
   content-based exceptions in [CONTRIBUTING.md](../../CONTRIBUTING.md).
-- Keep `release/vX.Y.Z` for release-preparation branches. Those names are
-  produced by the release workflow and stay unchanged.
 - Dependabot branch names (`dependabot/...`) are outside repository control.
 
 Hand-written GitHub URLs that embed a `#` in the branch path must percent-encode
@@ -85,6 +82,16 @@ just prose-report pull-request <body-file>
 
 Its length and repetition warnings are advisory.
 
+## Release label
+
+Every pull request carries exactly one `release:` label: `release: none`,
+`release: patch`, `release: minor`, or `release: major`. A releasing label
+requires the version bump and CHANGELOG roll from `just release-bump <kind>` in
+the same pull request, and merging it publishes that release. The required
+`release-label` check enforces the label and the matching change. The
+[git-workflow skill](../../.claude/skills/git-workflow/SKILL.md#releases-per-pr)
+defines when to use each kind.
+
 ## Linking issues
 
 Non-trivial pull requests link their accepted issue with a GitHub closing
@@ -109,10 +116,8 @@ Rules:
 
 ## Documented exceptions
 
-- **Release PRs** keep the auto-generated title `🔖 Release vX.Y.Z` (no type).
-  The release workflow produces that title; do not retitle it to add `chore:`.
 - **Dependabot PRs** already emit Gitmoji-plus-type titles (for example
   `👷 ci: bump actions/checkout from 7.0.0 to 7.0.1`). Leave them as generated.
 
-These conventions are documentation-only. No CI check, workflow, or `justfile`
-recipe enforces branch names or pull request titles.
+Branch names and pull request titles are documentation-only conventions. No CI
+check, workflow, or `justfile` recipe enforces them.
