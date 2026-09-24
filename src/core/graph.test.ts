@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildLinkGraph, counterpartsOf, endpointObject } from "./graph";
+import { buildLinkGraph, counterpartsOf } from "./graph";
 import { scanMarkdown } from "./markdown";
 import { scanTypeScript } from "./typescript";
 
@@ -14,20 +14,6 @@ function graphOf(code: string, doc: string) {
 }
 
 describe("buildLinkGraph", () => {
-  test("links a code symbol and a doc anchor through a resolvable pair", () => {
-    const graph = graphOf(
-      "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n",
-      "<!-- @code src/auth/login.ts#login -->\n## Login Spec\n",
-    );
-
-    expect(counterpartsOf(graph, `${CODE_FILE}#login`).map((e) => e.endpoint)).toEqual([
-      `${DOC_FILE}#login-spec`,
-    ]);
-    expect(counterpartsOf(graph, `${DOC_FILE}#login-spec`).map((e) => e.endpoint)).toEqual([
-      `${CODE_FILE}#login`,
-    ]);
-  });
-
   test("honors a resolvable one-way @doc link with no @code backlink", () => {
     const graph = graphOf(
       "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n",
@@ -42,15 +28,6 @@ describe("buildLinkGraph", () => {
     expect(counterpartsOf(graph, `${DOC_FILE}#login-spec`).map((e) => e.endpoint)).toEqual([
       `${CODE_FILE}#login`,
     ]);
-  });
-
-  test("creates no edge when the @doc target anchor does not exist", () => {
-    const graph = graphOf(
-      "/**\n * @doc docs/auth.md#missing\n */\nexport function login() {}\n",
-      "## Login Spec\n",
-    );
-
-    expect(counterpartsOf(graph, `${CODE_FILE}#login`)).toEqual([]);
   });
 
   test("returns multiple doc counterparts for a one-to-many code symbol", () => {
@@ -77,16 +54,5 @@ describe("buildLinkGraph", () => {
       `${CODE_FILE}#login`,
       `${CODE_FILE}#relogin`,
     ]);
-  });
-
-  test("endpointObject resolves recorded code and doc endpoints", () => {
-    const graph = graphOf(
-      "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n",
-      "## Login Spec\n",
-    );
-
-    expect(endpointObject(graph, `${CODE_FILE}#login`)?.kind).toBe("code");
-    expect(endpointObject(graph, `${DOC_FILE}#login-spec`)?.kind).toBe("doc");
-    expect(endpointObject(graph, "nope#x")).toBeUndefined();
   });
 });

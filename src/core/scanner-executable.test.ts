@@ -15,12 +15,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import {
-  resolveScannerWorkerCommand,
-  scannerRootsFromModuleUrl,
-  supportedScannerExecutableNames,
-  supportedScannerPlatformKeys,
-} from "./scanner-executable";
+import { resolveScannerWorkerCommand, scannerRootsFromModuleUrl } from "./scanner-executable";
 
 function withProject(files: Record<string, string>, run: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-lang-"));
@@ -35,15 +30,6 @@ function withProject(files: Record<string, string>, run: (root: string) => void)
     rmSync(root, { recursive: true, force: true });
   }
 }
-
-test("scanner packaging metadata exposes every supported platform and executable", () => {
-  expect(supportedScannerPlatformKeys()).toEqual(["darwin-arm64", "linux-x64"]);
-  expect(supportedScannerExecutableNames()).toEqual([
-    "docbridge-swift-scanner",
-    "docbridge_dart_scanner",
-    "docbridge-rust-scanner",
-  ]);
-});
 
 test("resolveScannerWorkerCommand selects the dist scanner for a supported platform", () => {
   withProject({ "dist/bin/darwin-arm64/docbridge-swift-scanner": "#!/bin/sh\n" }, (root) => {

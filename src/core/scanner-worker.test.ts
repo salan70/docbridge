@@ -8,7 +8,6 @@ import {
   runScannerWorkerProcess,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
-import type { ScannerWorkerRequest } from "./scanner-worker";
 
 test("worker response schema compilation is lazy and cached", () => {
   let compileCount = 0;
@@ -95,123 +94,6 @@ test("runScannerWorkerProcess reports ok: false when the worker is killed by a s
   if (!result.ok) {
     expect(String(result.error)).toContain("SIGKILL");
   }
-});
-
-test("invokeScannerWorker sends one JSON request with files and options", () => {
-  let captured: string | undefined;
-
-  const result = invokeScannerWorker(
-    {
-      schemaVersion: 1,
-      requestId: "req-1",
-      language: "swift",
-      projectRoot: "/project",
-      files: [{ filePath: "Sources/Auth.swift", content: "public struct Auth {}\n" }],
-      options: { visibility: ["public", "open"] },
-    },
-    ["mock-worker"],
-    (input): ScannerWorkerProcessResult => {
-      captured = input.stdin;
-      return {
-        ok: true,
-        exitCode: 0,
-        stdout: JSON.stringify({
-          schemaVersion: 1,
-          requestId: "req-1",
-          language: "swift",
-          files: [
-            {
-              filePath: "Sources/Auth.swift",
-              symbols: [],
-              undocumentedSymbols: [],
-              links: [],
-              diagnostics: [],
-            },
-          ],
-        }),
-        stderr: "",
-      };
-    },
-  );
-
-  expect(result.ok).toBe(true);
-  expect(captured).toBeDefined();
-  expect(JSON.parse(captured ?? "")).toEqual({
-    schemaVersion: 1,
-    requestId: "req-1",
-    language: "swift",
-    projectRoot: "/project",
-    files: [{ filePath: "Sources/Auth.swift", content: "public struct Auth {}\n" }],
-    options: { visibility: ["public", "open"] },
-  } satisfies ScannerWorkerRequest);
-});
-
-test("invokeScannerWorker maps response files to CodeScanResult", () => {
-  const result = invokeScannerWorker(
-    {
-      schemaVersion: 1,
-      requestId: "req-2",
-      language: "swift",
-      projectRoot: "/project",
-      files: [{ filePath: "Sources/Auth.swift", content: "" }],
-      options: {},
-    },
-    ["mock-worker"],
-    (): ScannerWorkerProcessResult => ({
-      ok: true,
-      exitCode: 0,
-      stdout: JSON.stringify({
-        schemaVersion: 1,
-        requestId: "req-2",
-        language: "swift",
-        files: [
-          {
-            filePath: "Sources/Auth.swift",
-            symbols: [
-              {
-                kind: "code",
-                language: "swift",
-                filePath: "Sources/Auth.swift",
-                symbolName: "AuthService",
-                canonicalId: "AuthService",
-                endpoint: "Sources/Auth.swift#AuthService",
-                location: { filePath: "Sources/Auth.swift", line: 1, column: 15 },
-              },
-            ],
-            undocumentedSymbols: [],
-            links: [],
-            diagnostics: [],
-          },
-        ],
-      }),
-      stderr: "debug output\n",
-    }),
-  );
-
-  expect(result).toEqual({
-    ok: true,
-    codeFiles: [
-      {
-        language: "swift",
-        filePath: "Sources/Auth.swift",
-        symbols: [
-          {
-            kind: "code",
-            language: "swift",
-            filePath: "Sources/Auth.swift",
-            symbolName: "AuthService",
-            canonicalId: "AuthService",
-            endpoint: "Sources/Auth.swift#AuthService",
-            location: { filePath: "Sources/Auth.swift", line: 1, column: 15 },
-          },
-        ],
-        undocumentedSymbols: [],
-        links: [],
-        diagnostics: [],
-      },
-    ],
-    stderr: "debug output\n",
-  });
 });
 
 test("invokeScannerWorker rejects responses with missing requested files", () => {

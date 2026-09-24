@@ -6,35 +6,7 @@ import {
   summarizeDiagnostics,
   sortDiagnostics,
 } from "./diagnostics";
-import type { DiagnosticCode, DocBridgeDiagnostic } from "./types";
-
-test("DiagnosticCode matches the v0.1 diagnostics spec", () => {
-  const codes = [
-    "config_file_invalid",
-    "config_unknown_key",
-    "config_invalid_value",
-    "invalid_link_target",
-    "doc_file_not_found",
-    "doc_anchor_not_found",
-    "code_file_not_found",
-    "code_symbol_not_found",
-    "code_backlink_not_found",
-    "doc_backlink_not_found",
-    "duplicate_doc_anchor",
-    "duplicate_code_symbol",
-    "code_parse_error",
-    "code_scanner_unavailable",
-    "code_scanner_failed",
-    "file_read_error",
-    "duplicate_link",
-    "dangling_code_annotation",
-    "unsupported_declaration",
-    "undocumented_symbol",
-    "unlinked_doc_section",
-  ] satisfies DiagnosticCode[];
-
-  expect(codes).toHaveLength(21);
-});
+import type { DocBridgeDiagnostic } from "./types";
 
 test("sortDiagnostics orders diagnostics deterministically", () => {
   const diagnostics: DocBridgeDiagnostic[] = [

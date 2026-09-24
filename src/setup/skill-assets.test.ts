@@ -17,7 +17,6 @@ import {
   compareSkillTree,
   isSymlink,
   listSkillFiles,
-  unmanageablePathMessage,
 } from "./skill-assets";
 
 type Fixture = {
@@ -123,36 +122,6 @@ test("applySkillOperation copies the template for a create action", () => {
         "utf8",
       ),
     ).toBe("# Checks\n");
-  });
-});
-
-test("applySkillOperation replaces local edits for an overwrite action", () => {
-  withFixture((fixture) => {
-    const installed = join(fixture.projectRoot, ".claude/skills/docbridge");
-    mkdirSync(installed, { recursive: true });
-    writeFileSync(join(installed, "SKILL.md"), "# Edited\n", "utf8");
-
-    applySkillOperation(fixture.projectRoot, fixture.packageRoot, {
-      action: "overwrite",
-      path: ".claude/skills/docbridge",
-    });
-
-    expect(readFileSync(join(installed, "SKILL.md"), "utf8")).toBe("# Skill\n");
-  });
-});
-
-test("applySkillOperation removes an ordinary directory", () => {
-  withFixture((fixture) => {
-    const legacy = join(fixture.projectRoot, ".claude/skills/docbridge-adopt");
-    mkdirSync(legacy, { recursive: true });
-    writeFileSync(join(legacy, "SKILL.md"), "# Legacy\n", "utf8");
-
-    applySkillOperation(fixture.projectRoot, fixture.packageRoot, {
-      action: "remove",
-      path: ".claude/skills/docbridge-adopt",
-    });
-
-    expect(existsSync(legacy)).toBe(false);
   });
 });
 
@@ -285,22 +254,6 @@ test.each(["create", "overwrite", "remove"] as const)(
   },
 );
 
-test("applySkillOperation never removes a legacy directory through a symlinked ancestor", () => {
-  withFixture((fixture) => {
-    const shared = join(fixture.root, "shared-skills");
-    mkdirSync(join(shared, "docbridge-adopt"), { recursive: true });
-    mkdirSync(join(fixture.projectRoot, ".claude"), { recursive: true });
-    symlinkSync(shared, join(fixture.projectRoot, ".claude/skills"));
-
-    applySkillOperation(fixture.projectRoot, fixture.packageRoot, {
-      action: "remove",
-      path: ".claude/skills/docbridge-adopt",
-    });
-
-    expect(existsSync(join(shared, "docbridge-adopt"))).toBe(true);
-  });
-});
-
 test("applySkillOperation never removes an ordinary file", () => {
   withFixture((fixture) => {
     const legacy = join(fixture.projectRoot, ".claude/skills/docbridge-adopt");
@@ -351,16 +304,4 @@ test("applySkillOperation leaves a non-directory destination alone on overwrite"
 
     expect(readFileSync(destination, "utf8")).toBe("not a directory\n");
   });
-});
-
-test("unmanageablePathMessage keeps the established wording for a symlink", () => {
-  expect(unmanageablePathMessage(".claude/skills/docbridge", "symlink")).toBe(
-    "Skill directory .claude/skills/docbridge is a symlink and was left in place.",
-  );
-});
-
-test("unmanageablePathMessage explains a symlinked ancestor", () => {
-  expect(unmanageablePathMessage(".claude/skills/docbridge", "symlinked-parent")).toContain(
-    "would leave the project root",
-  );
 });

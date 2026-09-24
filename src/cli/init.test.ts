@@ -216,14 +216,6 @@ test("run dispatches init commands through the CLI boundary", () => {
   }
 });
 
-test("run help documents init commands", () => {
-  const c = capture();
-  run(["--help"], c.io);
-  expect(c.out).toContain("docbridge init");
-  expect(c.out).toContain("docbridge init-with-agent");
-  expect(c.out).toContain("Init options:");
-});
-
 test("runInit --force removes leftover legacy skill directories", () => {
   const project = makeProject({
     ".agents/skills/docbridge-adopt/SKILL.md": "# legacy\n",

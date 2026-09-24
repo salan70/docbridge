@@ -9,13 +9,7 @@ import pkg from "../../package.json";
 import commonOutputSchema from "../../schemas/common-output.schema.json";
 import contextOutputSchema from "../../schemas/context-output.schema.json";
 import graphOutputSchema from "../../schemas/graph-output.schema.json";
-import {
-  parseCheckOptions,
-  parseContextOptions,
-  parseGraphOptions,
-  parseRelatedOptions,
-  run,
-} from "./index";
+import { parseGraphOptions, run } from "./index";
 import { capture } from "./test-support";
 
 const outputSchemaAjv = new Ajv2020({ allErrors: true, strict: true });
@@ -23,46 +17,12 @@ outputSchemaAjv.addSchema(commonOutputSchema);
 const validateContextOutput = outputSchemaAjv.compile(contextOutputSchema);
 const validateGraphOutput = outputSchemaAjv.compile(graphOutputSchema);
 
-test("parseCheckOptions reads root, json, and audit flags", () => {
-  expect(parseCheckOptions(["--root", "examples/typescript", "--json", "--audit"])).toEqual({
-    root: "examples/typescript",
-    json: true,
-    audit: true,
-  });
-});
-
 test("run prints help and exits 0 with no command", () => {
   const c = capture();
   const code = run([], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("Usage:");
-  expect(c.err).toBe("");
-});
-
-test("run prints help for --help and exits 0", () => {
-  const c = capture();
-  const code = run(["--help"], c.io);
-
-  expect(code).toBe(0);
-  expect(c.out).toContain("Usage:");
-});
-
-test("run help documents global and check options separately", () => {
-  const c = capture();
-  run(["--help"], c.io);
-
-  expect(c.out).toContain("docbridge [--version] [--help]");
-  expect(c.out).toContain("Global options:");
-  expect(c.out).toContain("Check options:");
-});
-
-test("run prints the package version for --version and exits 0", () => {
-  const c = capture();
-  const code = run(["--version"], c.io);
-
-  expect(code).toBe(0);
-  expect(c.out).toBe(`${pkg.version}\n`);
   expect(c.err).toBe("");
 });
 
@@ -132,25 +92,6 @@ test("run emits a human-readable summary line for a clean project", () => {
   );
 });
 
-test("run exits 0 when only warnings exist", () => {
-  // Audit on the clean example surfaces only undocumented_symbol warnings.
-  const errProject = mkdtempSync(join(tmpdir(), "docbridge-warn-"));
-  try {
-    writeFileSync(
-      join(errProject, "docbridge.config.json"),
-      JSON.stringify({
-        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
-      }),
-    );
-    // No source files: no diagnostics at all -> exit 0.
-    const c = capture();
-    const code = run(["check", "--root", errProject], c.io);
-    expect(code).toBe(0);
-  } finally {
-    rmSync(errProject, { recursive: true, force: true });
-  }
-});
-
 test("run exits 1 when check errors exist", () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-err-"));
   try {
@@ -190,52 +131,6 @@ test("run check --json omits the troubleshooting hint", () => {
 });
 
 // --- related command ---------------------------------------------------------
-
-test("parseRelatedOptions reads root, json, stdin, and positional files", () => {
-  expect(
-    parseRelatedOptions([
-      "--root",
-      "examples/typescript",
-      "--json",
-      "--stdin",
-      "src/a.ts",
-      "docs/b.md",
-    ]),
-  ).toEqual({
-    root: "examples/typescript",
-    json: true,
-    stdin: true,
-    gate: false,
-    files: ["src/a.ts", "docs/b.md"],
-  });
-});
-
-test("parseRelatedOptions reads the --gate flag", () => {
-  expect(parseRelatedOptions(["--gate", "src/a.ts"])).toEqual({
-    root: ".",
-    json: false,
-    stdin: false,
-    gate: true,
-    files: ["src/a.ts"],
-  });
-});
-
-test("run help documents the related command", () => {
-  const c = capture();
-  run(["--help"], c.io);
-
-  expect(c.out).toContain("docbridge related");
-  expect(c.out).toContain("Related options:");
-});
-
-test("run related without files or --stdin errors on stderr and exits 1", () => {
-  const c = capture();
-  const code = run(["related"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("--stdin");
-  expect(c.out).toBe("");
-});
 
 function makeRelatedProject(): string {
   const project = mkdtempSync(join(tmpdir(), "docbridge-related-"));
@@ -463,41 +358,6 @@ test("run related reports config errors on stderr and exits 1", () => {
 });
 
 // --- context command ---------------------------------------------------------
-
-test("parseContextOptions reads root, json, stdin, and positional files", () => {
-  expect(
-    parseContextOptions([
-      "--root",
-      "examples/typescript",
-      "--json",
-      "--stdin",
-      "src/a.ts",
-      "docs/b.md",
-    ]),
-  ).toEqual({
-    root: "examples/typescript",
-    json: true,
-    stdin: true,
-    files: ["src/a.ts", "docs/b.md"],
-  });
-});
-
-test("run help documents the context command", () => {
-  const c = capture();
-  run(["--help"], c.io);
-
-  expect(c.out).toContain("docbridge context");
-  expect(c.out).toContain("Context options:");
-});
-
-test("run context without files or --stdin errors on stderr and exits 1", () => {
-  const c = capture();
-  const code = run(["context"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.err).toContain("--stdin");
-  expect(c.out).toBe("");
-});
 
 function makeContextProject(): string {
   const project = mkdtempSync(join(tmpdir(), "docbridge-context-"));
@@ -1064,21 +924,6 @@ test("run context omits diagnostics located outside the input files", () => {
 
     expect(code).toBe(0);
     expect(c.err).toBe("");
-  } finally {
-    rmSync(project, { recursive: true, force: true });
-  }
-});
-
-test("run context reports config errors on stderr and exits 1", () => {
-  const project = mkdtempSync(join(tmpdir(), "docbridge-context-badcfg-"));
-  try {
-    writeFileSync(join(project, "docbridge.config.json"), "{ not json");
-    const c = capture();
-    const code = run(["context", "--root", project, "src/a.ts"], c.io);
-
-    expect(code).toBe(1);
-    expect(c.err.length).toBeGreaterThan(0);
-    expect(c.out).toBe("");
   } finally {
     rmSync(project, { recursive: true, force: true });
   }

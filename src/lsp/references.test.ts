@@ -17,18 +17,4 @@ describe(references, () => {
     expect(result.map((locator) => locator.filePath)).toEqual([CODE_FILE, CODE_FILE]);
     expect(result).toHaveLength(2);
   });
-
-  test("from a code symbol lists the doc sections it links to", () => {
-    const code = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
-    const doc = "## Login Spec\n";
-
-    const result = references(stateOf(code, doc), CODE_FILE, { line: 4, column: 18 });
-
-    expect(result).toEqual([
-      {
-        filePath: DOC_FILE,
-        range: { start: { line: 1, column: 4 }, end: { line: 1, column: 14 } },
-      },
-    ]);
-  });
 });

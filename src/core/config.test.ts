@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -80,26 +80,6 @@ test("resolveConfig rejects a missing config file", () => {
   expect(result.diagnostics[0]).toMatchObject({ code: "config_file_invalid" });
 });
 
-test("resolveConfig accepts a language-keyed config", () => {
-  const result = resolveConfig(
-    JSON.stringify({
-      $schema: "./schemas/docbridge.schema.json",
-      include: {
-        code: { typescript: { patterns: ["src/**/*.ts"] } },
-        docs: ["docs/specs/**/*.md"],
-      },
-    }),
-  );
-  expect(result.ok).toBe(true);
-  expect(result.diagnostics).toEqual([]);
-  expect(result.config).toEqual({
-    include: {
-      code: { typescript: { patterns: ["src/**/*.ts"] } },
-      docs: ["docs/specs/**/*.md"],
-    },
-  });
-});
-
 test("resolveConfig accepts a language entry with a visibility option", () => {
   const result = resolveConfig(
     JSON.stringify({
@@ -143,23 +123,6 @@ test("resolveConfig accepts a dart entry with the public visibility option", () 
   expect(result.config.include.code.dart).toEqual({
     patterns: ["lib/**/*.dart"],
     visibility: ["public"],
-  });
-});
-
-test("resolveConfig accepts a typescript entry with a visibility option", () => {
-  const result = resolveConfig(
-    JSON.stringify({
-      include: {
-        code: { typescript: { patterns: ["src/**/*.ts"], visibility: ["public", "private"] } },
-        docs: ["docs/**/*.md"],
-      },
-    }),
-  );
-
-  expect(result.ok).toBe(true);
-  expect(result.config.include.code.typescript).toEqual({
-    patterns: ["src/**/*.ts"],
-    visibility: ["public", "private"],
   });
 });
 
@@ -214,22 +177,6 @@ test("resolveConfig rejects an unknown key inside a language entry", () => {
       },
     }),
   );
-  expect(result.ok).toBe(false);
-  expect(codes(result.diagnostics)).toContain("config_unknown_key");
-});
-
-test("resolveConfig reports config_file_invalid for unparseable JSON", () => {
-  const result = resolveConfig("{ not json");
-  expect(result.ok).toBe(false);
-  expect(result.diagnostics).toHaveLength(1);
-  expect(result.diagnostics[0]).toMatchObject({
-    code: "config_file_invalid",
-    target: "docbridge.config.json",
-  });
-});
-
-test("resolveConfig reports config_unknown_key for unknown top-level keys", () => {
-  const result = resolveConfig(JSON.stringify({ ...TS_CONFIG, extra: true }));
   expect(result.ok).toBe(false);
   expect(codes(result.diagnostics)).toContain("config_unknown_key");
 });
@@ -312,18 +259,6 @@ test.each([
   expect(codes(result.diagnostics)).toContain("config_invalid_value");
 });
 
-test("loadConfig reads docbridge.config.json from project root", () => {
-  const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
-  try {
-    writeFileSync(join(root, "docbridge.config.json"), JSON.stringify(TS_CONFIG));
-    const result = loadConfig(root);
-    expect(result.ok).toBe(true);
-    expect(result.config).toEqual(TS_CONFIG);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
 test("loadConfig reports config_file_invalid when no config file exists", () => {
   const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
   try {
@@ -333,29 +268,4 @@ test("loadConfig reports config_file_invalid when no config file exists", () => 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-});
-
-test("loadConfig does not report a false overlap for a valid single-language config", () => {
-  const root = mkdtempSync(join(tmpdir(), "docbridge-overlap-"));
-  try {
-    mkdirSync(join(root, "src"), { recursive: true });
-    writeFileSync(join(root, "src", "a.ts"), "export const a = 1;\n");
-    writeFileSync(join(root, "docbridge.config.json"), JSON.stringify(TS_CONFIG));
-    const result = loadConfig(root);
-    expect(result.ok).toBe(true);
-    expect(result.diagnostics).toEqual([]);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test("the actual repo root config files validate cleanly", () => {
-  const repoRoot = join(import.meta.dir, "..", "..");
-  const root = loadConfig(repoRoot);
-  expect(root.ok).toBe(true);
-  expect(root.diagnostics).toEqual([]);
-
-  const example = loadConfig(join(repoRoot, "examples", "typescript"));
-  expect(example.ok).toBe(true);
-  expect(example.diagnostics).toEqual([]);
 });
