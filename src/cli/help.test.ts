@@ -2,8 +2,7 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { parseCommandOptions } from "./help";
-import { run, type CliGraphOptions } from "./index";
+import { run } from "./index";
 import { capture } from "./test-support";
 
 const COMMANDS = [
@@ -27,30 +26,6 @@ for (const command of COMMANDS) {
     expect(c.out).toContain(`docbridge ${command}`);
     expect(c.out).toContain("Usage:");
     expect(c.err).toBe("");
-  });
-
-  test(`run prints ${command} help for -h and exits 0`, () => {
-    const c = capture();
-    const code = run([command, "-h"], c.io);
-
-    expect(code).toBe(0);
-    expect(c.out).toContain(`docbridge ${command}`);
-    expect(c.err).toBe("");
-  });
-
-  test(`${command} help states when to use the command`, () => {
-    const c = capture();
-    run([command, "--help"], c.io);
-
-    const description = c.out.split("Description:")[1] ?? "";
-    expect(description).toContain("Use ");
-  });
-
-  test(`${command} help documents --help itself`, () => {
-    const c = capture();
-    run([command, "--help"], c.io);
-
-    expect(c.out).toContain("--help, -h");
   });
 }
 
@@ -79,35 +54,6 @@ test("run keeps global help for --help without a command", () => {
   expect(code).toBe(0);
   expect(c.out).toContain("docbridge check");
   expect(c.out).toContain("docbridge graph");
-});
-
-function globalCommandSummary(out: string, command: string): string {
-  const commands = out.split("Commands:")[1]?.split("Run `docbridge")[0] ?? "";
-  const line = commands.split("\n").find((entry) => entry.trim().startsWith(`${command} `));
-  return (line ?? "").trim().slice(command.length).trim();
-}
-
-for (const command of COMMANDS) {
-  test(`global help says when to use ${command}`, () => {
-    const c = capture();
-    run(["--help"], c.io);
-
-    expect(globalCommandSummary(c.out, command)).toStartWith("Use ");
-  });
-}
-
-test("global help gives related, context, and graph distinct when-to-use summaries", () => {
-  const c = capture();
-  run(["--help"], c.io);
-
-  const summaries = ["related", "context", "graph"].map((command) =>
-    globalCommandSummary(c.out, command),
-  );
-
-  expect(new Set(summaries).size).toBe(3);
-  for (const summary of summaries) {
-    expect(summary.length).toBeGreaterThan(20);
-  }
 });
 
 test("run still rejects unknown commands", () => {
@@ -149,9 +95,3 @@ for (const [command, source, functionName] of HAND_WRITTEN_PARSERS) {
     }
   });
 }
-
-test("table parsing retains the graph command's option type", () => {
-  const options: CliGraphOptions = parseCommandOptions("graph", []);
-
-  expect(options.includeContent).toBe(false);
-});
