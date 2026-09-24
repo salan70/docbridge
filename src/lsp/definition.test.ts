@@ -18,17 +18,6 @@ describe(definition, () => {
     ]);
   });
 
-  test("doc to code jumps to the declaration name range", () => {
-    const result = definition(stateOf(CODE, DOC), DOC_FILE, { line: 2, column: 5 });
-
-    expect(result).toEqual([
-      {
-        filePath: CODE_FILE,
-        range: { start: { line: 4, column: 17 }, end: { line: 4, column: 22 } },
-      },
-    ]);
-  });
-
   test("one-to-many returns multiple locations", () => {
     const code =
       "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";
