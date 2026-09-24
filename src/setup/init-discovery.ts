@@ -243,45 +243,6 @@ export function discoverAgentTarget(projectRoot: string): AgentTargetDiscovery {
   };
 }
 
-export function resolveAgentTargetForInit(
-  discovery: AgentTargetDiscovery,
-  options: { yes: boolean; explicitTarget: AgentTarget | undefined },
-): { target: AgentTarget | undefined; error: string | undefined } {
-  if (options.explicitTarget !== undefined) {
-    return { target: options.explicitTarget, error: undefined };
-  }
-  if (options.yes) {
-    return { target: discovery.defaultTarget, error: undefined };
-  }
-  return { target: discovery.recommendedTarget, error: undefined };
-}
-
-export function resolveAgentTargetForInitWithAgent(
-  discovery: AgentTargetDiscovery,
-  options: { yes: boolean; explicitTarget: AgentTarget | undefined },
-): { target: AgentTarget | undefined; error: string | undefined } {
-  if (options.explicitTarget !== undefined) {
-    if (options.explicitTarget === "none") {
-      return {
-        target: undefined,
-        error: "init-with-agent requires an agent target other than none.",
-      };
-    }
-    return { target: options.explicitTarget, error: undefined };
-  }
-  if (discovery.defaultTarget === "none") {
-    if (options.yes) {
-      return {
-        target: undefined,
-        error:
-          "init-with-agent --yes requires an explicit agent target when no .agents/ or .claude/ directory exists. Pass --agent-target codex, claude, or both.",
-      };
-    }
-    return { target: discovery.recommendedTarget, error: undefined };
-  }
-  return { target: discovery.defaultTarget, error: undefined };
-}
-
 function collectMarkdownFiles(projectRoot: string, currentDir = "."): string[] {
   const absoluteDir = join(projectRoot, currentDir);
   let entries: string[];
