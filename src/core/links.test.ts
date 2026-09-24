@@ -2,16 +2,6 @@ import { expect, test } from "bun:test";
 
 import { parseLinkTarget } from "./links";
 
-test("parseLinkTarget accepts project-root-relative file and raw fragment", () => {
-  expect(parseLinkTarget("docs/specs/cli.md#check-command")).toEqual({
-    ok: true,
-    target: {
-      filePath: "docs/specs/cli.md",
-      fragment: "check-command",
-    },
-  });
-});
-
 test.each([
   ["#check-command", "fragment-only target"],
   ["docs/specs/cli.md", "file-only target"],

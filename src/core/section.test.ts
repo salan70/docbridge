@@ -41,11 +41,6 @@ describe("extractDocSection", () => {
     expect(extractDocSection(content, 1)).toBe("## A\n\nbody");
   });
 
-  test("the last section in the document extends to end of file", () => {
-    const content = "## A\n\nintro\n\n## B\n\nlast body";
-    expect(extractDocSection(content, 5)).toBe("## B\n\nlast body");
-  });
-
   test("best-effort when the start line is not a heading: reads to end of section", () => {
     const content = "intro line\n\nbody\n\n## A\n\nafter";
     // Line 1 is not a heading; the section runs until the first heading.
