@@ -1,20 +1,13 @@
 #!/usr/bin/env bun
 
-import { lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 const codexTree = ".agents/skills";
 const claudeTree = ".claude/skills";
 
-/**
- * Skill directories that are shared instead of duplicated. Each key must stay a
- * symlink to its value so the two trees cannot drift apart for that skill.
- */
-const sharedSkills: Record<string, string> = {
-  [`${codexTree}/docbridge`]: "templates/skills/docbridge",
-  [`${claudeTree}/concise-writing`]: `${codexTree}/concise-writing`,
-  [`${claudeTree}/docbridge`]: "templates/skills/docbridge",
-};
+/** The distributable skill, which the Codex tree links instead of copying. */
+const templateSkill = { path: `${codexTree}/docbridge`, target: "templates/skills/docbridge" };
 
 /** Configurations whose exclusion list must never skip a skill tree. */
 const exclusionConfigs = [
@@ -23,73 +16,46 @@ const exclusionConfigs = [
   { path: ".rumdl.toml", format: "toml", key: "exclude" },
 ] as const;
 
+/**
+ * Check the skill layout: every skill lives once under the Codex tree, and the
+ * Claude tree holds only symlinks that resolve to the same skill.
+ */
 export function checkAiAssets(root: string): string[] {
   const errors: string[] = [];
-  checkSharedSkills(root, errors);
-  checkDuplicatedSkills(root, errors);
+  checkTemplateSkill(root, errors);
+  checkLinkedSkills(root, errors);
   checkExclusions(root, errors);
   return errors;
 }
 
-function checkSharedSkills(root: string, errors: string[]): void {
-  for (const [skillPath, target] of Object.entries(sharedSkills)) {
-    const resolved = resolvePath(root, skillPath);
-    const expected = resolvePath(root, target);
-    if (resolved === undefined || expected === undefined || resolved !== expected) {
-      errors.push(`${skillPath} must be a symlink to ${target}.`);
-    }
+function checkTemplateSkill(root: string, errors: string[]): void {
+  const resolved = resolvePath(root, templateSkill.path);
+  if (resolved === undefined || resolved !== resolvePath(root, templateSkill.target)) {
+    errors.push(`${templateSkill.path} must be a symlink to ${templateSkill.target}.`);
   }
 }
 
-function checkDuplicatedSkills(root: string, errors: string[]): void {
+function checkLinkedSkills(root: string, errors: string[]): void {
   const codexSkills = skillNames(root, codexTree);
   const claudeSkills = skillNames(root, claudeTree);
 
   for (const name of union(codexSkills, claudeSkills)) {
-    if (!claudeSkills.has(name)) {
-      errors.push(`${name} is missing from ${claudeTree}/.`);
-      continue;
-    }
     if (!codexSkills.has(name)) {
       errors.push(`${name} is missing from ${codexTree}/.`);
       continue;
     }
-    compareSkill(root, name, errors);
-  }
-}
-
-function compareSkill(root: string, name: string, errors: string[]): void {
-  if (isSharedSkill(name)) {
-    return;
-  }
-
-  const symlinks = [`${codexTree}/${name}`, `${claudeTree}/${name}`].filter((skillPath) =>
-    isSymbolicLink(join(root, skillPath)),
-  );
-  if (symlinks.length > 0) {
-    for (const skillPath of symlinks) {
-      errors.push(`${skillPath} must be a directory, not a symlink.`);
+    if (!claudeSkills.has(name)) {
+      errors.push(`${name} is missing from ${claudeTree}/.`);
+      continue;
     }
-    return;
-  }
-
-  const codexDirectory = resolvePath(root, `${codexTree}/${name}`);
-  const claudeDirectory = resolvePath(root, `${claudeTree}/${name}`);
-  if (codexDirectory === undefined || claudeDirectory === undefined) {
-    return;
-  }
-
-  const codexFiles = skillFiles(codexDirectory);
-  const claudeFiles = skillFiles(claudeDirectory);
-  for (const file of union(codexFiles, claudeFiles)) {
-    if (!claudeFiles.has(file)) {
-      errors.push(`${name}/${file} is missing from ${claudeTree}/.`);
-    } else if (!codexFiles.has(file)) {
-      errors.push(`${name}/${file} is missing from ${codexTree}/.`);
-    } else if (
-      !readFileSync(join(codexDirectory, file)).equals(readFileSync(join(claudeDirectory, file)))
+    const claudePath = `${claudeTree}/${name}`;
+    const resolved = resolvePath(root, claudePath);
+    if (
+      !isSymbolicLink(join(root, claudePath)) ||
+      resolved === undefined ||
+      resolved !== resolvePath(root, `${codexTree}/${name}`)
     ) {
-      errors.push(`${name}/${file} differs between ${codexTree}/ and ${claudeTree}/.`);
+      errors.push(`${claudePath} must be a symlink to ${codexTree}/${name}.`);
     }
   }
 }
@@ -155,33 +121,7 @@ function tomlPatterns(content: string, key: string): string[] {
 }
 
 function skillNames(root: string, tree: string): Set<string> {
-  const names = new Set<string>();
-  for (const entry of readDirectory(join(root, tree))) {
-    if (isDirectory(join(root, tree, entry))) {
-      names.add(entry);
-    }
-  }
-  return names;
-}
-
-function skillFiles(directory: string): Set<string> {
-  const files = new Set<string>();
-  const pending = [directory];
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (current === undefined) {
-      continue;
-    }
-    for (const entry of readDirectory(current)) {
-      const entryPath = join(current, entry);
-      if (isDirectory(entryPath)) {
-        pending.push(entryPath);
-      } else {
-        files.add(relative(directory, entryPath).split(sep).join("/"));
-      }
-    }
-  }
-  return files;
+  return new Set(readDirectory(join(root, tree)));
 }
 
 function readDirectory(directory: string): string[] {
@@ -192,28 +132,12 @@ function readDirectory(directory: string): string[] {
   }
 }
 
-function isDirectory(path: string): boolean {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
 function isSymbolicLink(path: string): boolean {
   try {
     return lstatSync(path).isSymbolicLink();
   } catch {
     return false;
   }
-}
-
-/** Report whether either tree declares this skill as shared instead of duplicated. */
-function isSharedSkill(name: string): boolean {
-  return (
-    sharedSkills[`${codexTree}/${name}`] !== undefined ||
-    sharedSkills[`${claudeTree}/${name}`] !== undefined
-  );
 }
 
 function readTextFile(path: string): string | undefined {

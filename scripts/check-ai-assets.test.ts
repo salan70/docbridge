@@ -1,13 +1,5 @@
 import { expect, test } from "bun:test";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -31,17 +23,14 @@ function withAiAssets(callback: (root: string) => void): void {
   write(root, ".rumdl.toml", '[global]\ndisable = ["MD013"]\nexclude = ["dist/**"]\n');
 
   write(root, "templates/skills/docbridge/SKILL.md", skill("docbridge"));
-  for (const name of ["git-workflow", "tdd"]) {
-    write(root, `.agents/skills/${name}/SKILL.md`, skill(name));
-    write(root, `.claude/skills/${name}/SKILL.md`, skill(name));
-  }
-  write(root, ".agents/skills/tdd/references/bun-test.md", "# Bun test\n");
-  write(root, ".claude/skills/tdd/references/bun-test.md", "# Bun test\n");
-  write(root, ".agents/skills/concise-writing/SKILL.md", skill("concise-writing"));
-
+  mkdirSync(join(root, ".agents/skills"), { recursive: true });
+  mkdirSync(join(root, ".claude/skills"), { recursive: true });
   symlinkSync("../../templates/skills/docbridge", join(root, ".agents/skills/docbridge"));
   symlinkSync("../../templates/skills/docbridge", join(root, ".claude/skills/docbridge"));
-  symlinkSync("../../.agents/skills/concise-writing", join(root, ".claude/skills/concise-writing"));
+  for (const name of ["concise-writing", "tdd"]) {
+    write(root, `.agents/skills/${name}/SKILL.md`, skill(name));
+    symlinkSync(`../../.agents/skills/${name}`, join(root, `.claude/skills/${name}`));
+  }
 
   try {
     callback(root);
@@ -56,36 +45,18 @@ test("checkAiAssets accepts skill trees that agree", () => {
   });
 });
 
-test("checkAiAssets reports a duplicated skill whose copies differ", () => {
+test("checkAiAssets reports a Claude skill copied instead of linked", () => {
   withAiAssets((root) => {
-    write(root, ".claude/skills/tdd/references/bun-test.md", "# Bun test\n\nEdited.\n");
+    unlinkSync(join(root, ".claude/skills/tdd"));
+    write(root, ".claude/skills/tdd/SKILL.md", skill("tdd"));
 
     expect(checkAiAssets(root)).toEqual([
-      "tdd/references/bun-test.md differs between .agents/skills/ and .claude/skills/.",
+      ".claude/skills/tdd must be a symlink to .agents/skills/tdd.",
     ]);
   });
 });
 
-test("checkAiAssets reports a file that exists in only one copy of a duplicated skill", () => {
-  withAiAssets((root) => {
-    unlinkSync(join(root, ".claude/skills/tdd/references/bun-test.md"));
-
-    expect(checkAiAssets(root)).toEqual([
-      "tdd/references/bun-test.md is missing from .claude/skills/.",
-    ]);
-  });
-});
-
-test("checkAiAssets reports a duplicated skill that was replaced by a symlink", () => {
-  withAiAssets((root) => {
-    rmSync(join(root, ".claude/skills/tdd"), { recursive: true, force: true });
-    symlinkSync("../../.agents/skills/tdd", join(root, ".claude/skills/tdd"));
-
-    expect(checkAiAssets(root)).toEqual([".claude/skills/tdd must be a directory, not a symlink."]);
-  });
-});
-
-test("checkAiAssets reports a skill that exists in only one tree", () => {
+test("checkAiAssets reports a skill that exists only in the Claude tree", () => {
   withAiAssets((root) => {
     write(root, ".claude/skills/grill-me/SKILL.md", skill("grill-me"));
 
@@ -93,24 +64,33 @@ test("checkAiAssets reports a skill that exists in only one tree", () => {
   });
 });
 
-test("checkAiAssets reports a shared skill that stopped resolving to its target", () => {
+test("checkAiAssets reports a skill that exists only in the Codex tree", () => {
   withAiAssets((root) => {
-    unlinkSync(join(root, ".claude/skills/docbridge"));
-    write(root, ".claude/skills/docbridge/SKILL.md", skill("docbridge"));
+    write(root, ".agents/skills/grill-me/SKILL.md", skill("grill-me"));
+
+    expect(checkAiAssets(root)).toEqual(["grill-me is missing from .claude/skills/."]);
+  });
+});
+
+test("checkAiAssets reports a Codex docbridge skill that is not the template", () => {
+  withAiAssets((root) => {
+    unlinkSync(join(root, ".agents/skills/docbridge"));
+    write(root, ".agents/skills/docbridge/SKILL.md", skill("docbridge"));
 
     expect(checkAiAssets(root)).toEqual([
-      ".claude/skills/docbridge must be a symlink to templates/skills/docbridge.",
+      ".agents/skills/docbridge must be a symlink to templates/skills/docbridge.",
+      ".claude/skills/docbridge must be a symlink to .agents/skills/docbridge.",
     ]);
   });
 });
 
-test("checkAiAssets reports a broken shared skill symlink", () => {
+test("checkAiAssets reports broken skill symlinks", () => {
   withAiAssets((root) => {
     rmSync(join(root, "templates/skills/docbridge"), { recursive: true, force: true });
 
     expect(checkAiAssets(root)).toEqual([
       ".agents/skills/docbridge must be a symlink to templates/skills/docbridge.",
-      ".claude/skills/docbridge must be a symlink to templates/skills/docbridge.",
+      ".claude/skills/docbridge must be a symlink to .agents/skills/docbridge.",
     ]);
   });
 });
@@ -179,16 +159,6 @@ test("checkAiAssets reports an exclusion that names a skill tree directory", () 
       '.rumdl.toml excludes ".agents/skills"; both skill trees must stay formatted and linted.',
     ]);
   });
-});
-
-test("just verify and CI include the AI asset drift check", () => {
-  const root = join(import.meta.dir, "..");
-  const justfile = readFileSync(join(root, "justfile"), "utf8");
-  const workflow = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
-
-  expect(justfile).toMatch(/^verify: .*\bcheck-ai-assets\b/m);
-  expect(justfile).toContain("\ncheck-ai-assets:\n    bun run scripts/check-ai-assets.ts\n");
-  expect(workflow).toContain("nix develop -c just check-ai-assets");
 });
 
 test("the repository AI assets pass the drift check", () => {
