@@ -72,6 +72,16 @@ test("checkAiAssets reports a skill that exists only in the Codex tree", () => {
   });
 });
 
+test("checkAiAssets reports a Codex skill that links outside the Codex tree", () => {
+  withAiAssets((root) => {
+    rmSync(join(root, ".agents/skills/tdd"), { recursive: true, force: true });
+    write(root, "outside/tdd/SKILL.md", skill("tdd"));
+    symlinkSync("../../outside/tdd", join(root, ".agents/skills/tdd"));
+
+    expect(checkAiAssets(root)).toEqual([".agents/skills/tdd must be a directory, not a symlink."]);
+  });
+});
+
 test("checkAiAssets reports a Codex docbridge skill that is not the template", () => {
   withAiAssets((root) => {
     unlinkSync(join(root, ".agents/skills/docbridge"));

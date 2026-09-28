@@ -48,14 +48,19 @@ function checkLinkedSkills(root: string, errors: string[]): void {
       errors.push(`${name} is missing from ${claudeTree}/.`);
       continue;
     }
+    const codexPath = `${codexTree}/${name}`;
+    if (codexPath !== templateSkill.path && isSymbolicLink(join(root, codexPath))) {
+      errors.push(`${codexPath} must be a directory, not a symlink.`);
+      continue;
+    }
     const claudePath = `${claudeTree}/${name}`;
     const resolved = resolvePath(root, claudePath);
     if (
       !isSymbolicLink(join(root, claudePath)) ||
       resolved === undefined ||
-      resolved !== resolvePath(root, `${codexTree}/${name}`)
+      resolved !== resolvePath(root, codexPath)
     ) {
-      errors.push(`${claudePath} must be a symlink to ${codexTree}/${name}.`);
+      errors.push(`${claudePath} must be a symlink to ${codexPath}.`);
     }
   }
 }
