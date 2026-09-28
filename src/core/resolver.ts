@@ -1,3 +1,4 @@
+import type { CodeAdapterOverrides } from "./code-scan";
 import type { CodeScanResult } from "./code-scanner";
 import {
   collectErroredFiles,
@@ -192,6 +193,7 @@ export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
 type CheckOptions = {
   projectRoot: string;
   audit?: boolean;
+  adapters?: CodeAdapterOverrides;
 };
 
 /**
@@ -203,7 +205,10 @@ type CheckOptions = {
  */
 export function check(options: CheckOptions): CheckResult {
   const audit = options.audit ?? false;
-  const outcome = scanProject({ projectRoot: options.projectRoot });
+  const outcome = scanProject({
+    projectRoot: options.projectRoot,
+    ...(options.adapters === undefined ? {} : { adapters: options.adapters }),
+  });
   if (!outcome.ok) {
     // Config errors short-circuit scanning; report only config diagnostics.
     const sorted = sortDiagnostics(outcome.diagnostics);

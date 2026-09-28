@@ -38,12 +38,10 @@ uses:
   or an installed npm package, and restores its executable bit.
 
 `package-root.ts` resolves the package directory that ships `templates/skills`.
-The `docs` command and the setup commands both need that path, so it stays
-independent of initialization planning.
-
-`scanner-executable.ts` derives the source root as its own directory's
-grandparent. Keep it exactly one directory below `src/`, or source-mode scanner
-discovery breaks.
+The `docs` command, the setup commands, and scanner discovery all need that
+path, so it stays independent of initialization planning.
+`scanner-executable.ts` derives its source and dist roots from it, so neither
+module depends on its own depth below `src/`.
 
 ## Setup
 

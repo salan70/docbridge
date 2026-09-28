@@ -5,7 +5,6 @@ import { join } from "node:path";
 
 import { collectCodeFiles, type CodeInclude } from "./code-language";
 import { createScannerWorkerAdapter, scanCodeFiles } from "./code-scan";
-import { setCodeAdapterForTest } from "./code-scan.test-support";
 import { readManagedFile } from "./glob";
 import { check } from "./resolver";
 import type { ScannerWorkerProcessResult } from "./scanner-worker";
@@ -26,40 +25,38 @@ function withProject(files: Record<string, string>, run: (root: string) => void)
 
 test("scanCodeFiles reports scanner resolution diagnostics without starting a worker", () => {
   withProject({ "lib/auth.dart": "class AuthService {}\n" }, (root) => {
-    const restore = setCodeAdapterForTest(
-      "dart",
-      createScannerWorkerAdapter("dart", () => ({
-        ok: false,
-        diagnostic: {
-          severity: "error",
-          code: "code_scanner_unavailable",
-          language: "dart",
-          target: "dart",
-          message:
-            "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
-        },
-      })),
-    );
-    try {
-      const include: CodeInclude = { dart: { patterns: ["lib/**/*.dart"] } };
-      const result = scanCodeFiles(root, collectCodeFiles(root, include), include, (relPath) =>
-        readManagedFile(root, relPath),
-      );
+    const dartAdapter = createScannerWorkerAdapter("dart", () => ({
+      ok: false,
+      diagnostic: {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        language: "dart",
+        target: "dart",
+        message:
+          "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
+      },
+    }));
+    const include: CodeInclude = { dart: { patterns: ["lib/**/*.dart"] } };
 
-      expect(result.diagnostics).toEqual([
-        {
-          severity: "error",
-          code: "code_scanner_unavailable",
-          language: "dart",
-          target: "lib/auth.dart",
-          message:
-            "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
-        },
-      ]);
-      expect(result.codeFiles[0]?.language).toBe("dart");
-    } finally {
-      restore();
-    }
+    const result = scanCodeFiles(
+      root,
+      collectCodeFiles(root, include),
+      include,
+      (relPath) => readManagedFile(root, relPath),
+      { adapters: { dart: dartAdapter } },
+    );
+
+    expect(result.diagnostics).toEqual([
+      {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        language: "dart",
+        target: "lib/auth.dart",
+        message:
+          "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
+      },
+    ]);
+    expect(result.codeFiles[0]?.language).toBe("dart");
   });
 });
 
@@ -76,26 +73,24 @@ test("check suppresses link diagnostics that depend on a failed worker scan", ()
       "docs/auth.md": "<!-- @code Sources/Auth.swift#AuthService -->\n## Auth Service\n",
     },
     (root) => {
-      const restore = setCodeAdapterForTest(
-        "swift",
-        createScannerWorkerAdapter("swift", () => ["missing-swift-worker"], {
-          requestId: () => "req-swift-missing",
-          run: (): ScannerWorkerProcessResult => ({
-            ok: false,
-            error: new Error("ENOENT"),
-            stderr: "",
-          }),
+      const swiftAdapter = createScannerWorkerAdapter("swift", () => ["missing-swift-worker"], {
+        requestId: () => "req-swift-missing",
+        run: (): ScannerWorkerProcessResult => ({
+          ok: false,
+          error: new Error("ENOENT"),
+          stderr: "",
         }),
-      );
-      try {
-        const diagnostics = check({ projectRoot: root }).diagnostics;
-        expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
-          "code_scanner_unavailable",
-        ]);
-        expect(diagnostics[0]?.target).toBe("Sources/Auth.swift");
-      } finally {
-        restore();
-      }
+      });
+
+      const diagnostics = check({
+        projectRoot: root,
+        adapters: { swift: swiftAdapter },
+      }).diagnostics;
+
+      expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+        "code_scanner_unavailable",
+      ]);
+      expect(diagnostics[0]?.target).toBe("Sources/Auth.swift");
     },
   );
 });

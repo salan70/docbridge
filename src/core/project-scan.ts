@@ -4,7 +4,7 @@ import {
   type CodeInclude,
   type CollectedCodeFile,
 } from "./code-language";
-import { scanCodeFiles } from "./code-scan";
+import { scanCodeFiles, type CodeAdapterOverrides } from "./code-scan";
 import type { CodeScanResult } from "./code-scanner";
 import { loadConfig } from "./config";
 import { collectFiles, readManagedFile } from "./glob";
@@ -28,6 +28,7 @@ type ScanProjectBaseOptions = {
   collectCode?: (projectRoot: string, include: CodeInclude) => CollectedCodeFile[];
   collectDocs?: (projectRoot: string, patterns: string[]) => string[];
   readFile?: (relPath: string) => CodeFileRead;
+  adapters?: CodeAdapterOverrides;
 };
 
 type ScanProjectOptions = ScanProjectBaseOptions & {
@@ -84,9 +85,12 @@ export function scanProject(
     collectCode(options.projectRoot, configResult.config.include.code),
     configResult.config.include.code,
     readFile,
-    contentByFile === undefined
-      ? undefined
-      : (relPath, content) => contentByFile.set(relPath, content),
+    {
+      ...(contentByFile === undefined
+        ? {}
+        : { onContent: (relPath, content) => contentByFile.set(relPath, content) }),
+      ...(options.adapters === undefined ? {} : { adapters: options.adapters }),
+    },
   );
   diagnostics.push(...codeScan.diagnostics);
 

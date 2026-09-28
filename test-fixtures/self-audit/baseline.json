@@ -208,11 +208,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-adapter-registry.ts#codeAdapters",
-      "class": "internal_helper"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/code-language.ts#codeFileOwners",
       "class": "sibling_export"
     },
@@ -248,17 +243,12 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scan.test-support.ts#setCodeAdapterForTest",
-      "class": "test_support"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/core/code-scan.ts#createScannerWorkerAdapter",
+      "target": "src/core/code-scan.ts#CodeAdapterOverrides",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scan.ts#getCodeAdapter",
+      "target": "src/core/code-scan.ts#createScannerWorkerAdapter",
       "class": "sibling_export"
     },
     {
