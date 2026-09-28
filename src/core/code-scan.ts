@@ -1,4 +1,3 @@
-import { codeAdapters } from "./code-adapter-registry";
 import type { CodeFileRead, CodeInclude, CollectedCodeFile } from "./code-language";
 import type { CodeLanguageAdapter, CodeScanOptions, CodeScanResult } from "./code-scanner";
 import {
@@ -10,23 +9,10 @@ import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 import { typeScriptAdapter } from "./typescript";
 
 /**
- * Bind every supported language to its adapter. Importing this module is what
- * makes concrete parsers and worker execution available, so callers that only
- * need language metadata import `./code-language` instead.
+ * Replacement adapters for one scan, keyed by language. Languages left out use
+ * the built-in adapter.
  */
-Object.assign(codeAdapters, {
-  typescript: typeScriptAdapter,
-  swift: createScannerWorkerAdapter("swift", (_projectRoot) =>
-    resolveScannerWorkerCommand("swift"),
-  ),
-  dart: createScannerWorkerAdapter("dart", (_projectRoot) => resolveScannerWorkerCommand("dart")),
-  rust: createScannerWorkerAdapter("rust", (_projectRoot) => resolveScannerWorkerCommand("rust")),
-});
-
-/** The registered adapter for a language, or `undefined` when none exists yet. */
-export function getCodeAdapter(language: CodeLanguage): CodeLanguageAdapter | undefined {
-  return codeAdapters[language];
-}
+export type CodeAdapterOverrides = Partial<Record<CodeLanguage, CodeLanguageAdapter>>;
 
 type ScannerWorkerCommandFactory = (
   projectRoot: string,
@@ -81,19 +67,24 @@ type ScanCodeFilesResult = {
   diagnostics: DocBridgeDiagnostic[];
 };
 
+type ScanCodeFilesOptions = {
+  /** Receives the resolved content for callers that cache it. */
+  onContent?: (relPath: string, content: string) => void;
+  adapters?: CodeAdapterOverrides;
+};
+
 /**
  * Read and scan each collected code file through its language adapter. The
  * `read` callback lets callers source content from disk or from editor buffer
- * overlays; `onContent` receives the resolved content for callers that cache it.
- * Configured languages are dispatched through the registered in-process or
- * worker-backed adapter.
+ * overlays. Each language is dispatched to its built-in in-process or
+ * worker-backed adapter unless `adapters` replaces it.
  */
 export function scanCodeFiles(
   projectRoot: string,
   files: CollectedCodeFile[],
   codeInclude: CodeInclude,
   read: (relPath: string) => CodeFileRead,
-  onContent?: (relPath: string, content: string) => void,
+  options: ScanCodeFilesOptions = {},
 ): ScanCodeFilesResult {
   const codeFiles: CodeScanResult[] = [];
   const diagnostics: DocBridgeDiagnostic[] = [];
@@ -103,15 +94,12 @@ export function scanCodeFiles(
       diagnostics.push(result.diagnostic);
       continue;
     }
-    onContent?.(relPath, result.content);
-    const adapter = getCodeAdapter(language);
-    if (adapter === undefined) {
-      continue;
-    }
+    options.onContent?.(relPath, result.content);
+    const adapter = options.adapters?.[language] ?? builtInAdapters[language];
     const entry = codeInclude[language];
-    const options: CodeScanOptions =
+    const scanOptions: CodeScanOptions =
       entry?.visibility !== undefined ? { visibility: entry.visibility } : {};
-    const scan = adapter.scanFile(relPath, result.content, options, {
+    const scan = adapter.scanFile(relPath, result.content, scanOptions, {
       projectRoot,
     });
     diagnostics.push(...scan.diagnostics);
@@ -119,6 +107,18 @@ export function scanCodeFiles(
   }
   return { codeFiles, diagnostics };
 }
+
+/**
+ * The adapter bound to each supported language. Importing this module is what
+ * makes concrete parsers and worker execution available, so callers that only
+ * need language metadata import `./code-language` instead.
+ */
+const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
+  typescript: typeScriptAdapter,
+  swift: createScannerWorkerAdapter("swift", () => resolveScannerWorkerCommand("swift")),
+  dart: createScannerWorkerAdapter("dart", () => resolveScannerWorkerCommand("dart")),
+  rust: createScannerWorkerAdapter("rust", () => resolveScannerWorkerCommand("rust")),
+};
 
 function emptyScan(language: CodeLanguage, filePath: string): CodeScanResult {
   return {

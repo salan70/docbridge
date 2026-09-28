@@ -114,7 +114,6 @@ describe("language metadata stays free of adapters and worker execution", () => 
     expect(
       [...reached].filter((target) =>
         [
-          "src/core/code-adapter-registry.ts",
           "src/core/code-scan.ts",
           "src/core/scanner-executable.ts",
           "src/core/scanner-worker.ts",
