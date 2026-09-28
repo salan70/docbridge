@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import SpecLinkSwiftScanner
+@testable import DocBridgeSwiftScanner
 
 final class ScannerTests: XCTestCase {
   func testScansSupportedTopLevelDeclarations() throws {

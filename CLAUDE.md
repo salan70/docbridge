@@ -45,8 +45,8 @@ differ by intended audience:
 Distributable skill templates live under `templates/skills/`, and JSON schema
 files live under `schemas/`.
 
-Tests are colocated with the modules they cover as `*.test.ts` files under
-`src/`; there is no separate `test/` directory. See
+Tests are colocated with the modules they cover as `*.test.ts` files; there is
+no separate `test/` directory. See
 [docs/contributing/testing.md](docs/contributing/testing.md).
 
 Development uses Bun; the published CLI runs on Node.js 22+ and Bun. Keep
@@ -76,45 +76,10 @@ accepted` label; the author or implementer identity is not an exception.
 
 ## Commands
 
-Use the repo-native commands in `justfile` instead of ad-hoc shell invocations:
-
-- `just setup` — install dependencies, build test scanner workers, and configure Git hooks
-- `just doctor` — report tool versions and validate the required Swift version
-- `just format` — apply all repository formatters
-- `just format-check` — check formatting without modifying files
-- `just lint` — run all repository linters
-- `just lint-fix` — apply only Oxlint's safe fixes
-- `just verify` — run the common read-only local quality gate
-- `just check` — run the default DocBridge check
-- `just check-example` — check the `examples/typescript` project
-- `just check-example-json` — check the example with JSON output
-- `just check-docs` — verify bilingual user-guide structure and local links
-- `just check-ai-assets` — verify that the Claude and Codex skill trees agree
-- `just prose-report <kind> <source>` — report advisory prose metrics
-- `just audit` — run audit diagnostics
-- `just check-audit-baseline` — compare live `--audit` keys against the committed
-  repository baseline
-- `just check-fixture <code>` — check one diagnostic fixture under
-  `test-fixtures/diagnostics/`
-- `just related-gate` — list linked counterparts of uncommitted and untracked
-  changes; it does not cover changes that are already committed
-- `just related-gate-report` — the pre-commit report over staged files,
-  including counterpart content
-- `just context` — print counterpart content for uncommitted changes
-- `just test` — run the Bun test suite (`bun test`)
-- `just build-test-scanners` — build the Swift, Dart, and Rust workers used by
-  integration tests
-- `just typecheck` — type-check the project (`tsc --noEmit`); catches type
-  drift that `bun build` ignores
-- `just build` — build the CLI with Bun
-- `just install-git-hooks` — configure `core.hooksPath` for the shared hook
-
-Run `just --list` for the remaining recipes: per-language scanner tests and
-builds, example checks, packaging, and editor tooling.
-
-If `just` is not on `PATH`, prefix commands with `nix develop -c` (for example,
-`nix develop -c just check`). The dev shell is provided by `flake.nix` and
-`.envrc` (`use flake`).
+Use the repo-native recipes in `justfile` (`just --list`) instead of ad-hoc
+shell invocations. `just setup` prepares a fresh checkout, and `just verify` is
+the local quality gate. If `just` is not on `PATH`, prefix commands with
+`nix develop -c` (for example, `nix develop -c just verify`).
 
 ## Lint and Formatting Policy
 
@@ -160,50 +125,14 @@ before reporting completion.
 
 ## Skills
 
-Project skills live in `.claude/skills/`. They are auto-discovered and can be
-invoked directly with `/<skill-name>`.
+Project skills live in `.claude/skills/` and are auto-discovered. All logic
+changes must be test-first; use the `tdd` skill.
 
-- `tdd` — strict t-wada Red-Green-Refactor TDD for DocBridge. Use it when
-  implementing features, fixing bugs, or refactoring logic. All logic changes
-  must be test-first. Invoke with `/tdd` or when the task calls for test-driven
-  development.
-- `grill-me` — interrogate a plan or design one question at a time until shared
-  understanding is reached. Use it with `/grill-me`, or when the user says
-  `grill me`, `grill して`, `徹底的に詰めて`, or asks to deeply examine a plan
-  or design.
-- `pr-review` — review a pull request from the reviewer side: find real
-  defects, verify them, and post actionable inline comments on the diff. Use it
-  with `/pr-review`, or when asked to review a PR, inspect a PR for bugs, or
-  post review findings.
-- `git-workflow` — branch naming, PR-based flow, merge commits, branch
-  protection, agent autonomy gates, and per-PR release labels.
-  Use it with `/git-workflow`, or when branching, committing, pushing, opening
-  or merging a PR, or choosing its release label.
-- `review-response` — triage pull request review comments (from bots like Devin
-  or human reviewers), act or justify per comment, then reply to and resolve
-  every thread. Use it with `/review-response`, or when a PR has review feedback
-  to address.
-- `concise-writing` — create, compress, or review issues, pull request bodies,
-  plans, documentation, and release notes without repeating facts owned by
-  another artifact. Use it for those writing tasks and follow the canonical
-  rules in `docs/contributing/writing.md`.
-- `docbridge` — adopt DocBridge, choose docs and code scope, add `@doc` /
-  `@code` annotations, fix link diagnostics, triage `related --gate` findings,
-  and review existing links for stale docs or semantic validity. Use it with
-  `/docbridge`, or when introducing DocBridge, linking code to its
-  specification, or judging whether docs still match the code.
-
-The distributable `docbridge` skill is a skill-level symlink from
-`.claude/skills/docbridge` to `templates/skills/docbridge`. Apply edits to the
-template; do not edit the symlink in place.
-
-The repository-only `concise-writing` skill is shared from
-`.agents/skills/concise-writing`; do not create a second copy for Claude.
-
-Every other skill exists as a separate copy under `.agents/skills/` and
-`.claude/skills/`. The two copies must stay byte-identical, so edit both in the
-same change; `just check-ai-assets` fails when they differ. Tool-specific
-guidance belongs in `CLAUDE.md` or `AGENTS.md`, never inside a skill body.
+Each skill has one source. `.agents/skills/<name>` holds it, and
+`.claude/skills/<name>` is a symlink to it. The distributable `docbridge`
+skill's source is `templates/skills/docbridge`, which both trees link to.
+`just check-ai-assets` enforces this layout. Tool-specific guidance belongs in
+`CLAUDE.md` or `AGENTS.md`, never inside a skill body.
 
 ## Language Policy
 
@@ -232,32 +161,12 @@ When reporting completion to the user, explicitly list:
 
 ## Git Policy
 
-Full rules and the release procedure live in the `git-workflow` skill
-(`.claude/skills/git-workflow/`). Always-on invariants:
+Branching, commits, pull requests, and releases follow the `git-workflow`
+skill. Always-on invariants:
 
-- All changes land through a PR. Never push to `main` directly; GitHub blocks it
-  for everyone, including administrators.
-- Before creating a branch, sync local `main`: run `git switch main`, then
-  `git pull --ff-only`. Never branch from a stale `main`. Name branches per
-  [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
-  (`<feat|fix|chore>/#<issue>-<kebab-desc>`).
-- After a PR merges, return to `main`, run `git pull --ff-only`, and delete the
-  local branch before starting new work.
-- Merge with **Create a merge commit** only; PR boundaries stay visible in
-  `main` history.
-- CI must pass before merging: `just format-check`, `just lint`, `just check`,
-  `just check-ai-assets`, `just typecheck`, `just typecheck-extension`,
-  `just test`, `just build`, and the native scanner and distribution checks in
-  `.github/workflows/ci.yml`.
+- All changes land through a PR; never push to `main` directly.
+- Branch from an up-to-date `main` (`git switch main && git pull --ff-only`).
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR
   requires explicit human approval.** Merging a PR labeled `release: patch`,
-  `release: minor`, or `release: major` publishes that release through GitHub
-  Actions, so the merge is also the release approval gate.
-
-### Commit messages
-
-- Follow [docs/contributing/commits.md](docs/contributing/commits.md).
-- Use English commit messages.
-- Use the format `<gitmoji> <type>(<scope>): <summary>`; omit scope when it does
-  not add clarity.
-- Split unrelated changes into separate commits.
+  `release: minor`, or `release: major` publishes that release, so the merge is
+  also the release approval gate.

@@ -23,10 +23,6 @@ without rereading the same claim.
    conclusions, and optional sections with no new information.
 7. Recheck the applicable repository template and factual sources.
 
-For issues and pull requests, draft through a body file and run
-`just prose-report <kind> <body-file>` before publishing. Treat every warning as
-an editing prompt, never as a gate or a reason to delete necessary detail.
-
 Use the matching source for artifact-specific structure:
 
 - Issues: `.github/ISSUE_TEMPLATE/`

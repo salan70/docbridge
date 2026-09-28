@@ -43,41 +43,14 @@ differ by intended audience:
 Distributable skill templates live under `templates/skills/`, and JSON schema
 files live under `schemas/`.
 
-Tests are colocated with the modules they cover as `*.test.ts` files under
-`src/`; there is no separate `test/` directory. See
+Tests are colocated with the modules they cover as `*.test.ts` files; there is
+no separate `test/` directory. See
 [docs/contributing/testing.md](docs/contributing/testing.md).
 
-Use the repo-native commands in `justfile`:
-
-- `just setup`
-- `just doctor`
-- `just format`
-- `just format-check`
-- `just lint`
-- `just lint-fix`
-- `just verify`
-- `just check`
-- `just check-example`
-- `just check-example-json`
-- `just check-docs`
-- `just check-ai-assets`
-- `just prose-report <kind> <source>`
-- `just audit`
-- `just check-audit-baseline`
-- `just check-fixture <code>`
-- `just related-gate` (uncommitted and untracked changes only)
-- `just related-gate-report`
-- `just context`
-- `just test`
-- `just build-test-scanners`
-- `just typecheck`
-- `just build`
-- `just install-git-hooks`
-
-Run `just --list` for the remaining recipes: per-language scanner tests and
-builds, example checks, packaging, and editor tooling. If `just` is not on
-`PATH`, prefix commands with `nix develop -c` (for example,
-`nix develop -c just check`).
+Use the repo-native recipes in `justfile` (`just --list`) instead of ad-hoc
+shell invocations. `just setup` prepares a fresh checkout, and `just verify` is
+the local quality gate. If `just` is not on `PATH`, prefix commands with
+`nix develop -c` (for example, `nix develop -c just verify`).
 
 Development uses Bun; the published CLI runs on Node.js 22+ and Bun. Keep
 dependencies minimal and prefer Bun plus the TypeScript Compiler API for core
@@ -148,36 +121,14 @@ before reporting completion.
 
 ## Skills
 
-Codex skills live in `.agents/skills/`.
+Codex skills live in `.agents/skills/` and are selected by their frontmatter
+descriptions. All logic changes must be test-first; use the `tdd` skill.
 
-When implementing features, fixing bugs, or refactoring logic, use `.agents/skills/tdd/SKILL.md`. All logic changes must be test-first.
-
-When the user mentions `grill-me`, `grill して`, `徹底的に詰めて`, or explicitly asks to deeply examine a plan or design, use `.agents/skills/grill-me/SKILL.md`.
-
-When the user asks to review a PR, inspect a PR for defects, or post review findings, use `.agents/skills/pr-review/SKILL.md`.
-
-When branching, committing, pushing, opening or merging a PR, or choosing its release label, use `.agents/skills/git-workflow/SKILL.md`.
-
-When a PR has review comments to triage, reply to, and resolve, use `.agents/skills/review-response/SKILL.md`.
-
-When creating, compressing, or reviewing an issue, pull request body, plan,
-documentation page, or release note, use
-`.agents/skills/concise-writing/SKILL.md`. The canonical writing rules live in
-`docs/contributing/writing.md`; do not duplicate them here.
-
-When introducing DocBridge, choosing docs and code scope, adding `@doc` / `@code` annotations, or fixing link diagnostics, use `.agents/skills/docbridge/SKILL.md`. When a Git hook, CI comment, or `docbridge related --gate` run flags unchanged counterparts, use the same skill to triage them (sync). When asked whether the docs still match the code with no change set, use its review procedure.
-
-Skill copies follow these rules:
-
-- `.agents/skills/docbridge` and `.claude/skills/docbridge` are skill-level
-  symlinks to `templates/skills/docbridge`. Edit the template, not the symlink.
-- `.agents/skills/concise-writing` is shared with Claude Code through a symlink
-  from `.claude/skills/concise-writing`; do not create a second copy.
-- Every other skill exists as a copy under `.agents/skills/` and
-  `.claude/skills/`. The two copies must stay byte-identical, so edit both in
-  the same change; `just check-ai-assets` fails when they differ.
-- Keep skill bodies tool-neutral. Codex-specific guidance belongs in
-  `AGENTS.md`, not in a skill.
+Each skill has one source. `.agents/skills/<name>` holds it, and
+`.claude/skills/<name>` is a symlink to it. The distributable `docbridge`
+skill's source is `templates/skills/docbridge`, which both trees link to.
+`just check-ai-assets` enforces this layout. Keep skill bodies tool-neutral;
+Codex-specific guidance belongs in `AGENTS.md`, not in a skill.
 
 ## Language Policy
 
@@ -202,23 +153,12 @@ When reporting completion to the user, explicitly list:
 
 ## Git Policy
 
-Full rules and the release procedure live in the `git-workflow` skill
-(`.agents/skills/git-workflow/`). Always-on invariants:
+Branching, commits, pull requests, and releases follow
+`.agents/skills/git-workflow/SKILL.md`. Always-on invariants:
 
-- All changes land through a PR. Never push to `main` directly; GitHub blocks it for everyone, including administrators.
-- Before creating a branch, sync local `main`: `git switch main && git pull --ff-only`. Never branch from a stale `main`. Name branches per [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md) (`<feat|fix|chore>/#<issue>-<kebab-desc>`).
-- After a PR merges, return to an updated `main` (`git switch main && git pull --ff-only`) and delete the local branch before starting new work.
-- Merge with **Create a merge commit** only; PR boundaries stay visible in
-  `main` history.
-- CI must pass before merging: `just format-check`, `just lint`, `just check`,
-  `just check-ai-assets`, `just typecheck`, `just typecheck-extension`,
-  `just test`, `just build`, and the native scanner and distribution checks in
-  `.github/workflows/ci.yml`.
-- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR requires explicit human approval.** Merging a PR labeled `release: patch`, `release: minor`, or `release: major` publishes that release through GitHub Actions, so the merge is also the release approval gate.
-
-### Commit messages
-
-- Follow [docs/contributing/commits.md](docs/contributing/commits.md).
-- Use English commit messages.
-- Use the format `<gitmoji> <type>(<scope>): <summary>`; omit scope when it does not add clarity.
-- Split unrelated changes into separate commits.
+- All changes land through a PR; never push to `main` directly.
+- Branch from an up-to-date `main` (`git switch main && git pull --ff-only`).
+- Agents may branch, commit, push, and open PRs autonomously. **Merging a PR
+  requires explicit human approval.** Merging a PR labeled `release: patch`,
+  `release: minor`, or `release: major` publishes that release, so the merge is
+  also the release approval gate.

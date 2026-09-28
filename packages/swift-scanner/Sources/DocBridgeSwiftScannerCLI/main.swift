@@ -1,5 +1,5 @@
+import DocBridgeSwiftScanner
 import Foundation
-import SpecLinkSwiftScanner
 
 do {
   let input = FileHandle.standardInput.readDataToEndOfFile()
