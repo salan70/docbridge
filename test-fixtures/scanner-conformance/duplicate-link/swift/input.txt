@@ -1,0 +1,3 @@
+/// @doc docs/auth.md#login
+/// @doc docs/auth.md#login
+public func login() {}

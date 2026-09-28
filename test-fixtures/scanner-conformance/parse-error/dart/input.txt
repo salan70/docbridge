@@ -1,0 +1,2 @@
+/// @doc docs/auth.md#login
+void login( {

@@ -1,0 +1,116 @@
+{
+  "diagnostics": [],
+  "filePath": "Input.swift",
+  "links": [
+    {
+      "location": {
+        "column": 10,
+        "filePath": "Input.swift",
+        "line": 1
+      },
+      "source": "Input.swift#login()",
+      "target": "docs/auth.md#login",
+      "targetRange": {
+        "end": {
+          "column": 28,
+          "line": 1
+        },
+        "start": {
+          "column": 10,
+          "line": 1
+        }
+      }
+    }
+  ],
+  "symbols": [
+    {
+      "canonicalId": "login()",
+      "declarationRange": {
+        "end": {
+          "column": 23,
+          "line": 2
+        },
+        "start": {
+          "column": 1,
+          "line": 1
+        }
+      },
+      "endpoint": "Input.swift#login()",
+      "filePath": "Input.swift",
+      "kind": "code",
+      "language": "swift",
+      "location": {
+        "column": 13,
+        "filePath": "Input.swift",
+        "line": 2
+      },
+      "nameRange": {
+        "end": {
+          "column": 18,
+          "line": 2
+        },
+        "start": {
+          "column": 13,
+          "line": 2
+        }
+      },
+      "signatureRange": {
+        "end": {
+          "column": 20,
+          "line": 2
+        },
+        "start": {
+          "column": 1,
+          "line": 1
+        }
+      },
+      "symbolName": "login"
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "canonicalId": "logout()",
+      "declarationRange": {
+        "end": {
+          "column": 24,
+          "line": 4
+        },
+        "start": {
+          "column": 1,
+          "line": 4
+        }
+      },
+      "endpoint": "Input.swift#logout()",
+      "filePath": "Input.swift",
+      "kind": "code",
+      "language": "swift",
+      "location": {
+        "column": 13,
+        "filePath": "Input.swift",
+        "line": 4
+      },
+      "nameRange": {
+        "end": {
+          "column": 19,
+          "line": 4
+        },
+        "start": {
+          "column": 13,
+          "line": 4
+        }
+      },
+      "signatureRange": {
+        "end": {
+          "column": 21,
+          "line": 4
+        },
+        "start": {
+          "column": 1,
+          "line": 4
+        }
+      },
+      "symbolName": "logout"
+    }
+  ],
+  "language": "swift"
+}

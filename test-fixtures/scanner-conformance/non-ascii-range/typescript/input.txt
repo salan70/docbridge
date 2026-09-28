@@ -1,0 +1,5 @@
+/**
+ * ログイン 😀
+ * @doc docs/ログイン😀.md#login
+ */
+export function login(): string { return "😀"; }

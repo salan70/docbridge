@@ -1,0 +1,72 @@
+{
+  "filePath": "input.rs",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "rust",
+      "filePath": "input.rs",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.rs#login",
+      "location": {
+        "filePath": "input.rs",
+        "line": 3,
+        "column": 8
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 8
+        },
+        "end": {
+          "line": 3,
+          "column": 13
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 40
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 31
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.rs#login",
+      "target": "docs/ログイン😀.md#login",
+      "location": {
+        "filePath": "input.rs",
+        "line": 2,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 10
+        },
+        "end": {
+          "line": 2,
+          "column": 30
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "rust"
+}

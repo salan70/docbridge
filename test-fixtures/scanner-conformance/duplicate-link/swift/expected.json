@@ -1,0 +1,96 @@
+{
+  "diagnostics": [
+    {
+      "code": "duplicate_link",
+      "language": "swift",
+      "location": {
+        "column": 10,
+        "filePath": "Input.swift",
+        "line": 2
+      },
+      "message": "Duplicate @doc link from Input.swift#login() to docs/auth.md#login.",
+      "range": {
+        "end": {
+          "column": 28,
+          "line": 2
+        },
+        "start": {
+          "column": 10,
+          "line": 2
+        }
+      },
+      "severity": "warning",
+      "source": "Input.swift#login()",
+      "target": "docs/auth.md#login"
+    }
+  ],
+  "filePath": "Input.swift",
+  "links": [
+    {
+      "location": {
+        "column": 10,
+        "filePath": "Input.swift",
+        "line": 1
+      },
+      "source": "Input.swift#login()",
+      "target": "docs/auth.md#login",
+      "targetRange": {
+        "end": {
+          "column": 28,
+          "line": 1
+        },
+        "start": {
+          "column": 10,
+          "line": 1
+        }
+      }
+    }
+  ],
+  "symbols": [
+    {
+      "canonicalId": "login()",
+      "declarationRange": {
+        "end": {
+          "column": 23,
+          "line": 3
+        },
+        "start": {
+          "column": 1,
+          "line": 1
+        }
+      },
+      "endpoint": "Input.swift#login()",
+      "filePath": "Input.swift",
+      "kind": "code",
+      "language": "swift",
+      "location": {
+        "column": 13,
+        "filePath": "Input.swift",
+        "line": 3
+      },
+      "nameRange": {
+        "end": {
+          "column": 18,
+          "line": 3
+        },
+        "start": {
+          "column": 13,
+          "line": 3
+        }
+      },
+      "signatureRange": {
+        "end": {
+          "column": 20,
+          "line": 3
+        },
+        "start": {
+          "column": 1,
+          "line": 1
+        }
+      },
+      "symbolName": "login"
+    }
+  ],
+  "undocumentedSymbols": [],
+  "language": "swift"
+}

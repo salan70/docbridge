@@ -1,0 +1,21 @@
+{
+  "filePath": "input.dart",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "target": "input.dart",
+      "language": "dart",
+      "message": "Dart analyzer reported syntax errors.",
+      "location": {
+        "filePath": "input.dart",
+        "line": 1,
+        "column": 1
+      }
+    }
+  ],
+  "language": "dart"
+}

@@ -1,0 +1,4 @@
+/// @doc docs/auth.md#login
+public func login() {}
+
+public func logout() {}

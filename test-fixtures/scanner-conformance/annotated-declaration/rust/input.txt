@@ -1,0 +1,4 @@
+/// @doc docs/auth.md#login
+pub fn login() {}
+
+pub fn logout() {}
