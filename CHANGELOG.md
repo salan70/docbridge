@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-28
+
+### Changed
+
+- Each release is now published when a pull request labeled
+  `release: patch`, `release: minor`, or `release: major` merges, instead of
+  from a dedicated release branch. A release still ships the npm package with
+  provenance, a `vX.Y.Z` tag, and a GitHub Release built from this changelog.
+  The CLI, the scanners, and the editor extension behave as in 0.9.0.
+
 ## [0.9.0] - 2026-09-23
 
 ### Added
@@ -423,7 +433,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/salan70/docbridge/releases/tag/v0.10.0
 [0.9.0]: https://github.com/salan70/docbridge/releases/tag/v0.9.0
 [0.8.0]: https://github.com/salan70/docbridge/releases/tag/v0.8.0
 [0.7.0]: https://github.com/salan70/docbridge/releases/tag/v0.7.0
