@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: DocBridge git workflow rules and procedures — branch naming, PR-based integration, merge commits, main branch protection, AI agent autonomy gates, and the semi-automated release process. Use when branching, committing, pushing, opening or merging a PR, or cutting a release.
+description: DocBridge git workflow rules and procedures — branch naming, PR-based integration, merge commits, main branch protection, AI agent autonomy gates, and per-PR releases. Use when branching, committing, pushing, opening or merging a PR, or choosing a PR's release label.
 ---
 
 # git-workflow
@@ -35,7 +35,9 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
 2. Create the branch from `main` using the naming in
    [pull-requests.md](../../../docs/contributing/pull-requests.md).
 3. Implement test-first. For logic changes, use the `tdd` skill.
-4. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
+4. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
+   `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
+   result. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
    read-only `just verify` gate, then `just related-gate-report` over the
    staged files. The report never blocks; update each listed counterpart or
    state why it needs no update.
@@ -47,8 +49,8 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
    [pull-requests.md](../../../docs/contributing/pull-requests.md) and the body
    in English (see the Language Policy). For tracked work, put a plain-text
    `Closes #NN` in the Issue gate section — never wrap it in backticks, or
-   GitHub will not auto-close the issue.
-6. Wait for CI to pass.
+   GitHub will not auto-close the issue. Add exactly one `release:` label.
+6. Wait for CI and the `release-label` check to pass.
 7. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.
 8. After merge, return to an updated `main` and remove the local branch:
@@ -59,9 +61,9 @@ titles (`<gitmoji> <type>: <summary>`). Do not restate those rules here.
 For AI agents (Claude, Codex):
 
 - Autonomous: create branches, commit, push, and open PRs.
-- Requires explicit human approval: **merging a PR**. Release tagging and
-  publishing are automated by GitHub Actions when the release PR is merged, so
-  the merge is the release approval gate.
+- Requires explicit human approval: **merging a PR**. Merging a PR labeled
+  `release: patch`, `release: minor`, or `release: major` publishes that
+  release automatically, so the merge is also the release approval gate.
 - Never push to `main` directly. GitHub blocks it; do not attempt to bypass it.
 
 ## Branch protection (reference)
@@ -70,7 +72,7 @@ For AI agents (Claude, Codex):
 
 - Require a pull request before merging, with `0` required approvals (solo
   project; self-approval is not possible on personal repositories).
-- Require the `ci` status check to pass.
+- Require the `ci` and `release-label` status checks to pass.
 - Require branches to be up to date before merging.
 - Allow merge commits. Do not enable "Require linear history"; repository
   settings should allow **Create a merge commit** and disable squash/rebase
@@ -79,38 +81,45 @@ For AI agents (Claude, Codex):
 - Apply to administrators with no bypass. To recover from a stuck state, an admin
   temporarily relaxes protection rather than force-pushing routinely.
 
-## Releases (GitHub Actions)
+## Releases (per PR)
 
-Versioning follows SemVer. During `0.x`, new features bump the minor version.
+Versioning follows SemVer. During `0.x`, new features and breaking changes bump
+the minor version; `major` is reserved for 1.0. SemVer build metadata (`+build`)
+is not a release kind.
 
-Keep `CHANGELOG.md` current: in every PR that changes user-facing behavior, add
-entries under `## [Unreleased]`, following Keep a Changelog. The release
-workflows require a non-empty `## [Unreleased]` section and fail loudly without
-one.
+Every PR carries exactly one release label:
 
-Releases are driven by two GitHub Actions workflows; no local tagging is needed.
+| Label            | Use when                                        | Version and CHANGELOG in the PR        |
+| ---------------- | ----------------------------------------------- | -------------------------------------- |
+| `release: none`  | No user-facing change (docs, CI, refactor, ...) | Unchanged; `## [Unreleased]` unchanged |
+| `release: patch` | User-facing fix                                 | `just release-bump patch`              |
+| `release: minor` | New feature, or a breaking change during `0.x`  | `just release-bump minor`              |
+| `release: major` | Breaking change after 1.0                       | `just release-bump major`              |
 
-To cut release `vX.Y.Z`:
+For a releasing PR, add the user-facing entries under `## [Unreleased]`
+following Keep a Changelog, then run `just release-bump <kind>`. It sets
+`version` in every versioned manifest (`package.json` and
+`editors/vscode/package.json`, which the VSIX packaging contract keeps equal)
+through `scripts/set-release-version.ts`, and rolls `## [Unreleased]` into
+`## [X.Y.Z] - <date>` through `.github/scripts/roll-changelog.mjs`.
 
-1. On GitHub, run **Actions → Release Prepare** and choose the bump
-   (`patch` / `minor` / `major`). It bumps `version` in every versioned
-   manifest (`package.json` and `editors/vscode/package.json`) through
-   `scripts/set-release-version.ts`, rolls `CHANGELOG.md` (moves
-   `## [Unreleased]` into `## [X.Y.Z] - <date>`, leaves a fresh empty
-   `## [Unreleased]`, and refreshes the link references), pushes
-   `release/vX.Y.Z`, and opens the release PR. The VSIX packaging contract
-   rejects any drift between the two manifests, so they always move together.
-2. Wait for CI to pass on that PR.
-3. A human merges the PR with **Create a merge commit**. This merge is the
-   release approval gate.
-4. **Release Publish** then runs automatically on the merge: it re-checks CI for
-   the merge commit, builds the dist CLI with the platform scanner binaries,
-   publishes the `docbridge` package to npm
-   (`npm publish --provenance --access public`, authenticated by npm Trusted
-   Publishing via GitHub Actions OIDC — no long-lived npm token), then extracts
-   the matching `CHANGELOG.md` section and creates the
-   `vX.Y.Z` tag plus a GitHub Release (`gh release create`, no separate tag push
-   and no PAT).
+The required `release-label` check (`.github/workflows/release-label.yml`,
+`scripts/release-label.ts`) compares the PR head with the base branch tip. It
+fails when the label is missing or duplicated, when the versions are not the
+label's next version, or when the CHANGELOG is not rolled. It reruns when labels
+change; `just check-release-label '["release: patch"]'` runs it locally.
+
+If `main` gains another release before the PR merges, update the branch,
+restore `main`'s versions and CHANGELOG sections, and run
+`just release-bump <kind>` again.
+
+When a releasing PR merges, **Release Publish** re-checks CI for the merge
+commit, builds the dist CLI with the platform scanner binaries, publishes the
+`docbridge` package to npm (`npm publish --provenance --access public`,
+authenticated by npm Trusted Publishing via GitHub Actions OIDC — no long-lived
+npm token), then extracts the matching `CHANGELOG.md` section and creates the
+`vX.Y.Z` tag plus a GitHub Release. A version whose tag already exists is
+skipped. Merging a `release: none` PR publishes nothing.
 
 A `workflow_dispatch` fallback on **Release Publish** (input: version) exists for
 recovery if the automatic run does not fire. It uses the same workflow file
@@ -121,9 +130,8 @@ dispatch. Do not add a token-based fallback to the workflow.
 
 One-time repo setup:
 
-- Enable **Settings → Actions → General → Workflow permissions → Allow GitHub
-  Actions to create and approve pull requests** so Release Prepare can open
-  the PR.
+- Create the four `release:` labels, and make `release-label` a required
+  status check on `main`.
 - On the npm `docbridge` package, configure one Trusted Publisher:
   - Provider: GitHub Actions
   - Organization or user: `salan70`

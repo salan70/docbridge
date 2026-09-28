@@ -199,6 +199,29 @@ build:
     bun build src/cli/index.ts --outdir dist --target node
     chmod +x dist/index.js
 
+# Apply a release bump inside a pull request: set every versioned manifest and
+# roll CHANGELOG [Unreleased] into the new version. The `release: <kind>` label
+# on the pull request must name the same kind.
+release-bump KIND:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ KIND }}" in patch | minor | major) ;; *)
+        echo "Usage: just release-bump <patch|minor|major>" >&2
+        exit 1
+        ;;
+    esac
+    # Roll the CHANGELOG first: it fails on an empty [Unreleased] before any
+    # manifest is touched, so a failed bump leaves no partial change.
+    version="$(bun -e "import { nextVersion } from './scripts/set-release-version.ts'; console.log(nextVersion(require('./package.json').version, '{{ KIND }}'))")"
+    VERSION="$version" REPOSITORY=salan70/docbridge node .github/scripts/roll-changelog.mjs
+    bun run scripts/set-release-version.ts {{ KIND }} > /dev/null
+    echo "Bumped to ${version}"
+
+# Check the release label and the change against a base ref, as the required
+# `release-label` check does. Pass labels as a JSON array of names.
+check-release-label LABELS BASE="origin/main":
+    PR_LABELS='{{ LABELS }}' BASE_REF='{{ BASE }}' bun run scripts/release-label.ts
+
 stage-scanner-binaries *ARGS:
     bun run scripts/stage-scanner-binaries.ts {{ ARGS }}
 

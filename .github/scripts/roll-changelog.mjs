@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-// Rolls CHANGELOG.md for a release:
+// Rolls CHANGELOG.md for a release (run through `just release-bump`):
 //   - moves the `## [Unreleased]` entries under a new `## [X.Y.Z] - YYYY-MM-DD`
 //     heading, leaving a fresh empty `## [Unreleased]` section,
-//   - refreshes the link references at the bottom,
-//   - writes the released section to release-notes.md for the PR body.
+//   - refreshes the link references at the bottom.
 //
 // Required env: VERSION (X.Y.Z), REPOSITORY (owner/repo).
 // Fails loudly when `## [Unreleased]` is missing or has no entries, since that
@@ -31,7 +30,7 @@ const isLinkRef = (line) => /^\[[^\]]+\]:\s/.test(line);
 const unreleasedStart = lines.findIndex((l) => l.startsWith("## [Unreleased]"));
 if (unreleasedStart === -1) {
   throw new Error(
-    "CHANGELOG.md has no '## [Unreleased]' section. Add one with entries before preparing a release.",
+    "CHANGELOG.md has no '## [Unreleased]' section. Add one with entries before running `just release-bump`.",
   );
 }
 
@@ -50,7 +49,7 @@ const body = lines
   .trim();
 if (body === "") {
   throw new Error(
-    "'## [Unreleased]' has no entries. Document user-facing changes before preparing a release.",
+    "'## [Unreleased]' has no entries. Document user-facing changes before running `just release-bump`.",
   );
 }
 
@@ -88,7 +87,5 @@ if (!output.endsWith("\n")) {
   output += "\n";
 }
 writeFileSync(path, output);
-
-writeFileSync("release-notes.md", `${body}\n`);
 
 console.log(`Rolled CHANGELOG.md for v${version} (${today}).`);

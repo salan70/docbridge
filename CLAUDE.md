@@ -176,9 +176,9 @@ invoked directly with `/<skill-name>`.
   with `/pr-review`, or when asked to review a PR, inspect a PR for bugs, or
   post review findings.
 - `git-workflow` — branch naming, PR-based flow, merge commits, branch
-  protection, agent autonomy gates, and the semi-automated release procedure.
+  protection, agent autonomy gates, and per-PR release labels.
   Use it with `/git-workflow`, or when branching, committing, pushing, opening
-  or merging a PR, or cutting a release.
+  or merging a PR, or choosing its release label.
 - `review-response` — triage pull request review comments (from bots like Devin
   or human reviewers), act or justify per comment, then reply to and resolve
   every thread. Use it with `/review-response`, or when a PR has review feedback
@@ -240,7 +240,7 @@ Full rules and the release procedure live in the `git-workflow` skill
 - Before creating a branch, sync local `main`: run `git switch main`, then
   `git pull --ff-only`. Never branch from a stale `main`. Name branches per
   [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
-  (`<feat|fix|chore>/#<issue>-<kebab-desc>`, or `release/vX.Y.Z`).
+  (`<feat|fix|chore>/#<issue>-<kebab-desc>`).
 - After a PR merges, return to `main`, run `git pull --ff-only`, and delete the
   local branch before starting new work.
 - Merge with **Create a merge commit** only; PR boundaries stay visible in
@@ -250,9 +250,9 @@ Full rules and the release procedure live in the `git-workflow` skill
   `just test`, `just build`, and the native scanner and distribution checks in
   `.github/workflows/ci.yml`.
 - Agents may branch, commit, push, and open PRs autonomously. **Merging a PR
-  requires explicit human approval.** Release tagging and publishing are
-  automated by GitHub Actions when the release PR is merged, so the merge is the
-  release approval gate.
+  requires explicit human approval.** Merging a PR labeled `release: patch`,
+  `release: minor`, or `release: major` publishes that release through GitHub
+  Actions, so the merge is also the release approval gate.
 
 ### Commit messages
 

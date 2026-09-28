@@ -118,29 +118,18 @@ describe("release preparation", () => {
   });
 
   test("bumps the release version through this script", () => {
-    expect(releasePrepareWorkflow()).toContain("bun run scripts/set-release-version.ts");
-  });
-
-  test("stages every versioned manifest in the release commit", () => {
-    const staged = stagedReleasePaths(releasePrepareWorkflow());
-
-    for (const manifest of versionedManifestPaths) {
-      expect(staged).toContain(manifest);
-    }
+    expect(releaseBumpRecipe()).toContain("bun run scripts/set-release-version.ts");
   });
 });
 
-function releasePrepareWorkflow(): string {
-  return readFileSync(resolve(import.meta.dir, "../.github/workflows/release-prepare.yml"), "utf8");
-}
-
-/** The paths the release commit stages, taken from the workflow's `git add`. */
-function stagedReleasePaths(workflow: string): string[] {
-  const paths = /^\s*git add (.+)$/m.exec(workflow)?.[1];
-  if (paths === undefined) {
-    throw new Error("release-prepare.yml has no `git add` step");
+/** The body of the `release-bump` recipe in the justfile. */
+function releaseBumpRecipe(): string {
+  const justfile = readFileSync(resolve(import.meta.dir, "../justfile"), "utf8");
+  const recipe = /^release-bump .*:\n((?:[ \t]+.*\n|\n)+)/m.exec(justfile)?.[1];
+  if (recipe === undefined) {
+    throw new Error("justfile has no `release-bump` recipe");
   }
-  return paths.trim().split(/\s+/);
+  return recipe;
 }
 
 function runCli(args: string[]): { exitCode: number; stdout: string; stderr: string } {

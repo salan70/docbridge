@@ -9,7 +9,12 @@
 <!-- Write Closes #NN as plain text below. Do not wrap it in backticks or a code fence; GitHub will not auto-close the issue otherwise. -->
 
 - Closes #
-- Issue not required: <!-- typo, wording, formatting, broken link, automated dependency update, or release PR; explain -->
+- Issue not required: <!-- typo, wording, formatting, broken link, or automated dependency update; explain -->
+
+## Release
+
+<!-- Add exactly one label: release: none, release: patch, release: minor, or release: major. -->
+<!-- For patch, minor, or major, run just release-bump <kind> in this pull request; merging it publishes the release. -->
 
 ## Verification
 
