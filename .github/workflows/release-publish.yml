@@ -24,9 +24,18 @@ on:
         description: Version to publish (X.Y.Z), uses current main HEAD
         required: true
 
-# Serialize releases; never cancel a run that may be mid-publish.
+# Serialize releases; never cancel a run that may be mid-publish. Only runs
+# that can publish share the group: a newly queued run cancels the pending one
+# in its group, so a non-releasing merge must not join it or it could cancel a
+# pending release. Non-releasing runs get a unique group instead.
 concurrency:
-  group: release-publish
+  group: >-
+    ${{ (github.event_name == 'workflow_dispatch' ||
+         (github.event.pull_request.merged &&
+          (contains(github.event.pull_request.labels.*.name, 'release: patch') ||
+           contains(github.event.pull_request.labels.*.name, 'release: minor') ||
+           contains(github.event.pull_request.labels.*.name, 'release: major'))))
+        && 'release-publish' || format('release-publish-skip-{0}', github.run_id) }}
   cancel-in-progress: false
 
 permissions:
