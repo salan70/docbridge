@@ -142,10 +142,10 @@ describe("CLI command modules do not import the executable entrypoint", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the language server never depends on the CLI", () => {
+  test("the language server depends on neither the CLI nor setup", () => {
     const offenders = modulesUnder("src/lsp/").flatMap((relPath) =>
       [...transitiveImports(relPath)]
-        .filter((target) => target.startsWith("src/cli/"))
+        .filter((target) => target.startsWith("src/cli/") || target.startsWith("src/setup/"))
         .map((target) => `${relPath} -> ${target}`),
     );
     expect(offenders).toEqual([]);
