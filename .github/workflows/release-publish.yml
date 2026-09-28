@@ -111,11 +111,19 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
+      # `.swift-version` and `rust-toolchain.toml` are the only sources of the
+      # toolchain versions; the setup actions below take them from here.
+      - name: Read toolchain versions
+        id: toolchains
+        run: |
+          echo "swift=$(cat .swift-version)" >> "$GITHUB_OUTPUT"
+          echo "rust=$(sed -n 's/^channel = "\(.*\)"$/\1/p' packages/rust-scanner/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
       - name: Install Swift on Linux
         if: runner.os == 'Linux'
         uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
-          swift-version: "6.2"
+          swift-version: ${{ steps.toolchains.outputs.swift }}
 
       - name: Install Dart
         uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1 # v1.8.0
@@ -123,7 +131,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.83.0"
+          toolchain: ${{ steps.toolchains.outputs.rust }}
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile

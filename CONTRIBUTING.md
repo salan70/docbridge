@@ -10,8 +10,8 @@ Bun, Node.js, Dart, Rust, `just`, and every formatter and linter used by the sha
 quality gate. Install a flake-enabled Nix distribution and optionally
 [direnv](https://direnv.net/) before cloning the repository.
 
-Swift is intentionally not supplied by the Nix shell. Install Swift 6.2.1 on
-`PATH`; `just verify` checks Swift formatting for the whole repository, even
+Swift is intentionally not supplied by the Nix shell. Install the Swift version
+named in `.swift-version` on `PATH`; `just verify` checks Swift formatting for the whole repository, even
 when a change does not touch the Swift scanner.
 
 Without Nix, use `flake.nix` as the authoritative tool list and install all of
@@ -128,10 +128,7 @@ Run additional checks when the affected area requires them:
 | Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`     |
 | Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
 | Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`       |
-| TypeScript example    | `just check-example`                                      |
-| Swift example         | `just check-swift-example`                                |
-| Dart example          | `just check-dart-example`                                 |
-| Rust example          | `just check-rust-example`                                 |
+| Examples              | `just check-example <typescript\|swift\|dart\|rust>`      |
 | npm distribution      | `just verify-dist`                                        |
 | Editor client         | `just typecheck-extension` (also in `just verify`)        |
 | VS Code extension     | `just package-vsix`, `just verify-vsix`                   |

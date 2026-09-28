@@ -42,7 +42,7 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just test-dart-scanner` runs the Dart package tests for
   `packages/dart-scanner`. The Dart SDK is provided by the Nix dev shell.
 - `just test-rust-scanner` runs the Cargo test suite for
-  `packages/rust-scanner`. The Nix dev shell provides the Rust 1.83 toolchain
+  `packages/rust-scanner`. The Nix dev shell provides the Rust toolchain
   pinned by `packages/rust-scanner/rust-toolchain.toml`.
 - CI treats the scanner-native test suites as mandatory before the shared
   `just test` gate. Local changes to scanner code should run the matching
@@ -50,11 +50,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Executable examples
 
-- `just check-example` verifies the TypeScript example under
-  `examples/typescript`.
-- `just check-swift-example` verifies the Swift example under `examples/swift`.
-- `just check-dart-example` verifies the Dart example under `examples/dart`.
-- `just check-rust-example` verifies the Rust example under `examples/rust`.
+`just check-example <lang>` runs `docbridge check` against
+`examples/<lang>`, where `<lang>` is `typescript` (the default), `swift`,
+`dart`, or `rust`. Extra flags such as `--json` pass through.
 
 ## Repository self-audit
 

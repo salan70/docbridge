@@ -20,16 +20,15 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
+      - name: Read the Swift version
+        id: toolchains
+        run: echo "swift=$(cat .swift-version)" >> "$GITHUB_OUTPUT"
+
+      # Rust comes from the Nix shell, which reads rust-toolchain.toml.
       - name: Install Swift
         uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
-          swift-version: "6.2.1"
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.83.0"
-          components: rustfmt,clippy
+          swift-version: ${{ steps.toolchains.outputs.swift }}
 
       - name: Install dependencies
         run: |
@@ -66,16 +65,20 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
+      # `.swift-version` and `rust-toolchain.toml` are the only sources of the
+      # toolchain versions; the setup actions below take them from here.
+      - name: Read toolchain versions
+        id: toolchains
+        run: |
+          echo "swift=$(cat .swift-version)" >> "$GITHUB_OUTPUT"
+          echo "rust=$(sed -n 's/^channel = "\(.*\)"$/\1/p' packages/rust-scanner/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
       # nixpkgs only ships Swift 5.10 on Linux, which cannot build the scanner's
       # Swift 6 package, so the toolchain comes from setup-swift instead of nix.
       - name: Install Swift
         uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
         with:
-          # When bumping this, also update the swift<version> segment in the
-          # "Cache the Swift scanner build" key and restore-keys below. The
-          # cached .build/swiftpm artifacts are compiled by this toolchain, so a
-          # stale key would restore artifacts built by a different compiler.
-          swift-version: "6.2.1"
+          swift-version: ${{ steps.toolchains.outputs.swift }}
 
       - name: Install Dart
         uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1 # v1.8.0
@@ -85,7 +88,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.83.0"
+          toolchain: ${{ steps.toolchains.outputs.rust }}
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
@@ -93,7 +96,9 @@ jobs:
       # Cache the SwiftPM build directory and dependency clones so swift-syntax
       # (the dominant compile cost) is reused across runs. The cache key is
       # pinned to Package.resolved, which pins the swift-syntax revision, so the
-      # cache stays valid until the dependency is bumped. Debug artifacts only:
+      # cache stays valid until the dependency is bumped. The key also names the
+      # Swift version, because another compiler cannot reuse these artifacts.
+      # Debug artifacts only:
       # caching a release .build can corrupt incremental relinks
       # (swiftlang/swift-package-manager#8260), so the build below stays debug.
       - name: Cache the Swift scanner build
@@ -102,9 +107,9 @@ jobs:
           path: |
             packages/swift-scanner/.build
             ~/.cache/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-swift6.2.1-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift${{ steps.toolchains.outputs.swift }}-${{ hashFiles('packages/swift-scanner/Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift6.2.1-
+            swiftpm-${{ runner.os }}-swift${{ steps.toolchains.outputs.swift }}-
 
       # The Swift integration test spawns the bundled Swift scanner binary, so
       # build it (with the setup-swift toolchain, not nix) before the suite.
