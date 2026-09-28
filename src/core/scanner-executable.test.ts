@@ -74,7 +74,7 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
   // the packaged `dist/index.js`. The dist scanner binaries sit next to that
   // real file, so the dist root must follow the symlink to its target — Bun
   // resolves this on macOS but not on Linux, where the bug surfaced.
-  withProject({ "pkg/dist/index.js": "// cli\n" }, (root) => {
+  withProject({ "pkg/dist/index.js": "// cli\n", "pkg/templates/skills/.keep": "" }, (root) => {
     const realCli = join(root, "pkg/dist/index.js");
     const binDir = join(root, "node_modules/.bin");
     mkdirSync(binDir, { recursive: true });
@@ -87,8 +87,38 @@ test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
     // the temp path itself (e.g. macOS /var -> /private/var).
     const realRoot = realpathSync(root);
     expect(distRoot).toBe(join(realRoot, "pkg/dist"));
-    expect(sourceRoot).toBe(realRoot);
+    expect(sourceRoot).toBe(join(realRoot, "pkg"));
   });
+});
+
+test("scannerRootsFromModuleUrl finds the package root from a module nested below src/", () => {
+  withProject(
+    { "src/scan/code/worker/scanner-executable.ts": "", "templates/skills/.keep": "" },
+    (root) => {
+      const moduleFile = join(root, "src/scan/code/worker/scanner-executable.ts");
+
+      const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(pathToFileURL(moduleFile).href);
+
+      const realRoot = realpathSync(root);
+      expect(sourceRoot).toBe(realRoot);
+      expect(distRoot).toBe(join(realRoot, "dist"));
+    },
+  );
+});
+
+test("scannerRootsFromModuleUrl resolves the VSIX server bundle to its own package", () => {
+  withProject(
+    { "server/dist/index.js": "// cli\n", "server/templates/skills/.keep": "" },
+    (extensionRoot) => {
+      const bundle = join(extensionRoot, "server/dist/index.js");
+
+      const { distRoot, sourceRoot } = scannerRootsFromModuleUrl(pathToFileURL(bundle).href);
+
+      const realServer = join(realpathSync(extensionRoot), "server");
+      expect(sourceRoot).toBe(realServer);
+      expect(distRoot).toBe(join(realServer, "dist"));
+    },
+  );
 });
 
 // Consumers install DocBridge with an installer that drops the executable bit
