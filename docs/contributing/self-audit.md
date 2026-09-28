@@ -6,13 +6,6 @@ in-scope `undocumented_symbol` and `unlinked_doc_section` warning; this
 repository additionally keeps a classified baseline of the warnings it has
 reviewed.
 
-On the `main` tree that opened
-[#113](https://github.com/salan70/docbridge/issues/113), `bun run src/cli/index.ts check --audit --json`
-reported **163 `undocumented_symbol`**, **33 `unlinked_doc_section`**, and **0
-errors**. That capture is the pre-remediation inventory. The committed baseline
-is the remaining reviewed set after the high-value reciprocal links listed
-below.
-
 ## What must participate
 
 A relationship belongs in the graph when both sides describe the same contract:
@@ -33,13 +26,12 @@ type beside it.
 These in-scope endpoints are expected to appear in `check --audit` and in the
 baseline. They are not missing contracts:
 
-| Class                  | Meaning                                                                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `internal_helper`      | Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared type aliases that are not themselves a public contract. |
-| `test_support`         | Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`, `src/lsp/fixtures.ts`).                                        |
-| `sibling_export`       | Additional exports in a module whose primary contract is already linked.                                                          |
-| `structural_doc`       | Overviews, tutorials, catalogs, workflow prose, and headings whose parent is already bridged.                                     |
-| `actionable_follow_up` | Reviewed gap still intended for a later annotation. None are open.                                                                |
+| Class             | Meaning                                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `internal_helper` | Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared type aliases that are not themselves a public contract. |
+| `test_support`    | Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`, `src/lsp/fixtures.ts`).                                        |
+| `sibling_export`  | Additional exports in a module whose primary contract is already linked.                                                          |
+| `structural_doc`  | Overviews, tutorials, catalogs, workflow prose, and headings whose parent is already bridged.                                     |
 
 Zero audit warnings is not a goal. False or low-value links are worse than a
 reviewed gap.
@@ -68,30 +60,6 @@ and line numbers are not part of the identity.
 filter, or change CLI diagnostics. It is not part of `just verify` as a
 separate recipe; `bun test` already runs the comparison.
 
-## High-value links added with this policy
-
-These pairs were missing contracts, not intentional gaps:
-
-- `src/core/resolver.ts#check` ↔ `docs/specs/cli.md#check-command`
-- `src/lsp/transport.ts#encodeMessage` ↔ `docs/specs/lsp.md#transport`
-- `src/cli/errors.ts#formatCliError` ↔ `docs/specs/cli.md#error-guidance`
-- `docs/user/commands.md` command headings ↔ `check` / `related` / `context` /
-  `graph` (`run` remains on Command dispatch)
-- `docs/specs/diagnostics.md#unlinked-doc-sections` ↔ `resolveLinks`
-- `src/core/typescript.ts#scanTypeScript` ↔ `docs/specs/scanning.md#typescript-members`
-- `src/core/links.ts#parseLinkTarget` ↔ `docs/user/linking.md#target-grammar`
-- `src/core/context.ts#context` and `src/core/related.ts#related` ↔
-  `docs/user/automation.md#editing-workflow`
-- `src/core/glob.ts#collectFiles` ↔ `docs/user/configuration.md#excluded-files`
-- `src/core/types.ts#DocBridgeDiagnostic` ↔ `docs/specs/diagnostics.md#diagnostics`
-- `src/core/config.ts#DocBridgeConfig` ↔ `docs/specs/configuration.md#configuration`
-- `src/core/project-scan.ts#scanProject` ↔ `docs/specs/scanning.md#scanning`
-- `src/core/code-scanner.ts#CodeLanguageAdapter` ↔
-  `docs/specs/scanning.md#code-scanning`
-- `src/core/graph.ts#buildLinkGraph` ↔
-  `docs/specs/lsp.md#navigation-and-resolvable-one-way-links`
-- `src/lsp/server.ts#runLspServer` ↔ `docs/specs/lsp.md#cli`
-
 ## Native scanner specifications
 
 Swift, Dart, and Rust scanning headings stay unlinked. Their implementations live
@@ -100,5 +68,4 @@ TypeScript worker helper is the same adapter factory for every language, so
 pointing all three headings at it would be a false relationship. Expanding
 `include.code` to the native packages needs separate maintainer approval.
 
-Those three headings are classified `structural_doc`. The baseline class
-`actionable_follow_up` remains valid for a later deferred gap; none are open.
+Those three headings are classified `structural_doc`.

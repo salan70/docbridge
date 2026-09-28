@@ -12,7 +12,6 @@ export const BASELINE_CLASSES = [
   "test_support",
   "sibling_export",
   "structural_doc",
-  "actionable_follow_up",
 ] as const;
 
 export type AuditCode = (typeof AUDIT_CODES)[number];

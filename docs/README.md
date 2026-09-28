@@ -57,6 +57,7 @@ with the specification for the interface whose exact contract you need:
 - [Testing](contributing/testing.md)
 - [Commit messages](contributing/commits.md)
 - [Pull requests](contributing/pull-requests.md)
+- [Releasing](contributing/releasing.md)
 - [Self-audit baseline](contributing/self-audit.md)
 - [Dogfooding review, September 2026](reports/2026-09-dogfooding-review.md)
 

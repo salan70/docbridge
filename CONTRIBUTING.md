@@ -83,8 +83,6 @@ form and wait for acceptance before writing code.
 
 Follow the [Writing Guidelines](docs/contributing/writing.md). Each form field
 owns distinct information; link to an existing fact instead of paraphrasing it.
-Before publishing a body file, run `just prose-report issue <body-file>` and use
-its advisory warnings as editing prompts.
 
 ## Making a change
 
@@ -158,16 +156,12 @@ with `just install-editor-deps`.
 - Write pull request titles as `<gitmoji> <type>: <summary>` describing the
   whole PR. See [Pull requests](docs/contributing/pull-requests.md).
 - Keep unrelated changes in separate commits and pull requests.
-- Link non-trivial work to its accepted issue with a plain-text `Closes #123` in
-  the pull request body (not in backticks or a code fence; GitHub will not
-  auto-close otherwise). See
+- Link non-trivial work to its accepted issue as described in
   [Pull requests](docs/contributing/pull-requests.md#linking-issues). If an
   issue is not required, state the content-based exception in the pull request
   template instead.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
-- Run `just prose-report pull-request <body-file>` before publishing and review
-  its advisory length and repetition warnings.
 - For every linked counterpart reported for the pull request's changes, update
   it or explain in the pull request why no corresponding change is needed.
   `just related-gate` covers only uncommitted and untracked files; on a
@@ -185,6 +179,7 @@ with `just install-editor-deps`.
 - [Self-audit](docs/contributing/self-audit.md)
 - [Commit messages](docs/contributing/commits.md)
 - [Pull requests](docs/contributing/pull-requests.md)
+- [Releasing](docs/contributing/releasing.md)
 - [Specifications](docs/specs)
 - [AI agent integrations](docs/integrations)
 - [Project guidance for AI agents](AGENTS.md)
