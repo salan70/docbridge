@@ -3,29 +3,29 @@
 import PackageDescription
 
 let package = Package(
-  name: "SpecLinkSwiftScanner",
+  name: "DocBridgeSwiftScanner",
   platforms: [.macOS(.v13)],
   products: [
-    .executable(name: "docbridge-swift-scanner", targets: ["SpecLinkSwiftScannerCLI"])
+    .executable(name: "docbridge-swift-scanner", targets: ["DocBridgeSwiftScannerCLI"])
   ],
   dependencies: [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0")
   ],
   targets: [
     .target(
-      name: "SpecLinkSwiftScanner",
+      name: "DocBridgeSwiftScanner",
       dependencies: [
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax")
       ]
     ),
     .executableTarget(
-      name: "SpecLinkSwiftScannerCLI",
-      dependencies: ["SpecLinkSwiftScanner"]
+      name: "DocBridgeSwiftScannerCLI",
+      dependencies: ["DocBridgeSwiftScanner"]
     ),
     .testTarget(
-      name: "SpecLinkSwiftScannerTests",
-      dependencies: ["SpecLinkSwiftScanner"]
+      name: "DocBridgeSwiftScannerTests",
+      dependencies: ["DocBridgeSwiftScanner"]
     )
   ]
 )

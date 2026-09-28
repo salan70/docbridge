@@ -7,7 +7,7 @@ import 'package:analyzer/source/line_info.dart';
 
 import 'models.dart';
 
-/// Scans Dart source files for SpecLink `@doc` annotations using the Dart
+/// Scans Dart source files for DocBridge `@doc` annotations using the Dart
 /// `analyzer` AST.
 ///
 /// Dart has no method overloading, so member canonical IDs are type-qualified

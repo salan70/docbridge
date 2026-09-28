@@ -1,4 +1,4 @@
-/// Worker protocol data models for the SpecLink Dart scanner.
+/// Worker protocol data models for the DocBridge Dart scanner.
 ///
 /// JSON shapes mirror the Swift scanner so the TypeScript core can validate and
 /// consume both identically. Optional fields are omitted (not emitted as

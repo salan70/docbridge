@@ -186,7 +186,7 @@ private struct DocTarget {
 
 /// Walk the parsed syntax tree and emit one `Declaration` per supported
 /// declaration, plus an `unsupported` marker for `@doc`-annotated declarations
-/// that SpecLink does not canonicalize. Scope qualification, argument labels,
+/// that DocBridge does not canonicalize. Scope qualification, argument labels,
 /// and `@doc` extraction all come from the AST so multi-line signatures and
 /// braces inside comments or string literals cannot perturb the result.
 private func collectDeclarations(
@@ -465,7 +465,7 @@ private func argumentLabels(_ parameters: FunctionParameterListSyntax) -> String
 
 // MARK: - Type declaration abstraction
 
-/// Uniform view over the type-like declarations SpecLink scopes against.
+/// Uniform view over the type-like declarations DocBridge scopes against.
 private struct TypeDeclaration {
   let name: String
   let nameToken: TokenSyntax
@@ -591,7 +591,7 @@ func isValidLinkTarget(_ target: String, sourceFilePath: String) -> Bool {
 
 // MARK: - Position conversion
 
-/// Converts SwiftSyntax UTF-8 byte offsets into SpecLink's 1-based line numbers
+/// Converts SwiftSyntax UTF-8 byte offsets into DocBridge's 1-based line numbers
 /// and 1-based UTF-16 columns, matching the TypeScript scanner's convention.
 private struct PositionConverter {
   private let utf8: [UInt8]
