@@ -6,7 +6,7 @@ DocBridge は Bun のテストランナー(`bun test`、ラッパーは `just te
 ## テストの配置
 
 - テストは対象モジュールと同じディレクトリにコロケーションします。
-  `src/core/graph.ts` のテストは同階層の `src/core/graph.test.ts` です。
+  `src/link/graph.ts` のテストは同階層の `src/link/graph.test.ts` です。
 - トップレベルの `test/` ディレクトリは存在しません。新たに作らないで
   ください。
 - テストファイル名は `<module>.test.ts` とします。ランナーが自動検出する

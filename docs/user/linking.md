@@ -32,7 +32,7 @@ Use `docbridge check --audit` to find unlinked sections and undocumented public
 symbols. Audit diagnostics are candidates for judgment, not instructions to
 link every item.
 
-<!-- @code src/core/links.ts#parseLinkTarget -->
+<!-- @code src/model/link-target.ts#parseLinkTarget -->
 
 ## Target grammar
 
@@ -114,7 +114,7 @@ to include non-`pub` items. Trait definitions and implementations, macros,
 constants, statics, unions, and extern blocks are not endpoints. IDs use `::`
 qualification, such as `TypingEngine::advance`.
 
-<!-- @code src/core/markdown.ts#scanMarkdown -->
+<!-- @code src/scan/markdown/markdown.ts#scanMarkdown -->
 
 ## Documentation to code
 
@@ -144,7 +144,7 @@ numeric suffixes.
 Each direction is validated independently, so a resolving target can still
 report a missing backlink. Run `docbridge check` after every edit.
 
-<!-- @code src/core/link-manifest.ts#loadLinkManifest -->
+<!-- @code src/config/link-manifest.ts#loadLinkManifest -->
 
 ## Declare links in a manifest
 

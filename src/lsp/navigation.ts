@@ -1,6 +1,6 @@
-import { endpointRange } from "../core/endpoint";
-import { counterpartsOf } from "../core/graph";
-import type { Position, Range } from "../core/types";
+import { counterpartsOf } from "../link/graph";
+import { endpointRange } from "../model/endpoint";
+import type { Position, Range } from "../model/types";
 import { endpointAt } from "./index-lookup";
 import type { ProjectState } from "./project";
 

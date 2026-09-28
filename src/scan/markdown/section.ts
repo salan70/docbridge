@@ -1,0 +1,110 @@
+/**
+ * Markdown section extraction, shared by LSP hover and `docbridge context`.
+ *
+ * Mirrors the heading and fence detection rules in `src/scan/markdown/markdown.ts`: ATX
+ * headings allow up to three leading spaces and one to six `#`, and fenced code
+ * blocks (backtick or tilde) are treated opaquely so a `#` inside a fence never
+ * ends a section.
+ */
+
+import { fenceMarkerOf, headingLevel, isFenceClose, type FenceMarker } from "./markdown-syntax";
+
+/** Loose section length cap for hover surfaces, in characters. */
+export const MAX_SECTION_LENGTH = 2000;
+
+/** Continuation marker appended when a section is truncated by the length cap. */
+const TRUNCATION_MARKER = "\n\n…";
+
+/**
+ * Extract the Markdown section beginning at the 1-based `headingLine`. Returns
+ * the heading line plus its body, up to (but not including) the next heading at
+ * the same or higher level (a heading whose `#` count is `<=` the start
+ * heading's level). Deeper subsections are included. Fenced code blocks are
+ * scanned opaquely, so a `#` line inside a fence does not end the section.
+ * Trailing blank lines are trimmed.
+ *
+ * Best-effort handling for non-heading starts: if `headingLine` is out of range
+ * (`< 1` or past the last line) an empty string is returned. If the start line
+ * is in range but is not a heading, extraction proceeds from that line and ends
+ * at the first heading of any level, so the caller still gets the surrounding
+ * block of content.
+ */
+export function extractDocSection(content: string, headingLine: number): string {
+  const lines = content.split("\n");
+  const startIndex = headingLine - 1;
+
+  if (startIndex < 0 || startIndex >= lines.length) {
+    return "";
+  }
+
+  const startLine = lines[startIndex] ?? "";
+  const startLevel = headingLevel(startLine);
+
+  const collected: string[] = [startLine];
+
+  let inFence = false;
+  let fenceMarker: FenceMarker | null = null;
+
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+
+    if (inFence) {
+      collected.push(line);
+      if (isFenceClose(line, fenceMarker)) {
+        inFence = false;
+        fenceMarker = null;
+      }
+      continue;
+    }
+
+    const openingFence = fenceMarkerOf(line);
+    if (openingFence !== null) {
+      inFence = true;
+      fenceMarker = openingFence;
+      collected.push(line);
+      continue;
+    }
+
+    const level = headingLevel(line);
+    if (level !== null && terminatesSection(startLevel, level)) {
+      break;
+    }
+
+    collected.push(line);
+  }
+
+  return trimTrailingBlankLines(collected).join("\n");
+}
+
+/**
+ * Apply the loose length cap. If `text` exceeds `MAX_SECTION_LENGTH`, truncate
+ * to the cap and append a continuation marker; otherwise return it unchanged.
+ */
+export function capSectionLength(text: string): string {
+  if (text.length <= MAX_SECTION_LENGTH) {
+    return text;
+  }
+  return text.slice(0, MAX_SECTION_LENGTH) + TRUNCATION_MARKER;
+}
+
+/**
+ * Decide whether a heading at `level` ends a section started at `startLevel`.
+ *
+ * A same-or-higher heading (`level <= startLevel`) terminates. When the start
+ * line was not a heading (`startLevel === null`), any heading terminates.
+ */
+function terminatesSection(startLevel: number | null, level: number): boolean {
+  if (startLevel === null) {
+    return true;
+  }
+  return level <= startLevel;
+}
+
+/** Drop trailing blank (whitespace-only) lines from a collected section. */
+function trimTrailingBlankLines(lines: string[]): string[] {
+  let end = lines.length;
+  while (end > 0 && (lines[end - 1] ?? "").trim() === "") {
+    end -= 1;
+  }
+  return lines.slice(0, end);
+}

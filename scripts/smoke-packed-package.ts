@@ -15,7 +15,7 @@ import { basename, join, resolve } from "node:path";
 import {
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
-} from "../src/core/scanner-executable";
+} from "../src/scan/code/worker/scanner-executable";
 
 // The packaged CLI must work for both npm/Node and Bun consumers.
 const cliRuntimes = ["node", "bun"] as const;

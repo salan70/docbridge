@@ -1,7 +1,7 @@
-import { endpointRange } from "../core/endpoint";
-import { counterpartsOf, type GraphEndpoint } from "../core/graph";
-import { capSectionLength, extractDocSection } from "../core/section";
-import type { Position, Range } from "../core/types";
+import { counterpartsOf, type GraphEndpoint } from "../link/graph";
+import { endpointRange } from "../model/endpoint";
+import type { Position, Range } from "../model/types";
+import { capSectionLength, extractDocSection } from "../scan/markdown/section";
 import { endpointAt } from "./index-lookup";
 import type { ProjectState } from "./project";
 

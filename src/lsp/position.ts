@@ -1,4 +1,4 @@
-import type { Position, Range } from "../core/types";
+import type { Position, Range } from "../model/types";
 
 /** LSP position: 0-based line and UTF-16 `character`. */
 type LspPosition = {

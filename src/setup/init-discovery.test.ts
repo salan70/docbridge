@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 
-import { makeProject } from "../core/test-support";
+import { makeProject } from "../test-support";
 import {
   discoverAgentTarget,
   discoverCodeScope,

@@ -1,4 +1,4 @@
-<!-- @code src/core/config.ts#DocBridgeConfig -->
+<!-- @code src/config/config.ts#DocBridgeConfig -->
 
 # Configuration
 
@@ -45,7 +45,7 @@ Glob syntax supports only `*` and `**`.
 
 Invalid config files produce config diagnostics. If any config error exists, DocBridge does not scan project files.
 
-<!-- @code src/core/code-language.ts#CodeIncludeEntry -->
+<!-- @code src/config/code-language.ts#CodeIncludeEntry -->
 
 ## Code Languages
 
@@ -95,7 +95,7 @@ If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong
 to exactly one language.
 
-<!-- @code src/core/config.ts#loadConfig -->
+<!-- @code src/config/config.ts#loadConfig -->
 
 ## Loading Configuration
 

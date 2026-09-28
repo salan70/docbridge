@@ -1,4 +1,4 @@
-<!-- @code src/core/project-scan.ts#scanProject -->
+<!-- @code src/query/project-scan.ts#scanProject -->
 
 # Scanning
 
@@ -33,9 +33,9 @@ When a file has `file_read_error`, `code_parse_error`,
 `code_scanner_unavailable`, or `code_scanner_failed`, derived link diagnostics
 that depend on that file are suppressed.
 
-<!-- @code src/core/code-scanner.ts#CodeScanResult -->
-<!-- @code src/core/code-scanner.ts#CodeLanguageAdapter -->
-<!-- @code src/core/scanner-executable.ts#resolveScannerWorkerCommand -->
+<!-- @code src/model/scan-result.ts#CodeScanResult -->
+<!-- @code src/scan/code/adapter.ts#CodeLanguageAdapter -->
+<!-- @code src/scan/code/worker/scanner-executable.ts#resolveScannerWorkerCommand -->
 
 ## Code Scanning
 
@@ -118,14 +118,14 @@ filesystem itself refuses execution, which is what a `noexec` mount does;
 DocBridge emits `code_scanner_unavailable` naming the binary's directory and
 that cause.
 
-<!-- @code src/core/glob.ts#collectFiles -->
+<!-- @code src/shared/glob.ts#collectFiles -->
 
 ## File Collection
 
 File collection walks the project root, applies the ignore rules above, and
 returns the managed files for each include pattern.
 
-<!-- @code src/core/markdown.ts#scanMarkdown -->
+<!-- @code src/scan/markdown/markdown.ts#scanMarkdown -->
 
 ## Markdown Scanning
 
@@ -146,7 +146,7 @@ never becomes a link, yet still counts as an attempted link for
 heading is never annotated: a `@code` comment before one becomes
 `dangling_code_annotation`.
 
-<!-- @code src/core/typescript.ts#scanTypeScript -->
+<!-- @code src/scan/code/typescript.ts#scanTypeScript -->
 
 ## TypeScript Scanning
 
@@ -169,7 +169,7 @@ bodies, and supported variable initializers with arrow-function, function,
 class, or object bodies. A member without a body, such as a property or an
 interface signature, exposes its whole declaration.
 
-<!-- @code src/core/typescript.ts#scanTypeScript -->
+<!-- @code src/scan/code/typescript.ts#scanTypeScript -->
 
 ### TypeScript Members
 

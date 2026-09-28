@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildLinkGraph } from "../core/graph";
-import { scanMarkdown } from "../core/markdown";
-import { scanTypeScript } from "../core/typescript";
+import { buildLinkGraph } from "../link/graph";
+import { scanTypeScript } from "../scan/code/typescript";
+import { scanMarkdown } from "../scan/markdown/markdown";
 import { buildPositionIndex, endpointAt } from "./index-lookup";
 import { fromLspPosition, rangeContains, toLspPosition, toLspRange } from "./position";
 

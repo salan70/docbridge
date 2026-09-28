@@ -20,7 +20,7 @@ import {
   scannerPlatformKey,
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
-} from "../src/core/scanner-executable";
+} from "../src/scan/code/worker/scanner-executable";
 import { documentUri, startLspSession, type LspSession } from "./lsp-client";
 
 /**

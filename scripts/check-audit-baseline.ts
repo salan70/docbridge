@@ -2,7 +2,7 @@
 
 import { resolve } from "node:path";
 
-import { check } from "../src/core/resolver";
+import { check } from "../src/query/check";
 
 const repoRoot = resolve(import.meta.dir, "..");
 

@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { scanMarkdown } from "../core/markdown";
-import { resolvePackageRoot } from "../core/package-root";
+import { scanMarkdown } from "../scan/markdown/markdown";
+import { resolvePackageRoot } from "../shared/package-root";
 import { CliError, commandHelpGuidance } from "./errors";
 import type { CliIo } from "./io";
 

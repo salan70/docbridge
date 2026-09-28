@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
-import { collectFiles } from "./core/glob";
+import { collectFiles } from "./shared/glob";
 
 /**
  * Static module-boundary contract for `src/`.
@@ -74,23 +74,48 @@ function modulesUnder(directory: string): string[] {
   return productionModules().filter((relPath) => relPath.startsWith(directory));
 }
 
-describe("core keeps scanning and link resolution separate from setup", () => {
-  test("no core module depends on setup or the CLI", () => {
-    const offenders = modulesUnder("src/core/").flatMap((relPath) =>
-      [...transitiveImports(relPath)]
-        .filter((target) => target.startsWith("src/setup/") || target.startsWith("src/cli/"))
-        .map((target) => `${relPath} -> ${target}`),
-    );
-    expect(offenders).toEqual([]);
-  });
+/**
+ * The layers each directory may import directly, including itself. Entry
+ * points (`src/cli/`, `src/lsp/`) sit above every layer and are covered by the
+ * entrypoint rules below.
+ */
+const ALLOWED_LAYER_IMPORTS: Readonly<Record<string, readonly string[]>> = {
+  model: ["model"],
+  shared: ["model", "shared"],
+  config: ["model", "shared", "config"],
+  scan: ["model", "shared", "config", "scan"],
+  link: ["model", "shared", "link"],
+  query: ["model", "shared", "config", "scan", "link", "query"],
+  setup: ["model", "shared", "config", "setup"],
+};
 
-  test("no setup module depends on the CLI", () => {
-    const offenders = modulesUnder("src/setup/").flatMap((relPath) =>
-      [...transitiveImports(relPath)]
-        .filter((target) => target.startsWith("src/cli/"))
-        .map((target) => `${relPath} -> ${target}`),
-    );
-    expect(offenders).toEqual([]);
+function layerOf(relPath: string): string | undefined {
+  return relPath.split("/")[1];
+}
+
+describe("layers import only the layers below them", () => {
+  for (const [layer, allowed] of Object.entries(ALLOWED_LAYER_IMPORTS)) {
+    test(`src/${layer}/ imports only ${allowed.join(", ")}`, () => {
+      const offenders = modulesUnder(`src/${layer}/`).flatMap((relPath) =>
+        directImports(relPath)
+          .filter((target) => !allowed.includes(layerOf(target) ?? ""))
+          .map((target) => `${relPath} -> ${target}`),
+      );
+      expect(offenders).toEqual([]);
+    });
+  }
+
+  test("every production module outside the entrypoints belongs to a layer", () => {
+    const unassigned = productionModules().filter((relPath) => {
+      const layer = layerOf(relPath);
+      return (
+        !relPath.endsWith("test-support.ts") &&
+        layer !== "cli" &&
+        layer !== "lsp" &&
+        (layer === undefined || !(layer in ALLOWED_LAYER_IMPORTS))
+      );
+    });
+    expect(unassigned).toEqual([]);
   });
 
   test("setup owns initialization, skill installation, registry access, and update guidance", () => {
@@ -105,28 +130,6 @@ describe("core keeps scanning and link resolution separate from setup", () => {
       "src/setup/upgrade-plan.ts",
       "src/setup/version.ts",
     ]);
-  });
-});
-
-describe("language metadata stays free of adapters and worker execution", () => {
-  test("code-language reaches no adapter registration, parser, or worker module", () => {
-    const reached = transitiveImports("src/core/code-language.ts");
-    expect(
-      [...reached].filter((target) =>
-        [
-          "src/core/code-scan.ts",
-          "src/core/scanner-executable.ts",
-          "src/core/scanner-worker.ts",
-          "src/core/typescript.ts",
-        ].includes(target),
-      ),
-    ).toEqual([]);
-  });
-
-  test("config and repository discovery import language metadata without adapters", () => {
-    for (const entry of ["src/core/config.ts", "src/setup/init-discovery.ts"]) {
-      expect([...transitiveImports(entry)]).not.toContain("src/core/typescript.ts");
-    }
   });
 });
 

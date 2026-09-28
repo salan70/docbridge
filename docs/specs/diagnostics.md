@@ -1,4 +1,4 @@
-<!-- @code src/core/types.ts#DocBridgeDiagnostic -->
+<!-- @code src/model/types.ts#DocBridgeDiagnostic -->
 
 # Diagnostics
 
@@ -90,7 +90,7 @@ Exit code policy:
 - exit `1` when any error exists
 - exit `0` when diagnostics contain only warnings or no diagnostics
 
-<!-- @code src/core/resolver.ts#resolveLinks -->
+<!-- @code src/link/resolver.ts#resolveLinks -->
 
 ## Unlinked Doc Sections
 
@@ -139,7 +139,7 @@ diagnostics. See [LSP](./lsp.md) for the server's document model.
 The exit code policy above applies to `docbridge check` only; the Language Server
 reports through `publishDiagnostics` and does not exit per check.
 
-<!-- @code src/core/diagnostics.ts#sortDiagnostics -->
+<!-- @code src/model/diagnostics.ts#sortDiagnostics -->
 
 ## Sorting Diagnostics
 

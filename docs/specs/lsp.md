@@ -132,8 +132,8 @@ A position hits an element when it falls within that element's range:
 Positions on whitespace, parameters, or other parts of a declaration line do not
 trigger navigation.
 
-<!-- @code src/core/graph.ts#LinkGraph -->
-<!-- @code src/core/graph.ts#buildLinkGraph -->
+<!-- @code src/link/graph.ts#LinkGraph -->
+<!-- @code src/link/graph.ts#buildLinkGraph -->
 
 ## Navigation and resolvable one-way links
 

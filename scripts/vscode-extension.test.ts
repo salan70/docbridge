@@ -7,7 +7,7 @@ import {
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
   scannerPlatformKey,
-} from "../src/core/scanner-executable";
+} from "../src/scan/code/worker/scanner-executable";
 import type { LspSession } from "./lsp-client";
 import {
   assertPackagingInputs,

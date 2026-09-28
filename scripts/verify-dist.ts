@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import {
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
-} from "../src/core/scanner-executable";
+} from "../src/scan/code/worker/scanner-executable";
 
 const repoRoot = resolve(import.meta.dir, "..");
 

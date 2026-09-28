@@ -1,0 +1,96 @@
+import { expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { collectCodeFiles, type CodeInclude } from "../../config/code-language";
+import { check } from "../../query/check";
+import { readManagedFile } from "../../shared/glob";
+import { createScannerWorkerAdapter, scanCodeFiles } from "./dispatch";
+import type { ScannerWorkerProcessResult } from "./worker/scanner-worker";
+
+function withProject(files: Record<string, string>, run: (root: string) => void): void {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-lang-"));
+  try {
+    for (const [relPath, content] of Object.entries(files)) {
+      const abs = join(root, relPath);
+      mkdirSync(join(abs, ".."), { recursive: true });
+      writeFileSync(abs, content);
+    }
+    run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+test("scanCodeFiles reports scanner resolution diagnostics without starting a worker", () => {
+  withProject({ "lib/auth.dart": "class AuthService {}\n" }, (root) => {
+    const dartAdapter = createScannerWorkerAdapter("dart", () => ({
+      ok: false,
+      diagnostic: {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        language: "dart",
+        target: "dart",
+        message:
+          "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
+      },
+    }));
+    const include: CodeInclude = { dart: { patterns: ["lib/**/*.dart"] } };
+
+    const result = scanCodeFiles(
+      root,
+      collectCodeFiles(root, include),
+      include,
+      (relPath) => readManagedFile(root, relPath),
+      { adapters: { dart: dartAdapter } },
+    );
+
+    expect(result.diagnostics).toEqual([
+      {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        language: "dart",
+        target: "lib/auth.dart",
+        message:
+          "Dart scanner worker is unavailable for platform linux-arm64; supported platforms: darwin-arm64, linux-x64",
+      },
+    ]);
+    expect(result.codeFiles[0]?.language).toBe("dart");
+  });
+});
+
+test("check suppresses link diagnostics that depend on a failed worker scan", () => {
+  withProject(
+    {
+      "docbridge.config.json": JSON.stringify({
+        include: {
+          code: { swift: { patterns: ["Sources/**/*.swift"] } },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+      "Sources/Auth.swift": "public struct AuthService {}\n",
+      "docs/auth.md": "<!-- @code Sources/Auth.swift#AuthService -->\n## Auth Service\n",
+    },
+    (root) => {
+      const swiftAdapter = createScannerWorkerAdapter("swift", () => ["missing-swift-worker"], {
+        requestId: () => "req-swift-missing",
+        run: (): ScannerWorkerProcessResult => ({
+          ok: false,
+          error: new Error("ENOENT"),
+          stderr: "",
+        }),
+      });
+
+      const diagnostics = check({
+        projectRoot: root,
+        adapters: { swift: swiftAdapter },
+      }).diagnostics;
+
+      expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+        "code_scanner_unavailable",
+      ]);
+      expect(diagnostics[0]?.target).toBe("Sources/Auth.swift");
+    },
+  );
+});
