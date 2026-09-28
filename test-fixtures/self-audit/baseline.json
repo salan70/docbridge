@@ -393,11 +393,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/graph.ts#endpointObject",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/core/graph.ts#GraphEndpoint",
       "class": "sibling_export"
     },
@@ -824,16 +819,6 @@
     {
       "code": "undocumented_symbol",
       "target": "src/setup/init-discovery.ts#RepositoryDiscovery",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#resolveAgentTargetForInit",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#resolveAgentTargetForInitWithAgent",
       "class": "sibling_export"
     },
     {

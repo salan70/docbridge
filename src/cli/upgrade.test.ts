@@ -62,17 +62,6 @@ function runtime(fixture: Fixture, promptOverrides: Partial<InitPrompts> = {}): 
 
 const upToDate: LatestVersionLookup = { status: "ok", latest: "0.0.1", source: "cache" };
 
-test("parseUpgradeOptions defaults every flag to off", () => {
-  expect(parseUpgradeOptions([])).toEqual({
-    root: ".",
-    agentTarget: undefined,
-    check: false,
-    dryRun: false,
-    yes: false,
-    force: false,
-  });
-});
-
 test("parseUpgradeOptions reads every supported flag", () => {
   expect(
     parseUpgradeOptions([

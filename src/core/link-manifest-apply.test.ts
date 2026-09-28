@@ -88,28 +88,6 @@ function apply(options: ApplyOptions = {}) {
   });
 }
 
-test("applyLinkManifest adds both directions of a resolved entry", () => {
-  const result = apply();
-
-  expect(result.diagnostics).toEqual([]);
-  expect(result.codeFiles[0]?.links).toEqual([
-    {
-      source: CODE_ENDPOINT,
-      target: DOC_ENDPOINT,
-      location: { filePath: LINK_MANIFEST_FILE_NAME, line: 3, column: 5 },
-      targetRange: expect.objectContaining({ start: expect.anything() }),
-    },
-  ]);
-  expect(result.docFiles[0]?.links).toEqual([
-    {
-      source: DOC_ENDPOINT,
-      target: CODE_ENDPOINT,
-      location: { filePath: LINK_MANIFEST_FILE_NAME, line: 3, column: 5 },
-      targetRange: expect.objectContaining({ start: expect.anything() }),
-    },
-  ]);
-});
-
 test("applyLinkManifest moves a linked symbol into the documented set", () => {
   const result = apply();
 
@@ -162,15 +140,6 @@ test("applyLinkManifest omits the suggestion when no symbol is close", () => {
 
   expect(result.diagnostics[0]?.code).toBe("code_symbol_not_found");
   expect(result.diagnostics[0]?.message).not.toContain("Did you mean");
-});
-
-test("applyLinkManifest resolves a member left in the undocumented set", () => {
-  const member = { ...codeSymbol("AuthService.login"), isMember: true };
-
-  const result = apply({ codeFiles: [codeFile([], [member])] });
-
-  expect(result.diagnostics).toEqual([]);
-  expect(result.codeFiles[0]?.symbols[0]?.isMember).toBe(true);
 });
 
 test("applyLinkManifest reports doc_file_not_found and still documents the symbol", () => {

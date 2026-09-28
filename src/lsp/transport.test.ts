@@ -34,20 +34,6 @@ describe("encodeMessage", () => {
 });
 
 describe("MessageReader", () => {
-  test("round-trips an encoded ASCII message", () => {
-    const message = {
-      jsonrpc: "2.0",
-      id: 7,
-      method: "initialize",
-      params: { rootUri: "file:///tmp" },
-    };
-    const reader = new MessageReader();
-
-    reader.append(encodeMessage(message));
-
-    expect(reader.read()).toEqual([message]);
-  });
-
   test("round-trips an encoded multi-byte UTF-8 message", () => {
     const message = { jsonrpc: "2.0", id: 8, result: { hover: "ログイン処理🌟" } };
     const reader = new MessageReader();

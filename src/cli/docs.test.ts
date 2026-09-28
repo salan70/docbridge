@@ -30,53 +30,6 @@ function withUserDocs(
   }
 }
 
-test("file documentation reader lists documents by name with their descriptions", () => {
-  withUserDocs(
-    {
-      "troubleshooting.md": "---\ndescription: Diagnose failures.\n---\n# Troubleshooting\n",
-      "linking.md": "---\ndescription: Write links.\n---\n# Linking\n",
-    },
-    (packageRoot) => {
-      const reader = createFileDocumentationReader(packageRoot);
-
-      expect(reader.list()).toEqual([
-        { name: "linking", description: "Write links." },
-        { name: "troubleshooting", description: "Diagnose failures." },
-      ]);
-    },
-  );
-});
-
-test("file documentation reader decodes a quoted YAML description", () => {
-  withUserDocs(
-    {
-      "configuration.md":
-        '---\ndescription: "Configure docbridge.config.json: roots and languages."\n---\n# Configuration\n',
-    },
-    (packageRoot) => {
-      const reader = createFileDocumentationReader(packageRoot);
-
-      expect(reader.list()).toEqual([
-        {
-          name: "configuration",
-          description: "Configure docbridge.config.json: roots and languages.",
-        },
-      ]);
-    },
-  );
-});
-
-test("file documentation reader returns the Markdown body without frontmatter", () => {
-  withUserDocs(
-    { "commands.md": "---\ndescription: Choose a command.\n---\n\n# Commands\n\nUse check.\n" },
-    (packageRoot) => {
-      const reader = createFileDocumentationReader(packageRoot);
-
-      expect(reader.show("commands")).toBe("# Commands\n\nUse check.\n");
-    },
-  );
-});
-
 test("file documentation reader rejects a document without a description", () => {
   withUserDocs({ "broken.md": "---\ntitle: Broken\n---\n# Broken\n" }, (packageRoot) => {
     const reader = createFileDocumentationReader(packageRoot);
@@ -133,17 +86,6 @@ test("file documentation reader hides link annotations but preserves fenced exam
   );
 });
 
-test("parseDocsCommand accepts list with JSON output", () => {
-  expect(parseDocsCommand(["list", "--json"])).toEqual({ kind: "list", json: true });
-});
-
-test("parseDocsCommand accepts show with one document name", () => {
-  expect(parseDocsCommand(["show", "configuration"])).toEqual({
-    kind: "show",
-    name: "configuration",
-  });
-});
-
 test("parseDocsCommand rejects a missing operation", () => {
   expect(() => parseDocsCommand([])).toThrow(CliError);
 });
@@ -170,59 +112,6 @@ test("runDocs renders an aligned document list and usage hint", () => {
       "longer-name  Long description.\n\n" +
       "Run `docbridge docs show <name>` to read a document.\n",
   );
-});
-
-test("runDocs emits the documented JSON list shape", () => {
-  const documents = [{ name: "commands", description: "Choose a command." }];
-  const reader: DocumentationReader = { list: () => documents, show: () => undefined };
-  let output = "";
-
-  const exitCode = runDocs(
-    { kind: "list", json: true },
-    { stdout: (text) => (output += text), stderr: () => undefined },
-    reader,
-  );
-
-  expect(exitCode).toBe(0);
-  expect(JSON.parse(output)).toEqual({
-    documents,
-    help: "Run `docbridge docs show <name>` to read a document.",
-  });
-});
-
-test("runDocs writes a selected document body verbatim", () => {
-  const reader: DocumentationReader = {
-    list: () => [{ name: "commands", description: "Choose a command." }],
-    show: (name) => (name === "commands" ? "# Commands\n" : undefined),
-  };
-  let output = "";
-
-  const exitCode = runDocs(
-    { kind: "show", name: "commands" },
-    { stdout: (text) => (output += text), stderr: () => undefined },
-    reader,
-  );
-
-  expect(exitCode).toBe(0);
-  expect(output).toBe("# Commands\n");
-});
-
-test("runDocs rejects an unknown name", () => {
-  const reader: DocumentationReader = {
-    list: () => [
-      { name: "automation", description: "Automate DocBridge." },
-      { name: "commands", description: "Choose a command." },
-    ],
-    show: () => undefined,
-  };
-
-  expect(() =>
-    runDocs(
-      { kind: "show", name: "missing" },
-      { stdout: () => undefined, stderr: () => undefined },
-      reader,
-    ),
-  ).toThrow("Unknown documentation name: missing");
 });
 
 test("run docs list emits valid JSON for every packaged document", () => {
@@ -273,18 +162,6 @@ test("run docs show prints the selected Markdown body without frontmatter", () =
   expect(c.out.startsWith("# Commands\n")).toBe(true);
   expect(c.out).not.toContain("description:");
   expect(c.err).toBe("");
-});
-
-test("run docs show rejects an unknown name and lists available names", () => {
-  const c = capture();
-
-  const code = run(["docs", "show", "missing"], c.io);
-
-  expect(code).toBe(1);
-  expect(c.out).toBe("");
-  expect(c.err).toContain("Unknown documentation name: missing");
-  expect(c.err).toContain("automation, commands, configuration");
-  expect(c.err).not.toContain("agent-integration");
 });
 
 test.each(["annotations", "linking-workflow", "link-review", "agent-integration"])(

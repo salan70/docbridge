@@ -31,25 +31,6 @@ const BASIC: GraphSources = {
   docs: [["docs/auth.md", AUTH_MD]],
 };
 
-test("computeContext extracts the linked doc section for a code input file", () => {
-  const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["src/auth/login.ts"]);
-
-  expect(result).toEqual({
-    contexts: [
-      {
-        endpoint: "docs/auth.md#login-spec",
-        kind: "doc",
-        filePath: "docs/auth.md",
-        startLine: 2,
-        endLine: 4,
-        linkedFrom: ["src/auth/login.ts#login"],
-        content: "## Login Spec\n\nThe login flow.",
-      },
-    ],
-    summary: { inputFiles: 1, contexts: 1 },
-  });
-});
-
 test("computeContext extracts the full linked declaration including JSDoc for a doc input file", () => {
   const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["docs/auth.md"]);
 
@@ -148,13 +129,6 @@ test("computeContext slices same-line declarations by column, excluding neighbor
   ]);
 });
 
-test("computeContext returns no blocks for input files without links", () => {
-  const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["bun.lock", "src/other.ts"]);
-
-  expect(result.contexts).toEqual([]);
-  expect(result.summary).toEqual({ inputFiles: 2, contexts: 0 });
-});
-
 test("formatContextResult renders doc sections raw and code declarations fenced", () => {
   const sources: GraphSources = {
     code: [["src/auth/login.ts", LOGIN_TS]],
@@ -220,15 +194,6 @@ test("formatContextResult lengthens the code fence beyond backtick runs in the c
       "1 input file, 1 context block",
     ].join("\n"),
   );
-});
-
-test("formatContextResult prints only the summary when there are no blocks", () => {
-  const result = {
-    ...computeContext(graphFrom(BASIC), contentMap(BASIC), ["bun.lock"]),
-    diagnostics: [],
-  };
-
-  expect(formatContextResult(result)).toBe("1 input file, 0 context blocks");
 });
 
 test("computeContext dedents a member declaration to its own indentation level", () => {

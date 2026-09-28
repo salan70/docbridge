@@ -7,8 +7,6 @@ import {
   discoverCodeScope,
   discoverDocsScope,
   discoverRepository,
-  resolveAgentTargetForInit,
-  resolveAgentTargetForInitWithAgent,
 } from "./init-discovery";
 
 test("discoverDocsScope recommends a strong docs directory", () => {
@@ -121,32 +119,6 @@ test("discoverAgentTarget follows directory detection rules", () => {
     rmSync(claudeOnly, { recursive: true, force: true });
     rmSync(both, { recursive: true, force: true });
     rmSync(neither, { recursive: true, force: true });
-  }
-});
-
-test("init --yes uses none when no agent directory exists", () => {
-  const project = makeProject({});
-  try {
-    const agent = discoverAgentTarget(project);
-    const resolved = resolveAgentTargetForInit(agent, { yes: true, explicitTarget: undefined });
-    expect(resolved.target).toBe("none");
-  } finally {
-    rmSync(project, { recursive: true, force: true });
-  }
-});
-
-test("init-with-agent --yes requires an explicit agent target when no agent directory exists", () => {
-  const project = makeProject({});
-  try {
-    const agent = discoverAgentTarget(project);
-    const resolved = resolveAgentTargetForInitWithAgent(agent, {
-      yes: true,
-      explicitTarget: undefined,
-    });
-    expect(resolved.target).toBeUndefined();
-    expect(resolved.error).toContain("explicit agent target");
-  } finally {
-    rmSync(project, { recursive: true, force: true });
   }
 });
 

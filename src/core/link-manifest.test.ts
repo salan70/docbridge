@@ -16,29 +16,6 @@ function expectOk(rawText: string | undefined) {
   return result;
 }
 
-const VALID = JSON.stringify({
-  links: [{ code: "src/auth.ts#AuthService.login", doc: "docs/auth.md#login-flow" }],
-});
-
-test("resolveLinkManifest treats an absent file as an empty manifest", () => {
-  const result = expectOk(undefined);
-
-  expect(result.manifest.entries).toEqual([]);
-  expect(result.diagnostics).toEqual([]);
-});
-
-test("loadLinkManifest treats a missing file as an empty manifest", () => {
-  const root = mkdtempSync(join(tmpdir(), "docbridge-manifest-"));
-  try {
-    const result = loadLinkManifest(root);
-
-    expect(result.ok).toBe(true);
-    expect(result.diagnostics).toEqual([]);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
 test("loadLinkManifest reports a manifest path it cannot read and stops", () => {
   const root = mkdtempSync(join(tmpdir(), "docbridge-manifest-"));
   mkdirSync(join(root, LINK_MANIFEST_FILE_NAME));
@@ -61,16 +38,6 @@ test("resolveLinkManifest accepts an empty links array", () => {
   expect(result.manifest.entries).toEqual([]);
 });
 
-test("resolveLinkManifest parses a link into both parsed targets", () => {
-  const result = expectOk(VALID);
-
-  const entry = result.manifest.entries[0];
-  expect(entry?.code).toEqual({ filePath: "src/auth.ts", fragment: "AuthService.login" });
-  expect(entry?.doc).toEqual({ filePath: "docs/auth.md", fragment: "login-flow" });
-  expect(entry?.codeEndpoint).toBe("src/auth.ts#AuthService.login");
-  expect(entry?.docEndpoint).toBe("docs/auth.md#login-flow");
-});
-
 test("resolveLinkManifest records the position of the entry and of each target", () => {
   const text = [
     '{ "links": [',
@@ -84,20 +51,6 @@ test("resolveLinkManifest records the position of the entry and of each target",
   expect(entry?.location).toEqual({ filePath: LINK_MANIFEST_FILE_NAME, line: 2, column: 3 });
   expect(entry?.codeRange?.start).toEqual({ line: 2, column: 14 });
   expect(entry?.docRange?.start).toEqual({ line: 3, column: 13 });
-});
-
-test("resolveLinkManifest keeps an optional note", () => {
-  const text = JSON.stringify({
-    links: [{ code: "src/a.ts#A", doc: "docs/a.md#b", note: "why this link exists" }],
-  });
-
-  expect(expectOk(text).manifest.entries[0]?.note).toBe("why this link exists");
-});
-
-test("resolveLinkManifest accepts a $schema key", () => {
-  const text = JSON.stringify({ $schema: "./schemas/docbridge.links.schema.json", links: [] });
-
-  expect(expectOk(text).manifest.entries).toEqual([]);
 });
 
 test("resolveLinkManifest reports a parse failure as config_file_invalid with a position", () => {

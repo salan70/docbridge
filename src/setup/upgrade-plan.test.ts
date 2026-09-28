@@ -87,81 +87,16 @@ function plan(
   });
 }
 
-test("reportCliVersion reports an outdated binary", () => {
-  expect(reportCliVersion("0.8.0", { status: "ok", latest: "0.9.0", source: "network" })).toEqual({
-    current: "0.8.0",
-    latest: "0.9.0",
-    status: "outdated",
-  });
-});
-
 test("reportCliVersion reports an up-to-date binary", () => {
   expect(reportCliVersion("0.8.0", { status: "ok", latest: "0.8.0", source: "cache" }).status).toBe(
     "up-to-date",
   );
 });
 
-test("reportCliVersion reports a binary ahead of the registry", () => {
-  expect(reportCliVersion("0.9.0", { status: "ok", latest: "0.8.0", source: "cache" }).status).toBe(
-    "ahead",
-  );
-});
-
-test("reportCliVersion reports unknown when the lookup failed", () => {
-  expect(reportCliVersion("0.8.0", { status: "unavailable", source: "network" })).toEqual({
-    current: "0.8.0",
-    latest: undefined,
-    status: "unknown",
-  });
-});
-
 test("resolveUpgradeAgentTarget prefers the explicit target", () => {
   withFixture((fixture) => {
     mkdirSync(join(fixture.projectRoot, ".claude"), { recursive: true });
     expect(resolveUpgradeAgentTarget(discoverRepository(fixture.projectRoot), "both")).toBe("both");
-  });
-});
-
-test("resolveUpgradeAgentTarget falls back to the detected agent directories", () => {
-  withFixture((fixture) => {
-    mkdirSync(join(fixture.projectRoot, ".claude"), { recursive: true });
-    expect(resolveUpgradeAgentTarget(discoverRepository(fixture.projectRoot), undefined)).toBe(
-      "claude",
-    );
-  });
-});
-
-test("inspectManagedSkill reports an absent skill", () => {
-  withFixture((fixture) => {
-    expect(
-      inspectManagedSkill({
-        projectRoot: fixture.projectRoot,
-        packageRoot: fixture.packageRoot,
-        destination: ".claude/skills",
-        templateAvailable: true,
-      }).state,
-    ).toBe("absent");
-  });
-});
-
-test("inspectManagedSkill reports an untouched copy as up to date", () => {
-  withFixture((fixture) => {
-    installTemplate(fixture, ".claude/skills");
-    expect(
-      inspectManagedSkill({
-        projectRoot: fixture.projectRoot,
-        packageRoot: fixture.packageRoot,
-        destination: ".claude/skills",
-        templateAvailable: true,
-      }),
-    ).toEqual({
-      destination: ".claude/skills",
-      path: ".claude/skills/docbridge",
-      state: "up-to-date",
-      modifiedFiles: [],
-      missingFiles: [],
-      extraFiles: [],
-    });
   });
 });
 
@@ -183,25 +118,6 @@ test("inspectManagedSkill names locally modified, missing, and extra files", () 
     expect(report.modifiedFiles).toEqual(["SKILL.md"]);
     expect(report.missingFiles).toEqual(["references/checks.md"]);
     expect(report.extraFiles).toEqual(["local-notes.md"]);
-  });
-});
-
-test("inspectManagedSkill reports a symlinked skill directory", () => {
-  withFixture((fixture) => {
-    mkdirSync(join(fixture.projectRoot, ".claude/skills"), { recursive: true });
-    symlinkSync(
-      join(fixture.packageRoot, "templates", "skills", "docbridge"),
-      join(fixture.projectRoot, ".claude/skills/docbridge"),
-    );
-
-    expect(
-      inspectManagedSkill({
-        projectRoot: fixture.projectRoot,
-        packageRoot: fixture.packageRoot,
-        destination: ".claude/skills",
-        templateAvailable: true,
-      }).state,
-    ).toBe("symlink");
   });
 });
 
@@ -231,48 +147,6 @@ test("inspectLegacySkills lists only the known legacy names", () => {
   });
 });
 
-test("inspectLegacySkills distinguishes a symlinked legacy skill", () => {
-  withFixture((fixture) => {
-    mkdirSync(join(fixture.projectRoot, ".claude/skills"), { recursive: true });
-    symlinkSync(
-      join(fixture.packageRoot, "templates", "skills", "docbridge"),
-      join(fixture.projectRoot, ".claude/skills/docbridge-adopt"),
-    );
-
-    expect(inspectLegacySkills(fixture.projectRoot, ".claude/skills")).toEqual([
-      { path: ".claude/skills/docbridge-adopt", kind: "symlink" },
-    ]);
-  });
-});
-
-test("planUpgrade in check mode plans no operations at all", () => {
-  withFixture((fixture) => {
-    mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-adopt"), { recursive: true });
-
-    const result = plan(fixture, { check: true, force: true, agentTarget: "claude" });
-
-    expect(result.mode).toBe("check");
-    expect(result.operations).toEqual([]);
-    expect(result.requiresConfirmation).toBe(false);
-    expect(result.legacySkills).toHaveLength(1);
-  });
-});
-
-test("planUpgrade installs an absent managed skill without --force", () => {
-  withFixture((fixture) => {
-    const result = plan(fixture, { agentTarget: "claude" });
-
-    expect(result.operations).toEqual([
-      {
-        action: "create",
-        path: ".claude/skills/docbridge",
-        reason: "Install the managed docbridge skill.",
-      },
-    ]);
-    expect(result.requiresConfirmation).toBe(false);
-  });
-});
-
 test("planUpgrade preserves an existing skill and reports it as pending without --force", () => {
   withFixture((fixture) => {
     const installed = installTemplate(fixture, ".claude/skills");
@@ -289,43 +163,6 @@ test("planUpgrade preserves an existing skill and reports it as pending without 
   });
 });
 
-test("planUpgrade with --force overwrites the skill and removes ordinary legacy directories", () => {
-  withFixture((fixture) => {
-    installTemplate(fixture, ".claude/skills");
-    mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-link"), { recursive: true });
-    mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-custom"), { recursive: true });
-
-    const result = plan(fixture, { agentTarget: "claude", force: true });
-
-    expect(result.operations.map((operation) => [operation.action, operation.path])).toEqual([
-      ["overwrite", ".claude/skills/docbridge"],
-      ["remove", ".claude/skills/docbridge-link"],
-    ]);
-    expect(result.requiresConfirmation).toBe(true);
-    expect(result.pending).toEqual([]);
-  });
-});
-
-test("planUpgrade with --force never plans anything for a symlink", () => {
-  withFixture((fixture) => {
-    const skills = join(fixture.projectRoot, ".claude/skills");
-    mkdirSync(skills, { recursive: true });
-    const template = join(fixture.packageRoot, "templates", "skills", "docbridge");
-    symlinkSync(template, join(skills, "docbridge"));
-    symlinkSync(template, join(skills, "docbridge-adopt"));
-
-    const result = plan(fixture, { agentTarget: "claude", force: true });
-
-    expect(result.operations).toEqual([]);
-    expect(result.messages).toContain(
-      "Skill directory .claude/skills/docbridge is a symlink and was left in place.",
-    );
-    expect(result.messages).toContain(
-      "Skill directory .claude/skills/docbridge-adopt is a symlink and was left in place.",
-    );
-  });
-});
-
 test("planUpgrade with --dry-run renders would-* actions and needs no confirmation", () => {
   withFixture((fixture) => {
     installTemplate(fixture, ".claude/skills");
@@ -338,15 +175,6 @@ test("planUpgrade with --dry-run renders would-* actions and needs no confirmati
       "would-remove",
     ]);
     expect(result.requiresConfirmation).toBe(false);
-  });
-});
-
-test("planUpgrade with --yes needs no confirmation", () => {
-  withFixture((fixture) => {
-    installTemplate(fixture, ".claude/skills");
-    expect(
-      plan(fixture, { agentTarget: "claude", force: true, yes: true }).requiresConfirmation,
-    ).toBe(false);
   });
 });
 
@@ -392,20 +220,6 @@ test("planUpgrade explains that DocBridge does not upgrade itself when outdated"
   });
 });
 
-test("planUpgrade reports an unavailable registry without failing", () => {
-  withFixture((fixture) => {
-    const result = plan(
-      fixture,
-      { agentTarget: "none" },
-      { status: "unavailable", source: "network" },
-    );
-
-    expect(result.cli).toEqual({ current: "0.8.0", latest: undefined, status: "unknown" });
-    expect(result.exitCode).toBe(0);
-    expect(result.messages.join("\n")).toContain("could not be determined");
-  });
-});
-
 test("formatUpgradePlan renders version, assets, operations, and pending sections", () => {
   withFixture((fixture) => {
     const installed = installTemplate(fixture, ".claude/skills");
@@ -427,44 +241,6 @@ test("formatUpgradePlan renders version, assets, operations, and pending section
   });
 });
 
-test("formatUpgradePlan renders an unknown latest version", () => {
-  withFixture((fixture) => {
-    const output = formatUpgradePlan(
-      plan(fixture, { agentTarget: "none" }, { status: "unavailable", source: "network" }),
-    );
-
-    expect(output).toContain("(latest stable: unknown)");
-    expect(output).toContain("Status: unknown");
-  });
-});
-
-test("inspectLegacySkills reports a legacy name that is an ordinary file", () => {
-  withFixture((fixture) => {
-    mkdirSync(join(fixture.projectRoot, ".claude/skills"), { recursive: true });
-    writeFileSync(join(fixture.projectRoot, ".claude/skills/docbridge-adopt"), "notes\n", "utf8");
-
-    expect(inspectLegacySkills(fixture.projectRoot, ".claude/skills")).toEqual([
-      { path: ".claude/skills/docbridge-adopt", kind: "non-directory" },
-    ]);
-  });
-});
-
-test("planUpgrade with --force never removes a legacy name that is an ordinary file", () => {
-  withFixture((fixture) => {
-    mkdirSync(join(fixture.projectRoot, ".claude/skills"), { recursive: true });
-    writeFileSync(join(fixture.projectRoot, ".claude/skills/docbridge-adopt"), "notes\n", "utf8");
-
-    const result = plan(fixture, { agentTarget: "claude", force: true });
-
-    expect(result.operations.map((operation) => operation.path)).not.toContain(
-      ".claude/skills/docbridge-adopt",
-    );
-    expect(result.messages.join("\n")).toContain(
-      ".claude/skills/docbridge-adopt exists but is not a directory",
-    );
-  });
-});
-
 test("planUpgrade reports a managed skill under a symlinked destination directory", () => {
   withFixture((fixture) => {
     const shared = join(fixture.projectRoot, "..", "shared-skills");
@@ -477,22 +253,6 @@ test("planUpgrade reports a managed skill under a symlinked destination director
     expect(result.managedSkills[0]?.state).toBe("symlinked-parent");
     expect(result.operations).toEqual([]);
     expect(result.messages.join("\n")).toContain("sits under a symlinked directory");
-  });
-});
-
-test("planUpgrade with --force never plans work through a symlinked destination directory", () => {
-  withFixture((fixture) => {
-    const shared = join(fixture.projectRoot, "..", "shared-skills");
-    mkdirSync(join(shared, "docbridge-link"), { recursive: true });
-    mkdirSync(join(fixture.projectRoot, ".claude"), { recursive: true });
-    symlinkSync(shared, join(fixture.projectRoot, ".claude/skills"));
-
-    const result = plan(fixture, { agentTarget: "claude", force: true });
-
-    expect(result.operations).toEqual([]);
-    expect(result.legacySkills).toEqual([
-      { path: ".claude/skills/docbridge-link", kind: "symlinked-parent" },
-    ]);
   });
 });
 

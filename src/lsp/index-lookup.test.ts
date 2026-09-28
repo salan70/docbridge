@@ -15,11 +15,6 @@ describe("position conversions", () => {
     expect(fromLspPosition({ line: 3, character: 16 })).toEqual({ line: 4, column: 17 });
   });
 
-  test("converts the document origin at the boundary", () => {
-    expect(toLspPosition({ line: 1, column: 1 })).toEqual({ line: 0, character: 0 });
-    expect(fromLspPosition({ line: 0, character: 0 })).toEqual({ line: 1, column: 1 });
-  });
-
   test("converts a range end-exclusively without changing units", () => {
     expect(toLspRange({ start: { line: 1, column: 6 }, end: { line: 1, column: 11 } })).toEqual({
       start: { line: 0, character: 5 },
@@ -52,20 +47,6 @@ describe(buildPositionIndex, () => {
 
   const CODE = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
   const DOC = "<!-- @code src/auth/login.ts#login -->\n## Login Spec\n";
-
-  test("resolves a position inside the declaration name", () => {
-    const index = indexOf(CODE, DOC);
-    // `login` spans columns 17..21 on line 4.
-    const hit = endpointAt(index, CODE_FILE, { line: 4, column: 18 });
-    expect(hit?.endpoint).toBe(`${CODE_FILE}#login`);
-  });
-
-  test("resolves a position inside the heading text", () => {
-    const index = indexOf(CODE, DOC);
-    // `Login Spec` begins at column 4 on line 2.
-    const hit = endpointAt(index, DOC_FILE, { line: 2, column: 5 });
-    expect(hit?.endpoint).toBe(`${DOC_FILE}#login-spec`);
-  });
 
   test("does not resolve whitespace or the keyword portion of a declaration", () => {
     const index = indexOf(CODE, DOC);

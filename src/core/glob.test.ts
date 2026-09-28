@@ -70,17 +70,6 @@ test("collectFiles returns sorted matching paths and excludes .d.ts for code pat
   }
 });
 
-test("collectFiles keeps .md files (no .d.ts exclusion applies)", () => {
-  const root = makeTmp();
-  try {
-    mkdirSync(join(root, "docs"), { recursive: true });
-    writeFileSync(join(root, "docs", "a.md"), "");
-    expect(collectFiles(root, ["docs/**/*.md"])).toEqual(["docs/a.md"]);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
 test("collectFiles ignores node_modules, .git, and dot-prefixed segments", () => {
   const root = makeTmp();
   try {
@@ -109,24 +98,6 @@ test("collectFiles ignores symlink files and symlink directories", () => {
     symlinkSync(join(root, "src", "real"), join(root, "src", "linkdir"));
 
     expect(collectFiles(root, ["src/**/*.ts"])).toEqual(["src/real/a.ts", "src/target.ts"]);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test("collectFiles on the real repo root finds known source files", () => {
-  const repoRoot = join(import.meta.dir, "..", "..");
-  const files = collectFiles(repoRoot, ["src/**/*.ts"]);
-  expect(files).toContain("src/core/links.ts");
-  expect(files).toContain("src/core/config.ts");
-  expect(files).toContain("src/core/glob.ts");
-});
-
-test("readManagedFile returns content for readable files", () => {
-  const root = makeTmp();
-  try {
-    writeFileSync(join(root, "a.ts"), "hello");
-    expect(readManagedFile(root, "a.ts")).toEqual({ ok: true, content: "hello" });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

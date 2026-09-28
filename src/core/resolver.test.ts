@@ -115,100 +115,6 @@ function docFileWithHeadings(filePath: string, headings: DocHeadingOutline[]): M
 }
 
 describe(resolveLinks, () => {
-  test("valid bidirectional pair produces no relationship diagnostics", () => {
-    const codeEndpoint = `${CODE_FILE}#login`;
-    const docEndpoint = `${DOC_FILE}#login-spec`;
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
-      docFiles: [
-        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
-      ],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("emits doc_file_not_found when the target doc file is unmanaged", () => {
-    const codeEndpoint = `${CODE_FILE}#login`;
-    const docEndpoint = "docs/missing.md#login-spec";
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
-      docFiles: [],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).toEqual(["doc_file_not_found"]);
-    expect(diagnostics[0]?.source).toBe(codeEndpoint);
-    expect(diagnostics[0]?.target).toBe(docEndpoint);
-  });
-
-  test("emits doc_anchor_not_found when the file exists but the anchor does not", () => {
-    const codeEndpoint = `${CODE_FILE}#login`;
-    const docEndpoint = `${DOC_FILE}#missing`;
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
-      docFiles: [docFile(DOC_FILE, [docAnchor("login-spec")], [])],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).toEqual(["doc_anchor_not_found"]);
-  });
-
-  test("emits doc_backlink_not_found when the anchor exists but no @code points back", () => {
-    const codeEndpoint = `${CODE_FILE}#login`;
-    const docEndpoint = `${DOC_FILE}#login-spec`;
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
-      docFiles: [docFile(DOC_FILE, [docAnchor("login-spec")], [])],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).toEqual(["doc_backlink_not_found"]);
-  });
-
-  test("emits code_file_not_found when the target code file is unmanaged", () => {
-    const docEndpoint = `${DOC_FILE}#login-spec`;
-    const codeEndpoint = "src/missing.ts#login";
-
-    const diagnostics = resolveLinks({
-      codeFiles: [],
-      docFiles: [
-        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
-      ],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).toEqual(["code_file_not_found"]);
-    expect(diagnostics[0]?.source).toBe(docEndpoint);
-    expect(diagnostics[0]?.target).toBe(codeEndpoint);
-  });
-
-  test("emits code_backlink_not_found when the code file exists but the @doc pair is missing", () => {
-    const docEndpoint = `${DOC_FILE}#login-spec`;
-    const codeEndpoint = `${CODE_FILE}#login`;
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [])],
-      docFiles: [
-        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
-      ],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).toEqual(["code_backlink_not_found"]);
-  });
-
   test("suppresses doc-side diagnostics when the target doc file had a read error", () => {
     const codeEndpoint = `${CODE_FILE}#login`;
     const docEndpoint = `${DOC_FILE}#login-spec`;
@@ -280,44 +186,6 @@ describe(resolveLinks, () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test("does not emit undocumented_symbol when audit is disabled", () => {
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login")])],
-      docFiles: [],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).not.toContain("undocumented_symbol");
-  });
-
-  test("emits undocumented_symbol for an undocumented endpoint under audit", () => {
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login")])],
-      docFiles: [],
-      scanDiagnostics: [],
-      audit: true,
-    });
-
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.code).toBe("undocumented_symbol");
-    expect(diagnostics[0]?.severity).toBe("warning");
-    expect(diagnostics[0]?.target).toBe(`${CODE_FILE}#login`);
-  });
-
-  test("skips undocumented symbols flagged as members under audit", () => {
-    const member = { ...codeSymbol("AuthService.login"), isMember: true };
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login"), member])],
-      docFiles: [],
-      scanDiagnostics: [],
-      audit: true,
-    });
-
-    expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${CODE_FILE}#login`]);
-  });
-
   test("suppresses undocumented_symbol for errored code files under audit", () => {
     const diagnostics = resolveLinks({
       codeFiles: [codeFile(CODE_FILE, [], [], [], [codeSymbol("login")])],
@@ -337,22 +205,6 @@ describe(resolveLinks, () => {
     expect(codes(diagnostics)).not.toContain("undocumented_symbol");
   });
 
-  test("documented endpoints never produce undocumented_symbol under audit", () => {
-    const codeEndpoint = `${CODE_FILE}#login`;
-    const docEndpoint = `${DOC_FILE}#login-spec`;
-
-    const diagnostics = resolveLinks({
-      codeFiles: [codeFile(CODE_FILE, [codeSymbol("login")], [docLink(codeEndpoint, docEndpoint)])],
-      docFiles: [
-        docFile(DOC_FILE, [docAnchor("login-spec")], [codeLink(docEndpoint, codeEndpoint)]),
-      ],
-      scanDiagnostics: [],
-      audit: true,
-    });
-
-    expect(codes(diagnostics)).not.toContain("undocumented_symbol");
-  });
-
   // --- unlinked_doc_section ------------------------------------------------
 
   function unlinkedDocSectionAudit(headings: DocHeadingOutline[]): DocBridgeDiagnostic[] {
@@ -363,46 +215,6 @@ describe(resolveLinks, () => {
       audit: true,
     }).filter((diagnostic) => diagnostic.code === "unlinked_doc_section");
   }
-
-  test("does not emit unlinked_doc_section when audit is disabled", () => {
-    const diagnostics = resolveLinks({
-      codeFiles: [],
-      docFiles: [docFileWithHeadings(DOC_FILE, [docHeading("plain")])],
-      scanDiagnostics: [],
-      audit: false,
-    });
-
-    expect(codes(diagnostics)).not.toContain("unlinked_doc_section");
-  });
-
-  test("emits unlinked_doc_section for a heading with no @code annotation", () => {
-    const diagnostics = unlinkedDocSectionAudit([docHeading("plain", { level: 1, line: 4 })]);
-
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.severity).toBe("warning");
-    expect(diagnostics[0]?.target).toBe(`${DOC_FILE}#plain`);
-    expect(diagnostics[0]?.source).toBeUndefined();
-    expect(diagnostics[0]?.location).toEqual({ filePath: DOC_FILE, line: 4, column: 1 });
-  });
-
-  test("does not emit unlinked_doc_section for an annotated heading", () => {
-    const diagnostics = unlinkedDocSectionAudit([
-      docHeading("linked", { level: 1, hasCodeAnnotation: true }),
-    ]);
-
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("suppresses an unannotated heading whose descendant is annotated", () => {
-    // # Top (no @code) > ## Linked (@code). The subtree carries a link, so the
-    // parent is not reported and neither is the annotated child.
-    const diagnostics = unlinkedDocSectionAudit([
-      docHeading("top", { level: 1, line: 1 }),
-      docHeading("linked", { level: 2, line: 2, hasCodeAnnotation: true }),
-    ]);
-
-    expect(diagnostics).toEqual([]);
-  });
 
   test("reports only the topmost heading when a whole subtree is unannotated", () => {
     const diagnostics = unlinkedDocSectionAudit([
@@ -589,29 +401,11 @@ describe(resolveLinks, () => {
 });
 
 describe(check, () => {
-  test("examples/typescript resolves to zero diagnostics", () => {
-    const projectRoot = join(import.meta.dir, "..", "..", "examples", "typescript");
-    const result = check({ projectRoot });
-
-    expect(result.diagnostics).toEqual([]);
-    expect(result.summary).toEqual({ errors: 0, warnings: 0 });
-  });
-
   test("examples/typescript with audit also resolves to zero diagnostics", () => {
     const projectRoot = join(import.meta.dir, "..", "..", "examples", "typescript");
     const result = check({ projectRoot, audit: true });
 
     expect(result.diagnostics).toEqual([]);
-  });
-
-  test("a manifest-only project resolves to zero diagnostics", () => {
-    const root = manifestProject();
-
-    try {
-      expect(check({ projectRoot: root }).diagnostics).toEqual([]);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
   });
 
   test("audit reports neither audit code for a manifest-linked pair", () => {

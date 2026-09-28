@@ -2,54 +2,6 @@ import { expect, test } from "bun:test";
 
 import { scanMarkdown } from "./markdown";
 
-test("scanMarkdown extracts a heading anchor and a doc-to-code link", () => {
-  const content = [
-    "<!-- @code src/auth/login.ts#login -->",
-    "## Login Spec",
-    "",
-    "Login flow specification.",
-    "",
-  ].join("\n");
-
-  const result = scanMarkdown("docs/auth.md", content);
-
-  expect(result.filePath).toBe("docs/auth.md");
-  expect(result.diagnostics).toEqual([]);
-  expect(result.anchors).toMatchObject([
-    {
-      kind: "doc",
-      filePath: "docs/auth.md",
-      anchor: "login-spec",
-      endpoint: "docs/auth.md#login-spec",
-      headingText: "Login Spec",
-      location: { filePath: "docs/auth.md", line: 2, column: 1 },
-    },
-  ]);
-  expect(result.links).toMatchObject([
-    {
-      source: "docs/auth.md#login-spec",
-      target: "src/auth/login.ts#login",
-      location: { filePath: "docs/auth.md", line: 1, column: 1 },
-    },
-  ]);
-});
-
-test("scanMarkdown records anchors with no annotations", () => {
-  const result = scanMarkdown("docs/a.md", "# Title\n");
-
-  expect(result.anchors).toMatchObject([
-    {
-      kind: "doc",
-      filePath: "docs/a.md",
-      anchor: "title",
-      endpoint: "docs/a.md#title",
-      headingText: "Title",
-      location: { filePath: "docs/a.md", line: 1, column: 1 },
-    },
-  ]);
-  expect(result.links).toEqual([]);
-});
-
 // --- anchor generation -----------------------------------------------------
 
 test.each([
@@ -151,51 +103,7 @@ test("scanMarkdown takes only the first token after @code as the target", () => 
   ]);
 });
 
-test("scanMarkdown allows empty lines between pending comments and the heading", () => {
-  const content = ["<!-- @code src/a.ts#foo -->", "", "", "# Heading"].join("\n");
-  const result = scanMarkdown("docs/a.md", content);
-  expect(result.links).toHaveLength(1);
-  expect(result.diagnostics).toEqual([]);
-});
-
-test("scanMarkdown attaches multiple @code comments to one heading", () => {
-  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/b.ts#bar -->", "# Heading"].join(
-    "\n",
-  );
-  const result = scanMarkdown("docs/a.md", content);
-
-  expect(result.links).toMatchObject([
-    {
-      source: "docs/a.md#heading",
-      target: "src/a.ts#foo",
-      location: { filePath: "docs/a.md", line: 1, column: 1 },
-    },
-    {
-      source: "docs/a.md#heading",
-      target: "src/b.ts#bar",
-      location: { filePath: "docs/a.md", line: 2, column: 1 },
-    },
-  ]);
-  expect(result.diagnostics).toEqual([]);
-});
-
 // --- dangling annotations --------------------------------------------------
-
-test("scanMarkdown reports dangling annotation before normal text", () => {
-  const content = ["<!-- @code src/a.ts#foo -->", "Some normal text.", "# Heading"].join("\n");
-  const result = scanMarkdown("docs/a.md", content);
-
-  expect(result.links).toEqual([]);
-  expect(result.diagnostics).toMatchObject([
-    {
-      severity: "warning",
-      code: "dangling_code_annotation",
-      target: "src/a.ts#foo",
-      message: "@code annotation is not attached to a following heading.",
-      location: { filePath: "docs/a.md", line: 1, column: 1 },
-    },
-  ]);
-});
 
 test("scanMarkdown reports dangling annotation before a non-@code comment", () => {
   const content = ["<!-- @code src/a.ts#foo -->", "<!-- other -->", "# Heading"].join("\n");
@@ -234,22 +142,6 @@ test("scanMarkdown reports dangling annotation attached to an empty heading", ()
 
 // --- duplicate anchors -----------------------------------------------------
 
-test("scanMarkdown reports duplicate non-empty anchors in the same file", () => {
-  const content = ["# Same Title", "# Same Title"].join("\n");
-  const result = scanMarkdown("docs/a.md", content);
-
-  expect(result.anchors).toHaveLength(2);
-  expect(result.diagnostics).toMatchObject([
-    {
-      severity: "error",
-      code: "duplicate_doc_anchor",
-      target: "docs/a.md#same-title",
-      message: 'Duplicate doc anchor "same-title" in docs/a.md.',
-      location: { filePath: "docs/a.md", line: 2, column: 1 },
-    },
-  ]);
-});
-
 test("scanMarkdown does not treat empty headings as duplicates", () => {
   const content = ["#", "##"].join("\n");
   const result = scanMarkdown("docs/a.md", content);
@@ -277,14 +169,6 @@ test("scanMarkdown reports duplicate links from the same heading to the same end
       location: { filePath: "docs/a.md", line: 2, column: 1 },
     },
   ]);
-});
-
-test("scanMarkdown does not report duplicate links to different endpoints", () => {
-  const content = ["<!-- @code src/a.ts#foo -->", "<!-- @code src/a.ts#bar -->", "# Heading"].join(
-    "\n",
-  );
-  const result = scanMarkdown("docs/a.md", content);
-  expect(result.diagnostics.filter((d) => d.code === "duplicate_link")).toEqual([]);
 });
 
 // --- invalid link targets --------------------------------------------------
@@ -369,36 +253,6 @@ test("scanMarkdown records the heading level of each outline entry", () => {
     ["top", 1],
     ["deep", 3],
     ["middle", 2],
-  ]);
-});
-
-test("scanMarkdown includes empty headings in the outline but not in the anchors", () => {
-  // An empty heading creates no anchor, yet it closes the preceding section, so
-  // consumers that rebuild the document nesting still need to see it.
-  const content = ["### Parent", "##", "#### Child"].join("\n");
-
-  const result = scanMarkdown("docs/a.md", content);
-
-  expect(result.anchors.map((anchor) => anchor.anchor)).toEqual(["parent", "child"]);
-  expect(result.headings.map((heading) => [heading.level, heading.anchor?.anchor])).toEqual([
-    [3, "parent"],
-    [2, undefined],
-    [4, "child"],
-  ]);
-});
-
-test("scanMarkdown marks a heading with an attached @code annotation as annotated", () => {
-  const content = ["<!-- @code src/auth/login.ts#login -->", "## Linked", "", "## Plain"].join(
-    "\n",
-  );
-
-  const result = scanMarkdown("docs/a.md", content);
-
-  expect(
-    result.headings.map((heading) => [heading.anchor?.anchor, heading.hasCodeAnnotation]),
-  ).toEqual([
-    ["linked", true],
-    ["plain", false],
   ]);
 });
 

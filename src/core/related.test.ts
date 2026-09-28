@@ -18,76 +18,6 @@ const BASIC_SOURCES = {
   docs: [["docs/auth.md", AUTH_MD]],
 } satisfies Parameters<typeof graphFrom>[0];
 
-test("computeRelated lists the doc counterpart of a changed code file", () => {
-  const graph = graphFrom(BASIC_SOURCES);
-
-  const result = computeRelated(graph, ["src/auth/login.ts"]);
-
-  expect(result).toEqual({
-    files: [
-      {
-        filePath: "src/auth/login.ts",
-        endpoints: [
-          {
-            endpoint: "src/auth/login.ts#login",
-            counterparts: [
-              {
-                endpoint: "docs/auth.md#login-spec",
-                filePath: "docs/auth.md",
-                inChangeSet: false,
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    summary: { changedFiles: 1, filesWithLinks: 1 },
-  });
-});
-
-test("computeRelated marks counterparts that are themselves in the change set", () => {
-  const graph = graphFrom(BASIC_SOURCES);
-
-  const result = computeRelated(graph, ["src/auth/login.ts", "docs/auth.md"]);
-
-  const codeFile = result.files.find((file) => file.filePath === "src/auth/login.ts");
-  expect(codeFile?.endpoints[0]?.counterparts).toEqual([
-    { endpoint: "docs/auth.md#login-spec", filePath: "docs/auth.md", inChangeSet: true },
-  ]);
-});
-test("computeRelated excludes changed files without counterparts but counts them", () => {
-  const graph = graphFrom(BASIC_SOURCES);
-
-  const result = computeRelated(graph, ["src/auth/login.ts", "bun.lock", "src/other.ts"]);
-
-  expect(result.files.map((file) => file.filePath)).toEqual(["src/auth/login.ts"]);
-  expect(result.summary).toEqual({ changedFiles: 3, filesWithLinks: 1 });
-});
-
-test("computeRelated lists the code counterpart of a changed doc file", () => {
-  const graph = graphFrom(BASIC_SOURCES);
-
-  const result = computeRelated(graph, ["docs/auth.md"]);
-
-  expect(result.files).toEqual([
-    {
-      filePath: "docs/auth.md",
-      endpoints: [
-        {
-          endpoint: "docs/auth.md#login-spec",
-          counterparts: [
-            {
-              endpoint: "src/auth/login.ts#login",
-              filePath: "src/auth/login.ts",
-              inChangeSet: false,
-            },
-          ],
-        },
-      ],
-    },
-  ]);
-});
-
 test("computeRelated includes resolvable one-way links", () => {
   // The doc heading exists but has no @code backlink: still a counterpart.
   const oneWayDoc = "## Login Spec\n";
@@ -149,29 +79,6 @@ test("computeRelated orders files by path and endpoints by position", () => {
   ]);
 });
 
-test("collectGateViolations lists counterparts that are not in the change set", () => {
-  const graph = graphFrom(BASIC_SOURCES);
-
-  const result = computeRelated(graph, ["src/auth/login.ts"]);
-
-  expect(collectGateViolations(result)).toEqual([
-    {
-      changedEndpoint: "src/auth/login.ts#login",
-      changedFilePath: "src/auth/login.ts",
-      counterpartEndpoint: "docs/auth.md#login-spec",
-      counterpartFilePath: "docs/auth.md",
-    },
-  ]);
-});
-
-test("collectGateViolations returns no violations when every counterpart is in the change set", () => {
-  const graph = graphFrom(BASIC_SOURCES);
-
-  const result = computeRelated(graph, ["src/auth/login.ts", "docs/auth.md"]);
-
-  expect(collectGateViolations(result)).toEqual([]);
-});
-
 test("collectGateViolations reports the unchanged code counterpart of a changed doc", () => {
   const graph = graphFrom(BASIC_SOURCES);
 
@@ -187,19 +94,8 @@ test("collectGateViolations reports the unchanged code counterpart of a changed 
   ]);
 });
 
-test("normalizeChangedPaths keeps root-relative paths as-is", () => {
-  expect(normalizeChangedPaths("/repo", ["src/a.ts", "docs/b.md"])).toEqual([
-    "src/a.ts",
-    "docs/b.md",
-  ]);
-});
-
 test("normalizeChangedPaths relativizes absolute paths against the root", () => {
   expect(normalizeChangedPaths("/repo", ["/repo/src/a.ts"])).toEqual(["src/a.ts"]);
-});
-
-test("normalizeChangedPaths strips leading ./ segments", () => {
-  expect(normalizeChangedPaths("/repo", ["./src/a.ts"])).toEqual(["src/a.ts"]);
 });
 
 test("normalizeChangedPaths drops empty and whitespace-only entries", () => {

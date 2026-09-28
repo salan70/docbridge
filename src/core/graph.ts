@@ -111,11 +111,6 @@ export function counterpartsOf(graph: LinkGraph, endpoint: string): GraphEndpoin
   return resolved.toSorted(compareEndpoints);
 }
 
-/** Look up a recorded endpoint object (code or doc) by its endpoint string. */
-export function endpointObject(graph: LinkGraph, endpoint: string): GraphEndpoint | undefined {
-  return graph.codeByEndpoint.get(endpoint) ?? graph.docByEndpoint.get(endpoint);
-}
-
 function addTo(map: Map<string, Set<string>>, key: string, value: string): void {
   const existing = map.get(key);
   if (existing === undefined) {

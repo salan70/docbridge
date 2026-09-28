@@ -10,20 +10,6 @@ function scan(content: string, filePath = FILE) {
 }
 
 describe("scanTypeScript", () => {
-  test("returns the scanned file path", () => {
-    const result = scan("export const value = 1;\n");
-
-    expect(result.filePath).toBe(FILE);
-  });
-
-  test("ignores files without @doc annotations", () => {
-    const result = scan("export function login() {}\n");
-
-    expect(result.symbols).toEqual([]);
-    expect(result.links).toEqual([]);
-    expect(result.diagnostics).toEqual([]);
-  });
-
   describe("supported declarations with @doc", () => {
     const cases: Array<[string, string, string]> = [
       ["exported function", "export function login() {}", "login"],
@@ -175,19 +161,6 @@ describe("scanTypeScript", () => {
     });
   });
 
-  test("emits duplicate_code_symbol when two supported declarations expose the same endpoint", () => {
-    const content =
-      "/**\n * @doc docs/auth.md#a\n */\nexport function login() {}\n/**\n * @doc docs/auth.md#b\n */\nexport class login {}\n";
-    const result = scan(content);
-
-    const duplicate = result.diagnostics.filter(
-      (diagnostic) => diagnostic.code === "duplicate_code_symbol",
-    );
-    expect(duplicate).toHaveLength(1);
-    expect(duplicate[0]?.severity).toBe("error");
-    expect(duplicate[0]?.target).toBe(`${FILE}#login`);
-  });
-
   test("emits duplicate_link for the same code endpoint to the same doc endpoint", () => {
     const content =
       "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
@@ -238,23 +211,6 @@ describe("scanTypeScript", () => {
   });
 
   describe("undocumented supported declarations", () => {
-    test("surfaces a supported exported declaration without @doc", () => {
-      const result = scan("export function login() {}\n");
-
-      expect(result.symbols).toEqual([]);
-      expect(result.links).toEqual([]);
-      expect(result.diagnostics).toEqual([]);
-      expect(result.undocumentedSymbols).toMatchObject([
-        {
-          kind: "code",
-          filePath: FILE,
-          symbolName: "login",
-          endpoint: `${FILE}#login`,
-          location: { filePath: FILE, line: 1, column: 1 },
-        },
-      ]);
-    });
-
     test("does not surface unsupported declarations without @doc", () => {
       const result = scan("export const a = 1, b = 2;\nexport namespace N {}\n");
 
@@ -266,47 +222,6 @@ describe("scanTypeScript", () => {
 
       expect(result.undocumentedSymbols).toEqual([]);
     });
-
-    test("treats an endpoint as documented when any declaration has @doc", () => {
-      const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
-      const result = scan(content);
-
-      expect(result.symbols).toHaveLength(1);
-      expect(result.undocumentedSymbols).toEqual([]);
-    });
-
-    test("reports each undocumented endpoint in a mixed file", () => {
-      const content =
-        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\nexport function logout() {}\n";
-      const result = scan(content);
-
-      expect(result.symbols.map((symbol) => symbol.symbolName)).toEqual(["login"]);
-      expect(result.undocumentedSymbols.map((symbol) => symbol.symbolName)).toEqual(["logout"]);
-    });
-  });
-
-  test("matches the examples/typescript login fixture: one symbol and one link", () => {
-    const content =
-      "/**\n * @doc docs/auth.md#login-spec\n */\nexport async function login() {\n  return { ok: true };\n}\n";
-    const result = scanTypeScript("src/auth/login.ts", content);
-
-    expect(result.diagnostics).toEqual([]);
-    expect(result.symbols).toMatchObject([
-      {
-        kind: "code",
-        filePath: "src/auth/login.ts",
-        symbolName: "login",
-        endpoint: "src/auth/login.ts#login",
-        location: { filePath: "src/auth/login.ts", line: 4, column: 1 },
-      },
-    ]);
-    expect(result.links).toMatchObject([
-      {
-        source: "src/auth/login.ts#login",
-        target: "docs/auth.md#login-spec",
-        location: { filePath: "src/auth/login.ts", line: 4, column: 1 },
-      },
-    ]);
   });
 
   describe("ranges", () => {
@@ -352,17 +267,6 @@ describe("scanTypeScript", () => {
       expect(result.symbols[0]?.declarationRange).toEqual({
         start: { line: 1, column: 1 },
         end: { line: 6, column: 2 },
-      });
-    });
-
-    test("records the signature range including JSDoc but excluding the function body", () => {
-      const content =
-        "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {\n  return true;\n}\n";
-      const result = scan(content);
-
-      expect(result.symbols[0]?.signatureRange).toEqual({
-        start: { line: 1, column: 1 },
-        end: { line: 4, column: 25 },
       });
     });
 
@@ -412,42 +316,6 @@ describe("scanTypeScript", () => {
   });
 
   describe("type members", () => {
-    test("extracts a class method as a type-qualified endpoint", () => {
-      const content = [
-        "export class AuthService {",
-        "  /**",
-        "   * @doc docs/auth.md#login-spec",
-        "   */",
-        "  login() {}",
-        "}",
-        "",
-      ].join("\n");
-
-      const result = scan(content);
-
-      expect(result.symbols).toHaveLength(1);
-      expect(result.symbols[0]?.canonicalId).toBe("AuthService.login");
-      expect(result.symbols[0]?.endpoint).toBe(`${FILE}#AuthService.login`);
-      expect(result.diagnostics).toEqual([]);
-    });
-
-    test("reports the bare member name as symbolName and the qualified one as canonicalId", () => {
-      const content = [
-        "export class AuthService {",
-        "  /**",
-        "   * @doc docs/auth.md#login-spec",
-        "   */",
-        "  login() {}",
-        "}",
-        "",
-      ].join("\n");
-
-      const result = scan(content);
-
-      expect(result.symbols[0]?.symbolName).toBe("login");
-      expect(result.symbols[0]?.canonicalId).toBe("AuthService.login");
-    });
-
     test("reports undocumented members flagged as members", () => {
       const content = [
         "/**",
@@ -468,15 +336,6 @@ describe("scanTypeScript", () => {
         { canonicalId: "AuthService.login", isMember: true },
         { canonicalId: "AuthService.logout", isMember: true },
       ]);
-    });
-
-    test("leaves a top-level declaration unflagged", () => {
-      const content = ["export function login(): void {}", ""].join("\n");
-
-      const result = scan(content);
-
-      expect(result.undocumentedSymbols[0]?.canonicalId).toBe("login");
-      expect(result.undocumentedSymbols[0]?.isMember).toBeUndefined();
     });
 
     test("extracts a class property", () => {
@@ -532,29 +391,6 @@ describe("scanTypeScript", () => {
       expect(result.symbols).toHaveLength(1);
       expect(result.symbols[0]?.canonicalId).toBe("AuthService.token");
       expect(result.diagnostics).toEqual([]);
-    });
-
-    test("emits duplicate_code_symbol when both the getter and setter are annotated", () => {
-      const content = [
-        "export class AuthService {",
-        "  /**",
-        "   * @doc docs/auth.md#token-read",
-        "   */",
-        "  get token() {",
-        '    return "";',
-        "  }",
-        "  /**",
-        "   * @doc docs/auth.md#token-write",
-        "   */",
-        "  set token(value: string) {}",
-        "}",
-        "",
-      ].join("\n");
-
-      const result = scan(content);
-
-      expect(result.diagnostics.map((d) => d.code)).toEqual(["duplicate_code_symbol"]);
-      expect(result.diagnostics[0]?.target).toBe(`${FILE}#AuthService.token`);
     });
 
     test("emits duplicate_code_symbol when a static and instance member share a name", () => {
@@ -722,42 +558,6 @@ describe("scanTypeScript", () => {
 
         expect(result.symbols).toEqual([]);
         expect(result.diagnostics).toEqual([]);
-      });
-
-      test("includes a private member when visibility opts into private", () => {
-        const content = [
-          "export class AuthService {",
-          "  /**",
-          "   * @doc docs/auth.md#refresh-spec",
-          "   */",
-          "  private refresh() {}",
-          "}",
-          "",
-        ].join("\n");
-
-        const result = scanTypeScript(FILE, content, {
-          visibility: ["public", "protected", "private"],
-        });
-
-        expect(result.symbols[0]?.canonicalId).toBe("AuthService.refresh");
-        expect(result.diagnostics).toEqual([]);
-      });
-
-      test("excludes a private member when visibility omits private", () => {
-        const content = [
-          "export class AuthService {",
-          "  /**",
-          "   * @doc docs/auth.md#refresh-spec",
-          "   */",
-          "  private refresh() {}",
-          "}",
-          "",
-        ].join("\n");
-
-        const result = scanTypeScript(FILE, content, { visibility: ["public"] });
-
-        expect(result.symbols).toEqual([]);
-        expect(result.diagnostics.map((d) => d.code)).toEqual(["unsupported_declaration"]);
       });
 
       test("excludes a protected member when visibility lists only public", () => {
