@@ -208,502 +208,502 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#codeFileOwners",
+      "target": "src/config/code-language.ts#codeFileOwners",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#CodeFileRead",
+      "target": "src/config/code-language.ts#CodeFileRead",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#CodeInclude",
+      "target": "src/config/code-language.ts#CodeInclude",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#collectCodeFiles",
+      "target": "src/config/code-language.ts#collectCodeFiles",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#CollectedCodeFile",
+      "target": "src/config/code-language.ts#CollectedCodeFile",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#isCodeLanguage",
+      "target": "src/config/code-language.ts#isCodeLanguage",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-language.ts#KNOWN_CODE_LANGUAGES",
+      "target": "src/config/code-language.ts#KNOWN_CODE_LANGUAGES",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scan.ts#CodeAdapterOverrides",
+      "target": "src/scan/code/dispatch.ts#CodeAdapterOverrides",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scan.ts#createScannerWorkerAdapter",
+      "target": "src/scan/code/dispatch.ts#createScannerWorkerAdapter",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scan.ts#scanCodeFiles",
+      "target": "src/scan/code/dispatch.ts#scanCodeFiles",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/code-scanner.ts#CodeScanOptions",
+      "target": "src/scan/code/adapter.ts#CodeScanOptions",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/config.ts#CONFIG_FILE_NAME",
+      "target": "src/config/config.ts#CONFIG_FILE_NAME",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/config.ts#LANGUAGE_SUFFIX",
+      "target": "src/config/config.ts#LANGUAGE_SUFFIX",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/config.ts#LANGUAGE_VISIBILITY",
+      "target": "src/config/config.ts#LANGUAGE_VISIBILITY",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/config.ts#resolveConfig",
+      "target": "src/config/config.ts#resolveConfig",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/context.ts#computeContext",
+      "target": "src/query/context.ts#computeContext",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/context.ts#ContextBlock",
+      "target": "src/query/context.ts#ContextBlock",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/context.ts#formatContextResult",
+      "target": "src/query/context.ts#formatContextResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/context.ts#renderContextBlock",
+      "target": "src/query/context.ts#renderContextBlock",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/diagnostics.ts#collectErroredFiles",
+      "target": "src/model/diagnostics.ts#collectErroredFiles",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/diagnostics.ts#formatDiagnostic",
+      "target": "src/model/diagnostics.ts#formatDiagnostic",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/diagnostics.ts#formatSummary",
+      "target": "src/model/diagnostics.ts#formatSummary",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/diagnostics.ts#pluralize",
+      "target": "src/model/diagnostics.ts#pluralize",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/diagnostics.ts#summarizeDiagnostics",
+      "target": "src/model/diagnostics.ts#summarizeDiagnostics",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/endpoint.ts#compareEndpointOrder",
+      "target": "src/model/endpoint.ts#compareEndpointOrder",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/endpoint.ts#endpointRange",
+      "target": "src/model/endpoint.ts#endpointRange",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/endpoint.ts#filePathOf",
+      "target": "src/model/endpoint.ts#filePathOf",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/endpoint.ts#fragmentOf",
+      "target": "src/model/endpoint.ts#fragmentOf",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/error.ts#reasonOf",
+      "target": "src/shared/error.ts#reasonOf",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/glob.ts#matchGlob",
+      "target": "src/shared/glob.ts#matchGlob",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/glob.ts#readManagedFile",
+      "target": "src/shared/glob.ts#readManagedFile",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/glob.ts#validateGlobPattern",
+      "target": "src/shared/glob.ts#validateGlobPattern",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/graph-output.ts#computeGraphResult",
+      "target": "src/query/graph-output.ts#computeGraphResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/graph-output.ts#formatGraphResult",
+      "target": "src/query/graph-output.ts#formatGraphResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/graph.ts#counterpartsOf",
+      "target": "src/link/graph.ts#counterpartsOf",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/graph.ts#GraphEndpoint",
+      "target": "src/link/graph.ts#GraphEndpoint",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/indent.ts#dedentBlockLines",
+      "target": "src/shared/indent.ts#dedentBlockLines",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonArrayNode",
+      "target": "src/config/json-source.ts#JsonArrayNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonBooleanNode",
+      "target": "src/config/json-source.ts#JsonBooleanNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonMember",
+      "target": "src/config/json-source.ts#JsonMember",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonNode",
+      "target": "src/config/json-source.ts#JsonNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonNullNode",
+      "target": "src/config/json-source.ts#JsonNullNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonNumberNode",
+      "target": "src/config/json-source.ts#JsonNumberNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonObjectNode",
+      "target": "src/config/json-source.ts#JsonObjectNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#JsonStringNode",
+      "target": "src/config/json-source.ts#JsonStringNode",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/json-source.ts#ParseJsonSourceResult",
+      "target": "src/config/json-source.ts#ParseJsonSourceResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/link-manifest.ts#LINK_MANIFEST_FILE_NAME",
+      "target": "src/config/link-manifest.ts#LINK_MANIFEST_FILE_NAME",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/link-manifest.ts#LinkManifest",
+      "target": "src/model/link-manifest.ts#LinkManifest",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/link-manifest.ts#LinkManifestEntry",
+      "target": "src/model/link-manifest.ts#LinkManifestEntry",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/link-manifest.ts#LoadLinkManifestResult",
+      "target": "src/config/link-manifest.ts#LoadLinkManifestResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/link-manifest.ts#resolveLinkManifest",
+      "target": "src/config/link-manifest.ts#resolveLinkManifest",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/links.ts#ParseLinkTargetOptions",
+      "target": "src/model/link-target.ts#ParseLinkTargetOptions",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/markdown-syntax.ts#FenceMarker",
+      "target": "src/scan/markdown/markdown-syntax.ts#FenceMarker",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/markdown-syntax.ts#fenceMarkerOf",
+      "target": "src/scan/markdown/markdown-syntax.ts#fenceMarkerOf",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/markdown-syntax.ts#headingLevel",
+      "target": "src/scan/markdown/markdown-syntax.ts#headingLevel",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/markdown-syntax.ts#isFenceClose",
+      "target": "src/scan/markdown/markdown-syntax.ts#isFenceClose",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/markdown-syntax.ts#matchAtxHeading",
+      "target": "src/scan/markdown/markdown-syntax.ts#matchAtxHeading",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/markdown.ts#MarkdownScanResult",
+      "target": "src/model/scan-result.ts#MarkdownScanResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/package-root.ts#resolvePackageRoot",
+      "target": "src/shared/package-root.ts#resolvePackageRoot",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/path-order.ts#comparePaths",
+      "target": "src/shared/path-order.ts#comparePaths",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/related.ts#computeRelated",
+      "target": "src/query/related.ts#computeRelated",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/related.ts#formatGateResult",
+      "target": "src/query/related.ts#formatGateResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/related.ts#formatRelatedResult",
+      "target": "src/query/related.ts#formatRelatedResult",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/related.ts#normalizeChangedPaths",
+      "target": "src/query/related.ts#normalizeChangedPaths",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/related.ts#RelatedGateViolation",
+      "target": "src/query/related.ts#RelatedGateViolation",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-executable.ts#scannerExecutableName",
+      "target": "src/scan/code/worker/scanner-executable.ts#scannerExecutableName",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-executable.ts#scannerPlatformKey",
+      "target": "src/scan/code/worker/scanner-executable.ts#scannerPlatformKey",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-executable.ts#scannerRootsFromModuleUrl",
+      "target": "src/scan/code/worker/scanner-executable.ts#scannerRootsFromModuleUrl",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-executable.ts#ScannerWorkerCommandResolution",
+      "target": "src/scan/code/worker/scanner-executable.ts#ScannerWorkerCommandResolution",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-executable.ts#supportedScannerExecutableNames",
+      "target": "src/scan/code/worker/scanner-executable.ts#supportedScannerExecutableNames",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-executable.ts#supportedScannerPlatformKeys",
+      "target": "src/scan/code/worker/scanner-executable.ts#supportedScannerPlatformKeys",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#clangModuleCachePath",
+      "target": "src/scan/code/worker/scanner-worker.ts#clangModuleCachePath",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#createLazyWorkerResponseValidator",
+      "target": "src/scan/code/worker/scanner-worker.ts#createLazyWorkerResponseValidator",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#invokeScannerWorker",
+      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorker",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#runScannerWorkerProcess",
+      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcess",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#ScannerWorkerProcessResult",
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerProcessResult",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#ScannerWorkerRequest",
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRequest",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/scanner-worker.ts#ScannerWorkerRun",
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRun",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/section.ts#capSectionLength",
+      "target": "src/scan/markdown/section.ts#capSectionLength",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/section.ts#extractDocSection",
+      "target": "src/scan/markdown/section.ts#extractDocSection",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/section.ts#MAX_SECTION_LENGTH",
+      "target": "src/scan/markdown/section.ts#MAX_SECTION_LENGTH",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/source-range.ts#sliceSourceRange",
+      "target": "src/shared/source-range.ts#sliceSourceRange",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/test-support.ts#codes",
+      "target": "src/test-support.ts#codes",
       "class": "test_support"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/test-support.ts#graphFrom",
+      "target": "src/test-support.ts#graphFrom",
       "class": "test_support"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/test-support.ts#GraphSources",
+      "target": "src/test-support.ts#GraphSources",
       "class": "test_support"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/test-support.ts#makeProject",
+      "target": "src/test-support.ts#makeProject",
       "class": "test_support"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#CheckResult",
+      "target": "src/model/types.ts#CheckResult",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#CodeLanguage",
+      "target": "src/model/types.ts#CodeLanguage",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#CodeSymbolEndpoint",
+      "target": "src/model/types.ts#CodeSymbolEndpoint",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#DiagnosticCode",
+      "target": "src/model/types.ts#DiagnosticCode",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#DocAnchorEndpoint",
+      "target": "src/model/types.ts#DocAnchorEndpoint",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#DocHeadingOutline",
+      "target": "src/model/types.ts#DocHeadingOutline",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#EndpointKind",
+      "target": "src/model/types.ts#EndpointKind",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#LinkAnnotation",
+      "target": "src/model/types.ts#LinkAnnotation",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#LinkTarget",
+      "target": "src/model/types.ts#LinkTarget",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#Position",
+      "target": "src/model/types.ts#Position",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#Range",
+      "target": "src/model/types.ts#Range",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#SourceLocation",
+      "target": "src/model/types.ts#SourceLocation",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/types.ts#Summary",
+      "target": "src/model/types.ts#Summary",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/core/typescript.ts#typeScriptAdapter",
+      "target": "src/scan/code/typescript.ts#typeScriptAdapter",
       "class": "sibling_export"
     },
     {

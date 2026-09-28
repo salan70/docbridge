@@ -4,23 +4,21 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import pkg from "../../package.json";
-import { CONFIG_FILE_NAME } from "../core/config";
-import { context as runContextCore, formatContextResult } from "../core/context";
-import { formatDiagnostic, formatSummary } from "../core/diagnostics";
-import { formatGraphResult, graph as runGraphCore } from "../core/graph-output";
-import { LINK_MANIFEST_FILE_NAME } from "../core/link-manifest";
-import { resolvePackageRoot } from "../core/package-root";
+import { CONFIG_FILE_NAME } from "../config/config";
+import { LINK_MANIFEST_FILE_NAME } from "../config/link-manifest";
+import { runLspServer } from "../lsp/server";
+import { formatDiagnostic, formatSummary } from "../model/diagnostics";
+import type { DocBridgeDiagnostic } from "../model/types";
+import { check as runChecker } from "../query/check";
+import { context as runContextCore, formatContextResult } from "../query/context";
+import { formatGraphResult, graph as runGraphCore } from "../query/graph-output";
 import {
   collectGateViolations,
   formatGateResult,
   formatRelatedResult,
   normalizeChangedPaths,
   related as runRelatedCore,
-} from "../core/related";
-import { check as runChecker } from "../core/resolver";
-import { nearestMatch } from "../core/suggest";
-import type { DocBridgeDiagnostic } from "../core/types";
-import { runLspServer } from "../lsp/server";
+} from "../query/related";
 import { resolveLatestStableVersion, type LatestVersionLookup } from "../setup/registry";
 import {
   decideUpdateCheck,
@@ -28,6 +26,8 @@ import {
   isUpdateCheckOptedOut,
 } from "../setup/update-notice";
 import { detectUpgradeGuidance } from "../setup/upgrade-guidance";
+import { resolvePackageRoot } from "../shared/package-root";
+import { nearestMatch } from "../shared/suggest";
 import { parseDocsCommand, runDocs } from "./docs";
 import {
   CliError,

@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import type { DocBridgeConfig } from "../core/config";
-import { resolveConfig } from "../core/config";
-import { resolvePackageRoot } from "../core/package-root";
+import type { DocBridgeConfig } from "../config/config";
+import { resolveConfig } from "../config/config";
+import { resolvePackageRoot } from "../shared/package-root";
 import type { AgentTarget, CodeLanguageCandidate, RepositoryDiscovery } from "./init-discovery";
 import { classifyManagedPath, unmanageablePathMessage } from "./skill-assets";
 import type { FileOpAction, PlannedFileOp } from "./skill-assets";

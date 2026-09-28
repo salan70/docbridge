@@ -61,7 +61,7 @@ docbridge.config.json error config_file_invalid - Failed to parse docbridge.conf
 CLI option errors, unknown options, missing option values, and invalid roots are written to stderr and exit with code `1`. They do not emit diagnostic JSON, even when `--json` is present.
 
 <!-- @code src/cli/errors.ts#formatCliError -->
-<!-- @code src/core/suggest.ts#nearestMatch -->
+<!-- @code src/shared/suggest.ts#nearestMatch -->
 
 ## Error guidance
 
@@ -170,14 +170,14 @@ for the full description.
 `docbridge --version` output is unaffected: it stays exactly `<version>\n`.
 
 <!-- @code src/cli/index.ts#run -->
-<!-- @code src/core/resolver.ts#check -->
+<!-- @code src/query/check.ts#check -->
 
 ## Check Command
 
 The check command parses CLI options, runs the checker against the resolved
 project root, prints diagnostics, and returns the process exit code.
 
-<!-- @code src/core/related.ts#related -->
+<!-- @code src/query/related.ts#related -->
 
 ## Related Command
 
@@ -197,7 +197,7 @@ git diff --name-only --cached | docbridge related --stdin
 git diff --name-only origin/main...HEAD | docbridge related --stdin
 
 # manual
-docbridge related src/core/graph.ts
+docbridge related src/link/graph.ts
 ```
 
 Changed files are passed as positional arguments, as newline-separated paths
@@ -265,7 +265,7 @@ Without `--gate`, `related` exits with code `0` on success regardless of what
 it finds. Only CLI invocation errors and configuration errors exit with code
 `1`.
 
-<!-- @code src/core/related.ts#collectGateViolations -->
+<!-- @code src/query/related.ts#collectGateViolations -->
 
 ## Related Gate Mode
 
@@ -317,7 +317,7 @@ there are no violations — including when the change set is empty or has no
 links — and `1` when at least one violation exists. CLI invocation errors and
 configuration errors exit with code `1` as usual.
 
-<!-- @code src/core/graph-output.ts#graph -->
+<!-- @code src/query/graph-output.ts#graph -->
 
 ## Graph Command
 
@@ -380,7 +380,7 @@ configuration errors that prevent scanning. File read, code parse, scanner
 worker, and link diagnostics are included in the output when possible; they do
 not by themselves make `graph` exit non-zero.
 
-<!-- @code src/core/context.ts#context -->
+<!-- @code src/query/context.ts#context -->
 
 ## Context Command
 

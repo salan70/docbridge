@@ -1,4 +1,4 @@
-import type { DocBridgeDiagnostic } from "../core/types";
+import type { DocBridgeDiagnostic } from "../model/types";
 import { toLspRange, type LspRange } from "./position";
 
 /** LSP diagnostic severities: error and warning are the only ones DocBridge uses. */

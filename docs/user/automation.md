@@ -34,8 +34,8 @@ docbridge init-with-agent --agent-target codex
 Use `claude` or `both` for the other supported targets. The command installs
 the skill and prints the next command or prompt; it does not launch an agent.
 
-<!-- @code src/core/context.ts#context -->
-<!-- @code src/core/related.ts#related -->
+<!-- @code src/query/context.ts#context -->
+<!-- @code src/query/related.ts#related -->
 
 ## Editing workflow
 

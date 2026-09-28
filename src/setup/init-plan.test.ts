@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { resolvePackageRoot } from "../core/package-root";
-import { makeProject } from "../core/test-support";
+import { resolvePackageRoot } from "../shared/package-root";
+import { makeProject } from "../test-support";
 import { discoverRepository } from "./init-discovery";
 import { buildConfigFromScope, listDistributableSkills, planInitCommand } from "./init-plan";
 

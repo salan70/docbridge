@@ -1,5 +1,5 @@
-import type { GraphEndpoint, LinkGraph } from "../core/graph";
-import type { Position, Range } from "../core/types";
+import type { GraphEndpoint, LinkGraph } from "../link/graph";
+import type { Position, Range } from "../model/types";
 import { rangeContains } from "./position";
 
 type IndexedEndpoint = {

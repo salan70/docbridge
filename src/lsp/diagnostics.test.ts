@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { DocBridgeDiagnostic } from "../core/types";
+import type { DocBridgeDiagnostic } from "../model/types";
 import { diagnosticsForFile, toLspDiagnostic } from "./diagnostics";
 import { CODE_FILE, stateOf } from "./fixtures";
 

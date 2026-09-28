@@ -6,7 +6,7 @@ server (`docbridge lsp`) and binds it to TypeScript, TSX, Swift, Dart, and
 Markdown documents.
 
 The package carries the only `vscode-languageclient` dependency in the
-repository. The server and `src/core/` do not depend on it.
+repository. The server and the CLI source under `src/` do not depend on it.
 
 ## Install
 

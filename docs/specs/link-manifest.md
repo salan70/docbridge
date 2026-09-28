@@ -32,7 +32,7 @@ trade-off is that a manifest link is invisible to a reader of the code or the
 document; `related --gate` in continuous integration is the remaining safety
 net.
 
-<!-- @code src/core/json-source.ts#parseJsonSource -->
+<!-- @code src/config/json-source.ts#parseJsonSource -->
 
 ## Manifest Syntax
 
@@ -47,7 +47,7 @@ reports `config_invalid_value` at the repeat. `JSON.parse` keeps the last
 duplicate, so silently keeping either one would let an edit appear in the file
 while `check` ignores it.
 
-<!-- @code src/core/link-manifest.ts#loadLinkManifest -->
+<!-- @code src/config/link-manifest.ts#loadLinkManifest -->
 
 ## Loading the Manifest
 
@@ -71,7 +71,7 @@ A `code` or `doc` value that violates the target grammar reports
 entries are still trustworthy, so one typo must not hide every other entry's
 diagnostics.
 
-<!-- @code src/core/link-manifest-apply.ts#applyLinkManifest -->
+<!-- @code src/link/manifest-apply.ts#applyLinkManifest -->
 
 ## Applying Manifest Links
 
@@ -102,7 +102,7 @@ An entry is skipped without any diagnostic when either of its files failed to
 read, parse, or scan. Anything reported would describe that failure rather than
 the link.
 
-<!-- @code src/core/suggest.ts#nearestMatch -->
+<!-- @code src/shared/suggest.ts#nearestMatch -->
 
 ## Symbol Suggestions
 

@@ -13,7 +13,7 @@ Use the narrowest command for the question you need to answer.
 The first argument selects a command. Global `--help` and `--version` are
 handled before project scanning, while each command validates its own options.
 
-<!-- @code src/core/resolver.ts#check -->
+<!-- @code src/query/check.ts#check -->
 
 ### `check`: validate the project
 
@@ -22,7 +22,7 @@ annotations, targets, reciprocal links, and the optional link manifest. Add
 `--audit` to include warnings for undocumented code declarations and unlinked
 Markdown sections. Add `--json` for machine-readable diagnostics.
 
-<!-- @code src/core/related.ts#related -->
+<!-- @code src/query/related.ts#related -->
 
 ### `related`: find counterpart files
 
@@ -36,7 +36,7 @@ git diff --name-only | docbridge related --stdin
 set. It identifies review obligations; it does not decide whether the
 counterpart actually needs an edit.
 
-<!-- @code src/core/context.ts#context -->
+<!-- @code src/query/context.ts#context -->
 
 ### `context`: read counterpart content
 
@@ -49,7 +49,7 @@ docbridge context src/auth.ts
 The default Markdown output is suitable for an agent prompt. `--json` returns
 structured contexts, diagnostics, and a summary.
 
-<!-- @code src/core/graph-output.ts#graph -->
+<!-- @code src/query/graph-output.ts#graph -->
 
 ### `graph`: inspect link structure
 

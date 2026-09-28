@@ -1,7 +1,6 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { resolvePackageRoot } from "../core/package-root";
 import { discoverRepository } from "../setup/init-discovery";
 import type { AgentTarget } from "../setup/init-discovery";
 import type { LatestVersionLookup } from "../setup/registry";
@@ -13,6 +12,7 @@ import {
   type UpgradeOptions,
   type UpgradePlan,
 } from "../setup/upgrade-plan";
+import { resolvePackageRoot } from "../shared/package-root";
 import {
   agentTargetGuidance,
   CliError,

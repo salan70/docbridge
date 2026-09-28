@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 
-import type { DiagnosticCode, DocBridgeDiagnostic } from "../core/types";
+import type { DiagnosticCode, DocBridgeDiagnostic } from "../model/types";
 import { run } from "./index";
 
 /**

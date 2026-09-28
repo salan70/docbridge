@@ -1,8 +1,8 @@
-import { sortDiagnostics } from "../core/diagnostics";
-import { buildLinkGraph } from "../core/graph";
-import { scanMarkdown } from "../core/markdown";
-import { resolveLinks } from "../core/resolver";
-import { scanTypeScript } from "../core/typescript";
+import { buildLinkGraph } from "../link/graph";
+import { resolveLinks } from "../link/resolver";
+import { sortDiagnostics } from "../model/diagnostics";
+import { scanTypeScript } from "../scan/code/typescript";
+import { scanMarkdown } from "../scan/markdown/markdown";
 import { buildPositionIndex } from "./index-lookup";
 import type { ProjectState } from "./project";
 

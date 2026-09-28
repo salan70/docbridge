@@ -4,8 +4,8 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Test placement
 
-- Colocate tests with the module they cover: `src/core/graph.ts` is tested by
-  `src/core/graph.test.ts` in the same directory.
+- Colocate tests with the module they cover: `src/link/graph.ts` is tested by
+  `src/link/graph.test.ts` in the same directory.
 - There is no separate top-level `test/` directory. Do not create one.
 - Name test files `<module>.test.ts`. The runner discovers them automatically;
   no configuration lists test paths.

@@ -4,14 +4,14 @@ import {
   type CodeFileRead,
   type CodeInclude,
   type CollectedCodeFile,
-} from "../core/code-language";
-import { sortDiagnostics } from "../core/diagnostics";
-import { collectFiles, matchGlob, readManagedFile } from "../core/glob";
-import { buildLinkGraph, type LinkGraph } from "../core/graph";
-import { comparePaths } from "../core/path-order";
-import { scanProject } from "../core/project-scan";
-import { resolveLinks } from "../core/resolver";
-import type { DocBridgeDiagnostic } from "../core/types";
+} from "../config/code-language";
+import { buildLinkGraph, type LinkGraph } from "../link/graph";
+import { resolveLinks } from "../link/resolver";
+import { sortDiagnostics } from "../model/diagnostics";
+import type { DocBridgeDiagnostic } from "../model/types";
+import { scanProject } from "../query/project-scan";
+import { collectFiles, matchGlob, readManagedFile } from "../shared/glob";
+import { comparePaths } from "../shared/path-order";
 import { buildPositionIndex, type PositionIndex } from "./index-lookup";
 
 /** The resolved whole-project state the LSP handlers query. */

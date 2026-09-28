@@ -8,7 +8,7 @@ DocBridge loads `docbridge.config.json` from the project root supplied by
 `--root`, or from the current directory by default. Paths and glob patterns are
 interpreted relative to that root.
 
-<!-- @code src/core/config.ts#loadConfig -->
+<!-- @code src/config/config.ts#loadConfig -->
 
 ## Loading configuration
 
@@ -43,7 +43,7 @@ excluded by visibility is not an endpoint; an `@doc` on one is
 `unsupported_declaration`. See `docbridge docs show linking` for the
 per-language rules, including Dart's leading-underscore privacy.
 
-<!-- @code src/core/glob.ts#collectFiles -->
+<!-- @code src/shared/glob.ts#collectFiles -->
 
 ## Excluded files
 

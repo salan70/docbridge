@@ -1,7 +1,6 @@
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { resolvePackageRoot } from "../core/package-root";
 import { discoverRepository } from "../setup/init-discovery";
 import type { AgentTarget } from "../setup/init-discovery";
 import {
@@ -15,6 +14,7 @@ import {
   type PlannedFileOp,
 } from "../setup/init-plan";
 import { applySkillOperation } from "../setup/skill-assets";
+import { resolvePackageRoot } from "../shared/package-root";
 import { agentTargetGuidance, commandHelpGuidance, InitCliError, rootPathGuidance } from "./errors";
 import type { CliIo } from "./io";
 
