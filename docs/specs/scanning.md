@@ -91,8 +91,8 @@ protocol. From a source checkout, the adapter executes
 the debug binary when present; run `just test-rust-scanner` or
 `just build-rust-scanner` locally to build it before checking Rust projects from
 a source checkout. In the npm package, the adapter executes
-`dist/bin/<platform>/docbridge-rust-scanner`. Building the package requires a
-Rust 1.83 toolchain on `PATH` (pinned by `packages/rust-scanner/rust-toolchain.toml`).
+`dist/bin/<platform>/docbridge-rust-scanner`. Building the package requires the
+Rust toolchain pinned by `packages/rust-scanner/rust-toolchain.toml` on `PATH`.
 
 The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.

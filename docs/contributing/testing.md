@@ -42,7 +42,7 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just test-dart-scanner` runs the Dart package tests for
   `packages/dart-scanner`. The Dart SDK is provided by the Nix dev shell.
 - `just test-rust-scanner` runs the Cargo test suite for
-  `packages/rust-scanner`. The Nix dev shell provides the Rust 1.83 toolchain
+  `packages/rust-scanner`. The Nix dev shell provides the Rust toolchain
   pinned by `packages/rust-scanner/rust-toolchain.toml`.
 - CI treats the scanner-native test suites as mandatory before the shared
   `just test` gate. Local changes to scanner code should run the matching

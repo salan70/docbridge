@@ -1,5 +1,8 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+# The required Swift toolchain version. `.swift-version` is its only source.
+swift_version := trim(read(".swift-version"))
+
 default:
     just --list
 
@@ -16,15 +19,19 @@ install-editor-deps:
     cd editors/vscode && bun install --frozen-lockfile
 
 # Print the contributor toolchain versions and validate the required Swift version.
-doctor:
+doctor: require-swift
     bun --version
     node --version
     dart --version
     rustc --version
     cargo --version
-    swift --version | rg 'Swift version 6\.2\.1'
     just --version
     git --version
+
+# Fail unless the Swift on `PATH` is the version in `.swift-version`.
+[private]
+require-swift:
+    swift --version | grep -F 'Swift version {{ swift_version }} '
 
 # Run every formatter in write mode. This is always an explicit operation.
 format:
@@ -46,8 +53,7 @@ format-check: format-check-ox format-check-swift format-check-dart format-check-
 format-check-ox:
     bun run oxfmt --check .
 
-format-check-swift:
-    swift --version | rg 'Swift version 6\.2\.1'
+format-check-swift: require-swift
     swift format lint --configuration .swift-format --strict --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
 
 format-check-dart:
