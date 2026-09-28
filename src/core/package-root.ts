@@ -12,8 +12,8 @@ import { fileURLToPath } from "node:url";
  * path (symlinks resolved, matching the npm `.bin` shim) until that tree is
  * found.
  *
- * The documentation command and the setup commands both need this path, so it
- * stays independent of initialization planning.
+ * The documentation command, the setup commands, and scanner discovery all
+ * need this path, so it stays independent of initialization planning.
  */
 export function resolvePackageRoot(moduleUrl: string = import.meta.url): string {
   const modulePath = fileURLToPath(moduleUrl);

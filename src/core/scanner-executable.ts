@@ -1,8 +1,8 @@
-import { accessSync, chmodSync, constants, existsSync, realpathSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { accessSync, chmodSync, constants, existsSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 import { reasonOf } from "./error";
+import { resolvePackageRoot } from "./package-root";
 import type { CodeLanguage, DocBridgeDiagnostic } from "./types";
 
 /** Every language whose scanner runs as a separate worker executable. */
@@ -184,28 +184,18 @@ function isSupportedScannerPlatformKey(platformKey: string): boolean {
 /**
  * Resolve the dist and source roots from the URL of this module's file.
  *
- * npm installs the CLI as `node_modules/.bin/docbridge`, a symlink to the
- * packaged `dist/index.js`. The bundled scanner binaries live next to that real
- * file under `dist/bin/`, so the symlink must be resolved to its target before
- * deriving the roots. Bun resolves the bin symlink for `import.meta.url` on
- * macOS but not on Linux, so realpath it explicitly to behave the same on both.
- *
- * The source root is the module directory's grandparent, so this module must
- * stay one directory below `src/`.
+ * Both roots hang off the DocBridge package root: a source checkout builds
+ * scanners under `packages/`, and a packaged CLI (npm or the VSIX server)
+ * bundles them under `dist/bin/`. Deriving the package root by name rather
+ * than by a fixed directory offset keeps discovery correct wherever this
+ * module sits in `src/` and through the npm `.bin` symlink.
  */
 export function scannerRootsFromModuleUrl(moduleUrl: string): {
   distRoot: string;
   sourceRoot: string;
 } {
-  const modulePath = fileURLToPath(moduleUrl);
-  let resolved: string;
-  try {
-    resolved = realpathSync(modulePath);
-  } catch {
-    resolved = modulePath;
-  }
-  const moduleDir = dirname(resolved);
-  return { distRoot: moduleDir, sourceRoot: resolve(moduleDir, "..", "..") };
+  const packageRoot = resolvePackageRoot(moduleUrl);
+  return { distRoot: join(packageRoot, "dist"), sourceRoot: packageRoot };
 }
 
 function sourceRootPath(): string {
