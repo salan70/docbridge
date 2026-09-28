@@ -1,7 +1,7 @@
 import { buildLinkGraph, type LinkGraph } from "../link/graph";
 import { resolveLinks } from "../link/resolver";
-import { pluralize, sortDiagnostics } from "../model/diagnostics";
-import { compareEndpointOrder, filePathOf, fragmentOf } from "../model/endpoint";
+import { sortDiagnostics } from "../model/diagnostics";
+import { compareEndpointOrder, filePathOf } from "../model/endpoint";
 import type { CodeScanResult } from "../model/scan-result";
 import type { MarkdownScanResult } from "../model/scan-result";
 import type {
@@ -48,14 +48,14 @@ type GraphEdge = {
   range?: Range;
 };
 
-type GraphPair = {
+export type GraphPair = {
   codeEndpoint: string;
   docEndpoint: string;
   hasDocEdge: boolean;
   hasCodeEdge: boolean;
 };
 
-type GraphSummary = {
+export type GraphSummary = {
   nodes: number;
   edges: number;
   codeNodes: number;
@@ -65,7 +65,7 @@ type GraphSummary = {
   diagnostics: number;
 };
 
-type GraphResult = {
+export type GraphResult = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   pairs: GraphPair[];
@@ -202,20 +202,6 @@ export function computeGraphResult(options: ComputeGraphOptions): GraphResult {
       diagnostics: diagnostics.length,
     },
   };
-}
-
-export function formatGraphResult(result: GraphResult, inputFiles: string[]): string {
-  const lines: string[] = [];
-  if (inputFiles.length === 0) {
-    appendDocsOrientedLines(lines, result);
-  } else {
-    appendScopedLines(lines, result, inputFiles);
-  }
-  if (lines.length > 0) {
-    lines.push("");
-  }
-  lines.push(formatGraphSummary(result.summary));
-  return lines.join("\n");
 }
 
 function edgeFromDocLink(link: LinkAnnotation): GraphEdge {
@@ -398,69 +384,7 @@ function computePairs(edges: GraphEdge[]): GraphPair[] {
   return [...byKey.values()];
 }
 
-function appendDocsOrientedLines(lines: string[], result: GraphResult): void {
-  const docs = result.nodes.filter((node) => node.kind === "doc").toSorted(compareNodes);
-  for (const doc of docs) {
-    const pairs = result.pairs.filter((pair) => pair.docEndpoint === doc.endpoint);
-    if (pairs.length === 0) {
-      continue;
-    }
-    if (lines[lines.length - 1] === "") {
-      lines.pop();
-    }
-    if (lines.length > 0) {
-      lines.push("");
-    }
-    lines.push(doc.filePath);
-    for (const pair of pairs.toSorted(comparePairs)) {
-      lines.push(`  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`);
-    }
-  }
-}
-
-function appendScopedLines(lines: string[], result: GraphResult, inputFiles: string[]): void {
-  const inputSet = new Set(inputFiles);
-  const nodes = result.nodes.filter((node) => inputSet.has(node.filePath)).toSorted(compareNodes);
-  for (const node of nodes) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-    lines.push(node.filePath);
-    const pairs = result.pairs.filter(
-      (pair) => pair.codeEndpoint === node.endpoint || pair.docEndpoint === node.endpoint,
-    );
-    for (const pair of pairs.toSorted(comparePairs)) {
-      if (node.kind === "doc") {
-        lines.push(
-          `  ${fragmentOf(pair.docEndpoint)} -> ${pair.codeEndpoint} (${pairStatus(pair)})`,
-        );
-      } else {
-        lines.push(
-          `  ${fragmentOf(pair.codeEndpoint)} -> ${pair.docEndpoint} (${pairStatus(pair)})`,
-        );
-      }
-    }
-  }
-}
-
-function formatGraphSummary(summary: GraphSummary): string {
-  return [
-    `${summary.nodes} ${pluralize("node", summary.nodes)}`,
-    `${summary.edges} ${pluralize("edge", summary.edges)}`,
-    `${summary.bidirectionalPairs} bidirectional ${pluralize("pair", summary.bidirectionalPairs)}`,
-    `${summary.oneWayEdges} one-way ${pluralize("edge", summary.oneWayEdges)}`,
-    `${summary.diagnostics} ${pluralize("diagnostic", summary.diagnostics)}`,
-  ].join(", ");
-}
-
-function pairStatus(pair: GraphPair): string {
-  if (pair.hasDocEdge && pair.hasCodeEdge) {
-    return "bidirectional";
-  }
-  return pair.hasDocEdge ? "missing @code backlink" : "missing @doc backlink";
-}
-
-function compareNodes(left: GraphNode, right: GraphNode): number {
+export function compareNodes(left: GraphNode, right: GraphNode): number {
   return compareEndpointOrder(
     { ...left.location, endpoint: left.endpoint },
     { ...right.location, endpoint: right.endpoint },
@@ -478,7 +402,7 @@ function compareEdges(left: GraphEdge, right: GraphEdge): number {
   );
 }
 
-function comparePairs(left: GraphPair, right: GraphPair): number {
+export function comparePairs(left: GraphPair, right: GraphPair): number {
   return (
     left.docEndpoint.localeCompare(right.docEndpoint) ||
     left.codeEndpoint.localeCompare(right.codeEndpoint)

@@ -3,10 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { formatContextResult } from "../../../cli/render/context";
 import { definition, references } from "../../../lsp/navigation";
 import { Project } from "../../../lsp/project";
 import { check } from "../../../query/check";
-import { context, formatContextResult } from "../../../query/context";
+import { context } from "../../../query/context";
 import { graph } from "../../../query/graph-output";
 
 function withDartProject(run: (root: string) => void): void {

@@ -118,6 +118,18 @@ describe("layers import only the layers below them", () => {
     expect(unassigned).toEqual([]);
   });
 
+  test("analysis layers return data and leave terminal text to src/cli/render/", () => {
+    const formatterPattern = /^export function (?:format|render)[A-Z]\w*/gm;
+    const offenders = ["model", "shared", "config", "scan", "link", "query"].flatMap((layer) =>
+      modulesUnder(`src/${layer}/`).flatMap((relPath) =>
+        [...readFileSync(join(REPO_ROOT, relPath), "utf8").matchAll(formatterPattern)].map(
+          (match) => `${relPath}: ${match[0]}`,
+        ),
+      ),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   test("setup owns initialization, skill installation, registry access, and update guidance", () => {
     expect(modulesUnder("src/setup/").toSorted()).toEqual([
       "src/setup/init-discovery.ts",

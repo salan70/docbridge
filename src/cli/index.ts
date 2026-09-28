@@ -7,15 +7,12 @@ import pkg from "../../package.json";
 import { CONFIG_FILE_NAME } from "../config/config";
 import { LINK_MANIFEST_FILE_NAME } from "../config/link-manifest";
 import { runLspServer } from "../lsp/server";
-import { formatDiagnostic, formatSummary } from "../model/diagnostics";
 import type { DocBridgeDiagnostic } from "../model/types";
 import { check as runChecker } from "../query/check";
-import { context as runContextCore, formatContextResult } from "../query/context";
-import { formatGraphResult, graph as runGraphCore } from "../query/graph-output";
+import { context as runContextCore } from "../query/context";
+import { graph as runGraphCore } from "../query/graph-output";
 import {
   collectGateViolations,
-  formatGateResult,
-  formatRelatedResult,
   normalizeChangedPaths,
   related as runRelatedCore,
 } from "../query/related";
@@ -58,6 +55,10 @@ import {
   type InitRuntime,
 } from "./init";
 import type { CliIo } from "./io";
+import { formatContextResult } from "./render/context";
+import { formatDiagnostic, formatSummary } from "./render/diagnostics";
+import { formatGraphResult } from "./render/graph";
+import { formatGateResult, formatRelatedResult } from "./render/related";
 import { parseUpgradeOptions, runUpgrade } from "./upgrade";
 
 const VERSION = pkg.version;
