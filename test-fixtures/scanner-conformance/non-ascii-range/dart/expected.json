@@ -1,0 +1,72 @@
+{
+  "filePath": "input.dart",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "input.dart",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.dart#login",
+      "location": {
+        "filePath": "input.dart",
+        "line": 3,
+        "column": 8
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 8
+        },
+        "end": {
+          "line": 3,
+          "column": 13
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 32
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 16
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.dart#login",
+      "target": "docs/ログイン😀.md#login",
+      "location": {
+        "filePath": "input.dart",
+        "line": 2,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 10
+        },
+        "end": {
+          "line": 2,
+          "column": 30
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "dart"
+}

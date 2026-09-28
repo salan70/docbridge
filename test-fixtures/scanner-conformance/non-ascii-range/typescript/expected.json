@@ -1,0 +1,72 @@
+{
+  "language": "typescript",
+  "filePath": "input.ts",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "typescript",
+      "filePath": "input.ts",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.ts#login",
+      "location": {
+        "filePath": "input.ts",
+        "line": 5,
+        "column": 1
+      },
+      "nameRange": {
+        "start": {
+          "line": 5,
+          "column": 17
+        },
+        "end": {
+          "line": 5,
+          "column": 22
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 49
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 33
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.ts#login",
+      "target": "docs/ログイン😀.md#login",
+      "location": {
+        "filePath": "input.ts",
+        "line": 5,
+        "column": 1
+      },
+      "targetRange": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 29
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

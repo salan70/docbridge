@@ -1,0 +1,4 @@
+/** @doc docs/auth.md#login */
+export function login(): void {}
+
+export function logout(): void {}

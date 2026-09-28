@@ -1,0 +1,96 @@
+{
+  "filePath": "input.dart",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "input.dart",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.dart#login",
+      "location": {
+        "filePath": "input.dart",
+        "line": 3,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 6
+        },
+        "end": {
+          "line": 3,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 16
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 14
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.dart#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.dart",
+        "line": 1,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 28
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/auth.md#login",
+      "language": "dart",
+      "source": "input.dart#login",
+      "message": "Duplicate @doc link from input.dart#login to docs/auth.md#login.",
+      "location": {
+        "filePath": "input.dart",
+        "line": 2,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 10
+        },
+        "end": {
+          "line": 2,
+          "column": 28
+        }
+      }
+    }
+  ],
+  "language": "dart"
+}

@@ -1,0 +1,116 @@
+{
+  "filePath": "input.rs",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "rust",
+      "filePath": "input.rs",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.rs#login",
+      "location": {
+        "filePath": "input.rs",
+        "line": 2,
+        "column": 8
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 8
+        },
+        "end": {
+          "line": 2,
+          "column": 13
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 18
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 15
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "rust",
+      "filePath": "input.rs",
+      "symbolName": "logout",
+      "canonicalId": "logout",
+      "endpoint": "input.rs#logout",
+      "location": {
+        "filePath": "input.rs",
+        "line": 4,
+        "column": 8
+      },
+      "nameRange": {
+        "start": {
+          "line": 4,
+          "column": 8
+        },
+        "end": {
+          "line": 4,
+          "column": 14
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 19
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 16
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "input.rs#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.rs",
+        "line": 1,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 28
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "rust"
+}

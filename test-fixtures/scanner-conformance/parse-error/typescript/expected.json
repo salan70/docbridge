@@ -1,0 +1,21 @@
+{
+  "language": "typescript",
+  "filePath": "input.ts",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "language": "typescript",
+      "target": "input.ts",
+      "message": "TypeScript parse error: '}' expected.",
+      "location": {
+        "filePath": "input.ts",
+        "line": 3,
+        "column": 1
+      }
+    }
+  ]
+}

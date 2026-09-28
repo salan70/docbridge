@@ -44,6 +44,14 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just test-rust-scanner` runs the Cargo test suite for
   `packages/rust-scanner`. The Nix dev shell provides the Rust toolchain
   pinned by `packages/rust-scanner/rust-toolchain.toml`.
+- `src/scan/code/conformance.test.ts` runs every case under
+  `test-fixtures/scanner-conformance/<case>/<language>/` through the real
+  adapter for that language. It compares the result with that directory's
+  `expected.json`. Inputs are stored as `input.txt` so formatters and linters
+  leave them alone, including cases that must not parse. Every case covers all
+  four languages. Expectations stay per language because canonical IDs and
+  positions differ by language. When you add a case, review each
+  `expected.json` against the input before committing it.
 - CI treats the scanner-native test suites as mandatory before the shared
   `just test` gate. Local changes to scanner code should run the matching
   native test plus `just test`.

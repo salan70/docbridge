@@ -1,0 +1,21 @@
+{
+  "filePath": "input.rs",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "target": "input.rs",
+      "language": "rust",
+      "message": "Rust parser reported syntax errors.",
+      "location": {
+        "filePath": "input.rs",
+        "line": 1,
+        "column": 1
+      }
+    }
+  ],
+  "language": "rust"
+}

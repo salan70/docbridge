@@ -1,0 +1,21 @@
+{
+  "diagnostics": [
+    {
+      "code": "code_parse_error",
+      "language": "swift",
+      "location": {
+        "column": 1,
+        "filePath": "Input.swift",
+        "line": 1
+      },
+      "message": "Swift parser reported syntax errors.",
+      "severity": "error",
+      "target": "Input.swift"
+    }
+  ],
+  "filePath": "Input.swift",
+  "links": [],
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "language": "swift"
+}
