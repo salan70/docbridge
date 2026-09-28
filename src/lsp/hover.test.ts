@@ -26,6 +26,28 @@ describe(hover, () => {
     expect(result?.value).toContain("export function login()");
   });
 
+  test("doc to code shows the whole signature when the name is on a later line", () => {
+    const code =
+      "/**\n * @doc docs/auth.md#login-spec\n */\nexport const\n  login = (): void => {};\n";
+
+    const result = hover(stateOf(code, DOC), DOC_FILE, HEADING);
+
+    expect(result?.value).toBe(
+      "**src/auth/login.ts#login**\n\n```ts\nexport const\n  login = (): void =>\n```",
+    );
+  });
+
+  test("doc to code drops the leading doc comment but keeps decorators", () => {
+    const code =
+      "/**\n * @doc docs/auth.md#login-spec\n */\n@sealed\nexport class login {\n  run(): void {}\n}\n";
+
+    const result = hover(stateOf(code, DOC), DOC_FILE, HEADING);
+
+    expect(result?.value).toBe(
+      "**src/auth/login.ts#login**\n\n```ts\n@sealed\nexport class login\n```",
+    );
+  });
+
   test("concatenates one-to-many sections with a divider", () => {
     const code =
       "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";

@@ -755,6 +755,16 @@ impl PositionConverter {
         }
     }
 
+    /// `syn` strips a leading byte order mark before it tokenizes, so its
+    /// first-line columns start one character later in the original content.
+    fn source_column(&self, loc: LineColumn) -> usize {
+        if loc.line == 1 && self.content.starts_with('\u{FEFF}') {
+            loc.column + 1
+        } else {
+            loc.column
+        }
+    }
+
     fn line_column(&self, loc: LineColumn) -> Position {
         // With `span-locations`, proc-macro2 reports 1-based lines and 0-based
         // Unicode scalar columns. DocBridge wants 1-based UTF-16 columns.
@@ -767,7 +777,7 @@ impl PositionConverter {
             .copied()
             .unwrap_or(self.content.len());
         let line_text = &self.content[line_start..line_end];
-        let prefix: String = line_text.chars().take(loc.column).collect();
+        let prefix: String = line_text.chars().take(self.source_column(loc)).collect();
         let utf16_col = prefix.encode_utf16().count() + 1;
         Position {
             line,
@@ -786,7 +796,7 @@ impl PositionConverter {
         let line_text = &self.content[line_start..line_end];
         let column_offset = line_text
             .char_indices()
-            .nth(loc.column)
+            .nth(self.source_column(loc))
             .map_or(line_text.len(), |(offset, _)| offset);
         line_start + column_offset
     }

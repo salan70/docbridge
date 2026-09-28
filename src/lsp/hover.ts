@@ -1,7 +1,8 @@
 import { counterpartsOf, type GraphEndpoint } from "../link/graph";
 import { endpointRange } from "../model/endpoint";
-import type { Position, Range } from "../model/types";
+import type { CodeLanguage, Position, Range } from "../model/types";
 import { capSectionLength, extractDocSection } from "../scan/markdown/section";
+import { sliceSourceRange } from "../shared/source-range";
 import { endpointAt } from "./index-lookup";
 import type { ProjectState } from "./project";
 
@@ -16,7 +17,7 @@ const DIVIDER = "\n\n---\n\n";
 /**
  * Build hover content for the element at `position`. Code symbols render their
  * linked Markdown section(s) inline; doc headings render the linked code
- * endpoint and its declaration signature line. Returns `null` when nothing is
+ * endpoint and its declaration signature. Returns `null` when nothing is
  * under the cursor or the element has no resolvable counterpart.
  *
  * @doc docs/specs/lsp.md#hover
@@ -64,7 +65,7 @@ function renderDocSections(state: ProjectState, counterparts: GraphEndpoint[]): 
   return sections.length > 0 ? sections.join(DIVIDER) : null;
 }
 
-/** Doc -> code: the linked endpoint plus its declaration signature line. */
+/** Doc -> code: the linked endpoint plus its declaration signature. */
 function renderCodeSignatures(state: ProjectState, counterparts: GraphEndpoint[]): string | null {
   const blocks: string[] = [];
   for (const symbol of counterparts) {
@@ -72,13 +73,71 @@ function renderCodeSignatures(state: ProjectState, counterparts: GraphEndpoint[]
       continue;
     }
     const content = state.contentByFile.get(symbol.filePath);
-    const signature = content === undefined ? "" : lineAt(content, symbol.location.line).trim();
-    const fenced = signature.length > 0 ? `\n\n\`\`\`ts\n${signature}\n\`\`\`` : "";
+    const signature =
+      content === undefined || symbol.signatureRange === undefined
+        ? ""
+        : withoutLeadingComments(
+            sliceSourceRange(content, symbol.signatureRange).content,
+            symbol.language,
+          ).trimEnd();
+    const fenced =
+      signature.length > 0
+        ? `\n\n\`\`\`${FENCE_LANGUAGE[symbol.language]}\n${signature}\n\`\`\``
+        : "";
     blocks.push(`**${symbol.endpoint}**${fenced}`);
   }
   return blocks.length > 0 ? blocks.join(DIVIDER) : null;
 }
 
-function lineAt(content: string, line: number): string {
-  return content.split("\n")[line - 1] ?? "";
+const FENCE_LANGUAGE: Readonly<Record<CodeLanguage, string>> = {
+  typescript: "ts",
+  swift: "swift",
+  dart: "dart",
+  rust: "rust",
+};
+
+/** Languages whose block comments nest, so an inner block comment opens a new level. */
+const NESTED_BLOCK_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["swift", "dart", "rust"]);
+
+/**
+ * Drop the whitespace and comments before a declaration, such as the doc
+ * comment that `signatureRange` starts with. Attributes, decorators, and
+ * comments inside the declaration stay.
+ */
+function withoutLeadingComments(text: string, language: CodeLanguage): string {
+  let index = 0;
+  for (;;) {
+    while (index < text.length && /\s/.test(text[index] ?? "")) {
+      index += 1;
+    }
+    if (text.startsWith("//", index)) {
+      const newline = text.indexOf("\n", index);
+      index = newline === -1 ? text.length : newline + 1;
+    } else if (text.startsWith("/*", index)) {
+      index = blockCommentEnd(text, index, NESTED_BLOCK_COMMENTS.has(language));
+    } else {
+      return text.slice(index);
+    }
+  }
+}
+
+/** The offset just past the block comment that opens at `start`. */
+function blockCommentEnd(text: string, start: number, nests: boolean): number {
+  let depth = 0;
+  let index = start;
+  while (index < text.length) {
+    if (text.startsWith("/*", index) && (nests || depth === 0)) {
+      depth += 1;
+      index += 2;
+    } else if (text.startsWith("*/", index)) {
+      depth -= 1;
+      index += 2;
+      if (depth === 0) {
+        return index;
+      }
+    } else {
+      index += 1;
+    }
+  }
+  return text.length;
 }

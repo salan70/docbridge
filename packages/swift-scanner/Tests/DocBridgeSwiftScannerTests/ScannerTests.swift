@@ -221,6 +221,16 @@ final class ScannerTests: XCTestCase {
     XCTAssertNotEqual(diagnostic.message, "Swift parse error: ")
   }
 
+  func testReportsTheEarliestParseErrorRatherThanAnEarlierWarning() throws {
+    // U+00A0 before `func` is a parser warning; the stray `)` is the error.
+    let file = try scan("public\u{00A0}func ok() {}\n)\n")
+
+    let diagnostic = try XCTUnwrap(file.diagnostics.first)
+    XCTAssertEqual(diagnostic.code, "code_parse_error")
+    XCTAssertEqual(diagnostic.location?.line, 2)
+    XCTAssertEqual(diagnostic.location?.column, 1)
+  }
+
   func testUsesUtf16OneBasedEndExclusiveRanges() throws {
     let source = """
       /// @doc docs/auth.md#smile

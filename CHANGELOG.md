@@ -17,8 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript link diagnostics such as `duplicate_link`, `doc_file_not_found`,
   and `doc_backlink_not_found` now point at the `@doc` target that caused
   them, as they already did for Swift, Dart, and Rust. Before, they pointed at
-  the declaration below the comment. A TypeScript symbol's reported position
-  is now the start of its name in every language.
+  the declaration below the comment. TypeScript symbols now report the start
+  of their name, matching the other languages.
+- Editor hover from a Markdown heading shows the linked declaration's whole
+  signature without its doc comment, fenced in the declaration's language.
+  Before, it showed only one line, always fenced as TypeScript.
 
 ## [0.10.0] - 2026-09-28
 

@@ -179,6 +179,20 @@ fn reports_parse_error_at_the_parser_position_in_utf16_columns() {
 }
 
 #[test]
+fn counts_a_leading_byte_order_mark_in_first_line_columns() {
+    // `syn` strips the BOM before parsing; DocBridge columns still count it.
+    let broken = scan("\u{FEFF}/* \u{1F600} */ )\n", None);
+    let diagnostic = &broken["files"][0]["diagnostics"][0];
+    assert_eq!(diagnostic["location"]["line"], 1);
+    assert_eq!(diagnostic["location"]["column"], 11);
+
+    let parsed = scan("\u{FEFF}pub fn login() {}\n", None);
+    let symbol = &parsed["files"][0]["undocumentedSymbols"][0];
+    assert_eq!(symbol["location"]["line"], 1);
+    assert_eq!(symbol["location"]["column"], 9);
+}
+
+#[test]
 fn reports_unsupported_trait_impl_method_with_doc() {
     let source = r#"
 pub struct AuthService;

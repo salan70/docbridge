@@ -24,8 +24,10 @@ public final class Scanner {
     let tree = Parser.parse(source: file.content)
     if tree.hasError {
       // Report the earliest syntax error the parser describes, as a 1-based
-      // UTF-16 position. Line 1, column 1 remains only when none is described.
+      // UTF-16 position. Warnings, such as a non-breaking space, are skipped.
+      // Line 1, column 1 remains only when no error is described.
       let earliest = ParseDiagnosticsGenerator.diagnostics(for: tree)
+        .filter { $0.diagMessage.severity == .error }
         .min { $0.position.utf8Offset < $1.position.utf8Offset }
       let position =
         earliest.map { PositionConverter(content: file.content).lineColumn(at: $0.position) }
