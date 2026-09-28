@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Editor hover from a Markdown heading shows the linked declaration's whole
   signature without its doc comment, fenced in the declaration's language.
   Before, it showed only one line, always fenced as TypeScript.
+- `context`, `graph --include-content`, and hover no longer include text past
+  the end of a declaration that starts mid-line and ends on the same line,
+  such as a declaration after a one-line doc comment followed by its body.
 
 ## [0.10.0] - 2026-09-28
 

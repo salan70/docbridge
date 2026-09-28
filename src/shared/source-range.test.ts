@@ -16,3 +16,18 @@ test("sliceSourceRange excludes the line at an exclusive column-one end", () => 
     endLine: 2,
   });
 });
+
+test("sliceSourceRange keeps a range that starts and ends mid-line to that range", () => {
+  const content = "/** @doc docs/a.md#a */ export function login() { secret(); }\n";
+
+  expect(
+    sliceSourceRange(content, {
+      start: { line: 1, column: 25 },
+      end: { line: 1, column: 48 },
+    }),
+  ).toEqual({
+    content: "export function login()",
+    startLine: 1,
+    endLine: 1,
+  });
+});

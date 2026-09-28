@@ -13,14 +13,16 @@ export function sliceSourceRange(content: string, range: Range): SlicedSourceRan
   const endLine = range.end.column === 1 ? range.end.line - 1 : range.end.line;
   const lines = content.split("\n").slice(startLine - 1, endLine);
 
-  const firstLine = lines[0];
-  if (firstLine !== undefined) {
-    lines[0] = firstLine.slice(range.start.column - 1);
-  }
+  // Cut the end first: its column counts from the start of the original line,
+  // which a range that starts and ends on one line would otherwise shift.
   const lastIndex = lines.length - 1;
   const lastLine = lines[lastIndex];
   if (lastLine !== undefined && range.end.column > 1) {
     lines[lastIndex] = lastLine.slice(0, range.end.column - 1);
+  }
+  const firstLine = lines[0];
+  if (firstLine !== undefined) {
+    lines[0] = firstLine.slice(range.start.column - 1);
   }
 
   return {
