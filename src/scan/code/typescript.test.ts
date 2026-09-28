@@ -68,19 +68,19 @@ describe("scanTypeScript", () => {
     );
   });
 
-  test("uses 1-based declaration location for symbol and link", () => {
+  test("locates a symbol at its name and a link at its annotation target", () => {
     const content = "/**\n * @doc docs/auth.md#login-spec\n */\nexport function login() {}\n";
     const result = scan(content);
 
     expect(result.symbols[0]?.location).toEqual({
       filePath: FILE,
       line: 4,
-      column: 1,
+      column: 17,
     });
     expect(result.links[0]?.location).toEqual({
       filePath: FILE,
-      line: 4,
-      column: 1,
+      line: 2,
+      column: 9,
     });
   });
 

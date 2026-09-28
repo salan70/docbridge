@@ -22,6 +22,7 @@ visibility などの値が不正です。[設定](configuration.md) の最小例
 source syntax を順に確認します。
 
 `code_parse_error` は TypeScript、Swift、Dart、Rust の source file の構文エラーです。
+診断は、その言語の parser が最初に見つけたエラーの位置を指し、parser のメッセージを含みます。
 そのファイルからはリンクも symbol も抽出されないため、先に構文を直してから関係する
 リンクの診断を確認します。`code_scanner_failed` と違い、worker 自体は正常に動作して
 おり、source が解析できなかったことを示します。

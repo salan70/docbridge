@@ -12,7 +12,7 @@
       "location": {
         "filePath": "input.ts",
         "line": 5,
-        "column": 1
+        "column": 17
       },
       "nameRange": {
         "start": {
@@ -53,8 +53,8 @@
       "target": "docs/auth.md#login",
       "location": {
         "filePath": "input.ts",
-        "line": 5,
-        "column": 1
+        "line": 2,
+        "column": 9
       },
       "targetRange": {
         "start": {
@@ -77,8 +77,8 @@
       "message": "Duplicate @doc link from input.ts#login to docs/auth.md#login.",
       "location": {
         "filePath": "input.ts",
-        "line": 5,
-        "column": 1
+        "line": 3,
+        "column": 9
       },
       "range": {
         "start": {

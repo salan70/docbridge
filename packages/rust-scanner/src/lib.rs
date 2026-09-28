@@ -37,7 +37,9 @@ fn scan_request(request: &WorkerRequest) -> WorkerResponse {
 fn scan_file(file: &WorkerFile, visibility: Option<&[String]>) -> WorkerFileResponse {
     let parsed = match syn::parse_file(&file.content) {
         Ok(file) => file,
-        Err(_) => {
+        Err(error) => {
+            // Report where `syn` stopped, converted to a 1-based UTF-16 column.
+            let position = PositionConverter::new(&file.content).line_column(error.span().start());
             return WorkerFileResponse {
                 file_path: file.file_path.clone(),
                 symbols: vec![],
@@ -46,12 +48,12 @@ fn scan_file(file: &WorkerFile, visibility: Option<&[String]>) -> WorkerFileResp
                 diagnostics: vec![diagnostic(
                     "code_parse_error",
                     &file.file_path,
-                    "Rust parser reported syntax errors.",
+                    &format!("Rust parse error: {}", sentence(&error.to_string())),
                     None,
                     Some(SourceLocation {
                         file_path: file.file_path.clone(),
-                        line: 1,
-                        column: 1,
+                        line: position.line.max(1),
+                        column: position.column,
                     }),
                     None,
                 )],
@@ -65,6 +67,15 @@ fn scan_file(file: &WorkerFile, visibility: Option<&[String]>) -> WorkerFileResp
     let converter = PositionConverter::new(&file.content);
     let declarations = collect_declarations(&parsed, &converter, &visibility_set);
     build_response(&file.file_path, declarations)
+}
+
+/// End a parser message with a period, as the TypeScript scanner's messages do.
+fn sentence(message: &str) -> String {
+    if message.ends_with('.') {
+        message.to_string()
+    } else {
+        format!("{message}.")
+    }
 }
 
 fn build_response(file_path: &str, declarations: Vec<Declaration>) -> WorkerFileResponse {

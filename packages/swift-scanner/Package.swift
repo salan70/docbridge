@@ -16,6 +16,7 @@ let package = Package(
       name: "DocBridgeSwiftScanner",
       dependencies: [
         .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftParserDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax")
       ]
     ),

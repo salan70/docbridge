@@ -9,11 +9,11 @@
       "code": "code_parse_error",
       "target": "input.rs",
       "language": "rust",
-      "message": "Rust parser reported syntax errors.",
+      "message": "Rust parse error: cannot parse string into token stream.",
       "location": {
         "filePath": "input.rs",
-        "line": 1,
-        "column": 1
+        "line": 3,
+        "column": 12
       }
     }
   ],
