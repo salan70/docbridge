@@ -1,7 +1,5 @@
-// Minimal LSP client over stdio, shared by the editor-independent smoke test
-// (`scripts/lsp-verify.ts`) and the packaged-VSIX verification
-// (`scripts/vscode-extension.ts`). Both drive `docbridge lsp`; only the command
-// and the project root differ.
+// Minimal LSP client over stdio for the packaged-VSIX verification
+// (`scripts/vscode-extension.ts`), which drives `docbridge lsp`.
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { pathToFileURL } from "node:url";
 

@@ -132,15 +132,6 @@ work.
 
 ## Development
 
-Run the local editor-independent LSP smoke test from the repository root:
-
-```sh
-just verify-lsp
-```
-
-This drives `docbridge lsp` over stdio and checks Hover, Definition, References,
-and Diagnostics.
-
 Type-check the editor client:
 
 ```sh

@@ -106,10 +106,6 @@ check-docs:
 check-ai-assets:
     bun run scripts/check-ai-assets.ts
 
-# Report advisory length and repetition signals without failing on warnings.
-prose-report kind source:
-    bun run scripts/prose-report.ts {{ kind }} {{ source }}
-
 check-example:
     bun run src/cli/index.ts check --root examples/typescript
 
@@ -140,10 +136,6 @@ check-fixture code:
 # List counterparts of uncommitted changes that are themselves unchanged; exit 1 if any.
 related-gate:
     { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | bun run src/cli/index.ts related --stdin --gate
-
-# Same verdict over the staged change set only, which is what `pre-commit` gates on.
-related-gate-staged:
-    git diff --cached --name-only | bun run src/cli/index.ts related --stdin --gate
 
 # Report the staged change set's gate violations with the flagged counterparts'
 # content on stderr. Always exits 0; the pre-commit hook uses it as awareness.
@@ -252,10 +244,6 @@ verify-vsix-local *ARGS:
 # Publish a verified VSIX to VS Code Marketplace. Requires VSCE_PAT.
 publish-vscode-extension *ARGS:
     bun run scripts/vscode-extension.ts publish-vscode {{ ARGS }}
-
-# Exercise the language server (hover, definition, references, diagnostics) over stdio.
-verify-lsp:
-    bun run scripts/lsp-verify.ts
 
 # Install the DocBridge editor extension into VS Code and open this workspace.
 vscode-lsp:
