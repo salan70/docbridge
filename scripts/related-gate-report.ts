@@ -2,7 +2,8 @@
 
 import { resolve } from "node:path";
 
-import { context, renderContextBlock, type ContextBlock } from "../src/query/context";
+import { renderContextBlock } from "../src/cli/render/context";
+import { context, type ContextBlock } from "../src/query/context";
 import { collectGateViolations, related, type RelatedGateViolation } from "../src/query/related";
 
 const repoRoot = resolve(import.meta.dir, "..");

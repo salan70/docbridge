@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
+import ts from "typescript";
+
 import { collectFiles } from "./shared/glob";
 
 /**
@@ -70,6 +72,46 @@ function transitiveImports(entry: string): Set<string> {
   return seen;
 }
 
+/** Every name a module exports, read from its syntax tree rather than its text. */
+function exportedNames(relPath: string): string[] {
+  const source = ts.createSourceFile(
+    relPath,
+    readFileSync(join(REPO_ROOT, relPath), "utf8"),
+    ts.ScriptTarget.Latest,
+  );
+  const names: string[] = [];
+  for (const statement of source.statements) {
+    if (ts.isExportDeclaration(statement)) {
+      const clause = statement.exportClause;
+      if (clause !== undefined && ts.isNamedExports(clause)) {
+        names.push(...clause.elements.map((element) => element.name.text));
+      }
+      continue;
+    }
+    const exported = ts.canHaveModifiers(statement)
+      ? (ts.getModifiers(statement) ?? []).some(
+          (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+        )
+      : false;
+    if (!exported) {
+      continue;
+    }
+    if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name)) {
+          names.push(declaration.name.text);
+        }
+      }
+    } else if (
+      (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+      statement.name !== undefined
+    ) {
+      names.push(statement.name.text);
+    }
+  }
+  return names;
+}
+
 function modulesUnder(directory: string): string[] {
   return productionModules().filter((relPath) => relPath.startsWith(directory));
 }
@@ -116,6 +158,17 @@ describe("layers import only the layers below them", () => {
       );
     });
     expect(unassigned).toEqual([]);
+  });
+
+  test("analysis layers return data and leave terminal text to src/cli/render/", () => {
+    const offenders = ["model", "shared", "config", "scan", "link", "query"].flatMap((layer) =>
+      modulesUnder(`src/${layer}/`).flatMap((relPath) =>
+        exportedNames(relPath)
+          .filter((name) => /^(?:format|render)[A-Z]/.test(name))
+          .map((name) => `${relPath}#${name}`),
+      ),
+    );
+    expect(offenders).toEqual([]);
   });
 
   test("setup owns initialization, skill installation, registry access, and update guidance", () => {

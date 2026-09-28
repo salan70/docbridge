@@ -193,6 +193,41 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/cli/render/context.ts#formatContextResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/cli/render/context.ts#renderContextBlock",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/cli/render/diagnostics.ts#formatDiagnostic",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/cli/render/diagnostics.ts#formatSummary",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/cli/render/graph.ts#formatGraphResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/cli/render/related.ts#formatGateResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/cli/render/related.ts#formatRelatedResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/cli/test-support.ts#capture",
       "class": "test_support"
     },
@@ -239,6 +274,51 @@
     {
       "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#KNOWN_CODE_LANGUAGES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/context.ts#ContextResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/context.ts#ContextSummary",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/graph-output.ts#compareNodes",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/graph-output.ts#comparePairs",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/graph-output.ts#GraphPair",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/graph-output.ts#GraphResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/graph-output.ts#GraphSummary",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/related.ts#RelatedResult",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/related.ts#RelatedSummary",
       "class": "sibling_export"
     },
     {
@@ -293,28 +373,8 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/context.ts#formatContextResult",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/query/context.ts#renderContextBlock",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/model/diagnostics.ts#collectErroredFiles",
       "class": "internal_helper"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/model/diagnostics.ts#formatDiagnostic",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/model/diagnostics.ts#formatSummary",
-      "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
@@ -369,11 +429,6 @@
     {
       "code": "undocumented_symbol",
       "target": "src/query/graph-output.ts#computeGraphResult",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#formatGraphResult",
       "class": "sibling_export"
     },
     {
@@ -509,16 +564,6 @@
     {
       "code": "undocumented_symbol",
       "target": "src/query/related.ts#computeRelated",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/query/related.ts#formatGateResult",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/query/related.ts#formatRelatedResult",
       "class": "sibling_export"
     },
     {

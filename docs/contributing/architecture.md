@@ -34,6 +34,11 @@ The two entrypoints are otherwise peers, with one edge between them:
 `src/cli/index.ts` dispatches the `lsp` subcommand, so it imports
 `src/lsp/server.ts`. Nothing under `src/lsp/` imports `src/cli/`.
 
+The analysis layers, `src/model/` through `src/query/`, return data. Terminal
+text for `check`, `related`, `context`, and `graph` is produced in
+`src/cli/render/`, so the language server and scripts can reuse the same
+results without a formatter in between.
+
 `src/cli/index.ts` is the executable entrypoint. It starts the process,
 dispatches subcommands, and owns `CliRuntime`. Command modules must not import
 it; the shared write and read seams live in `src/cli/io.ts` instead.

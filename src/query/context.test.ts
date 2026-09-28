@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 
 import { graphFrom, makeProject, type GraphSources } from "../test-support";
-import { computeContext, context, formatContextResult } from "./context";
+import { computeContext, context } from "./context";
 
 const LOGIN_TS = [
   "/**",
@@ -127,73 +127,6 @@ test("computeContext slices same-line declarations by column, excluding neighbor
       content: "/** @doc docs/a.md#a-spec */ export const a = 1;",
     },
   ]);
-});
-
-test("formatContextResult renders doc sections raw and code declarations fenced", () => {
-  const sources: GraphSources = {
-    code: [["src/auth/login.ts", LOGIN_TS]],
-    docs: [["docs/auth.md", AUTH_MD]],
-  };
-  const graph = graphFrom(sources);
-  const contents = contentMap(sources);
-  const result = {
-    ...computeContext(graph, contents, ["src/auth/login.ts", "docs/auth.md"]),
-    diagnostics: [],
-  };
-
-  expect(formatContextResult(result)).toBe(
-    [
-      "docs/auth.md#login-spec (linked from src/auth/login.ts#login)",
-      "",
-      "## Login Spec",
-      "",
-      "The login flow.",
-      "",
-      "---",
-      "",
-      "src/auth/login.ts#login (linked from docs/auth.md#login-spec)",
-      "",
-      "```ts",
-      "/**",
-      " * @doc docs/auth.md#login-spec",
-      " */",
-      "export function login() {}",
-      "```",
-      "",
-      "2 input files, 2 context blocks",
-    ].join("\n"),
-  );
-});
-
-test("formatContextResult lengthens the code fence beyond backtick runs in the content", () => {
-  const result = {
-    contexts: [
-      {
-        endpoint: "src/a.ts#example",
-        kind: "code" as const,
-        filePath: "src/a.ts",
-        startLine: 1,
-        endLine: 2,
-        linkedFrom: ["docs/a.md#a-spec"],
-        content: '/** @doc docs/a.md#a-spec */\nexport const example = " ``` ";',
-      },
-    ],
-    summary: { inputFiles: 1, contexts: 1 },
-    diagnostics: [],
-  };
-
-  expect(formatContextResult(result)).toBe(
-    [
-      "src/a.ts#example (linked from docs/a.md#a-spec)",
-      "",
-      "````ts",
-      "/** @doc docs/a.md#a-spec */",
-      'export const example = " ``` ";',
-      "````",
-      "",
-      "1 input file, 1 context block",
-    ].join("\n"),
-  );
 });
 
 test("computeContext dedents a member declaration to its own indentation level", () => {
