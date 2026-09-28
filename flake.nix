@@ -43,14 +43,11 @@
             pkgs.bun
             pkgs.dart
             pkgs.deadnix
-            pkgs.direnv
-            pkgs.git
             pkgs.just
             # The npm package targets the Node.js runtime; verify-dist and
             # pack-smoke execute the built CLI with Node.
             pkgs.nodejs
             pkgs.nixfmt
-            pkgs.ripgrep
             pkgs.rumdl
             (pkgs.rust-bin.fromRustupToolchainFile ./packages/rust-scanner/rust-toolchain.toml)
             pkgs.shellcheck

@@ -69,15 +69,13 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown lint-swift lint-dart lint-rust lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
 
 lint-markdown:
     rumdl check .
-
-lint-swift: format-check-swift
 
 lint-dart:
     cd packages/dart-scanner && dart analyze --fatal-infos --fatal-warnings
@@ -112,20 +110,9 @@ check-docs:
 check-ai-assets:
     bun run scripts/check-ai-assets.ts
 
-check-example:
-    bun run src/cli/index.ts check --root examples/typescript
-
-check-swift-example:
-    bun run src/cli/index.ts check --root examples/swift
-
-check-dart-example:
-    bun run src/cli/index.ts check --root examples/dart
-
-check-rust-example:
-    bun run src/cli/index.ts check --root examples/rust
-
-check-example-json:
-    bun run src/cli/index.ts check --root examples/typescript --json
+# Check one example project under `examples/`; extra flags such as `--json` pass through.
+check-example lang="typescript" *ARGS:
+    bun run src/cli/index.ts check --root examples/{{ lang }} {{ ARGS }}
 
 audit:
     bun run src/cli/index.ts check --audit

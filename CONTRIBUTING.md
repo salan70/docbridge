@@ -128,10 +128,7 @@ Run additional checks when the affected area requires them:
 | Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`     |
 | Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
 | Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`       |
-| TypeScript example    | `just check-example`                                      |
-| Swift example         | `just check-swift-example`                                |
-| Dart example          | `just check-dart-example`                                 |
-| Rust example          | `just check-rust-example`                                 |
+| Examples              | `just check-example <typescript\|swift\|dart\|rust>`      |
 | npm distribution      | `just verify-dist`                                        |
 | Editor client         | `just typecheck-extension` (also in `just verify`)        |
 | VS Code extension     | `just package-vsix`, `just verify-vsix`                   |

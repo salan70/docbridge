@@ -50,11 +50,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Executable examples
 
-- `just check-example` verifies the TypeScript example under
-  `examples/typescript`.
-- `just check-swift-example` verifies the Swift example under `examples/swift`.
-- `just check-dart-example` verifies the Dart example under `examples/dart`.
-- `just check-rust-example` verifies the Rust example under `examples/rust`.
+`just check-example <lang>` runs `docbridge check` against
+`examples/<lang>`, where `<lang>` is `typescript` (the default), `swift`,
+`dart`, or `rust`. Extra flags such as `--json` pass through.
 
 ## Repository self-audit
 
