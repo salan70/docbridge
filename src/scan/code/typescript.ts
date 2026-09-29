@@ -97,9 +97,13 @@ export function scanTypeScript(
     if (supported === null) {
       // Only annotated unsupported declarations are reported; bare ones are
       // ignored entirely.
-      const firstDocTag = docTags[0];
-      if (firstDocTag) {
-        diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
+      if (docTags.length > 0) {
+        diagnostics.push(
+          unsupportedDeclarationDiagnostic(
+            filePath,
+            declarationLocation(filePath, sourceFile, statement),
+          ),
+        );
       }
     } else {
       declarations.push(supported);
@@ -231,6 +235,8 @@ function collectDocTags(filePath: string, sourceFile: ts.SourceFile, statement: 
     const docTag: DocTag = { rawTarget, location };
     const targetRange = targetRangeOf(sourceFile, tag, rawTarget);
     if (targetRange !== undefined) {
+      // A link sits at its annotation target, like the worker scanners report it.
+      docTag.location = { filePath, ...targetRange.start };
       docTag.targetRange = targetRange;
     }
     tags.push(docTag);
@@ -264,7 +270,7 @@ function describeSupportedDeclaration(
     symbolName: nameNode.text,
     canonicalId: nameNode.text,
     isMember: false,
-    location: locationOf(filePath, sourceFile, statement),
+    location: locationOf(filePath, sourceFile, nameNode),
     docTags,
   };
   declaration.nameRange = rangeOfNode(sourceFile, nameNode);
@@ -306,9 +312,13 @@ function collectMemberDeclarations(
         : describeMember(filePath, sourceFile, container.name, member, docTags);
 
     if (described === null) {
-      const firstDocTag = docTags[0];
-      if (firstDocTag) {
-        diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
+      if (docTags.length > 0) {
+        diagnostics.push(
+          unsupportedDeclarationDiagnostic(
+            filePath,
+            declarationLocation(filePath, sourceFile, member),
+          ),
+        );
       }
       continue;
     }
@@ -341,9 +351,13 @@ function diagnoseParameterProperties(
     if (!ts.isParameterPropertyDeclaration(parameter, member)) {
       continue;
     }
-    const firstDocTag = collectDocTags(filePath, sourceFile, parameter)[0];
-    if (firstDocTag) {
-      diagnostics.push(unsupportedDeclarationDiagnostic(filePath, firstDocTag.location));
+    if (collectDocTags(filePath, sourceFile, parameter).length > 0) {
+      diagnostics.push(
+        unsupportedDeclarationDiagnostic(
+          filePath,
+          declarationLocation(filePath, sourceFile, parameter),
+        ),
+      );
     }
   }
 }
@@ -426,7 +440,7 @@ function describeMember(
     symbolName: identity.name,
     canonicalId: `${containerName}.${identity.name}`,
     isMember: true,
-    location: locationOf(filePath, sourceFile, member),
+    location: { filePath, ...identity.nameRange.start },
     nameRange: identity.nameRange,
     declarationRange: rangeFromOffsets(sourceFile, start, member.getEnd()),
     signatureRange: rangeFromOffsets(
@@ -564,6 +578,21 @@ function hasDefaultModifier(statement: ts.Statement): boolean {
 function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
   const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
   return modifiers?.some((modifier) => modifier.kind === kind) ?? false;
+}
+
+/**
+ * Where a diagnostic about a whole declaration points: its name, as the worker
+ * scanners report it, or the declaration start when it has no name.
+ */
+function declarationLocation(
+  filePath: string,
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+): SourceLocation {
+  const carrier = ts.isVariableStatement(node) ? node.declarationList.declarations[0] : node;
+  const name =
+    carrier === undefined ? undefined : ts.getNameOfDeclaration(carrier as ts.Declaration);
+  return locationOf(filePath, sourceFile, name ?? node);
 }
 
 function locationOf(filePath: string, sourceFile: ts.SourceFile, node: ts.Node): SourceLocation {

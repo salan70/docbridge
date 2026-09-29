@@ -12,7 +12,7 @@
       "location": {
         "filePath": "input.ts",
         "line": 2,
-        "column": 1
+        "column": 17
       },
       "nameRange": {
         "start": {
@@ -57,7 +57,7 @@
       "location": {
         "filePath": "input.ts",
         "line": 4,
-        "column": 1
+        "column": 17
       },
       "nameRange": {
         "start": {
@@ -97,8 +97,8 @@
       "target": "docs/auth.md#login",
       "location": {
         "filePath": "input.ts",
-        "line": 2,
-        "column": 1
+        "line": 1,
+        "column": 10
       },
       "targetRange": {
         "start": {

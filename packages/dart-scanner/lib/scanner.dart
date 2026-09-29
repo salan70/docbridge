@@ -34,6 +34,11 @@ class Scanner {
     final parsed =
         parseString(content: file.content, throwIfDiagnostics: false);
     if (parsed.errors.isNotEmpty) {
+      // Report the earliest syntax error. Dart strings are UTF-16, so the
+      // analyzer's column is already a 1-based UTF-16 column.
+      final error = parsed.errors
+          .reduce((left, right) => right.offset < left.offset ? right : left);
+      final position = parsed.lineInfo.getLocation(error.offset);
       return WorkerFileResponse(
         filePath: file.filePath,
         symbols: const [],
@@ -43,9 +48,12 @@ class Scanner {
           Diagnostic(
             code: 'code_parse_error',
             target: file.filePath,
-            message: 'Dart analyzer reported syntax errors.',
-            location:
-                SourceLocation(filePath: file.filePath, line: 1, column: 1),
+            message: 'Dart parse error: ${_sentence(error.message)}',
+            location: SourceLocation(
+              filePath: file.filePath,
+              line: position.lineNumber,
+              column: position.columnNumber,
+            ),
           ),
         ],
       );
@@ -478,3 +486,7 @@ class _Collector {
   SourceRange _range(int start, int end) =>
       SourceRange(start: _position(start), end: _position(end));
 }
+
+/// End a parser message with a period, as the TypeScript scanner's messages do.
+String _sentence(String message) =>
+    message.endsWith('.') ? message : '$message.';

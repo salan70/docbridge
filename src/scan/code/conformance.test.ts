@@ -56,6 +56,35 @@ for (const name of cases) {
         expect(existsSync(expectedPath)).toBe(true);
         expect(codeFiles).toEqual([JSON.parse(readFileSync(expectedPath, "utf8"))]);
       });
+
+      test(`${language} adapter locates symbols at their name and links at their target`, () => {
+        const caseDir = join(CORPUS_ROOT, name, language);
+        const content = readFileSync(join(caseDir, "input.txt"), "utf8");
+        const relPath = SCANNED_PATH[language];
+
+        const { codeFiles } = scanCodeFiles(
+          caseDir,
+          [{ language, relPath }],
+          { [language]: { patterns: [relPath] } },
+          () => ({ ok: true, content }),
+        );
+
+        const scan = codeFiles[0];
+        expect(scan).toBeDefined();
+        for (const symbol of [...(scan?.symbols ?? []), ...(scan?.undocumentedSymbols ?? [])]) {
+          expect({ line: symbol.location.line, column: symbol.location.column }).toEqual(
+            symbol.nameRange?.start ?? {
+              line: symbol.location.line,
+              column: symbol.location.column,
+            },
+          );
+        }
+        for (const link of scan?.links ?? []) {
+          expect({ line: link.location.line, column: link.location.column }).toEqual(
+            link.targetRange?.start ?? { line: link.location.line, column: link.location.column },
+          );
+        }
+      });
     }
   });
 }

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-28
+
+### Fixed
+
+- `code_parse_error` for Swift, Dart, and Rust files now points at the first
+  syntax error the parser found and includes the parser's message. Before, it
+  always pointed at line 1, column 1 with a generic message.
+- TypeScript link diagnostics such as `duplicate_link`, `doc_file_not_found`,
+  and `doc_backlink_not_found` now point at the `@doc` target that caused
+  them, as they already did for Swift, Dart, and Rust. Before, they pointed at
+  the declaration below the comment. TypeScript symbols now report the start
+  of their name, matching the other languages.
+- Editor hover from a Markdown heading shows the linked declaration's whole
+  signature without its doc comment, fenced in the declaration's language.
+  Before, it showed only one line, always fenced as TypeScript.
+- `context`, `graph --include-content`, and hover no longer include text past
+  the end of a declaration that starts mid-line and ends on the same line,
+  such as a declaration after a one-line doc comment followed by its body.
+
 ## [0.10.0] - 2026-09-28
 
 ### Changed
@@ -433,7 +452,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/salan70/docbridge/releases/tag/v0.10.1
 [0.10.0]: https://github.com/salan70/docbridge/releases/tag/v0.10.0
 [0.9.0]: https://github.com/salan70/docbridge/releases/tag/v0.9.0
 [0.8.0]: https://github.com/salan70/docbridge/releases/tag/v0.8.0

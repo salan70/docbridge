@@ -46,7 +46,7 @@ run, including clean ones, and is omitted under `--json`:
 
 ```text
 docs/specs/cli.md:12:1 error doc_anchor_not_found docs/specs/missing.md#check-command - Documentation anchor not found.
-src/cli/index.ts:3:1 warning duplicate_link docs/specs/cli.md#check-command - Duplicate link annotation.
+src/cli/index.ts:3:9 warning duplicate_link docs/specs/cli.md#check-command - Duplicate link annotation.
 
 Summary: 1 error, 1 warning
 See `docbridge docs show troubleshooting` for diagnostic codes and fixes.

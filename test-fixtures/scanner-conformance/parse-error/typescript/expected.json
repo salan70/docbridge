@@ -10,11 +10,11 @@
       "code": "code_parse_error",
       "language": "typescript",
       "target": "input.ts",
-      "message": "TypeScript parse error: '}' expected.",
+      "message": "TypeScript parse error: Declaration or statement expected.",
       "location": {
         "filePath": "input.ts",
         "line": 3,
-        "column": 1
+        "column": 12
       }
     }
   ]

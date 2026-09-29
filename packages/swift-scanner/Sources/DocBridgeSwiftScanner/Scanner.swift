@@ -1,5 +1,6 @@
 import Foundation
 import SwiftParser
+import SwiftParserDiagnostics
 import SwiftSyntax
 
 public final class Scanner {
@@ -22,6 +23,16 @@ public final class Scanner {
   private func scanFile(_ file: WorkerFile, visibility: [String]?) -> WorkerFileResponse {
     let tree = Parser.parse(source: file.content)
     if tree.hasError {
+      // Report the earliest syntax error the parser describes, as a 1-based
+      // UTF-16 position. Warnings, such as a non-breaking space, are skipped.
+      // Line 1, column 1 remains only when no error is described.
+      let earliest = ParseDiagnosticsGenerator.diagnostics(for: tree)
+        .filter { $0.diagMessage.severity == .error }
+        .min { $0.position.utf8Offset < $1.position.utf8Offset }
+      let position =
+        earliest.map { PositionConverter(content: file.content).lineColumn(at: $0.position) }
+        ?? (line: 1, column: 1)
+      let detail = earliest.map { sentence($0.message) } ?? "Swift parser reported syntax errors."
       return WorkerFileResponse(
         filePath: file.filePath,
         symbols: [],
@@ -31,10 +42,10 @@ public final class Scanner {
           diagnostic(
             code: "code_parse_error",
             target: file.filePath,
-            message: "Swift parser reported syntax errors.",
+            message: "Swift parse error: \(detail)",
             filePath: file.filePath,
-            line: 1,
-            column: 1
+            line: position.line,
+            column: position.column
           )
         ]
       )
@@ -542,6 +553,11 @@ private func makeSymbol(filePath: String, declaration: Declaration) -> CodeSymbo
     declarationRange: declaration.declarationRange,
     signatureRange: declaration.signatureRange
   )
+}
+
+/// End a parser message with a period, as the TypeScript scanner's messages do.
+private func sentence(_ message: String) -> String {
+  message.hasSuffix(".") ? message : "\(message)."
 }
 
 private func diagnostic(

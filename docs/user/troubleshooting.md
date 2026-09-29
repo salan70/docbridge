@@ -42,8 +42,10 @@ project's own toolchain, then reproduce with the smallest configured file
 set.
 
 `code_parse_error` means a TypeScript, Swift, Dart, or Rust source file has a
-syntax error. DocBridge extracts no links or symbols from that file, so fix the
-syntax before judging link diagnostics that involve it. Unlike
+syntax error. The diagnostic points at the first error the language's parser
+found and includes the parser's message. DocBridge extracts no links or symbols
+from that file, so fix the syntax before judging link diagnostics that involve
+it. Unlike
 `code_scanner_failed`, the worker ran correctly; the source itself did not
 parse.
 

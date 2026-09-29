@@ -27,7 +27,7 @@ Markdown files are `.md` files.
 
 If a scan target cannot be read, DocBridge emits `file_read_error`. Config file read or parse failures use `config_file_invalid` instead.
 
-If a code file has syntactic parse errors, DocBridge emits `code_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned.
+If a code file has syntactic parse errors, DocBridge emits `code_parse_error` and does not extract links or symbols from that file. Other files continue to be scanned. The diagnostic points at the earliest error the language's parser reports and carries that parser's message; line 1, column 1 is used only when the parser reports no position. The message wording differs by language.
 
 When a file has `file_read_error`, `code_parse_error`,
 `code_scanner_unavailable`, or `code_scanner_failed`, derived link diagnostics
@@ -45,6 +45,13 @@ same language-neutral result: the supported symbols, the undocumented symbols
 used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
 be added without changing them.
+
+Every adapter reports positions the same way. Lines and columns are 1-based,
+columns count UTF-16 code units, and ranges are end-exclusive. A symbol's
+`location` is the start of its name. An `@doc` link's `location` is the start
+of its annotation target, so link diagnostics such as `duplicate_link` point at
+the annotation that caused them. `unsupported_declaration` points at the
+declaration's name, or at the declaration start when it has none.
 
 Worker-backed scanners receive one JSON request on stdin and return one JSON
 response on stdout. The request contains schema version `1`, a request ID, the

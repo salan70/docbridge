@@ -201,6 +201,20 @@ typedef Callback = void Function();
     );
   });
 
+  test('reports a parse error at the analyzer position in UTF-16 columns', () {
+    final file = scan('void ok() {}\n  /* \u{1F600} */ )\n');
+
+    final diagnostic = (file['diagnostics'] as List).first as Map;
+    expect(diagnostic['code'], 'code_parse_error');
+    expect(diagnostic['location'], {
+      'filePath': 'lib/auth.dart',
+      'line': 2,
+      'column': 12,
+    });
+    expect(diagnostic['message'], startsWith('Dart parse error: '));
+    expect(diagnostic['message'], isNot('Dart parse error: '));
+  });
+
   test('honors dart public naming for documented and undocumented symbols', () {
     final file = scan('''
 /// @doc docs/auth.md#secret

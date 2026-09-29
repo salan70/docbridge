@@ -91,7 +91,7 @@ test("fixture invalid_link_target fires exactly invalid_link_target", () => {
     { code: "invalid_link_target", filePath: "lib/example.dart", line: 1 },
     { code: "invalid_link_target", filePath: "Sources/Example.swift", line: 1 },
     { code: "invalid_link_target", filePath: "src/example.rs", line: 1 },
-    { code: "invalid_link_target", filePath: "src/example.ts", line: 4 },
+    { code: "invalid_link_target", filePath: "src/example.ts", line: 2 },
   ]);
   expect(exitCode).toBe(1);
 });
@@ -100,7 +100,7 @@ test("fixture doc_file_not_found fires exactly doc_file_not_found", () => {
   const { exitCode, diagnostics } = checkFixture("doc_file_not_found");
 
   expect(diagnostics).toEqual([
-    { code: "doc_file_not_found", filePath: "src/example.ts", line: 4 },
+    { code: "doc_file_not_found", filePath: "src/example.ts", line: 2 },
   ]);
   expect(exitCode).toBe(1);
 });
@@ -109,7 +109,7 @@ test("fixture doc_anchor_not_found fires exactly doc_anchor_not_found", () => {
   const { exitCode, diagnostics } = checkFixture("doc_anchor_not_found");
 
   expect(diagnostics).toEqual([
-    { code: "doc_anchor_not_found", filePath: "src/example.ts", line: 4 },
+    { code: "doc_anchor_not_found", filePath: "src/example.ts", line: 2 },
   ]);
   expect(exitCode).toBe(1);
 });
@@ -143,7 +143,7 @@ test("fixture doc_backlink_not_found fires exactly doc_backlink_not_found", () =
   const { exitCode, diagnostics } = checkFixture("doc_backlink_not_found");
 
   expect(diagnostics).toEqual([
-    { code: "doc_backlink_not_found", filePath: "src/example.ts", line: 4 },
+    { code: "doc_backlink_not_found", filePath: "src/example.ts", line: 2 },
   ]);
   expect(exitCode).toBe(1);
 });
@@ -185,7 +185,7 @@ test("fixture duplicate_link fires exactly duplicate_link", () => {
     { code: "duplicate_link", filePath: "lib/example.dart", line: 2 },
     { code: "duplicate_link", filePath: "Sources/Example.swift", line: 2 },
     { code: "duplicate_link", filePath: "src/example.rs", line: 2 },
-    { code: "duplicate_link", filePath: "src/example.ts", line: 5 },
+    { code: "duplicate_link", filePath: "src/example.ts", line: 3 },
   ]);
   expect(exitCode).toBe(0);
 });

@@ -4,11 +4,11 @@
       "code": "code_parse_error",
       "language": "swift",
       "location": {
-        "column": 1,
+        "column": 12,
         "filePath": "Input.swift",
-        "line": 1
+        "line": 3
       },
-      "message": "Swift parser reported syntax errors.",
+      "message": "Swift parse error: extraneous code ')' at top level.",
       "severity": "error",
       "target": "Input.swift"
     }

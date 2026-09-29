@@ -210,6 +210,27 @@ final class ScannerTests: XCTestCase {
     XCTAssertEqual(file.diagnostics.first?.language, "swift")
   }
 
+  func testReportsParseErrorAtParserPositionInUtf16Columns() throws {
+    let file = try scan("public func ok() {}\n  /* \u{1F600} */ )\n")
+
+    let diagnostic = try XCTUnwrap(file.diagnostics.first)
+    XCTAssertEqual(diagnostic.code, "code_parse_error")
+    XCTAssertEqual(diagnostic.location?.line, 2)
+    XCTAssertEqual(diagnostic.location?.column, 12)
+    XCTAssertTrue(diagnostic.message.hasPrefix("Swift parse error: "), diagnostic.message)
+    XCTAssertNotEqual(diagnostic.message, "Swift parse error: ")
+  }
+
+  func testReportsTheEarliestParseErrorRatherThanAnEarlierWarning() throws {
+    // U+00A0 before `func` is a parser warning; the stray `)` is the error.
+    let file = try scan("public\u{00A0}func ok() {}\n)\n")
+
+    let diagnostic = try XCTUnwrap(file.diagnostics.first)
+    XCTAssertEqual(diagnostic.code, "code_parse_error")
+    XCTAssertEqual(diagnostic.location?.line, 2)
+    XCTAssertEqual(diagnostic.location?.column, 1)
+  }
+
   func testUsesUtf16OneBasedEndExclusiveRanges() throws {
     let source = """
       /// @doc docs/auth.md#smile

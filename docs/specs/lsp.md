@@ -165,7 +165,11 @@ returns the linked Markdown **section** inline:
 ### Doc to code
 
 When the position hits a heading that links to a code symbol, the server returns
-the linked code endpoint plus the declaration's signature line.
+the linked code endpoint plus the declaration's signature, fenced in the
+declaration's language. The signature is the scanner's signature range without
+the leading doc comment. It can span several lines and keeps attributes and
+decorators. When the scanner reports no signature range, only the endpoint is
+shown.
 
 <!-- @code src/lsp/navigation.ts#definition -->
 
