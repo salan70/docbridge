@@ -54,6 +54,7 @@ format:
     gofmt -w packages/go-scanner examples/go
     just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
+    ruff format packages/python-scanner
 
 # Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
 [private]
@@ -199,6 +200,16 @@ build-go-scanner: check-go-toolchain
 
 # --- Python worker (packages/python-scanner) ---
 # Recipes for the runtime-backed Python worker live between these markers.
+# The worker is stdlib-only and needs no build; `python3` comes from the dev
+# shell (CPython 3.13) and CI also runs the tests on the CPython 3.10 floor.
+test-python-scanner:
+    python3 -m unittest discover -s packages/python-scanner/tests
+
+format-check-python:
+    ruff format --check packages/python-scanner
+
+lint-python:
+    ruff check packages/python-scanner
 # --- end Python worker ---
 
 # --- Ruby worker (packages/ruby-scanner) ---

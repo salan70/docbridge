@@ -1,0 +1,261 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "annotated-declaration",
+    "language": "python",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "src/auth.py",
+        "content": "# @doc docs/auth.md#login\ndef login(user):\n    \"\"\"Log in.\"\"\"\n    return user\n\n\nclass Client:\n    \"\"\"@doc docs/client.md#client\"\"\"\n\n    def connect(self):\n        \"\"\"@doc docs/client.md#connect\"\"\"\n\n    async def close(self): ...\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "annotated-declaration",
+    "language": "python",
+    "files": [
+      {
+        "filePath": "src/auth.py",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/auth.py",
+            "symbolName": "login",
+            "canonicalId": "login",
+            "endpoint": "src/auth.py#login",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 2,
+              "column": 5
+            },
+            "nameRange": {
+              "start": {
+                "line": 2,
+                "column": 5
+              },
+              "end": {
+                "line": 2,
+                "column": 10
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 4,
+                "column": 16
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 2,
+                "column": 17
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/auth.py",
+            "symbolName": "Client",
+            "canonicalId": "Client",
+            "endpoint": "src/auth.py#Client",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 7,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 7,
+                "column": 7
+              },
+              "end": {
+                "line": 7,
+                "column": 13
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 13,
+                "column": 31
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 7,
+                "column": 14
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/auth.py",
+            "symbolName": "connect",
+            "canonicalId": "Client.connect",
+            "endpoint": "src/auth.py#Client.connect",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 10,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 10,
+                "column": 9
+              },
+              "end": {
+                "line": 10,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 10,
+                "column": 5
+              },
+              "end": {
+                "line": 11,
+                "column": 42
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 10,
+                "column": 5
+              },
+              "end": {
+                "line": 10,
+                "column": 23
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/auth.py",
+            "symbolName": "close",
+            "canonicalId": "Client.close",
+            "endpoint": "src/auth.py#Client.close",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 13,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 13,
+                "column": 15
+              },
+              "end": {
+                "line": 13,
+                "column": 20
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 13,
+                "column": 5
+              },
+              "end": {
+                "line": 13,
+                "column": 31
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 13,
+                "column": 5
+              },
+              "end": {
+                "line": 13,
+                "column": 27
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "src/auth.py#login",
+            "target": "docs/auth.md#login",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 1,
+              "column": 8
+            },
+            "targetRange": {
+              "start": {
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "line": 1,
+                "column": 26
+              }
+            }
+          },
+          {
+            "source": "src/auth.py#Client",
+            "target": "docs/client.md#client",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 8,
+              "column": 13
+            },
+            "targetRange": {
+              "start": {
+                "line": 8,
+                "column": 13
+              },
+              "end": {
+                "line": 8,
+                "column": 34
+              }
+            }
+          },
+          {
+            "source": "src/auth.py#Client.connect",
+            "target": "docs/client.md#connect",
+            "location": {
+              "filePath": "src/auth.py",
+              "line": 11,
+              "column": 17
+            },
+            "targetRange": {
+              "start": {
+                "line": 11,
+                "column": 17
+              },
+              "end": {
+                "line": 11,
+                "column": 39
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

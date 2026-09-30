@@ -1,0 +1,11 @@
+# Ruff configuration only. The worker is a plain script plus package with no
+# build, no install, and no runtime dependency; ruff comes from the dev shell.
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "N", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["docbridge_python_scanner"]

@@ -1,0 +1,268 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "unsupported-and-duplicates",
+    "language": "python",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "src/dup.py",
+        "content": "\"\"\"Module.\n\n@doc docs/dup.md#module\n\"\"\"\n\n# @doc docs/dup.md#constant\nLIMIT = 10\n\n\n# @doc docs/dup.md#run\ndef run(): ...\n\n\n# @doc docs/dup.md#run-again\ndef run(): ...\n\n\ndef ok():\n    \"\"\"\n    @doc docs/dup.md#ok\n    @doc docs/dup.md#ok\n    @doc not-a-target\n    \"\"\"\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "unsupported-and-duplicates",
+    "language": "python",
+    "files": [
+      {
+        "filePath": "src/dup.py",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/dup.py",
+            "symbolName": "run",
+            "canonicalId": "run",
+            "endpoint": "src/dup.py#run",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 11,
+              "column": 5
+            },
+            "nameRange": {
+              "start": {
+                "line": 11,
+                "column": 5
+              },
+              "end": {
+                "line": 11,
+                "column": 8
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 10,
+                "column": 1
+              },
+              "end": {
+                "line": 11,
+                "column": 15
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 10,
+                "column": 1
+              },
+              "end": {
+                "line": 11,
+                "column": 11
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/dup.py",
+            "symbolName": "ok",
+            "canonicalId": "ok",
+            "endpoint": "src/dup.py#ok",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 18,
+              "column": 5
+            },
+            "nameRange": {
+              "start": {
+                "line": 18,
+                "column": 5
+              },
+              "end": {
+                "line": 18,
+                "column": 7
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 18,
+                "column": 1
+              },
+              "end": {
+                "line": 23,
+                "column": 8
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 18,
+                "column": 1
+              },
+              "end": {
+                "line": 18,
+                "column": 10
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [],
+        "links": [
+          {
+            "source": "src/dup.py#run",
+            "target": "docs/dup.md#run",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 10,
+              "column": 8
+            },
+            "targetRange": {
+              "start": {
+                "line": 10,
+                "column": 8
+              },
+              "end": {
+                "line": 10,
+                "column": 23
+              }
+            }
+          },
+          {
+            "source": "src/dup.py#ok",
+            "target": "docs/dup.md#ok",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 20,
+              "column": 10
+            },
+            "targetRange": {
+              "start": {
+                "line": 20,
+                "column": 10
+              },
+              "end": {
+                "line": 20,
+                "column": 24
+              }
+            }
+          }
+        ],
+        "diagnostics": [
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "src/dup.py",
+            "language": "python",
+            "message": "Python declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 1,
+              "column": 1
+            },
+            "range": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 4,
+                "column": 4
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "src/dup.py",
+            "language": "python",
+            "message": "Python declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 7,
+              "column": 1
+            },
+            "range": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 7,
+                "column": 6
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "duplicate_code_symbol",
+            "target": "src/dup.py#run",
+            "language": "python",
+            "message": "Duplicate Python code symbol endpoint: src/dup.py#run",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 15,
+              "column": 5
+            },
+            "range": {
+              "start": {
+                "line": 15,
+                "column": 5
+              },
+              "end": {
+                "line": 15,
+                "column": 8
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "duplicate_link",
+            "target": "docs/dup.md#ok",
+            "language": "python",
+            "source": "src/dup.py#ok",
+            "message": "Duplicate @doc link from src/dup.py#ok to docs/dup.md#ok.",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 21,
+              "column": 10
+            },
+            "range": {
+              "start": {
+                "line": 21,
+                "column": 10
+              },
+              "end": {
+                "line": 21,
+                "column": 24
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "not-a-target",
+            "language": "python",
+            "source": "src/dup.py#ok",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "src/dup.py",
+              "line": 22,
+              "column": 10
+            },
+            "range": {
+              "start": {
+                "line": 22,
+                "column": 10
+              },
+              "end": {
+                "line": 22,
+                "column": 22
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
