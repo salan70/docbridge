@@ -3,6 +3,13 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 # The required Swift toolchain version. `.swift-version` is its only source.
 swift_version := trim(read(".swift-version"))
 
+# The required Go toolchain version. The `go` directive in the worker's
+# `go.mod` is its only source; `GOTOOLCHAIN=local` stops Go from downloading a
+# different one, and `check-go-toolchain` fails on any other installed version.
+go_version := trim(replace_regex(read("packages/go-scanner/go.mod"), "(?s).*\ngo ([0-9.]+)\n.*", "$1"))
+
+export GOTOOLCHAIN := "local"
+
 default:
     just --list
 
@@ -19,12 +26,13 @@ install-editor-deps:
     cd editors/vscode && bun install --frozen-lockfile
 
 # Print the contributor toolchain versions and validate the required Swift version.
-doctor: require-swift
+doctor: require-swift check-go-toolchain
     bun --version
     node --version
     dart --version
     rustc --version
     cargo --version
+    go version
     just --version
     git --version
 
@@ -33,12 +41,17 @@ doctor: require-swift
 require-swift:
     swift --version | grep -F 'Swift version {{ swift_version }} '
 
+# Fail unless the Go on `PATH` is exactly the version pinned by `packages/go-scanner/go.mod`.
+check-go-toolchain:
+    test "$(go env GOVERSION)" = "go{{ go_version }}"
+
 # Run every formatter in write mode. This is always an explicit operation.
 format:
     bun run oxfmt .
     swift format format --configuration .swift-format --in-place --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
     dart format packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
     cargo fmt --manifest-path packages/rust-scanner/Cargo.toml
+    gofmt -w packages/go-scanner examples/go
     just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
 
@@ -48,7 +61,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-shell format-check-nix
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-shell format-check-nix
 
 format-check-ox:
     bun run oxfmt --check .
@@ -62,6 +75,10 @@ format-check-dart:
 format-check-rust:
     cargo fmt --manifest-path packages/rust-scanner/Cargo.toml -- --check
 
+# `gofmt -l` exits 0 even when files differ, so fail on any listed path.
+format-check-go: check-go-toolchain
+    test -z "$(gofmt -l packages/go-scanner examples/go | tee /dev/stderr)"
+
 format-check-shell:
     just shell-sources | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
 
@@ -69,7 +86,7 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
@@ -82,6 +99,9 @@ lint-dart:
 
 lint-rust:
     cargo clippy --manifest-path packages/rust-scanner/Cargo.toml --all-targets -- -D warnings
+
+lint-go: check-go-toolchain
+    cd packages/go-scanner && go vet ./...
 
 lint-shell:
     just shell-sources | xargs -0 shellcheck --severity=style
@@ -145,11 +165,12 @@ test:
 test-swift-scanner:
     swift test --package-path packages/swift-scanner
 
-# Build the debug Swift/Rust workers and compiled Dart worker required by `just test`.
+# Build the debug Swift/Rust workers and compiled Dart and Go workers required by `just test`.
 build-test-scanners:
     swift build --package-path packages/swift-scanner
     just build-dart-scanner
     just build-rust-scanner-debug
+    just build-go-scanner
 
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
@@ -168,6 +189,13 @@ build-rust-scanner:
 
 build-rust-scanner-debug:
     cargo build --manifest-path packages/rust-scanner/Cargo.toml
+
+test-go-scanner: check-go-toolchain
+    cd packages/go-scanner && go test ./...
+
+# Go has no debug/release split; this single static binary serves tests and releases.
+build-go-scanner: check-go-toolchain
+    cd packages/go-scanner && CGO_ENABLED=0 go build -trimpath -o bin/docbridge-go-scanner ./cmd/docbridge-go-scanner
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.

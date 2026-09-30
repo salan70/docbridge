@@ -43,6 +43,7 @@
             pkgs.bun
             pkgs.dart
             pkgs.deadnix
+            pkgs.go
             pkgs.just
             # The npm package targets the Node.js runtime; verify-dist and
             # pack-smoke execute the built CLI with Node.
