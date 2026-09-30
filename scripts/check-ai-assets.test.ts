@@ -15,6 +15,30 @@ function skill(name: string): string {
   return `---\nname: ${name}\n---\n\n# ${name}\n`;
 }
 
+const SHARED_GUIDANCE = `# AGENTS.md
+
+Shared guidance for every coding agent working in this repository.
+
+## Commands
+
+Use the repo-native recipes in \`justfile\` instead of ad-hoc shell invocations,
+and run \`just verify\` before reporting completion.
+
+- Branch from an up-to-date \`main\` and land every change through a pull request.
+- Logic changes are test-first; use the \`tdd\` skill.
+`;
+
+const CLAUDE_GUIDANCE = `# CLAUDE.md
+
+Claude Code guidance. The shared rules are imported below.
+
+@AGENTS.md
+
+## Commands
+
+Claude Code auto-discovers project skills from the symlinks in \`.claude/skills/\`.
+`;
+
 function withAiAssets(callback: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-check-ai-assets-"));
 
@@ -22,6 +46,8 @@ function withAiAssets(callback: (root: string) => void): void {
   write(root, ".oxlintrc.json", `${JSON.stringify({ ignorePatterns: ["dist/**"] }, null, 2)}\n`);
   write(root, ".rumdl.toml", '[global]\ndisable = ["MD013"]\nexclude = ["dist/**"]\n');
 
+  write(root, "AGENTS.md", SHARED_GUIDANCE);
+  write(root, "CLAUDE.md", CLAUDE_GUIDANCE);
   write(root, "templates/skills/docbridge/SKILL.md", skill("docbridge"));
   mkdirSync(join(root, ".agents/skills"), { recursive: true });
   mkdirSync(join(root, ".claude/skills"), { recursive: true });
@@ -173,4 +199,84 @@ test("checkAiAssets reports an exclusion that names a skill tree directory", () 
 
 test("the repository AI assets pass the drift check", () => {
   expect(checkAiAssets(join(import.meta.dir, ".."))).toEqual([]);
+});
+
+test("checkAiAssets reports a missing CLAUDE.md", () => {
+  withAiAssets((root) => {
+    unlinkSync(join(root, "CLAUDE.md"));
+
+    expect(checkAiAssets(root)).toEqual(["CLAUDE.md is missing."]);
+  });
+});
+
+test("checkAiAssets reports a CLAUDE.md that does not import AGENTS.md", () => {
+  withAiAssets((root) => {
+    write(root, "CLAUDE.md", "# CLAUDE.md\n\nSee AGENTS.md for the shared rules.\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      "CLAUDE.md must import the shared guidance with a standalone `@AGENTS.md` line.",
+    ]);
+  });
+});
+
+test("checkAiAssets does not count an import inside a code fence", () => {
+  withAiAssets((root) => {
+    write(root, "CLAUDE.md", "# CLAUDE.md\n\n```md\n@AGENTS.md\n```\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      "CLAUDE.md must import the shared guidance with a standalone `@AGENTS.md` line.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports a shared paragraph copied into CLAUDE.md even when rewrapped", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      "CLAUDE.md",
+      `${CLAUDE_GUIDANCE}\nUse the repo-native recipes in \`justfile\`\ninstead of ad-hoc shell invocations, and run \`just verify\` before\nreporting completion.\n`,
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      'CLAUDE.md repeats shared guidance from AGENTS.md: "Use the repo-native recipes in `justfile` instead of ad-hoc shell invocations, and run `just verify` before reporting completion."',
+    ]);
+  });
+});
+
+test("checkAiAssets reports a shared list item copied under another heading", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      "CLAUDE.md",
+      `${CLAUDE_GUIDANCE}\n## Git\n\n- Branch from an up-to-date \`main\` and land every change through a pull request.\n`,
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      'CLAUDE.md repeats shared guidance from AGENTS.md: "Branch from an up-to-date `main` and land every change through a pull request."',
+    ]);
+  });
+});
+
+test("checkAiAssets reports a short shared rule copied into CLAUDE.md", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      "CLAUDE.md",
+      `${CLAUDE_GUIDANCE}\n- Logic changes are test-first; use the \`tdd\` skill.\n`,
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      'CLAUDE.md repeats shared guidance from AGENTS.md: "Logic changes are test-first; use the `tdd` skill."',
+    ]);
+  });
+});
+
+test("checkAiAssets keeps a longer fence open across a shorter inner fence", () => {
+  withAiAssets((root) => {
+    write(root, "CLAUDE.md", "# CLAUDE.md\n\n````md\n```\n@AGENTS.md\n````\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      "CLAUDE.md must import the shared guidance with a standalone `@AGENTS.md` line.",
+    ]);
+  });
 });

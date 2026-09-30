@@ -1,10 +1,11 @@
 # AGENTS.md
 
-This file provides guidance for Codex when working in this repository.
-
-This repo also ships `CLAUDE.md` and `.claude/` for Claude Code. Keep the two
-stacks in sync in intent. `AGENTS.md` and `CLAUDE.md` address their own tool
-and stay separate files; the skills are shared content (see [Skills](#skills)).
+This file holds the shared guidance for coding agents working in this
+repository. Codex reads it directly. Claude Code reads `CLAUDE.md`, which
+imports this file with `@AGENTS.md` and adds only Claude Code specifics. Keep
+this body tool-neutral, put Codex specifics under
+[Codex-specific guidance](#codex-specific-guidance), and never copy shared rules
+into `CLAUDE.md`; `just check-ai-assets` rejects a copy.
 
 ## Project Context
 
@@ -34,10 +35,9 @@ The `examples/` and `test-fixtures/` trees both hold small DocBridge projects bu
 differ by intended audience:
 
 - `examples/` holds human-facing showcases meant to be read or copied: one per
-  language (`examples/typescript`, `examples/swift`, `examples/dart`, `examples/rust`,
-  `examples/go`). These
-  may also serve as integration test inputs; that reuse is intentional, not a
-  reason to move them.
+  language (`examples/typescript`, `examples/swift`, `examples/dart`,
+  `examples/rust`, `examples/go`). These may also serve as integration test
+  inputs; that reuse is intentional, not a reason to move them.
 - `test-fixtures/` holds projects that exist solely to drive automated tests.
   Per-diagnostic fixtures live under `test-fixtures/diagnostics/`.
 
@@ -48,34 +48,9 @@ Tests are colocated with the modules they cover as `*.test.ts` files; there is
 no separate `test/` directory. See
 [docs/contributing/testing.md](docs/contributing/testing.md).
 
-Use the repo-native recipes in `justfile` (`just --list`) instead of ad-hoc
-shell invocations. `just setup` prepares a fresh checkout, and `just verify` is
-the local quality gate. If `just` is not on `PATH`, prefix commands with
-`nix develop -c` (for example, `nix develop -c just verify`).
-
 Development uses Bun; the published CLI runs on Node.js 22+ and Bun. Keep
 dependencies minimal and prefer Bun plus the TypeScript Compiler API for core
 implementation.
-
-## Lint and Formatting Policy
-
-`just verify` is the shared, read-only quality gate. It runs formatting checks,
-lint, DocBridge checks, the documentation-structure and AI-asset checks, type
-checking of the CLI and the editor extension, and tests over the whole
-repository. Run `just format` to apply deterministic formatting and
-`just lint-fix` to apply only Oxlint's safe fixes; hooks and CI must never
-modify files automatically.
-
-Fix the underlying code instead of weakening a quality gate. Before doing any
-of the following, an AI agent must obtain explicit user approval for the
-specific exception:
-
-- adding an inline lint or formatter suppression;
-- disabling a rule or lowering its severity;
-- expanding an ignore or exclusion;
-- raising a complexity, file-size, function-size, depth, or parameter limit.
-
-Approval for one exception does not authorize similar or broader exceptions.
 
 ## Plans
 
@@ -96,6 +71,37 @@ When creating an issue, use the form that matches the work content and provide
 its required information. Leave an optional field empty when it has no new
 information. Non-trivial work begins only after the issue receives the `status:
 accepted` label; the author or implementer identity is not an exception.
+
+## Commands
+
+Use the repo-native recipes in `justfile` (`just --list`) instead of ad-hoc
+shell invocations. `just setup` prepares a fresh checkout, and `just verify` is
+the local quality gate. If `just` is not on `PATH`, prefix commands with
+`nix develop -c` (for example, `nix develop -c just verify`).
+
+To run the DocBridge CLI from this checkout, including the `docbridge docs show`
+commands that the `docbridge` skill suggests, use `bun run src/cli/index.ts` in
+place of `docbridge`.
+
+## Lint and Formatting Policy
+
+`just verify` is the shared, read-only quality gate. It runs formatting checks,
+lint, DocBridge checks, the documentation-structure and AI-asset checks, type
+checking of the CLI and the editor extension, and tests over the whole
+repository. Run `just format` to apply deterministic formatting and
+`just lint-fix` to apply only Oxlint's safe fixes; hooks and CI must never
+modify files automatically.
+
+Fix the underlying code instead of weakening a quality gate. Before doing any
+of the following, an AI agent must obtain explicit user approval for the
+specific exception:
+
+- adding an inline lint or formatter suppression;
+- disabling a rule or lowering its severity;
+- expanding an ignore or exclusion;
+- raising a complexity, file-size, function-size, depth, or parameter limit.
+
+Approval for one exception does not authorize similar or broader exceptions.
 
 ## Local Guardrails
 
@@ -122,20 +128,24 @@ before reporting completion.
 
 ## Skills
 
-Codex skills live in `.agents/skills/` and are selected by their frontmatter
-descriptions. All logic changes must be test-first; use the `tdd` skill.
+All logic changes must be test-first; use the `tdd` skill.
 
 Each skill has one source. `.agents/skills/<name>` holds it, and
 `.claude/skills/<name>` is a symlink to it. The distributable `docbridge`
 skill's source is `templates/skills/docbridge`, which both trees link to.
 `just check-ai-assets` enforces this layout. Keep skill bodies tool-neutral;
-Codex-specific guidance belongs in `AGENTS.md`, not in a skill.
+tool-specific guidance belongs in this file's Codex section or in `CLAUDE.md`,
+never in a skill.
 
 ## Language Policy
 
-- Write deliverables in English by default, including documentation, code comments, commit messages, PR titles, and PR descriptions.
-- PR titles follow [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md) (`<gitmoji> <type>: <summary>`, whole-PR summary, no scope, no issue number).
-- Use Japanese only when the path or context explicitly identifies the content as Japanese, such as files under `docs/ja/`.
+- Write deliverables in English by default, including documentation, code
+  comments, commit messages, PR titles, and PR descriptions.
+- PR titles follow
+  [docs/contributing/pull-requests.md](docs/contributing/pull-requests.md)
+  (`<gitmoji> <type>: <summary>`, whole-PR summary, no scope, no issue number).
+- Use Japanese only when the path or context explicitly identifies the content
+  as Japanese, such as files under `docs/ja/`.
 
 ## Communication Policy
 
@@ -154,8 +164,8 @@ When reporting completion to the user, explicitly list:
 
 ## Git Policy
 
-Branching, commits, pull requests, and releases follow
-`.agents/skills/git-workflow/SKILL.md`. Always-on invariants:
+Branching, commits, pull requests, and releases follow the `git-workflow`
+skill (`.agents/skills/git-workflow/SKILL.md`). Always-on invariants:
 
 - All changes land through a PR; never push to `main` directly.
 - Branch from an up-to-date `main` (`git switch main && git pull --ff-only`).
@@ -163,3 +173,8 @@ Branching, commits, pull requests, and releases follow
   requires explicit human approval.** Merging a PR labeled `release: patch`,
   `release: minor`, or `release: major` publishes that release, so the merge is
   also the release approval gate.
+
+## Codex-specific guidance
+
+Codex skills live in `.agents/skills/` and are selected by their frontmatter
+descriptions.

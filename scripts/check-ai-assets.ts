@@ -9,6 +9,18 @@ const claudeTree = ".claude/skills";
 /** The distributable skill, which the Codex tree links instead of copying. */
 const templateSkill = { path: `${codexTree}/docbridge`, target: "templates/skills/docbridge" };
 
+/** The shared agent guidance, and the Claude Code file that must import it. */
+const sharedGuidance = "AGENTS.md";
+const claudeGuidance = "CLAUDE.md";
+const sharedImport = `@${sharedGuidance}`;
+
+/**
+ * A shared block this long is also reported when it is merged into a longer
+ * Claude paragraph; a shorter one only when a Claude block equals it, so a
+ * short phrase inside unrelated prose does not count as a copy.
+ */
+const minimumEmbeddedBlockLength = 60;
+
 /** Configurations whose exclusion list must never skip a skill tree. */
 const exclusionConfigs = [
   { path: ".oxfmtrc.json", format: "json", key: "ignorePatterns" },
@@ -17,14 +29,16 @@ const exclusionConfigs = [
 ] as const;
 
 /**
- * Check the skill layout: every skill lives once under the Codex tree, and the
- * Claude tree holds only symlinks that resolve to the same skill.
+ * Check the AI asset layout: every skill lives once under the Codex tree, the
+ * Claude tree holds only symlinks that resolve to the same skill, and
+ * `CLAUDE.md` imports the shared `AGENTS.md` body instead of copying it.
  */
 export function checkAiAssets(root: string): string[] {
   const errors: string[] = [];
   checkTemplateSkill(root, errors);
   checkLinkedSkills(root, errors);
   checkExclusions(root, errors);
+  checkAgentGuidance(root, errors);
   return errors;
 }
 
@@ -84,6 +98,96 @@ function checkExclusions(root: string, errors: string[]): void {
       }
     }
   }
+}
+
+function checkAgentGuidance(root: string, errors: string[]): void {
+  const shared = readTextFile(join(root, sharedGuidance));
+  const claude = readTextFile(join(root, claudeGuidance));
+  if (shared === undefined) {
+    errors.push(`${sharedGuidance} is missing.`);
+  }
+  if (claude === undefined) {
+    errors.push(`${claudeGuidance} is missing.`);
+  }
+  if (shared === undefined || claude === undefined) {
+    return;
+  }
+
+  const claudeBlocks = proseBlocks(claude);
+  if (!outsideCodeFences(claude).some((line) => line.trim() === sharedImport)) {
+    errors.push(
+      `${claudeGuidance} must import the shared guidance with a standalone \`${sharedImport}\` line.`,
+    );
+  }
+  const claudeBlockSet = new Set(claudeBlocks);
+  const claudeText = claudeBlocks.join("\n");
+  for (const block of proseBlocks(shared)) {
+    const embedded = block.length >= minimumEmbeddedBlockLength && claudeText.includes(block);
+    if (claudeBlockSet.has(block) || embedded) {
+      errors.push(
+        `${claudeGuidance} repeats shared guidance from ${sharedGuidance}: ${JSON.stringify(block)}`,
+      );
+    }
+  }
+}
+
+/**
+ * Split Markdown into whitespace-normalized paragraphs and list items outside
+ * code fences, so a rule copied under another heading or rewrapped still
+ * compares equal.
+ */
+function proseBlocks(markdown: string): string[] {
+  const blocks: string[] = [];
+  let current: string[] = [];
+  const flush = (): void => {
+    if (current.length > 0) {
+      blocks.push(current.join(" ").replace(/\s+/g, " ").trim());
+      current = [];
+    }
+  };
+  for (const line of outsideCodeFences(markdown)) {
+    const listItem = /^\s*(?:[-*+]|\d+\.)\s+(.*)$/.exec(line);
+    if (line.trim() === "" || /^\s*#/.test(line)) {
+      flush();
+    } else if (listItem !== null) {
+      flush();
+      current.push(listItem[1] ?? "");
+    } else {
+      current.push(line.trim());
+    }
+  }
+  flush();
+  return blocks;
+}
+
+/**
+ * Blank out fenced code. A fence closes only with the same character repeated
+ * at least as many times as it opened, as CommonMark specifies.
+ */
+function outsideCodeFences(markdown: string): string[] {
+  const lines: string[] = [];
+  let openFence: string | undefined;
+  for (const line of markdown.split("\n")) {
+    const fence = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (openFence === undefined) {
+      if (fence !== null) {
+        openFence = fence[1];
+      }
+      lines.push(openFence === undefined ? line : "");
+      continue;
+    }
+    const marker = fence?.[1];
+    if (
+      marker !== undefined &&
+      marker[0] === openFence[0] &&
+      marker.length >= openFence.length &&
+      (fence?.[2] ?? "").trim() === ""
+    ) {
+      openFence = undefined;
+    }
+    lines.push("");
+  }
+  return lines;
 }
 
 /**
@@ -174,5 +278,5 @@ if (import.meta.main) {
     }
     process.exit(1);
   }
-  console.log("Claude and Codex AI assets are in sync.");
+  console.log("Claude and Codex AI assets and agent guidance are in sync.");
 }
