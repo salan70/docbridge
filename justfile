@@ -51,6 +51,7 @@ format:
     swift format format --configuration .swift-format --in-place --recursive packages/swift-scanner/Sources packages/swift-scanner/Tests examples/swift
     dart format packages/dart-scanner/bin packages/dart-scanner/lib packages/dart-scanner/test
     cargo fmt --manifest-path packages/rust-scanner/Cargo.toml
+    cargo fmt --manifest-path packages/rust-core-experiment/Cargo.toml
     gofmt -w packages/go-scanner examples/go
     just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
@@ -61,7 +62,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-shell format-check-nix
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-phase0 format-check-go format-check-shell format-check-nix
 
 format-check-ox:
     bun run oxfmt --check .
@@ -75,6 +76,9 @@ format-check-dart:
 format-check-rust:
     cargo fmt --manifest-path packages/rust-scanner/Cargo.toml -- --check
 
+format-check-phase0:
+    cargo fmt --manifest-path packages/rust-core-experiment/Cargo.toml -- --check
+
 # `gofmt -l` exits 0 even when files differ, so fail on any listed path.
 format-check-go: check-go-toolchain
     test -z "$(gofmt -l packages/go-scanner examples/go | tee /dev/stderr)"
@@ -86,7 +90,7 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-phase0 lint-go lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
@@ -99,6 +103,9 @@ lint-dart:
 
 lint-rust:
     cargo clippy --manifest-path packages/rust-scanner/Cargo.toml --all-targets -- -D warnings
+
+lint-phase0:
+    cargo clippy --manifest-path packages/rust-core-experiment/Cargo.toml --all-targets -- -D warnings
 
 lint-go: check-go-toolchain
     cd packages/go-scanner && go vet ./...
@@ -118,7 +125,7 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test
+verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test test-phase0 phase0-fixtures-check phase0-parity
 
 check:
     bun run src/cli/index.ts check
@@ -192,6 +199,30 @@ build-rust-scanner-debug:
 
 test-go-scanner: check-go-toolchain
     cd packages/go-scanner && go test ./...
+
+# Phase 0 of the Rust core evaluation (issue #172): the resolver and graph port
+# under packages/rust-core-experiment and its frozen fixtures under
+# test-fixtures/phase0. Run the crate's own test suite.
+test-phase0:
+    cargo test --manifest-path packages/rust-core-experiment/Cargo.toml
+
+build-phase0-runner:
+    cargo build --manifest-path packages/rust-core-experiment/Cargo.toml --release
+
+# Diff the Rust runner's output against every specified and generated case
+# after canonical JSON formatting; only object key order is normalized.
+phase0-parity: build-phase0-runner
+    bun run scripts/phase0-parity.ts
+
+# Regenerate test-fixtures/phase0/generated from the TypeScript implementation
+# over the diagnostic fixtures and examples. Requires the test scanner workers.
+phase0-fixtures:
+    bun run scripts/phase0-fixtures.ts
+    bun run oxfmt test-fixtures/phase0/generated
+
+# Fail when regeneration would change a committed generated case.
+phase0-fixtures-check:
+    bun run scripts/phase0-fixtures.ts --check
 
 # Go has no debug/release split; this single static binary serves tests and releases.
 build-go-scanner: check-go-toolchain

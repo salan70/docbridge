@@ -62,6 +62,19 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   `just test` gate. Local changes to scanner code should run the matching
   native test plus `just test`.
 
+## Phase 0 parity harness
+
+`packages/rust-core-experiment/` is the Rust port of the link resolver and
+graph evaluated under issue #172. `just verify` runs its three gates:
+`just test-phase0` (the crate's Cargo tests), `just phase0-fixtures-check`
+(fails when `test-fixtures/phase0/generated/` no longer matches what
+`just phase0-fixtures` would write from the TypeScript implementation; it
+spawns the scanner workers like `just test`), and `just phase0-parity` (builds
+`phase0-runner` and diffs its output against every `specified/` and
+`generated/` case). `test-fixtures/phase0/specified/` is hand-written from the
+specs and is never regenerated; `test-fixtures/phase0-heldout/` is reserved for
+review and is outside the parity run.
+
 ## Executable examples
 
 `just check-example <lang>` runs `docbridge check` against
