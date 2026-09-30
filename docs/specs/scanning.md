@@ -21,7 +21,8 @@ DocBridge does not read `.gitignore`.
 
 Code files belong to a configured language: TypeScript `.ts` files (declaration
 files ending in `.d.ts` are excluded), Swift `.swift` files, Dart `.dart`
-files, and Rust `.rs` files. Each code file is scanned by its language adapter.
+files, Rust `.rs` files, and Go `.go` files. Each code file is scanned by its
+language adapter.
 
 Markdown files are `.md` files.
 
@@ -40,7 +41,7 @@ that depend on that file are suppressed.
 ## Code Scanning
 
 Code scanning is language-aware but not language-specific. Every code language
-adapter, in-process (TypeScript) or worker-backed (Swift, Dart, Rust), produces the
+adapter, in-process (TypeScript) or worker-backed (Swift, Dart, Rust, Go), produces the
 same language-neutral result: the supported symbols, the undocumented symbols
 used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
@@ -59,7 +60,8 @@ language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
 does not affect stdout JSON parsing. The complete protocol is defined by
 [schemas/scanner-worker.schema.json](../../schemas/scanner-worker.schema.json),
-and actual TypeScript, Swift, Dart, and Rust scan results are checked against it.
+and actual TypeScript, Swift, Dart, Rust, and Go scan results are checked against
+it.
 
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
@@ -101,10 +103,22 @@ a source checkout. In the npm package, the adapter executes
 `dist/bin/<platform>/docbridge-rust-scanner`. Building the package requires the
 Rust toolchain pinned by `packages/rust-scanner/rust-toolchain.toml` on `PATH`.
 
+The bundled Go worker is a Go module under `packages/go-scanner`. It uses the
+standard library's `go/parser`, `go/ast`, and `go/token` with no third-party
+dependencies and communicates through the worker protocol. From a source
+checkout, the adapter executes `packages/go-scanner/bin/docbridge-go-scanner`;
+Go has no debug/release split, so run `just build-go-scanner` locally to build
+that single static binary before checking Go projects from a source checkout.
+In the npm package, the adapter executes
+`dist/bin/<platform>/docbridge-go-scanner`. Building the package requires the
+exact Go version pinned by the `go` directive in `packages/go-scanner/go.mod`
+on `PATH`; the recipes set `GOTOOLCHAIN=local` and fail on any other version
+instead of letting Go download one.
+
 The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
 TypeScript and Markdown checks do not require scanner binaries. If a configured
-Swift, Dart, or Rust project runs on any other platform, or the expected binary
+Swift, Dart, Rust, or Go project runs on any other platform, or the expected binary
 is not present for a supported platform, DocBridge emits
 `code_scanner_unavailable` with the missing platform key and the supported keys.
 
@@ -284,3 +298,75 @@ reports `unsupported_declaration`.
 
 Rust canonical IDs use path-style `::` qualification, for example `normalize`,
 `TypingEngine`, `TypingEngine::advance`, and `domain::typing`.
+
+## Go Scanning
+
+Go scanning extracts `@doc` annotations from the doc comment of a declaration,
+written as `//` line comments or a `/* ... */` block comment, using the standard
+library's `go/parser`, `go/ast`, and `go/token`. The scanner is syntactic: it
+parses each file in isolation and does not type-check, resolve imports, or
+evaluate build constraints, so `//go:build` files, `_test.go` files, and
+`vendor/` directories are scanned whenever the configured patterns match them.
+
+By default only exported declarations are included; unexported declarations are
+included when `include.code.go.visibility` contains `unexported`. A method is
+exported for DocBridge only when both its own name and its receiver or
+interface type name are exported, because a method on an unexported type is not
+reachable from outside the package through that type.
+
+Supported Go declarations are:
+
+- package-level `func`
+- methods with a receiver
+- interface methods (`type X interface { Method() }`)
+- package-level `type`, including aliases, grouped or not
+- package-level `const` and `var`, grouped or not
+
+Go canonical IDs use selector-style `.` qualification: `Login`, `Server`,
+`Server.Start`, and `Reader.Read`. The receiver type name is the base
+identifier after unwrapping `*`, parentheses, and type parameters, so
+`func (l *List[T]) Push(v T)` is `List.Push` and stays stable when the type
+gains or loses generics. A method whose receiver does not name exactly one
+parameter or whose base is not a plain identifier (such as a cgo `C.` type) is
+unsupported.
+
+The scanner reads only the doc comment the parser attaches to a declaration:
+`FuncDecl.Doc`, `GenDecl.Doc`, `TypeSpec.Doc`, `ValueSpec.Doc`, and interface
+`Field.Doc`. Trailing line comments, comments inside function bodies, and
+commented-out code are never doc comments, so an `@doc` there is neither a link
+nor a diagnostic. Comment text is taken from the original source with the
+delimiters removed, so a target directly followed by `*/` ends before it and
+CRLF files keep their positions.
+
+Grouped declarations follow these rules:
+
+- An ungrouped `const X = 1`, `var X T`, or `type X T` owns the comment above
+  it.
+- Inside a parenthesized group, the comment above a spec belongs to that spec.
+- A comment above the group keyword (`// ...` before `const (`) documents the
+  group, which has no name. An `@doc` there is `unsupported_declaration`,
+  located at the keyword, even when the group holds a single spec. This
+  diverges from `go/doc`, which can fall back to the group comment; DocBridge
+  needs one endpoint per annotation.
+- A spec that declares several names (`var a, b int`) exposes every name as a
+  symbol, but an `@doc` above it is `unsupported_declaration` at the first name
+  because the annotation cannot say which name it documents. When splitting the
+  spec would change semantics (`iota` sequences, multi-value initializers), use
+  a Markdown `@code` backlink or a `docbridge.links.json` entry instead.
+
+The blank identifier `_`, `func init()`, struct fields, embedded fields, the
+`package` clause, `import` declarations, and non-method interface elements
+(embedded interfaces, type unions, and `~T` approximations) are not symbols
+and are never `undocumented_symbol`. An `@doc` in the doc comment of any of
+them reports one `unsupported_declaration` located at its name, or at its start
+when it has none. Methods carry no `isMember`, so an exported method without
+`@doc` is an `undocumented_symbol` in audit mode, as in Rust.
+
+`go/parser` accepts `type T interface{ M() }` next to `func (T) M()` even
+though valid Go cannot declare both. When two annotated declarations in one
+file expose the same endpoint, the worker reports `duplicate_code_symbol` and
+keeps the first.
+
+A syntax error makes the file a `code_parse_error` with no symbols; the
+reported position is the error with the smallest byte offset, converted from
+the original content, so `//line` directives do not move it.

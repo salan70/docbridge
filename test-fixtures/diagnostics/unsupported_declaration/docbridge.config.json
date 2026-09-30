@@ -6,6 +6,11 @@
         "patterns": [
           "src/**/*.ts"
         ]
+      },
+      "go": {
+        "patterns": [
+          "internal/**/*.go"
+        ]
       }
     },
     "docs": [

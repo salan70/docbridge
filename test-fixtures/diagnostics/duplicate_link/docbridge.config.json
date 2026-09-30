@@ -21,6 +21,11 @@
         "patterns": [
           "src/**/*.rs"
         ]
+      },
+      "go": {
+        "patterns": [
+          "internal/**/*.go"
+        ]
       }
     },
     "docs": [

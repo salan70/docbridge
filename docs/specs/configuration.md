@@ -54,7 +54,8 @@ lowercase code language ID, and each value is an object configuring that
 language. Shorthand pattern arrays such as `"swift": ["Sources/**/*.swift"]` are
 not supported; the old array form `"code": ["src/**/*.ts"]` is invalid.
 
-Supported language IDs are `typescript`, `swift`, `dart`, and `rust`. Any other
+Supported language IDs are `typescript`, `swift`, `dart`, `rust`, and `go`. Any
+other
 key is an error. `include.code` must configure at least one language; an empty
 object is an error.
 
@@ -68,7 +69,8 @@ object is an error.
         "visibility": ["public", "open", "internal"]
       },
       "dart": { "patterns": ["lib/**/*.dart"], "visibility": ["public"] },
-      "rust": { "patterns": ["src/**/*.rs"], "visibility": ["pub"] }
+      "rust": { "patterns": ["src/**/*.rs"], "visibility": ["pub"] },
+      "go": { "patterns": ["cmd/**/*.go", "internal/**/*.go"] }
     },
     "docs": ["docs/**/*.md"]
   }
@@ -77,7 +79,8 @@ object is an error.
 
 Each entry requires a non-empty `patterns` array of strings. Patterns must end
 with the language extension: `.ts` for `typescript` (but not `.d.ts`), `.swift`
-for `swift`, `.dart` for `dart`, and `.rs` for `rust`. An optional `visibility`
+for `swift`, `.dart` for `dart`, `.rs` for `rust`, and `.go` for `go`. An
+optional `visibility`
 array narrows the audited public surface; allowed values are validated per
 language adapter. Swift accepts `public`, `open`, and `internal`; omitting
 `visibility` scans `public` and `open`. Dart accepts `public`. TypeScript
@@ -85,7 +88,10 @@ accepts `public`, `protected`, and `private`; omitting `visibility` scans
 `public` and `protected`. Rust accepts `pub` and `private`; omitting
 `visibility` scans `pub` only. `pub` means unrestricted `pub` visibility;
 `private` means every other visibility (`pub(crate)`, `pub(super)`,
-`pub(in path)`, and inherited/private).
+`pub(in path)`, and inherited/private). Go accepts `exported` and `unexported`;
+omitting `visibility` scans `exported` only. A Go method is `exported` only
+when both its name and its receiver or interface type name are exported (see
+[Go Scanning](scanning.md#go-scanning)).
 
 TypeScript `visibility` applies only to type members. Top-level declarations are
 scoped by `export` and are unaffected by it. A member excluded by visibility is
