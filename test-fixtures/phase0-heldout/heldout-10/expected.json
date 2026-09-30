@@ -1,0 +1,101 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "duplicate_doc_anchor",
+      "target": "docs/q.md#two",
+      "message": "Duplicate doc anchor \"two\" in docs/q.md.",
+      "location": { "filePath": "docs/q.md", "line": 9, "column": 1 }
+    },
+    {
+      "severity": "warning",
+      "code": "unlinked_doc_section",
+      "target": "docs/q.md#two",
+      "message": "Doc section docs/q.md#two has no @code annotation.",
+      "location": { "filePath": "docs/q.md", "line": 9, "column": 1 }
+    },
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "language": "typescript",
+      "target": "src/p.ts",
+      "message": "Failed to parse src/p.ts: '}' expected.",
+      "location": { "filePath": "src/p.ts", "line": 20, "column": 1 }
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/q.md#two",
+      "source": "src/r.ts#two",
+      "message": "Duplicate @doc link from src/r.ts#two to docs/q.md#two.",
+      "location": { "filePath": "src/r.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "warning",
+      "code": "undocumented_symbol",
+      "language": "typescript",
+      "target": "src/r.ts#three",
+      "message": "Exported symbol src/r.ts#three has no @doc annotation.",
+      "location": { "filePath": "src/r.ts", "line": 10, "column": 17 }
+    }
+  ],
+  "counterparts": {
+    "docs/q.md#one": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/p.ts",
+        "symbolName": "one",
+        "canonicalId": "one",
+        "endpoint": "src/p.ts#one",
+        "location": { "filePath": "src/p.ts", "line": 2, "column": 17 }
+      }
+    ],
+    "docs/q.md#two": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/r.ts",
+        "symbolName": "two",
+        "canonicalId": "two",
+        "endpoint": "src/r.ts#two",
+        "location": { "filePath": "src/r.ts", "line": 2, "column": 17 }
+      }
+    ],
+    "src/r.ts#two": [
+      {
+        "kind": "doc",
+        "filePath": "docs/q.md",
+        "anchor": "two",
+        "endpoint": "docs/q.md#two",
+        "headingText": "Two",
+        "location": { "filePath": "docs/q.md", "line": 3, "column": 1 }
+      }
+    ],
+    "src/r.ts#Klass.m": [
+      {
+        "kind": "doc",
+        "filePath": "docs/q.md",
+        "anchor": "members",
+        "endpoint": "docs/q.md#members",
+        "headingText": "Members",
+        "location": { "filePath": "docs/q.md", "line": 7, "column": 1 }
+      }
+    ],
+    "docs/q.md#members": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/r.ts",
+        "symbolName": "m",
+        "canonicalId": "Klass.m",
+        "endpoint": "src/r.ts#Klass.m",
+        "location": { "filePath": "src/r.ts", "line": 6, "column": 3 },
+        "isMember": true
+      }
+    ],
+    "src/r.ts#three": [],
+    "docs/q.md": [],
+    "nope": []
+  }
+}

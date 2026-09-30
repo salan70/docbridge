@@ -1,0 +1,206 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/x.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/x.ts",
+          "symbolName": "f",
+          "canonicalId": "f",
+          "endpoint": "src/x.ts#f",
+          "location": { "filePath": "src/x.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/x.ts#f",
+          "target": "docs/x.md#intro",
+          "location": { "filePath": "src/x.ts", "line": 1, "column": 9 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/x.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/x.md",
+          "anchor": "intro",
+          "endpoint": "docs/x.md#intro",
+          "headingText": "Intro",
+          "location": { "filePath": "docs/x.md", "line": 1, "column": 1 },
+          "headingTextRange": {
+            "start": { "line": 1, "column": 3 },
+            "end": { "line": 1, "column": 8 }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/x.md",
+          "anchor": "intro",
+          "endpoint": "docs/x.md#intro",
+          "headingText": "Intro",
+          "location": { "filePath": "docs/x.md", "line": 5, "column": 1 },
+          "headingTextRange": {
+            "start": { "line": 5, "column": 3 },
+            "end": { "line": 5, "column": 8 }
+          }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/x.md",
+            "anchor": "intro",
+            "endpoint": "docs/x.md#intro",
+            "headingText": "Intro",
+            "location": { "filePath": "docs/x.md", "line": 1, "column": 1 },
+            "headingTextRange": {
+              "start": { "line": 1, "column": 3 },
+              "end": { "line": 1, "column": 8 }
+            }
+          }
+        },
+        {
+          "level": 1,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/x.md",
+            "anchor": "intro",
+            "endpoint": "docs/x.md#intro",
+            "headingText": "Intro",
+            "location": { "filePath": "docs/x.md", "line": 5, "column": 1 },
+            "headingTextRange": {
+              "start": { "line": 5, "column": 3 },
+              "end": { "line": 5, "column": 8 }
+            }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/x.md#intro",
+          "target": "src/x.ts#f",
+          "location": { "filePath": "docs/x.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/y.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/y.md",
+          "anchor": "intro",
+          "endpoint": "docs/y.md#intro",
+          "headingText": "Intro",
+          "location": { "filePath": "docs/y.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 2,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/y.md",
+            "anchor": "intro",
+            "endpoint": "docs/y.md#intro",
+            "headingText": "Intro",
+            "location": { "filePath": "docs/y.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/empty.md",
+      "anchors": [],
+      "headings": [],
+      "links": [],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/only-empty.md",
+      "anchors": [],
+      "headings": [{ "level": 2, "hasCodeAnnotation": false }],
+      "links": [],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/lead.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/lead.md",
+          "anchor": "deep",
+          "endpoint": "docs/lead.md#deep",
+          "headingText": "Deep",
+          "location": { "filePath": "docs/lead.md", "line": 3, "column": 1 }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/lead.md",
+          "anchor": "mid",
+          "endpoint": "docs/lead.md#mid",
+          "headingText": "Mid",
+          "location": { "filePath": "docs/lead.md", "line": 5, "column": 1 }
+        }
+      ],
+      "headings": [
+        { "level": 2, "hasCodeAnnotation": false },
+        {
+          "level": 4,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/lead.md",
+            "anchor": "deep",
+            "endpoint": "docs/lead.md#deep",
+            "headingText": "Deep",
+            "location": { "filePath": "docs/lead.md", "line": 3, "column": 1 }
+          }
+        },
+        {
+          "level": 3,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/lead.md",
+            "anchor": "mid",
+            "endpoint": "docs/lead.md#mid",
+            "headingText": "Mid",
+            "location": { "filePath": "docs/lead.md", "line": 5, "column": 1 }
+          }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "duplicate_doc_anchor",
+      "target": "docs/x.md#intro",
+      "message": "Duplicate doc anchor \"intro\" in docs/x.md.",
+      "location": { "filePath": "docs/x.md", "line": 5, "column": 1 },
+      "range": { "start": { "line": 5, "column": 3 }, "end": { "line": 5, "column": 8 } }
+    }
+  ],
+  "audit": true,
+  "queries": ["src/x.ts#f", "docs/x.md#intro", "docs/y.md#intro"]
+}

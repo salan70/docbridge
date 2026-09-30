@@ -1,0 +1,113 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/broken.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/broken.ts",
+          "symbolName": "partial",
+          "canonicalId": "partial",
+          "endpoint": "src/broken.ts#partial",
+          "location": { "filePath": "src/broken.ts", "line": 3, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/broken.ts",
+          "symbolName": "lonely",
+          "canonicalId": "lonely",
+          "endpoint": "src/broken.ts#lonely",
+          "location": { "filePath": "src/broken.ts", "line": 6, "column": 17 }
+        }
+      ],
+      "links": [
+        {
+          "source": "src/broken.ts#partial",
+          "target": "docs/a.md#missing",
+          "location": { "filePath": "src/broken.ts", "line": 2, "column": 9 },
+          "targetRange": {
+            "start": { "line": 2, "column": 9 },
+            "end": { "line": 2, "column": 26 }
+          }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/ok.ts",
+      "symbols": [],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/ok.ts",
+          "symbolName": "lonely",
+          "canonicalId": "lonely",
+          "endpoint": "src/ok.ts#lonely",
+          "location": { "filePath": "src/ok.ts", "line": 1, "column": 17 },
+          "nameRange": {
+            "start": { "line": 1, "column": 17 },
+            "end": { "line": 1, "column": 23 }
+          }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/a.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/a.md",
+          "anchor": "a",
+          "endpoint": "docs/a.md#a",
+          "headingText": "A",
+          "location": { "filePath": "docs/a.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/a.md",
+            "anchor": "a",
+            "endpoint": "docs/a.md#a",
+            "headingText": "A",
+            "location": { "filePath": "docs/a.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/a.md#a",
+          "target": "src/broken.ts#partial",
+          "location": { "filePath": "docs/a.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "language": "typescript",
+      "target": "src/broken.ts",
+      "message": "Failed to parse src/broken.ts: ';' expected.",
+      "location": { "filePath": "src/broken.ts", "line": 4, "column": 1 }
+    }
+  ],
+  "audit": true,
+  "queries": ["docs/a.md#a", "src/broken.ts#partial", "src/broken.ts#lonely"]
+}

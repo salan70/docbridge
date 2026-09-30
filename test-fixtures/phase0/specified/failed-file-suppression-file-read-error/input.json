@@ -1,0 +1,152 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/ok.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/ok.ts",
+          "symbolName": "ok",
+          "canonicalId": "ok",
+          "endpoint": "src/ok.ts#ok",
+          "location": { "filePath": "src/ok.ts", "line": 5, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/ok.ts#ok",
+          "target": "docs/a.md#ok-section",
+          "location": { "filePath": "src/ok.ts", "line": 2, "column": 9 },
+          "targetRange": {
+            "start": { "line": 2, "column": 9 },
+            "end": { "line": 2, "column": 29 }
+          }
+        },
+        {
+          "source": "src/ok.ts#ok",
+          "target": "docs/unreadable.md#anything",
+          "location": { "filePath": "src/ok.ts", "line": 3, "column": 9 },
+          "targetRange": {
+            "start": { "line": 3, "column": 9 },
+            "end": { "line": 3, "column": 36 }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/a.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/a.md",
+          "anchor": "ok-section",
+          "endpoint": "docs/a.md#ok-section",
+          "headingText": "Ok Section",
+          "location": { "filePath": "docs/a.md", "line": 1, "column": 1 },
+          "headingTextRange": {
+            "start": { "line": 1, "column": 3 },
+            "end": { "line": 1, "column": 13 }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/a.md",
+          "anchor": "flow",
+          "endpoint": "docs/a.md#flow",
+          "headingText": "Flow",
+          "location": { "filePath": "docs/a.md", "line": 5, "column": 1 },
+          "headingTextRange": {
+            "start": { "line": 5, "column": 4 },
+            "end": { "line": 5, "column": 8 }
+          }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/a.md",
+            "anchor": "ok-section",
+            "endpoint": "docs/a.md#ok-section",
+            "headingText": "Ok Section",
+            "location": { "filePath": "docs/a.md", "line": 1, "column": 1 },
+            "headingTextRange": {
+              "start": { "line": 1, "column": 3 },
+              "end": { "line": 1, "column": 13 }
+            }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/a.md",
+            "anchor": "flow",
+            "endpoint": "docs/a.md#flow",
+            "headingText": "Flow",
+            "location": { "filePath": "docs/a.md", "line": 5, "column": 1 },
+            "headingTextRange": {
+              "start": { "line": 5, "column": 4 },
+              "end": { "line": 5, "column": 8 }
+            }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/a.md#ok-section",
+          "target": "src/ok.ts#ok",
+          "location": { "filePath": "docs/a.md", "line": 3, "column": 11 },
+          "targetRange": {
+            "start": { "line": 3, "column": 11 },
+            "end": { "line": 3, "column": 23 }
+          }
+        },
+        {
+          "source": "docs/a.md#flow",
+          "target": "src/broken.ts#run",
+          "location": { "filePath": "docs/a.md", "line": 7, "column": 11 },
+          "targetRange": {
+            "start": { "line": 7, "column": 11 },
+            "end": { "line": 7, "column": 28 }
+          }
+        },
+        {
+          "source": "docs/a.md#flow",
+          "target": "src/ok.ts#other",
+          "location": { "filePath": "docs/a.md", "line": 8, "column": 11 },
+          "targetRange": {
+            "start": { "line": 8, "column": 11 },
+            "end": { "line": 8, "column": 26 }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "file_read_error",
+      "target": "src/broken.ts",
+      "message": "Failed to read src/broken.ts: EACCES: permission denied"
+    },
+    {
+      "severity": "error",
+      "code": "file_read_error",
+      "target": "docs/unreadable.md",
+      "message": "Failed to read docs/unreadable.md: EACCES: permission denied"
+    }
+  ],
+  "audit": true,
+  "queries": ["src/ok.ts#ok", "docs/a.md#ok-section", "docs/a.md#flow", "src/broken.ts#run"]
+}

@@ -1,0 +1,186 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "Sources/X.swift#h8",
+      "target": "docs/README.md#missing-8",
+      "message": "Doc anchor docs/README.md#missing-8 referenced by Sources/X.swift#h8 does not exist.",
+      "location": { "filePath": "Sources/X.swift", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a_b.ts#h2",
+      "target": "docs/README.md#missing-2",
+      "message": "Doc anchor docs/README.md#missing-2 referenced by src/a_b.ts#h2 does not exist.",
+      "location": { "filePath": "src/a_b.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a-b.ts#h1",
+      "target": "docs/README.md#missing-1",
+      "message": "Doc anchor docs/README.md#missing-1 referenced by src/a-b.ts#h1 does not exist.",
+      "location": { "filePath": "src/a-b.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a.b.ts#h3",
+      "target": "docs/README.md#missing-3",
+      "message": "Doc anchor docs/README.md#missing-3 referenced by src/a.b.ts#h3 does not exist.",
+      "location": { "filePath": "src/a.b.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a.ts#h5",
+      "target": "docs/README.md#missing-5",
+      "message": "Doc anchor docs/README.md#missing-5 referenced by src/a.ts#h5 does not exist.",
+      "location": { "filePath": "src/a.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a/b.ts#h4",
+      "target": "docs/README.md#missing-4",
+      "message": "Doc anchor docs/README.md#missing-4 referenced by src/a/b.ts#h4 does not exist.",
+      "location": { "filePath": "src/a/b.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a10.ts#h6",
+      "target": "docs/README.md#missing-6",
+      "message": "Doc anchor docs/README.md#missing-6 referenced by src/a10.ts#h6 does not exist.",
+      "location": { "filePath": "src/a10.ts", "line": 1, "column": 30 }
+    },
+    {
+      "severity": "error",
+      "code": "doc_anchor_not_found",
+      "source": "src/a2.ts#h7",
+      "target": "docs/README.md#missing-7",
+      "message": "Doc anchor docs/README.md#missing-7 referenced by src/a2.ts#h7 does not exist.",
+      "location": { "filePath": "src/a2.ts", "line": 1, "column": 30 }
+    }
+  ],
+  "counterparts": {
+    "docs/README.md#hub": [
+      {
+        "kind": "code",
+        "language": "swift",
+        "filePath": "Sources/X.swift",
+        "symbolName": "h8",
+        "canonicalId": "h8",
+        "endpoint": "Sources/X.swift#h8",
+        "location": { "filePath": "Sources/X.swift", "line": 7, "column": 14 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a_b.ts",
+        "symbolName": "h2",
+        "canonicalId": "h2",
+        "endpoint": "src/a_b.ts#h2",
+        "location": { "filePath": "src/a_b.ts", "line": 2, "column": 17 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a-b.ts",
+        "symbolName": "h1",
+        "canonicalId": "h1",
+        "endpoint": "src/a-b.ts#h1",
+        "location": { "filePath": "src/a-b.ts", "line": 2, "column": 17 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a.b.ts",
+        "symbolName": "h3",
+        "canonicalId": "h3",
+        "endpoint": "src/a.b.ts#h3",
+        "location": { "filePath": "src/a.b.ts", "line": 2, "column": 17 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a.ts",
+        "symbolName": "h5",
+        "canonicalId": "h5",
+        "endpoint": "src/a.ts#h5",
+        "location": { "filePath": "src/a.ts", "line": 2, "column": 17 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a/b.ts",
+        "symbolName": "h4",
+        "canonicalId": "h4",
+        "endpoint": "src/a/b.ts#h4",
+        "location": { "filePath": "src/a/b.ts", "line": 2, "column": 17 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a10.ts",
+        "symbolName": "h6",
+        "canonicalId": "h6",
+        "endpoint": "src/a10.ts#h6",
+        "location": { "filePath": "src/a10.ts", "line": 2, "column": 17 }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/a2.ts",
+        "symbolName": "h7",
+        "canonicalId": "h7",
+        "endpoint": "src/a2.ts#h7",
+        "location": { "filePath": "src/a2.ts", "line": 2, "column": 17 }
+      }
+    ],
+    "Sources/X.swift#h8": [
+      {
+        "kind": "doc",
+        "filePath": "docs/api.md",
+        "anchor": "p",
+        "endpoint": "docs/api.md#p",
+        "headingText": "P",
+        "location": { "filePath": "docs/api.md", "line": 1, "column": 1 }
+      },
+      {
+        "kind": "doc",
+        "filePath": "docs/Api.md",
+        "anchor": "q",
+        "endpoint": "docs/Api.md#q",
+        "headingText": "Q",
+        "location": { "filePath": "docs/Api.md", "line": 1, "column": 1 }
+      },
+      {
+        "kind": "doc",
+        "filePath": "docs/README.md",
+        "anchor": "hub",
+        "endpoint": "docs/README.md#hub",
+        "headingText": "Hub",
+        "location": { "filePath": "docs/README.md", "line": 1, "column": 1 }
+      },
+      {
+        "kind": "doc",
+        "filePath": "docs/README.md",
+        "anchor": "r",
+        "endpoint": "docs/README.md#r",
+        "headingText": "R",
+        "location": { "filePath": "docs/README.md", "line": 5, "column": 1 }
+      },
+      {
+        "kind": "doc",
+        "filePath": "docs/zeta.md",
+        "anchor": "z",
+        "endpoint": "docs/zeta.md#z",
+        "headingText": "Z",
+        "location": { "filePath": "docs/zeta.md", "line": 1, "column": 1 }
+      }
+    ]
+  }
+}

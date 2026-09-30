@@ -1,0 +1,85 @@
+{
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "source": "src/svc.ts#helper",
+      "target": "docs/svc.md#helper",
+      "message": "Link src/svc.ts#helper to docs/svc.md#helper is already declared.",
+      "location": { "filePath": "docbridge.links.json", "line": 7, "column": 5 },
+      "range": {
+        "start": { "line": 7, "column": 5 },
+        "end": { "line": 7, "column": 60 }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "code_backlink_not_found",
+      "source": "docs/svc.md#notes",
+      "target": "src/svc.ts#Service",
+      "message": "Code endpoint src/svc.ts#Service has no matching @doc pair back to docs/svc.md#notes.",
+      "location": { "filePath": "docs/svc.md", "line": 16, "column": 11 }
+    },
+    {
+      "severity": "warning",
+      "code": "undocumented_symbol",
+      "language": "typescript",
+      "target": "src/svc.ts#Other",
+      "message": "Exported symbol src/svc.ts#Other has no @doc annotation.",
+      "location": { "filePath": "src/svc.ts", "line": 20, "column": 14 }
+    }
+  ],
+  "counterparts": {
+    "src/svc.ts#Service": [
+      {
+        "kind": "doc",
+        "filePath": "docs/svc.md",
+        "anchor": "service",
+        "endpoint": "docs/svc.md#service",
+        "headingText": "Service",
+        "location": { "filePath": "docs/svc.md", "line": 1, "column": 1 }
+      },
+      {
+        "kind": "doc",
+        "filePath": "docs/svc.md",
+        "anchor": "notes",
+        "endpoint": "docs/svc.md#notes",
+        "headingText": "Notes",
+        "location": { "filePath": "docs/svc.md", "line": 14, "column": 1 }
+      }
+    ],
+    "docs/svc.md#service": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/svc.ts",
+        "symbolName": "Service",
+        "canonicalId": "Service",
+        "endpoint": "src/svc.ts#Service",
+        "location": { "filePath": "src/svc.ts", "line": 6, "column": 14 }
+      }
+    ],
+    "docs/svc.md#notes": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/svc.ts",
+        "symbolName": "Service",
+        "canonicalId": "Service",
+        "endpoint": "src/svc.ts#Service",
+        "location": { "filePath": "src/svc.ts", "line": 6, "column": 14 }
+      }
+    ],
+    "src/svc.ts#helper": [
+      {
+        "kind": "doc",
+        "filePath": "docs/svc.md",
+        "anchor": "helper",
+        "endpoint": "docs/svc.md#helper",
+        "headingText": "Helper",
+        "location": { "filePath": "docs/svc.md", "line": 10, "column": 1 }
+      }
+    ],
+    "src/svc.ts#Other": []
+  }
+}

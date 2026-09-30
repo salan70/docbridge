@@ -1,0 +1,108 @@
+{
+  "codeFiles": [
+    {
+      "language": "swift",
+      "filePath": "Sources/A.swift",
+      "symbols": [],
+      "undocumentedSymbols": [],
+      "links": [],
+      "diagnostics": []
+    },
+    {
+      "language": "swift",
+      "filePath": "Sources/B.swift",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/B.swift",
+          "symbolName": "Auth",
+          "canonicalId": "Auth",
+          "endpoint": "Sources/B.swift#Auth",
+          "location": { "filePath": "Sources/B.swift", "line": 3, "column": 14 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "Sources/B.swift#Auth",
+          "target": "docs/a.md#nope",
+          "location": { "filePath": "Sources/B.swift", "line": 2, "column": 5 },
+          "targetRange": {
+            "start": { "line": 2, "column": 5 },
+            "end": { "line": 2, "column": 19 }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/a.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/a.md",
+          "anchor": "a",
+          "endpoint": "docs/a.md#a",
+          "headingText": "A",
+          "location": { "filePath": "docs/a.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/a.md",
+            "anchor": "a",
+            "endpoint": "docs/a.md#a",
+            "headingText": "A",
+            "location": { "filePath": "docs/a.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/a.md#a",
+          "target": "Sources/A.swift#Auth",
+          "location": { "filePath": "docs/a.md", "line": 3, "column": 11 },
+          "targetRange": {
+            "start": { "line": 3, "column": 11 },
+            "end": { "line": 3, "column": 31 }
+          }
+        },
+        {
+          "source": "docs/a.md#a",
+          "target": "Sources/B.swift#Auth",
+          "location": { "filePath": "docs/a.md", "line": 4, "column": 11 },
+          "targetRange": {
+            "start": { "line": 4, "column": 11 },
+            "end": { "line": 4, "column": 31 }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "code_scanner_unavailable",
+      "language": "swift",
+      "target": "swift",
+      "message": "Swift scanner worker is unavailable: the binary at packages/swift-scanner/.build/debug/docbridge-swift-scanner is not executable."
+    },
+    {
+      "severity": "error",
+      "code": "code_scanner_unavailable",
+      "language": "swift",
+      "target": "Sources/A.swift",
+      "message": "Swift scanner worker is unavailable: missing docbridge-swift-scanner for platform darwin-arm64; supported platforms: darwin-arm64, linux-x64"
+    }
+  ],
+  "audit": false,
+  "queries": ["docs/a.md#a", "Sources/B.swift#Auth", "Sources/A.swift#Auth"]
+}

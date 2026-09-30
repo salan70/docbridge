@@ -1,0 +1,98 @@
+{
+  "codeFiles": [
+    {
+      "language": "swift",
+      "filePath": "Sources/Auth.swift",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "Auth",
+          "canonicalId": "Auth",
+          "endpoint": "Sources/Auth.swift#Auth",
+          "location": { "filePath": "Sources/Auth.swift", "line": 3, "column": 14 }
+        }
+      ],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "login(email:)",
+          "canonicalId": "Auth.login(email:)",
+          "endpoint": "Sources/Auth.swift#Auth.login(email:)",
+          "location": { "filePath": "Sources/Auth.swift", "line": 5, "column": 10 },
+          "isMember": true
+        },
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "token",
+          "canonicalId": "Auth.token",
+          "endpoint": "Sources/Auth.swift#Auth.token",
+          "location": { "filePath": "Sources/Auth.swift", "line": 8, "column": 9 },
+          "isMember": false
+        },
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "helper",
+          "canonicalId": "helper",
+          "endpoint": "Sources/Auth.swift#helper",
+          "location": { "filePath": "Sources/Auth.swift", "line": 12, "column": 6 }
+        }
+      ],
+      "links": [
+        {
+          "source": "Sources/Auth.swift#Auth",
+          "target": "docs/auth.md#auth",
+          "location": { "filePath": "Sources/Auth.swift", "line": 2, "column": 9 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/auth.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "auth",
+          "endpoint": "docs/auth.md#auth",
+          "headingText": "Auth",
+          "location": { "filePath": "docs/auth.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "auth",
+            "endpoint": "docs/auth.md#auth",
+            "headingText": "Auth",
+            "location": { "filePath": "docs/auth.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/auth.md#auth",
+          "target": "Sources/Auth.swift#Auth",
+          "location": { "filePath": "docs/auth.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [],
+  "audit": true,
+  "queries": ["Sources/Auth.swift#Auth", "Sources/Auth.swift#Auth.login(email:)"]
+}

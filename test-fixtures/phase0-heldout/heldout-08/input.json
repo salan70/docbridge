@@ -1,0 +1,461 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/a2.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a2.ts",
+          "symbolName": "h7",
+          "canonicalId": "h7",
+          "endpoint": "src/a2.ts#h7",
+          "location": { "filePath": "src/a2.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a2.ts#h7",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a2.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a2.ts#h7",
+          "target": "docs/README.md#missing-7",
+          "location": { "filePath": "src/a2.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a10.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a10.ts",
+          "symbolName": "h6",
+          "canonicalId": "h6",
+          "endpoint": "src/a10.ts#h6",
+          "location": { "filePath": "src/a10.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a10.ts#h6",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a10.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a10.ts#h6",
+          "target": "docs/README.md#missing-6",
+          "location": { "filePath": "src/a10.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a/b.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a/b.ts",
+          "symbolName": "h4",
+          "canonicalId": "h4",
+          "endpoint": "src/a/b.ts#h4",
+          "location": { "filePath": "src/a/b.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a/b.ts#h4",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a/b.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a/b.ts#h4",
+          "target": "docs/README.md#missing-4",
+          "location": { "filePath": "src/a/b.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.ts",
+          "symbolName": "h5",
+          "canonicalId": "h5",
+          "endpoint": "src/a.ts#h5",
+          "location": { "filePath": "src/a.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a.ts#h5",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a.ts#h5",
+          "target": "docs/README.md#missing-5",
+          "location": { "filePath": "src/a.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a.b.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.b.ts",
+          "symbolName": "h3",
+          "canonicalId": "h3",
+          "endpoint": "src/a.b.ts#h3",
+          "location": { "filePath": "src/a.b.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a.b.ts#h3",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a.b.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a.b.ts#h3",
+          "target": "docs/README.md#missing-3",
+          "location": { "filePath": "src/a.b.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a_b.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a_b.ts",
+          "symbolName": "h2",
+          "canonicalId": "h2",
+          "endpoint": "src/a_b.ts#h2",
+          "location": { "filePath": "src/a_b.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a_b.ts#h2",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a_b.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a_b.ts#h2",
+          "target": "docs/README.md#missing-2",
+          "location": { "filePath": "src/a_b.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a-b.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a-b.ts",
+          "symbolName": "h1",
+          "canonicalId": "h1",
+          "endpoint": "src/a-b.ts#h1",
+          "location": { "filePath": "src/a-b.ts", "line": 2, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a-b.ts#h1",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "src/a-b.ts", "line": 1, "column": 9 }
+        },
+        {
+          "source": "src/a-b.ts#h1",
+          "target": "docs/README.md#missing-1",
+          "location": { "filePath": "src/a-b.ts", "line": 1, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "swift",
+      "filePath": "Sources/X.swift",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/X.swift",
+          "symbolName": "h8",
+          "canonicalId": "h8",
+          "endpoint": "Sources/X.swift#h8",
+          "location": { "filePath": "Sources/X.swift", "line": 7, "column": 14 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "Sources/X.swift#h8",
+          "target": "docs/README.md#hub",
+          "location": { "filePath": "Sources/X.swift", "line": 1, "column": 9 }
+        },
+        {
+          "source": "Sources/X.swift#h8",
+          "target": "docs/README.md#missing-8",
+          "location": { "filePath": "Sources/X.swift", "line": 1, "column": 30 }
+        },
+        {
+          "source": "Sources/X.swift#h8",
+          "target": "docs/api.md#p",
+          "location": { "filePath": "Sources/X.swift", "line": 2, "column": 9 }
+        },
+        {
+          "source": "Sources/X.swift#h8",
+          "target": "docs/Api.md#q",
+          "location": { "filePath": "Sources/X.swift", "line": 3, "column": 9 }
+        },
+        {
+          "source": "Sources/X.swift#h8",
+          "target": "docs/zeta.md#z",
+          "location": { "filePath": "Sources/X.swift", "line": 4, "column": 9 }
+        },
+        {
+          "source": "Sources/X.swift#h8",
+          "target": "docs/README.md#r",
+          "location": { "filePath": "Sources/X.swift", "line": 5, "column": 9 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/zeta.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/zeta.md",
+          "anchor": "z",
+          "endpoint": "docs/zeta.md#z",
+          "headingText": "Z",
+          "location": { "filePath": "docs/zeta.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/zeta.md",
+            "anchor": "z",
+            "endpoint": "docs/zeta.md#z",
+            "headingText": "Z",
+            "location": { "filePath": "docs/zeta.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/zeta.md#z",
+          "target": "Sources/X.swift#h8",
+          "location": { "filePath": "docs/zeta.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/README.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/README.md",
+          "anchor": "hub",
+          "endpoint": "docs/README.md#hub",
+          "headingText": "Hub",
+          "location": { "filePath": "docs/README.md", "line": 1, "column": 1 }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/README.md",
+          "anchor": "r",
+          "endpoint": "docs/README.md#r",
+          "headingText": "R",
+          "location": { "filePath": "docs/README.md", "line": 5, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/README.md",
+            "anchor": "hub",
+            "endpoint": "docs/README.md#hub",
+            "headingText": "Hub",
+            "location": { "filePath": "docs/README.md", "line": 1, "column": 1 }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/README.md",
+            "anchor": "r",
+            "endpoint": "docs/README.md#r",
+            "headingText": "R",
+            "location": { "filePath": "docs/README.md", "line": 5, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a-b.ts#h1",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 11 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a_b.ts#h2",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 12 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a.b.ts#h3",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 13 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a/b.ts#h4",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 14 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a.ts#h5",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 15 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a10.ts#h6",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 16 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "src/a2.ts#h7",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 17 }
+        },
+        {
+          "source": "docs/README.md#hub",
+          "target": "Sources/X.swift#h8",
+          "location": { "filePath": "docs/README.md", "line": 2, "column": 18 }
+        },
+        {
+          "source": "docs/README.md#r",
+          "target": "Sources/X.swift#h8",
+          "location": { "filePath": "docs/README.md", "line": 6, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/Api.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/Api.md",
+          "anchor": "q",
+          "endpoint": "docs/Api.md#q",
+          "headingText": "Q",
+          "location": { "filePath": "docs/Api.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/Api.md",
+            "anchor": "q",
+            "endpoint": "docs/Api.md#q",
+            "headingText": "Q",
+            "location": { "filePath": "docs/Api.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/Api.md#q",
+          "target": "Sources/X.swift#h8",
+          "location": { "filePath": "docs/Api.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/api.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/api.md",
+          "anchor": "p",
+          "endpoint": "docs/api.md#p",
+          "headingText": "P",
+          "location": { "filePath": "docs/api.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/api.md",
+            "anchor": "p",
+            "endpoint": "docs/api.md#p",
+            "headingText": "P",
+            "location": { "filePath": "docs/api.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/api.md#p",
+          "target": "Sources/X.swift#h8",
+          "location": { "filePath": "docs/api.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [],
+  "audit": false,
+  "queries": ["docs/README.md#hub", "Sources/X.swift#h8"]
+}

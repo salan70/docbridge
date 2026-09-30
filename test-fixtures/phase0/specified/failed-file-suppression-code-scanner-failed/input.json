@@ -1,0 +1,129 @@
+{
+  "codeFiles": [
+    {
+      "language": "go",
+      "filePath": "internal/a.go",
+      "symbols": [],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/a.go",
+          "symbolName": "Partial",
+          "canonicalId": "Partial",
+          "endpoint": "internal/a.go#Partial",
+          "location": { "filePath": "internal/a.go", "line": 3, "column": 6 }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    },
+    {
+      "language": "go",
+      "filePath": "internal/b.go",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/b.go",
+          "symbolName": "Login",
+          "canonicalId": "Login",
+          "endpoint": "internal/b.go#Login",
+          "location": { "filePath": "internal/b.go", "line": 4, "column": 6 }
+        }
+      ],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/b.go",
+          "symbolName": "Logout",
+          "canonicalId": "Logout",
+          "endpoint": "internal/b.go#Logout",
+          "location": { "filePath": "internal/b.go", "line": 8, "column": 6 }
+        }
+      ],
+      "links": [
+        {
+          "source": "internal/b.go#Login",
+          "target": "docs/auth.md#login",
+          "location": { "filePath": "internal/b.go", "line": 2, "column": 9 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/auth.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "login",
+          "endpoint": "docs/auth.md#login",
+          "headingText": "Login",
+          "location": { "filePath": "docs/auth.md", "line": 1, "column": 1 }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "partial",
+          "endpoint": "docs/auth.md#partial",
+          "headingText": "Partial",
+          "location": { "filePath": "docs/auth.md", "line": 5, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "login",
+            "endpoint": "docs/auth.md#login",
+            "headingText": "Login",
+            "location": { "filePath": "docs/auth.md", "line": 1, "column": 1 }
+          }
+        },
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "partial",
+            "endpoint": "docs/auth.md#partial",
+            "headingText": "Partial",
+            "location": { "filePath": "docs/auth.md", "line": 5, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/auth.md#login",
+          "target": "internal/b.go#Login",
+          "location": { "filePath": "docs/auth.md", "line": 3, "column": 11 }
+        },
+        {
+          "source": "docs/auth.md#partial",
+          "target": "internal/a.go#Partial",
+          "location": { "filePath": "docs/auth.md", "line": 7, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "code_scanner_failed",
+      "language": "go",
+      "target": "internal/a.go",
+      "message": "Go scanner worker failed for internal/a.go: worker exited with code 1"
+    }
+  ],
+  "audit": true,
+  "queries": ["docs/auth.md#login", "docs/auth.md#partial", "internal/b.go#Login"]
+}

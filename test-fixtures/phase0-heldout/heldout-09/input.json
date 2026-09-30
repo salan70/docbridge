@@ -1,0 +1,230 @@
+{
+  "codeFiles": [
+    {
+      "language": "swift",
+      "filePath": "Sources/Auth.swift",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "Auth",
+          "canonicalId": "Auth",
+          "endpoint": "Sources/Auth.swift#Auth",
+          "location": { "filePath": "Sources/Auth.swift", "line": 3, "column": 14 }
+        },
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "login(email:password:)",
+          "canonicalId": "Auth.login(email:password:)",
+          "endpoint": "Sources/Auth.swift#Auth.login(email:password:)",
+          "location": { "filePath": "Sources/Auth.swift", "line": 5, "column": 10 },
+          "isMember": true
+        },
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "login(email:)",
+          "canonicalId": "Auth.login(email:)",
+          "endpoint": "Sources/Auth.swift#Auth.login(email:)",
+          "location": { "filePath": "Sources/Auth.swift", "line": 5, "column": 10 },
+          "isMember": true
+        }
+      ],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "swift",
+          "filePath": "Sources/Auth.swift",
+          "symbolName": "logout()",
+          "canonicalId": "Auth.logout()",
+          "endpoint": "Sources/Auth.swift#Auth.logout()",
+          "location": { "filePath": "Sources/Auth.swift", "line": 12, "column": 10 },
+          "isMember": true
+        }
+      ],
+      "links": [
+        {
+          "source": "Sources/Auth.swift#Auth",
+          "target": "docs/auth.md#login",
+          "location": { "filePath": "Sources/Auth.swift", "line": 2, "column": 9 }
+        },
+        {
+          "source": "Sources/Auth.swift#Auth",
+          "target": "docs/a.md#same",
+          "location": { "filePath": "Sources/Auth.swift", "line": 2, "column": 30 }
+        },
+        {
+          "source": "Sources/Auth.swift#Auth",
+          "target": "docs/b.md#same",
+          "location": { "filePath": "Sources/Auth.swift", "line": 2, "column": 50 }
+        },
+        {
+          "source": "Sources/Auth.swift#Auth.login(email:password:)",
+          "target": "docs/auth.md#login",
+          "location": { "filePath": "Sources/Auth.swift", "line": 4, "column": 9 }
+        },
+        {
+          "source": "Sources/Auth.swift#Auth.login(email:)",
+          "target": "docs/auth.md#login",
+          "location": { "filePath": "Sources/Auth.swift", "line": 4, "column": 30 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/auth.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "login",
+          "endpoint": "docs/auth.md#login",
+          "headingText": "Login",
+          "location": { "filePath": "docs/auth.md", "line": 1, "column": 1 }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "logout",
+          "endpoint": "docs/auth.md#logout",
+          "headingText": "Logout",
+          "location": { "filePath": "docs/auth.md", "line": 9, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "login",
+            "endpoint": "docs/auth.md#login",
+            "headingText": "Login",
+            "location": { "filePath": "docs/auth.md", "line": 1, "column": 1 }
+          }
+        },
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "logout",
+            "endpoint": "docs/auth.md#logout",
+            "headingText": "Logout",
+            "location": { "filePath": "docs/auth.md", "line": 9, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/auth.md#login",
+          "target": "Sources/Auth.swift#Auth",
+          "location": { "filePath": "docs/auth.md", "line": 3, "column": 11 }
+        },
+        {
+          "source": "docs/auth.md#login",
+          "target": "Sources/Auth.swift#Auth.login(email:)",
+          "location": { "filePath": "docs/auth.md", "line": 4, "column": 11 }
+        },
+        {
+          "source": "docs/auth.md#login",
+          "target": "Sources/Auth.swift#Auth.login(email:password:)",
+          "location": { "filePath": "docs/auth.md", "line": 5, "column": 11 }
+        },
+        {
+          "source": "docs/auth.md#logout",
+          "target": "Sources/Auth.swift#Auth.logout()",
+          "location": { "filePath": "docs/auth.md", "line": 11, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/b.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/b.md",
+          "anchor": "same",
+          "endpoint": "docs/b.md#same",
+          "headingText": "Same",
+          "location": { "filePath": "docs/b.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/b.md",
+            "anchor": "same",
+            "endpoint": "docs/b.md#same",
+            "headingText": "Same",
+            "location": { "filePath": "docs/b.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/b.md#same",
+          "target": "Sources/Auth.swift#Auth",
+          "location": { "filePath": "docs/b.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/a.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/a.md",
+          "anchor": "same",
+          "endpoint": "docs/a.md#same",
+          "headingText": "Same",
+          "location": { "filePath": "docs/a.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/a.md",
+            "anchor": "same",
+            "endpoint": "docs/a.md#same",
+            "headingText": "Same",
+            "location": { "filePath": "docs/a.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/a.md#same",
+          "target": "Sources/Auth.swift#Auth",
+          "location": { "filePath": "docs/a.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [],
+  "audit": false,
+  "queries": [
+    "docs/auth.md#login",
+    "Sources/Auth.swift#Auth",
+    "Sources/Auth.swift#Auth.login(email:)",
+    "docs/auth.md#logout",
+    "Sources/Auth.swift#Auth.logout()"
+  ]
+}

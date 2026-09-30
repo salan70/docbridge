@@ -1,0 +1,147 @@
+{
+  "codeFiles": [
+    {
+      "language": "rust",
+      "filePath": "src/gone.rs",
+      "symbols": [],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "rust",
+          "filePath": "src/gone.rs",
+          "symbolName": "x",
+          "canonicalId": "x",
+          "endpoint": "src/gone.rs#x",
+          "location": { "filePath": "src/gone.rs", "line": 1, "column": 8 }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    },
+    {
+      "language": "rust",
+      "filePath": "src/fine.rs",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "rust",
+          "filePath": "src/fine.rs",
+          "symbolName": "f",
+          "canonicalId": "f",
+          "endpoint": "src/fine.rs#f",
+          "location": { "filePath": "src/fine.rs", "line": 3, "column": 8 }
+        }
+      ],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "rust",
+          "filePath": "src/fine.rs",
+          "symbolName": "method",
+          "canonicalId": "Type::method",
+          "endpoint": "src/fine.rs#Type::method",
+          "location": { "filePath": "src/fine.rs", "line": 6, "column": 12 },
+          "isMember": true
+        },
+        {
+          "kind": "code",
+          "language": "rust",
+          "filePath": "src/fine.rs",
+          "symbolName": "g",
+          "canonicalId": "g",
+          "endpoint": "src/fine.rs#g",
+          "location": { "filePath": "src/fine.rs", "line": 9, "column": 8 }
+        }
+      ],
+      "links": [
+        {
+          "source": "src/fine.rs#f",
+          "target": "docs/unread.md#f",
+          "location": { "filePath": "src/fine.rs", "line": 1, "column": 10 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/ok.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/ok.md",
+          "anchor": "ok",
+          "endpoint": "docs/ok.md#ok",
+          "headingText": "Ok",
+          "location": { "filePath": "docs/ok.md", "line": 1, "column": 1 }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/ok.md",
+          "anchor": "sub",
+          "endpoint": "docs/ok.md#sub",
+          "headingText": "Sub",
+          "location": { "filePath": "docs/ok.md", "line": 5, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/ok.md",
+            "anchor": "ok",
+            "endpoint": "docs/ok.md#ok",
+            "headingText": "Ok",
+            "location": { "filePath": "docs/ok.md", "line": 1, "column": 1 }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/ok.md",
+            "anchor": "sub",
+            "endpoint": "docs/ok.md#sub",
+            "headingText": "Sub",
+            "location": { "filePath": "docs/ok.md", "line": 5, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/ok.md#ok",
+          "target": "src/gone.rs#x",
+          "location": { "filePath": "docs/ok.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "file_read_error",
+      "target": "docs/unread.md",
+      "message": "Failed to read docs/unread.md: EACCES: permission denied"
+    },
+    {
+      "severity": "error",
+      "code": "code_scanner_failed",
+      "language": "rust",
+      "target": "src/gone.rs",
+      "message": "Rust scanner worker failed for src/gone.rs: response violates the worker schema"
+    },
+    {
+      "severity": "error",
+      "code": "code_scanner_failed",
+      "language": "rust",
+      "target": "rust",
+      "message": "Rust scanner worker failed: worker exited with signal SIGKILL"
+    }
+  ],
+  "audit": true,
+  "queries": ["docs/ok.md#ok", "src/fine.rs#f", "src/gone.rs#x"]
+}

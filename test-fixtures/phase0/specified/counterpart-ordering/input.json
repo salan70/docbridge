@@ -1,0 +1,282 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/b.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/b.ts",
+          "symbolName": "z",
+          "canonicalId": "z",
+          "endpoint": "src/b.ts#z",
+          "location": { "filePath": "src/b.ts", "line": 1, "column": 17 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/b.ts#z",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/b.ts", "line": 1, "column": 1 }
+        },
+        {
+          "source": "src/b.ts#z",
+          "target": "docs/b.md#zeta",
+          "location": { "filePath": "src/b.ts", "line": 1, "column": 1 }
+        },
+        {
+          "source": "src/b.ts#z",
+          "target": "docs/a.md#alpha",
+          "location": { "filePath": "src/b.ts", "line": 1, "column": 1 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a/deep.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a/deep.ts",
+          "symbolName": "q",
+          "canonicalId": "q",
+          "endpoint": "src/a/deep.ts#q",
+          "location": { "filePath": "src/a/deep.ts", "line": 1, "column": 1 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a/deep.ts#q",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/a/deep.ts", "line": 1, "column": 1 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/a.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.ts",
+          "symbolName": "y",
+          "canonicalId": "y",
+          "endpoint": "src/a.ts#y",
+          "location": { "filePath": "src/a.ts", "line": 10, "column": 17 }
+        },
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.ts",
+          "symbolName": "x",
+          "canonicalId": "x",
+          "endpoint": "src/a.ts#x",
+          "location": { "filePath": "src/a.ts", "line": 2, "column": 17 }
+        },
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.ts",
+          "symbolName": "w",
+          "canonicalId": "w",
+          "endpoint": "src/a.ts#w",
+          "location": { "filePath": "src/a.ts", "line": 2, "column": 5 }
+        },
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.ts",
+          "symbolName": "beta",
+          "canonicalId": "beta",
+          "endpoint": "src/a.ts#beta",
+          "location": { "filePath": "src/a.ts", "line": 20, "column": 1 }
+        },
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/a.ts",
+          "symbolName": "alpha",
+          "canonicalId": "alpha",
+          "endpoint": "src/a.ts#alpha",
+          "location": { "filePath": "src/a.ts", "line": 20, "column": 1 }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/a.ts#y",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/a.ts", "line": 9, "column": 1 }
+        },
+        {
+          "source": "src/a.ts#x",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/a.ts", "line": 1, "column": 1 }
+        },
+        {
+          "source": "src/a.ts#w",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/a.ts", "line": 1, "column": 1 }
+        },
+        {
+          "source": "src/a.ts#beta",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/a.ts", "line": 19, "column": 1 }
+        },
+        {
+          "source": "src/a.ts#alpha",
+          "target": "docs/shared.md#shared",
+          "location": { "filePath": "src/a.ts", "line": 19, "column": 1 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/shared.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/shared.md",
+          "anchor": "shared",
+          "endpoint": "docs/shared.md#shared",
+          "headingText": "Shared",
+          "location": { "filePath": "docs/shared.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/shared.md",
+            "anchor": "shared",
+            "endpoint": "docs/shared.md#shared",
+            "headingText": "Shared",
+            "location": { "filePath": "docs/shared.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/b.ts#z",
+          "location": { "filePath": "docs/shared.md", "line": 3, "column": 11 }
+        },
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/a/deep.ts#q",
+          "location": { "filePath": "docs/shared.md", "line": 4, "column": 11 }
+        },
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/a.ts#y",
+          "location": { "filePath": "docs/shared.md", "line": 5, "column": 11 }
+        },
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/a.ts#x",
+          "location": { "filePath": "docs/shared.md", "line": 6, "column": 11 }
+        },
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/a.ts#w",
+          "location": { "filePath": "docs/shared.md", "line": 7, "column": 11 }
+        },
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/a.ts#beta",
+          "location": { "filePath": "docs/shared.md", "line": 8, "column": 11 }
+        },
+        {
+          "source": "docs/shared.md#shared",
+          "target": "src/a.ts#alpha",
+          "location": { "filePath": "docs/shared.md", "line": 9, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/b.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/b.md",
+          "anchor": "zeta",
+          "endpoint": "docs/b.md#zeta",
+          "headingText": "Zeta",
+          "location": { "filePath": "docs/b.md", "line": 1, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/b.md",
+            "anchor": "zeta",
+            "endpoint": "docs/b.md#zeta",
+            "headingText": "Zeta",
+            "location": { "filePath": "docs/b.md", "line": 1, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/b.md#zeta",
+          "target": "src/b.ts#z",
+          "location": { "filePath": "docs/b.md", "line": 3, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "filePath": "docs/a.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/a.md",
+          "anchor": "alpha",
+          "endpoint": "docs/a.md#alpha",
+          "headingText": "Alpha",
+          "location": { "filePath": "docs/a.md", "line": 30, "column": 1 }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/a.md",
+            "anchor": "alpha",
+            "endpoint": "docs/a.md#alpha",
+            "headingText": "Alpha",
+            "location": { "filePath": "docs/a.md", "line": 30, "column": 1 }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/a.md#alpha",
+          "target": "src/b.ts#z",
+          "location": { "filePath": "docs/a.md", "line": 32, "column": 11 }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [],
+  "audit": true,
+  "queries": ["docs/shared.md#shared", "src/b.ts#z", "src/a.ts#w"]
+}

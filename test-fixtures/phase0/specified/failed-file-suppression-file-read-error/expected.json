@@ -1,0 +1,57 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "file_read_error",
+      "target": "docs/unreadable.md",
+      "message": "Failed to read docs/unreadable.md: EACCES: permission denied"
+    },
+    {
+      "severity": "error",
+      "code": "file_read_error",
+      "target": "src/broken.ts",
+      "message": "Failed to read src/broken.ts: EACCES: permission denied"
+    },
+    {
+      "severity": "error",
+      "code": "code_backlink_not_found",
+      "source": "docs/a.md#flow",
+      "target": "src/ok.ts#other",
+      "message": "Code endpoint src/ok.ts#other has no matching @doc pair back to docs/a.md#flow.",
+      "location": { "filePath": "docs/a.md", "line": 8, "column": 11 },
+      "range": {
+        "start": { "line": 8, "column": 11 },
+        "end": { "line": 8, "column": 26 }
+      }
+    }
+  ],
+  "counterparts": {
+    "src/ok.ts#ok": [
+      {
+        "kind": "doc",
+        "filePath": "docs/a.md",
+        "anchor": "ok-section",
+        "endpoint": "docs/a.md#ok-section",
+        "headingText": "Ok Section",
+        "location": { "filePath": "docs/a.md", "line": 1, "column": 1 },
+        "headingTextRange": {
+          "start": { "line": 1, "column": 3 },
+          "end": { "line": 1, "column": 13 }
+        }
+      }
+    ],
+    "docs/a.md#ok-section": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/ok.ts",
+        "symbolName": "ok",
+        "canonicalId": "ok",
+        "endpoint": "src/ok.ts#ok",
+        "location": { "filePath": "src/ok.ts", "line": 5, "column": 17 }
+      }
+    ],
+    "docs/a.md#flow": [],
+    "src/broken.ts#run": []
+  }
+}
