@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -128,6 +128,29 @@ describe("release label CLI", () => {
     expect(result.stderr).toContain("CHANGELOG.md needs a non-empty '## [0.9.1]' section");
   });
 
+  test("ignores the GIT_* variables a git hook exports", () => {
+    // Under a pre-commit hook git exports GIT_DIR and GIT_INDEX_FILE. The
+    // helpers must not let them redirect the temporary repository's commands
+    // to the repository the tests run in (#175).
+    const bogusGitDir = join(mkdtempSync(join(tmpdir(), "docbridge-bogus-")), "bogus.git");
+    const bogusIndex = join(bogusGitDir, "index");
+    const saved = { GIT_DIR: process.env.GIT_DIR, GIT_INDEX_FILE: process.env.GIT_INDEX_FILE };
+    process.env.GIT_DIR = bogusGitDir;
+    process.env.GIT_INDEX_FILE = bogusIndex;
+    try {
+      const root = gitRepo();
+      commitRelease(root, "0.10.0", ["0.10.0", "0.9.0"]);
+      const result = runCli(root, ["release: minor"]);
+
+      expect(existsSync(join(root, ".git"))).toBe(true);
+      expect(existsSync(bogusGitDir)).toBe(false);
+      expect(result.exitCode).toBe(0);
+    } finally {
+      restoreEnv("GIT_DIR", saved.GIT_DIR);
+      restoreEnv("GIT_INDEX_FILE", saved.GIT_INDEX_FILE);
+    }
+  });
+
   test("fails without a release label", () => {
     const root = gitRepo();
 
@@ -173,6 +196,7 @@ function git(root: string, args: string[]): void {
   const result = Bun.spawnSync({
     cmd: ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", ...args],
     cwd: root,
+    env: envWithoutGit(),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -188,7 +212,7 @@ function runCli(
   const result = Bun.spawnSync({
     cmd: ["bun", "run", resolve(import.meta.dir, "release-label.ts"), root],
     cwd: root,
-    env: { ...process.env, PR_LABELS: JSON.stringify(labels), BASE_REF: "base" },
+    env: { ...envWithoutGit(), PR_LABELS: JSON.stringify(labels), BASE_REF: "base" },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -198,4 +222,27 @@ function runCli(
     stdout: decoder.decode(result.stdout),
     stderr: decoder.decode(result.stderr),
   };
+}
+
+function restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
+
+/**
+ * The process environment without the `GIT_*` variables git exports to hooks
+ * (`GIT_DIR`, `GIT_INDEX_FILE`, ...), which would otherwise make every git
+ * command below act on the repository running the tests.
+ */
+function envWithoutGit(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(process.env)) {
+    if (value !== undefined && !name.startsWith("GIT_")) {
+      env[name] = value;
+    }
+  }
+  return env;
 }
