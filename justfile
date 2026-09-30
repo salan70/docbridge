@@ -197,6 +197,18 @@ test-go-scanner: check-go-toolchain
 build-go-scanner: check-go-toolchain
     cd packages/go-scanner && CGO_ENABLED=0 go build -trimpath -o bin/docbridge-go-scanner ./cmd/docbridge-go-scanner
 
+# --- Python worker (packages/python-scanner) ---
+# Recipes for the runtime-backed Python worker live between these markers.
+# --- end Python worker ---
+
+# --- Ruby worker (packages/ruby-scanner) ---
+# Recipes for the runtime-backed Ruby worker live between these markers.
+# --- end Ruby worker ---
+
+# --- Java worker (packages/java-scanner) ---
+# Recipes for the runtime-backed Java worker live between these markers.
+# --- end Java worker ---
+
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.
 typecheck:

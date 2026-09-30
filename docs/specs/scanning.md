@@ -372,3 +372,24 @@ keeps the first.
 A syntax error makes the file a `code_parse_error` with no symbols; the
 reported position is the error with the smallest byte offset, converted from
 the original content, so `//line` directives do not move it.
+
+## JavaScript Scanning
+
+JavaScript scanning is pending registration: the `javascript` language ID is
+not accepted by configuration yet. This section is filled in when the adapter
+lands.
+
+## Python Scanning
+
+Python scanning is pending registration: the `python` language ID is not
+accepted by configuration yet. This section is filled in when the worker lands.
+
+## Ruby Scanning
+
+Ruby scanning is pending registration: the `ruby` language ID is not accepted
+by configuration yet. This section is filled in when the worker lands.
+
+## Java Scanning
+
+Java scanning is pending registration: the `java` language ID is not accepted
+by configuration yet. This section is filled in when the worker lands.
