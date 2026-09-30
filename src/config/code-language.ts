@@ -32,6 +32,7 @@ export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = [
   "swift",
   "dart",
   "rust",
+  "go",
 ];
 
 export function isCodeLanguage(value: string): value is CodeLanguage {

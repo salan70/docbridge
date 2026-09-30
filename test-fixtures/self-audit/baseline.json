@@ -1193,6 +1193,11 @@
     },
     {
       "code": "unlinked_doc_section",
+      "target": "docs/specs/scanning.md#go-scanning",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
       "target": "docs/specs/scanning.md#rust-scanning",
       "class": "structural_doc"
     },

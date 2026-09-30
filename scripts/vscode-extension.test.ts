@@ -59,6 +59,7 @@ describe("buildReleaseManifest", () => {
       "onLanguage:swift",
       "onLanguage:dart",
       "onLanguage:rust",
+      "onLanguage:go",
       "onLanguage:markdown",
     ]);
     expect(manifest.repository).toEqual({

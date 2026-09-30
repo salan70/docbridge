@@ -110,7 +110,7 @@ Diagnostics record a single point per element. For the server, the scanners
 also record ranges:
 
 - `nameRange` — the declaration name identifier in code (for example, the
-  `login` identifier in TypeScript, Swift, Dart, or Rust).
+  `login` identifier in TypeScript, Swift, Dart, Rust, or Go).
 - `headingTextRange` — the heading text in Markdown, excluding leading `#` and
   surrounding whitespace.
 - `targetRange` — the target string of an annotation (the `file#fragment` text in
@@ -230,6 +230,7 @@ The VS Code-compatible extension is a thin LSP client. It starts the bundled
 - `swift`
 - `dart`
 - `rust`
+- `go`
 - `markdown`
 
 The extension does not duplicate DocBridge include-pattern filtering. It only

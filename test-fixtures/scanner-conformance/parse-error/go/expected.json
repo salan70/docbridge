@@ -1,0 +1,21 @@
+{
+  "filePath": "input.go",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "target": "input.go",
+      "language": "go",
+      "message": "Go parse error: expected declaration, found ')'.",
+      "location": {
+        "filePath": "input.go",
+        "line": 5,
+        "column": 12
+      }
+    }
+  ],
+  "language": "go"
+}

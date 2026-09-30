@@ -11,7 +11,7 @@ own tool and stay separate files; the skills under `.agents/skills/` and
 ## Project Context
 
 DocBridge is a TypeScript CLI that creates bidirectional links between code and
-Markdown documentation. It scans TypeScript, Swift, Dart, and Rust code. It
+Markdown documentation. It scans TypeScript, Swift, Dart, Rust, and Go code. It
 parses `@doc` annotations in doc comments and `@code` annotations in Markdown
 HTML comments, reads links declared in an optional `docbridge.links.json`
 manifest, and reports diagnostics through `docbridge check`.
@@ -20,7 +20,7 @@ Repository layout:
 
 - `src/` — the CLI, the TypeScript and Markdown scanners, the resolver, and the
   Language Server.
-- `packages/` — the Swift, Dart, and Rust scanner workers.
+- `packages/` — the Swift, Dart, Rust, and Go scanner workers.
 - `editors/vscode/` — the VS Code-compatible extension.
 - `docs/` — user guides (`docs/user/`, Japanese under `docs/ja/`),
   specifications (`docs/specs/`), integration recipes (`docs/integrations/`),
@@ -36,7 +36,8 @@ The `examples/` and `test-fixtures/` trees both hold small DocBridge projects bu
 differ by intended audience:
 
 - `examples/` holds human-facing showcases meant to be read or copied: one
-  per language (`examples/typescript`, `examples/swift`, `examples/dart`, `examples/rust`).
+  per language (`examples/typescript`, `examples/swift`, `examples/dart`, `examples/rust`,
+  `examples/go`).
   These may also serve as integration test inputs; that reuse is intentional,
   not a reason to move them.
 - `test-fixtures/` holds projects that exist solely to drive automated tests.

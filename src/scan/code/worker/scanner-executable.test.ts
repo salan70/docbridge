@@ -69,6 +69,43 @@ test("resolveScannerWorkerCommand selects source scanners on unsupported dist pl
   );
 });
 
+test("resolveScannerWorkerCommand prefers the source Go scanner over the dist binary", () => {
+  withProject(
+    {
+      "packages/go-scanner/bin/docbridge-go-scanner": "#!/bin/sh\n",
+      "dist/bin/darwin-arm64/docbridge-go-scanner": "#!/bin/sh\n",
+    },
+    (root) => {
+      const sourcePath = join(root, "packages/go-scanner/bin/docbridge-go-scanner");
+      chmodSync(sourcePath, 0o755);
+      chmodSync(join(root, "dist/bin/darwin-arm64/docbridge-go-scanner"), 0o755);
+
+      const result = resolveScannerWorkerCommand("go", {
+        platformKey: "darwin-arm64",
+        sourceRoot: root,
+        distRoot: join(root, "dist"),
+      });
+
+      expect(result).toEqual({ ok: true, command: [sourcePath] });
+    },
+  );
+});
+
+test("resolveScannerWorkerCommand falls back to the dist Go scanner", () => {
+  withProject({ "dist/bin/linux-x64/docbridge-go-scanner": "#!/bin/sh\n" }, (root) => {
+    const distPath = join(root, "dist/bin/linux-x64/docbridge-go-scanner");
+    chmodSync(distPath, 0o755);
+
+    const result = resolveScannerWorkerCommand("go", {
+      platformKey: "linux-x64",
+      sourceRoot: join(root, "missing-source"),
+      distRoot: join(root, "dist"),
+    });
+
+    expect(result).toEqual({ ok: true, command: [distPath] });
+  });
+});
+
 test("scannerRootsFromModuleUrl resolves through a symlinked bin shim", () => {
   // npm installs the CLI as `node_modules/.bin/<cli>`, a relative symlink to
   // the packaged `dist/index.js`. The dist scanner binaries sit next to that

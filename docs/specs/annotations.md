@@ -37,6 +37,16 @@ declarations (`///`, `//!`, and `/** */`, including forms that syn surfaces as
 pub fn login(email: &str, password: &str) {}
 ```
 
+Go uses the doc comment of a supported declaration, as `//` lines or a
+`/* */` block, with `@doc` on its own line:
+
+```go
+// Login starts the login flow.
+//
+// @doc docs/specs/auth.md#login-flow
+func Login(email, password string) error { return nil }
+```
+
 Markdown uses standalone HTML comments with `@code` attached to the next heading:
 
 ```md

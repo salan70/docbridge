@@ -21,6 +21,7 @@ const SCANNED_PATH: Readonly<Record<CodeLanguage, string>> = {
   swift: "Input.swift",
   dart: "input.dart",
   rust: "input.rs",
+  go: "input.go",
 };
 
 const cases = readdirSync(CORPUS_ROOT, { withFileTypes: true })

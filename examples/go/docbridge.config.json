@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "go": {
+        "patterns": ["internal/**/*.go"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

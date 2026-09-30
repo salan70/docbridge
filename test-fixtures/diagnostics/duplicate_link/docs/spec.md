@@ -2,4 +2,5 @@
 <!-- @code Sources/Example.swift#example() -->
 <!-- @code lib/example.dart#example -->
 <!-- @code src/example.rs#example -->
+<!-- @code internal/example.go#Example -->
 # Example Section

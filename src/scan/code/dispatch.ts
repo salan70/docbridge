@@ -119,6 +119,7 @@ const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
   swift: createScannerWorkerAdapter("swift", () => resolveScannerWorkerCommand("swift")),
   dart: createScannerWorkerAdapter("dart", () => resolveScannerWorkerCommand("dart")),
   rust: createScannerWorkerAdapter("rust", () => resolveScannerWorkerCommand("rust")),
+  go: createScannerWorkerAdapter("go", () => resolveScannerWorkerCommand("go")),
 };
 
 function emptyScan(language: CodeLanguage, filePath: string): CodeScanResult {

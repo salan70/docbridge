@@ -110,6 +110,46 @@ test("resolveConfig rejects unsupported visibility options for a language", () =
   expect(result.diagnostics[0]?.message).toContain("Unsupported swift visibility: private");
 });
 
+test("resolveConfig accepts a go entry and defaults visibility to exported", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { go: { patterns: ["cmd/**/*.go", "internal/**/*.go"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(true);
+  expect(result.config.include.code.go).toEqual({ patterns: ["cmd/**/*.go", "internal/**/*.go"] });
+});
+
+test("resolveConfig accepts the go exported and unexported visibility values", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { go: { patterns: ["**/*.go"], visibility: ["exported", "unexported"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(true);
+  expect(result.config.include.code.go?.visibility).toEqual(["exported", "unexported"]);
+});
+
+test("resolveConfig rejects a go visibility value from another language", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { go: { patterns: ["**/*.go"], visibility: ["pub"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics[0]?.code).toBe("config_invalid_value");
+  expect(result.diagnostics[0]?.message).toContain("Unsupported go visibility: pub");
+});
+
 test("resolveConfig accepts a dart entry with the public visibility option", () => {
   const result = resolveConfig(
     JSON.stringify({
@@ -221,6 +261,10 @@ test.each([
   [
     { include: { code: { dart: { patterns: ["lib/**/*.ts"] } }, docs: ["docs/**/*.md"] } },
     "dart wrong suffix",
+  ],
+  [
+    { include: { code: { go: { patterns: ["cmd/**/*.ts"] } }, docs: ["docs/**/*.md"] } },
+    "go wrong suffix",
   ],
   [
     {

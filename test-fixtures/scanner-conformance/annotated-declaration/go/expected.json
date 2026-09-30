@@ -1,0 +1,116 @@
+{
+  "filePath": "input.go",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "go",
+      "filePath": "input.go",
+      "symbolName": "Login",
+      "canonicalId": "Login",
+      "endpoint": "input.go#Login",
+      "location": {
+        "filePath": "input.go",
+        "line": 4,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 4,
+          "column": 6
+        },
+        "end": {
+          "line": 4,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 3,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 16
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 3,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 13
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "go",
+      "filePath": "input.go",
+      "symbolName": "Logout",
+      "canonicalId": "Logout",
+      "endpoint": "input.go#Logout",
+      "location": {
+        "filePath": "input.go",
+        "line": 6,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 6,
+          "column": 6
+        },
+        "end": {
+          "line": 6,
+          "column": 12
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "line": 6,
+          "column": 17
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "line": 6,
+          "column": 14
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "input.go#Login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.go",
+        "line": 3,
+        "column": 9
+      },
+      "targetRange": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 27
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "go"
+}

@@ -41,6 +41,9 @@ function fenceLanguage(language: CodeLanguage | undefined): string {
   if (language === "rust") {
     return "rust";
   }
+  if (language === "go") {
+    return "go";
+  }
   return "ts";
 }
 

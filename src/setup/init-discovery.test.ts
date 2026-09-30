@@ -75,11 +75,13 @@ test("discoverCodeScope proposes every supported language in mixed-language repo
     "Sources/App.swift": "public struct App {}\n",
     "lib/app.dart": "class App {}\n",
     "crate/src/lib.rs": "pub fn app() {}\n",
+    "cmd/app/main.go": "package main\n",
   });
   try {
     const discovery = discoverCodeScope(project);
     expect(discovery.languages.map((entry) => entry.language).toSorted()).toEqual([
       "dart",
+      "go",
       "rust",
       "swift",
       "typescript",
@@ -98,6 +100,25 @@ test("discoverCodeScope excludes tests and declaration files from detection", ()
   try {
     const discovery = discoverCodeScope(project);
     expect(discovery.languages[0]?.fileCount).toBe(1);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope keeps only the Go layout patterns that match non-test files", () => {
+  const project = makeProject({
+    "main.go": "package main\n",
+    "internal/auth/service.go": "package auth\n",
+    "internal/auth/service_test.go": "package auth\n",
+    "internal/auth/testdata/fixture.go": "package fixture\n",
+    "vendor/dep/dep.go": "package dep\n",
+    "pkg/only/only_test.go": "package only\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const go = discovery.languages.find((entry) => entry.language === "go");
+    expect(go?.patterns).toEqual(["*.go", "internal/**/*.go"]);
+    expect(go?.fileCount).toBe(2);
   } finally {
     rmSync(project, { recursive: true, force: true });
   }

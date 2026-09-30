@@ -21,7 +21,7 @@ DocBridge は、`--root` で指定した project root、または現在の direc
 }
 ```
 
-使用できる言語 key は `typescript`、`swift`、`dart`、`rust` です。複数言語を
+使用できる言語 key は `typescript`、`swift`、`dart`、`rust`、`go` です。複数言語を
 同時に設定できますが、同じソースファイルを複数言語の pattern に一致させることは
 できません。
 
@@ -29,9 +29,13 @@ DocBridge は、`--root` で指定した project root、または現在の direc
 
 各言語は任意の `visibility` 配列を受け取ります。省略時は TypeScript が
 `public` と `protected`、Swift が `public` と `open`、Dart が `public` のみ、
-Rust が制限なしの `pub` を対象にします。対象外の宣言に `@doc` を書くと
-`unsupported_declaration` になります。言語ごとの宣言規則は
+Rust が制限なしの `pub`、Go が `exported` を対象にします。対象外の宣言に `@doc` を
+書くと `unsupported_declaration` になります。言語ごとの宣言規則は
 [リンク](linking.md) を参照してください。
+
+設定に `exclude` や glob の否定はありません。対象を狭めたいときは肯定の pattern を
+絞ります。Go では `**/*.go` より `cmd/**/*.go` と `internal/**/*.go` の方が対象は
+少なくなりますが、その配下の `_test.go` は引き続き走査されます。
 
 ## 対象外のファイル
 

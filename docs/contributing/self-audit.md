@@ -61,10 +61,11 @@ separate recipe; `bun test` already runs the comparison.
 
 ## Native scanner specifications
 
-Swift, Dart, and Rust scanning headings stay unlinked. Their implementations live
-in `packages/*-scanner`, which are outside `include.code`. The in-scope
-TypeScript worker helper is the same adapter factory for every language, so
-pointing all three headings at it would be a false relationship. Expanding
-`include.code` to the native packages needs separate maintainer approval.
+Swift, Dart, Rust, and Go scanning headings stay unlinked. Their
+implementations live in `packages/*-scanner`, which are outside
+`include.code`. The in-scope TypeScript worker helper is the same adapter
+factory for every language, so pointing all four headings at it would be a
+false relationship. Expanding `include.code` to the native packages needs
+separate maintainer approval.
 
-Those three headings are classified `structural_doc`.
+Those four headings are classified `structural_doc`.
