@@ -6,7 +6,7 @@
 
 DocBridge keeps Markdown documentation and the code that implements it linked
 in both directions. It validates `@doc` annotations on supported TypeScript,
-Swift, Dart, and Rust declarations against `@code` annotations on Markdown
+Swift, Dart, Rust, and Go declarations against `@code` annotations on Markdown
 headings, so humans and coding agents can find the right counterpart before a
 change drifts.
 
@@ -15,7 +15,7 @@ change drifts.
 - Node.js 22 or later, or Bun 1.1.31 or later
 - A project containing Markdown and supported source files
 
-Prebuilt Swift, Dart, and Rust scanners are included for supported macOS and
+Prebuilt Swift, Dart, Rust, and Go scanners are included for supported macOS and
 Linux platforms. See [Releases](https://github.com/salan70/docbridge/releases)
 for packaged-platform details.
 

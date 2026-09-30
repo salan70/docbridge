@@ -3,23 +3,23 @@
 This plan breaks [issue #127](https://github.com/salan70/docbridge/issues/127)
 into implementation slices that follow the Swift/Dart/Rust first-party worker
 pattern. Each slice should leave the repository in a working state. The
-[Rust plan](done/rust-language-support-plan.md) is the direct precedent; this
+[Rust plan](rust-language-support-plan.md) is the direct precedent; this
 plan repeats only what differs for Go or what the issue left open.
 
 Normative behavior is reflected in these specs as the slices land:
 
-- [Configuration](../specs/configuration.md)
-- [Scanning](../specs/scanning.md)
-- [Annotations](../specs/annotations.md)
-- [Diagnostics](../specs/diagnostics.md)
-- [LSP](../specs/lsp.md)
+- [Configuration](../../specs/configuration.md)
+- [Scanning](../../specs/scanning.md)
+- [Annotations](../../specs/annotations.md)
+- [Diagnostics](../../specs/diagnostics.md)
+- [LSP](../../specs/lsp.md)
 
 ## Status
 
-- [ ] Slice 1: Go scanner worker (`packages/go-scanner/`, recipes, Nix, CI)
-- [ ] Slice 2: Registry, schema, adapter, and conformance fixtures
-- [ ] Slice 3: End-to-end integration (`examples/go/`, tests, specs)
-- [ ] Slice 4: Release readiness (release packaging, user docs, editor activation)
+- [x] Slice 1: Go scanner worker (`packages/go-scanner/`, recipes, Nix, CI)
+- [x] Slice 2: Registry, schema, adapter, and conformance fixtures
+- [x] Slice 3: End-to-end integration (`examples/go/`, tests, specs)
+- [x] Slice 4: Release readiness (release packaging, user docs, editor activation)
 
 ## Goals
 

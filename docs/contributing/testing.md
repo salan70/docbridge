@@ -31,10 +31,10 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Scanner workers
 
-- `just test` includes TypeScript, Swift, Dart, and Rust end-to-end integration
-  tests. The Swift, Dart, and Rust integration tests spawn the built worker binaries,
-  which `just setup` builds for a fresh source checkout. Rebuild all three after
-  changing worker code with `just build-test-scanners`.
+- `just test` includes TypeScript, Swift, Dart, Rust, and Go end-to-end
+  integration tests. The Swift, Dart, Rust, and Go integration tests spawn the
+  built worker binaries, which `just setup` builds for a fresh source checkout.
+  Rebuild all four after changing worker code with `just build-test-scanners`.
 - `just test-swift-scanner` runs the SwiftPM test suite for
   `packages/swift-scanner`. It requires a Swift 6 toolchain on `PATH`; the Nix
   dev shell intentionally does not provide Swift, and CI installs it
@@ -44,12 +44,18 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `just test-rust-scanner` runs the Cargo test suite for
   `packages/rust-scanner`. The Nix dev shell provides the Rust toolchain
   pinned by `packages/rust-scanner/rust-toolchain.toml`.
+- `just test-go-scanner` runs the Go test suite for `packages/go-scanner`. The
+  Nix dev shell provides Go; `just check-go-toolchain`, a prerequisite of every
+  Go recipe, fails unless `go env GOVERSION` matches the `go` directive in
+  `packages/go-scanner/go.mod`, and `GOTOOLCHAIN=local` stops Go from
+  downloading another version. Bump the directive together with the flake
+  lock when nixpkgs moves.
 - `src/scan/code/conformance.test.ts` runs every case under
   `test-fixtures/scanner-conformance/<case>/<language>/` through the real
   adapter for that language. It compares the result with that directory's
   `expected.json`. Inputs are stored as `input.txt` so formatters and linters
   leave them alone, including cases that must not parse. Every case covers all
-  four languages. Expectations stay per language because canonical IDs and
+  five languages. Expectations stay per language because canonical IDs and
   positions differ by language. When you add a case, review each
   `expected.json` against the input before committing it.
 - CI treats the scanner-native test suites as mandatory before the shared
@@ -60,7 +66,7 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 `just check-example <lang>` runs `docbridge check` against
 `examples/<lang>`, where `<lang>` is `typescript` (the default), `swift`,
-`dart`, or `rust`. Extra flags such as `--json` pass through.
+`dart`, `rust`, or `go`. Extra flags such as `--json` pass through.
 
 ## Repository self-audit
 

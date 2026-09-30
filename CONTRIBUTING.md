@@ -6,7 +6,8 @@ setting up the repository, making a change, and preparing a pull request.
 ## Development environment
 
 The recommended environment is the pinned Nix development shell. It provides
-Bun, Node.js, Dart, Rust, `just`, and every formatter and linter used by the shared
+Bun, Node.js, Dart, Rust, Go, `just`, and every formatter and linter used by the
+shared
 quality gate. Install a flake-enabled Nix distribution and optionally
 [direnv](https://direnv.net/) before cloning the repository.
 
@@ -128,7 +129,8 @@ Run additional checks when the affected area requires them:
 | Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`     |
 | Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
 | Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`       |
-| Examples              | `just check-example <typescript\|swift\|dart\|rust>`      |
+| Go scanner            | `just test-go-scanner`, `just build-go-scanner`           |
+| Examples              | `just check-example <typescript\|swift\|dart\|rust\|go>`  |
 | npm distribution      | `just verify-dist`                                        |
 | Editor client         | `just typecheck-extension` (also in `just verify`)        |
 | VS Code extension     | `just package-vsix`, `just verify-vsix`                   |
@@ -138,8 +140,8 @@ Run additional checks when the affected area requires them:
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.
 
-`just setup` builds the debug Swift, compiled Dart, and debug Rust workers
-required by the Bun integration tests. Rebuild all three after changing worker
+`just setup` builds the debug Swift, compiled Dart, debug Rust, and Go workers
+required by the Bun integration tests. Rebuild all four after changing worker
 code with `just build-test-scanners`.
 
 `just setup` also installs the editor client's own locked dependencies under

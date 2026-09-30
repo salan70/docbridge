@@ -33,15 +33,20 @@ Declare documentation patterns and at least one supported code language:
 }
 ```
 
-Supported language keys are `typescript`, `swift`, `dart`, and `rust`. A project can
-enable more than one language, each with its own patterns.
+Supported language keys are `typescript`, `swift`, `dart`, `rust`, and `go`. A
+project can enable more than one language, each with its own patterns.
 
 Each language accepts an optional `visibility` array. Omitting it uses the
 scanner default: TypeScript `public` and `protected` members, Swift `public`
-and `open`, Dart `public` only, Rust unrestricted `pub`. A declaration
-excluded by visibility is not an endpoint; an `@doc` on one is
+and `open`, Dart `public` only, Rust unrestricted `pub`, Go `exported`. A
+declaration excluded by visibility is not an endpoint; an `@doc` on one is
 `unsupported_declaration`. See `docbridge docs show linking` for the
-per-language rules, including Dart's leading-underscore privacy.
+per-language rules, including Dart's leading-underscore privacy and Go's
+exported-name rule for methods.
+
+The configuration has no `exclude` list and no glob negation. Narrow the
+positive patterns instead; for Go, `cmd/**/*.go` and `internal/**/*.go` scan
+fewer files than `**/*.go`, but `_test.go` files under them are still scanned.
 
 <!-- @code src/shared/glob.ts#collectFiles -->
 

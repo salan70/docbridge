@@ -4,7 +4,7 @@
 [![English README](https://img.shields.io/badge/README-English-blue)](../../README.md)
 
 DocBridge は、Markdown ドキュメントと、その内容を実装するコードを双方向に
-結び付けます。TypeScript、Swift、Dart、Rust の対応宣言に書く `@doc` と、
+結び付けます。TypeScript、Swift、Dart、Rust、Go の対応宣言に書く `@doc` と、
 Markdown 見出しに書く `@code` を検証し、人間とコーディングエージェントが変更前に
 正しいカウンターパートへ到達できるようにします。
 
@@ -13,7 +13,7 @@ Markdown 見出しに書く `@code` を検証し、人間とコーディング�
 - Node.js 22 以降、または Bun 1.1.31 以降
 - Markdown と対応言語のソースコードを含むプロジェクト
 
-対応する macOS / Linux 向けの Swift、Dart、Rust scanner はパッケージに同梱
+対応する macOS / Linux 向けの Swift、Dart、Rust、Go scanner はパッケージに同梱
 されています。対応 platform の詳細は
 [Releases](https://github.com/salan70/docbridge/releases) を参照してください。
 

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-30
+
+### Added
+
+- Go is a first-party code language. Configure `include.code.go`, put `@doc`
+  in the doc comment of a package-level `func`, `type`, `const`, or `var`, a
+  receiver method, or an interface method, and link back with `@code`. The
+  bundled `docbridge-go-scanner` worker (same platforms as Swift, Dart, and
+  Rust) uses the Go standard library parser only. Visibility defaults to
+  `exported`; `unexported` opts in unexported names, and a method is exported
+  only when both its name and its receiver or interface type name are.
+  Canonical IDs use `Type.Method` without type parameters. An `@doc` above a
+  `const (` / `var (` / `type (` group keyword or above a spec that declares
+  several names is `unsupported_declaration`. The VS Code extension activates
+  for Go files, and `docbridge init` proposes the conventional `cmd/`,
+  `internal/`, and `pkg/` layout.
+
 ## [0.10.1] - 2026-09-28
 
 ### Fixed
@@ -452,7 +469,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/salan70/docbridge/releases/tag/v0.11.0
 [0.10.1]: https://github.com/salan70/docbridge/releases/tag/v0.10.1
 [0.10.0]: https://github.com/salan70/docbridge/releases/tag/v0.10.0
 [0.9.0]: https://github.com/salan70/docbridge/releases/tag/v0.9.0

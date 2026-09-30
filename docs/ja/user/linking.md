@@ -59,6 +59,13 @@ void login(String email, String password) {}
 pub fn login(email: &str, password: &str) {}
 ```
 
+```go
+// Login starts the login flow.
+//
+// @doc docs/auth.md#login-flow
+func Login(email, password string) error { return nil }
+```
+
 対応形式と visibility は [設定](configuration.md) で選びます。対象外の宣言に
 `@doc` を書くと `unsupported_declaration` です。
 
@@ -94,6 +101,23 @@ module、struct、enum、free function、inherent `impl` method を扱います�
 `pub` で、非 `pub` は `private` を設定した場合に含めます。trait 定義と実装、macro、
 const、static、union、extern block は endpoint ではありません。ID は
 `TypingEngine::advance` のように `::` で修飾します。
+
+### Go の宣言
+
+package レベルの function、type（alias を含む）、const、var と、receiver を持つ
+method、interface の method を扱います。annotation は宣言の doc comment に、`//` 行
+または 1 つの `/* */` block として書きます。既定は `exported` で、unexported な名前は
+`unexported` を設定した場合に含めます。method は、method 名と receiver または
+interface の型名の両方が exported のときだけ exported として扱います。ID は
+`AuthService.Login` のように `.` で修飾し、型パラメータは含めません
+（`func (l *List[T]) Push` は `List.Push`）。
+
+`const (`、`var (`、`type (` の group では個々の spec に annotation を書きます。group
+の keyword の上のコメントや、複数の名前を宣言する spec（`var a, b int`）の上の `@doc`
+は 1 つの endpoint を指せないため `unsupported_declaration` です。struct の field、
+埋め込み field、`package` 句、import、`init`、`_` は endpoint ではありません。scanner は
+構文だけを見るため、pattern に一致する `_test.go` や `//go:build` 付きのファイルも
+走査されます。
 
 ## ドキュメントからコードへ
 

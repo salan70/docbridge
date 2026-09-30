@@ -111,8 +111,9 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
-      # `.swift-version` and `rust-toolchain.toml` are the only sources of the
-      # toolchain versions; the setup actions below take them from here.
+      # `.swift-version`, `rust-toolchain.toml`, and the Go worker's `go.mod`
+      # are the only sources of the toolchain versions; the setup actions below
+      # take them from here.
       - name: Read toolchain versions
         id: toolchains
         run: |
@@ -132,6 +133,17 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ steps.toolchains.outputs.rust }}
+
+      # `GOTOOLCHAIN=local` keeps setup-go and `go` itself from downloading a
+      # different toolchain than the one go.mod pins.
+      - name: Install Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        env:
+          GOTOOLCHAIN: local
+        with:
+          go-version-file: packages/go-scanner/go.mod
+          # The worker has no dependencies, so there is no go.sum to key on.
+          cache: false
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
@@ -162,6 +174,17 @@ jobs:
       - name: Build Rust scanner
         run: cargo build --manifest-path packages/rust-scanner/Cargo.toml --release
 
+      # Built outside Nix with the setup-go toolchain, like the Dart scanner.
+      # The version check mirrors `just check-go-toolchain`; CGO_ENABLED=0
+      # makes the binary static.
+      - name: Build Go scanner
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          cd packages/go-scanner
+          test "$(go env GOVERSION)" = "go$(sed -n 's/^go \(.*\)$/\1/p' go.mod)"
+          CGO_ENABLED=0 go build -trimpath -o bin/docbridge-go-scanner ./cmd/docbridge-go-scanner
+
       - name: Build dist CLI
         run: nix develop -c just build
 
@@ -181,7 +204,7 @@ jobs:
       - name: Generate scanner checksums
         run: |
           cd "dist/bin/${{ matrix.platform }}"
-          shasum -a 256 docbridge-swift-scanner docbridge_dart_scanner docbridge-rust-scanner > SHA256SUMS
+          shasum -a 256 docbridge-swift-scanner docbridge_dart_scanner docbridge-rust-scanner docbridge-go-scanner > SHA256SUMS
 
       - name: Upload scanner artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -249,7 +272,7 @@ jobs:
           path: dist/bin/darwin-arm64
 
       - name: Restore scanner executable bits
-        run: chmod 755 dist/bin/*/docbridge-swift-scanner dist/bin/*/docbridge_dart_scanner dist/bin/*/docbridge-rust-scanner
+        run: chmod 755 dist/bin/*/docbridge-swift-scanner dist/bin/*/docbridge_dart_scanner dist/bin/*/docbridge-rust-scanner dist/bin/*/docbridge-go-scanner
 
       - name: Verify dist package
         run: nix develop -c just verify-dist

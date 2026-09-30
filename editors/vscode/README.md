@@ -43,8 +43,8 @@ and writes it to `docbridge-<version>-local.vsix`. See
   package platforms that are staged before packaging. The initial universal
   VSIX expects `darwin-arm64` and `linux-x64` scanner binaries.
 
-TypeScript and Markdown support require only Bun. Swift, Dart, and Rust editor
-support uses the bundled scanner binary for the user's platform.
+TypeScript and Markdown support require only Bun. Swift, Dart, Rust, and Go
+editor support uses the bundled scanner binary for the user's platform.
 
 ## Features
 
@@ -94,9 +94,11 @@ Also stage the supported scanner binaries under the root package layout:
 dist/bin/darwin-arm64/docbridge-swift-scanner
 dist/bin/darwin-arm64/docbridge_dart_scanner
 dist/bin/darwin-arm64/docbridge-rust-scanner
+dist/bin/darwin-arm64/docbridge-go-scanner
 dist/bin/linux-x64/docbridge-swift-scanner
 dist/bin/linux-x64/docbridge_dart_scanner
 dist/bin/linux-x64/docbridge-rust-scanner
+dist/bin/linux-x64/docbridge-go-scanner
 ```
 
 `just package-vsix` preserves this pre-staged `dist/bin` directory while
@@ -172,6 +174,7 @@ platform's binaries before installing:
 just build-swift-scanner
 just build-dart-scanner
 just build-rust-scanner
+just build-go-scanner
 just stage-scanner-binaries   # host platform only
 just vscode-lsp
 ```

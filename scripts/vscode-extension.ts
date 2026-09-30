@@ -80,6 +80,7 @@ const activationEvents = [
   "onLanguage:swift",
   "onLanguage:dart",
   "onLanguage:rust",
+  "onLanguage:go",
   "onLanguage:markdown",
 ];
 

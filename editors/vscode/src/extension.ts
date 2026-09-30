@@ -67,6 +67,7 @@ export function activate(context: ExtensionContext): void {
       { scheme: "file", language: "swift" },
       { scheme: "file", language: "dart" },
       { scheme: "file", language: "rust" },
+      { scheme: "file", language: "go" },
       { scheme: "file", language: "markdown" },
     ],
     outputChannel: output,

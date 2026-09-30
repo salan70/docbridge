@@ -30,7 +30,7 @@ delete it. See [Linking](linking.md) for its format.
 
 ## Scanner errors
 
-Swift, Dart, and Rust use packaged scanner workers. A
+Swift, Dart, Rust, and Go use packaged scanner workers. A
 `code_scanner_unavailable` diagnostic usually means the installed package
 lacks a binary for the current platform or the binary cannot execute.
 Reinstall the package first. If the platform is not supported, run DocBridge
@@ -41,7 +41,7 @@ converting it into a broken link. Check that the source parses with the
 project's own toolchain, then reproduce with the smallest configured file
 set.
 
-`code_parse_error` means a TypeScript, Swift, Dart, or Rust source file has a
+`code_parse_error` means a TypeScript, Swift, Dart, Rust, or Go source file has a
 syntax error. The diagnostic points at the first error the language's parser
 found and includes the parser's message. DocBridge extracts no links or symbols
 from that file, so fix the syntax before judging link diagnostics that involve

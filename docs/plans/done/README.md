@@ -19,6 +19,7 @@ Active plans, when any exist, stay directly under `docs/plans/`.
 | [Rust language support](rust-language-support-plan.md)             | Rust scanner worker (#109)                            | 0.7.0   |
 | [Built-in documentation](built-in-documentation-plan.md)           | `docs list` and `docs show`                           | 0.7.0   |
 | [Link manifest](link-manifest-plan.md)                             | `docbridge.links.json` (#143)                         | 0.9.0   |
+| [Go language support](go-language-support-plan.md)                 | Go scanner worker (#127)                              | 0.11.0  |
 
 Plans written before the rename use the former product name, SpecLink.
 Release numbers refer to [CHANGELOG.md](../../../CHANGELOG.md).

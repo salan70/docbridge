@@ -72,6 +72,13 @@ void login(String email, String password) {}
 pub fn login(email: &str, password: &str) {}
 ```
 
+```go
+// Login starts the login flow.
+//
+// @doc docs/auth.md#login-flow
+func Login(email, password string) error { return nil }
+```
+
 Paths are relative to the configured root. An annotation on an unsupported or
 visibility-excluded declaration produces `unsupported_declaration`; the same
 declaration without an annotation is ignored.
@@ -113,6 +120,25 @@ Supported forms are modules, structs, enums, free functions, and inherent
 to include non-`pub` items. Trait definitions and implementations, macros,
 constants, statics, unions, and extern blocks are not endpoints. IDs use `::`
 qualification, such as `TypingEngine::advance`.
+
+### Go declarations
+
+Supported forms are package-level functions, types (including aliases),
+constants, and variables, plus receiver methods and interface methods. The
+annotation goes in the declaration's doc comment, as `//` lines or one
+`/* */` block. Visibility defaults to `exported`; configure `unexported` to
+include unexported names. A method counts as exported only when both its name
+and its receiver or interface type name are exported. IDs use `.`
+qualification without type parameters, such as `AuthService.Login` and
+`List.Push` for `func (l *List[T]) Push`.
+
+Inside a `const (`, `var (`, or `type (` group, annotate the individual spec;
+an `@doc` in the comment above the group keyword, or above a spec that
+declares several names (`var a, b int`), is `unsupported_declaration` because
+it cannot name one endpoint. Struct fields, embedded fields, the `package`
+clause, imports, `init`, and `_` are not endpoints. The scanner is syntactic:
+`_test.go` files and `//go:build`-constrained files are scanned whenever the
+patterns match them.
 
 <!-- @code src/scan/markdown/markdown.ts#scanMarkdown -->
 
