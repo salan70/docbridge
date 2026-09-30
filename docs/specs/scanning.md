@@ -406,7 +406,111 @@ Context and hover fences follow the suffix: `js`, `jsx`, `ts`, and `tsx`.
 ## Python Scanning
 
 Python scanning is pending registration: the `python` language ID is not
-accepted by configuration yet. This section is filled in when the worker lands.
+accepted by configuration yet. The worker under `packages/python-scanner`
+implements the contract below; registration adds the suffix set and the
+configuration and diagnostic paragraphs.
+
+Python scanning extracts `@doc` annotations from docstrings and from the
+comment block that leads a declaration, using the standard library's `ast` and
+`tokenize` modules. The worker is runtime-backed: the core runs
+`python3 -I -S packages/python-scanner/docbridge_python_scanner.py` on the
+CPython interpreter it discovers (floor CPython 3.10) and exchanges one
+request and one response through the worker protocol. The `--probe` mode
+prints one JSON line, `{ "ok": true, "runtime": "cpython", "version": "3.13.13" }`
+or `{ "ok": false, "reason": "..." }`, and exits 0 either way; a non-CPython
+interpreter or one below the floor is not ok. The worker is syntactic: it
+parses each file in isolation with `ast.parse(content, filename,
+type_comments=False)`, never imports or executes project code, and does not
+evaluate `__all__`, decorators, or conditions.
+
+By default only `public` declarations are included; `private` declarations are
+included when `include.code.python.visibility` contains `private`. A name is
+private when it starts with `_` and is not a `__dunder__` name; a declaration
+is private when its own name or any enclosing class name is private, so
+`_Registry.register` is private even though `register` is not.
+
+Supported Python declarations are:
+
+- module-level `def`, `async def`, and `class`
+- methods and nested classes in class bodies, recursively for classes
+
+The walk descends into `if`, `for`, `while`, `with`, `try`, and `match`
+statements at module and class level, including their `else`, `except`,
+`finally`, and `case` blocks, so a declaration under `if TYPE_CHECKING:` or
+`try:` is found. It never enters a function body: a nested function or class
+inside one is not a symbol, and an `@doc` there is neither a link nor a
+diagnostic. The same name declared twice in one container, as an `if`/`else`
+pair does, is one endpoint at its first declaration; a second annotated
+declaration is `duplicate_code_symbol` at its name.
+
+Python canonical IDs are dot-qualified names: `login`, `Client.login`, and
+`Outer.Inner.login`. Members carry no `isMember`, so a public method without
+`@doc` is an `undocumented_symbol` in audit mode, as in Go.
+
+Grouped declarations follow these rules:
+
+- A function decorated with `property`, `cached_property`, `<name>.getter`,
+  `<name>.setter`, or `<name>.deleter` is the endpoint `Container.<name>`, so
+  a property's getter, setter, and deleter share one endpoint.
+- A function decorated with `overload` shares the endpoint of its
+  implementation, or of the first stub when no implementation follows.
+- A decorator is recognized by the last segment of a `Name` or `Attribute`
+  expression (`property`, `functools.cached_property`, `typing.overload`,
+  `value.setter`); a `Call` decorator such as `@property()` never groups, so
+  a second definition after one is a duplicate.
+- A group's `location`, `nameRange`, `declarationRange`, and `signatureRange`
+  are the first member's. Annotations from every member attach to the group
+  endpoint in source order, the same target twice across members is
+  `duplicate_link`, and the group is documented when any member is.
+
+Annotations come from two sources, searched with `@doc\s+(\S+)`:
+
+- The docstring: the first statement of the `def` or `class` body when it is a
+  string expression. The search covers the string's source text with its
+  prefix and quote delimiters excluded, so a target directly followed by `"""`
+  ends before it. Positions come from the source text, never from
+  `ast.get_docstring()`, so escapes and indentation do not move them.
+- The leading comment block: the contiguous run of comment-only lines that
+  ends on the line directly above the first decorator, or above the `def` /
+  `class` keyword when there is none, where every line's `#` starts at the
+  declaration's column. Each line is searched after its `#`. A blank line, a
+  code line, or a comment at another column ends the block. A comment between
+  decorators, a trailing comment on the header line, a comment inside a body,
+  and a comment block that leads nothing are never doc comments.
+
+A link's `location` and `targetRange` cover the target text. A target that
+does not parse as `file#fragment` (exactly one `#`, no empty part, no
+whitespace, no backslash, no `./`, `../`, or absolute path, not the source
+file itself) is `invalid_link_target`.
+
+For each symbol, `location` and `nameRange` cover the name token.
+`declarationRange` starts at the leading comment block, else at the first
+decorator, else at the keyword, and ends at the end of the definition.
+`signatureRange` starts at the same position and ends directly after the `:`
+that closes the header, so a body, including a docstring, is excluded.
+
+The module docstring, assignments (including a `lambda` bound by one),
+annotated assignments, imports, and every other statement at module or class
+level are not symbols and are never `undocumented_symbol`. An `@doc` in the
+module docstring, or in the leading comment block of such a statement,
+reports one `unsupported_declaration` located at the statement's first token.
+A supported declaration excluded by visibility is `unsupported_declaration`
+at its name when annotated; for a group, each annotated member is reported at
+its own name.
+
+Positions follow the shared contract even though CPython reports three column
+systems: `ast` columns are UTF-8 byte offsets, `tokenize` columns are code
+point indexes, and `SyntaxError.offset` is 1-based in code points. Each is
+converted to a 1-based UTF-16 column through the line's source text. Lines
+split on `\n` only, so a CRLF file keeps its positions and no range includes a
+line ending. A UTF-8 BOM is removed before parsing, because CPython rejects it
+inside a `str`, and is counted as the first character of line 1.
+
+A syntax error makes the file a `code_parse_error` with no symbols; the
+diagnostic carries the `SyntaxError` message at its `lineno` and `offset`, or
+line 1, column 1 when the exception reports no position, as a null byte does.
+The message wording follows the installed CPython, which may differ between
+versions for the same input. `tokenize` runs only after `ast.parse` succeeds.
 
 ## Ruby Scanning
 
