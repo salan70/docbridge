@@ -141,11 +141,14 @@ for (const language of Object.keys(SCANNED_PATH) as PendingLanguage[]) {
         expect(response.files).toEqual([expected]);
 
         const scan = response.files[0] as ResponseFile;
+        // A location carries the file path; compare only its position.
         for (const symbol of [...scan.symbols, ...scan.undocumentedSymbols]) {
-          expect(symbol.location).toEqual(symbol.nameRange?.start ?? symbol.location);
+          const position = { line: symbol.location.line, column: symbol.location.column };
+          expect(position).toEqual(symbol.nameRange?.start ?? position);
         }
         for (const link of scan.links) {
-          expect(link.location).toEqual(link.targetRange?.start ?? link.location);
+          const position = { line: link.location.line, column: link.location.column };
+          expect(position).toEqual(link.targetRange?.start ?? position);
         }
       });
     }

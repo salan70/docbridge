@@ -1,0 +1,7 @@
+# @doc docs/auth.md#login
+def login():
+    pass
+
+
+def logout():
+    pass

@@ -1,0 +1,4 @@
+# @doc docs/auth.md#login
+# @doc docs/auth.md#login
+def login():
+    pass
