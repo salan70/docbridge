@@ -440,8 +440,11 @@ statements at module and class level, including their `else`, `except`,
 `try:` is found. It never enters a function body: a nested function or class
 inside one is not a symbol, and an `@doc` there is neither a link nor a
 diagnostic. The same name declared twice in one container, as an `if`/`else`
-pair does, is one endpoint at its first declaration; a second annotated
-declaration is `duplicate_code_symbol` at its name.
+pair does, is one endpoint whose `location` and ranges are the first
+declaration's. The endpoint is documented when any declaration carries
+`@doc`, and its links come from the first annotated one; as in TypeScript and
+Go, a further annotated declaration is `duplicate_code_symbol` at its name
+and contributes no links, while unannotated repeats are silently subsumed.
 
 Python canonical IDs are dot-qualified names: `login`, `Client.login`, and
 `Outer.Inner.login`. Members carry no `isMember`, so a public method without
@@ -457,7 +460,7 @@ Grouped declarations follow these rules:
 - A decorator is recognized by the last segment of a `Name` or `Attribute`
   expression (`property`, `functools.cached_property`, `typing.overload`,
   `value.setter`); a `Call` decorator such as `@property()` never groups, so
-  a second definition after one is a duplicate.
+  a second definition after one follows the same-name rule above instead.
 - A group's `location`, `nameRange`, `declarationRange`, and `signatureRange`
   are the first member's. Annotations from every member attach to the group
   endpoint in source order, the same target twice across members is

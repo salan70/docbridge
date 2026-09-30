@@ -129,18 +129,24 @@ class ResponseBuilder:
                     self._unsupported(member.name_range)
             return
 
-        first = entry.members[0]
         endpoint = f"{self.file_path}#{entry.canonical_id}"
-        symbol = self._symbol(entry, first, endpoint)
-        targets = [target for member in entry.members for target in member.targets]
-        if targets:
-            self.symbols.append(symbol)
-            self._links(endpoint, targets)
+        symbol = self._symbol(entry, entry.members[0], endpoint)
+        # The group's members document the endpoint together; each annotated
+        # non-grouped repeat is a further annotated declaration of it. Only the
+        # first annotated one links; every later one is a duplicate.
+        group_targets = [target for member in entry.members for target in member.targets]
+        annotated_repeats = [member for member in entry.duplicates if member.targets]
+        if group_targets:
+            targets, duplicates = group_targets, annotated_repeats
+        elif annotated_repeats:
+            targets, duplicates = annotated_repeats[0].targets, annotated_repeats[1:]
         else:
             self.undocumented.append(symbol)
-        for duplicate in entry.duplicates:
-            if duplicate.targets:
-                self._duplicate_code_symbol(endpoint, duplicate)
+            return
+        self.symbols.append(symbol)
+        self._links(endpoint, targets)
+        for duplicate in duplicates:
+            self._duplicate_code_symbol(endpoint, duplicate)
 
     def _symbol(self, entry: DeclarationEntry, member: Member, endpoint: str) -> dict[str, object]:
         return {

@@ -545,7 +545,24 @@ class GroupingTest(unittest.TestCase):
             '        """@doc docs/c.md#called"""\n'
         )
         result = scan(source)
-        self.assertEqual(ids(result["undocumentedSymbols"]), ["C", "C.called"])
+        self.assertEqual(ids(result["undocumentedSymbols"]), ["C"])
+        (called,) = result["symbols"]
+        self.assertEqual(called["canonicalId"], "C.called")
+        self.assertEqual(called["location"], location(3, 9))
+        self.assertEqual([link["target"] for link in result["links"]], ["docs/c.md#called"])
+        self.assertEqual(result["diagnostics"], [])
+
+    def test_call_decorator_then_annotated_pair_is_a_duplicate(self):
+        source = (
+            "class C:\n"
+            "    @property()\n"
+            "    def called(self):\n"
+            '        """@doc docs/c.md#called"""\n'
+            "    def called(self):\n"
+            '        """@doc docs/c.md#called-again"""\n'
+        )
+        result = scan(source)
+        self.assertEqual(ids(result["symbols"]), ["C.called"])
         self.assertEqual(codes(result["diagnostics"]), ["duplicate_code_symbol"])
 
     def test_group_outside_the_filter_reports_each_annotated_member(self):
@@ -630,7 +647,7 @@ class DeclarationWalkTest(unittest.TestCase):
         )
         self.assertEqual(result["diagnostics"], [])
 
-    def test_second_annotated_declaration_is_duplicate_code_symbol(self):
+    def test_duplicate_code_symbol_needs_two_annotated_declarations(self):
         source = (
             "# @doc docs/a.md#f\n"
             "def f(): ...\n"
@@ -643,9 +660,11 @@ class DeclarationWalkTest(unittest.TestCase):
             "def h(): ...\n"
         )
         result = scan(source)
-        self.assertEqual(ids(result["symbols"]), ["f"])
-        self.assertEqual(ids(result["undocumentedSymbols"]), ["g", "h"])
-        self.assertEqual([link["target"] for link in result["links"]], ["docs/a.md#f"])
+        self.assertEqual(ids(result["symbols"]), ["f", "g"])
+        self.assertEqual(ids(result["undocumentedSymbols"]), ["h"])
+        self.assertEqual(
+            [link["target"] for link in result["links"]], ["docs/a.md#f", "docs/a.md#g"]
+        )
         self.assertEqual(
             result["diagnostics"],
             [
@@ -657,18 +676,20 @@ class DeclarationWalkTest(unittest.TestCase):
                     "message": "Duplicate Python code symbol endpoint: input.py#f",
                     "location": location(4, 5),
                     "range": span(4, 5, 4, 6),
-                },
-                {
-                    "severity": "error",
-                    "code": "duplicate_code_symbol",
-                    "target": "input.py#g",
-                    "language": "python",
-                    "message": "Duplicate Python code symbol endpoint: input.py#g",
-                    "location": location(7, 5),
-                    "range": span(7, 5, 7, 6),
-                },
+                }
             ],
         )
+
+    def test_later_annotated_declaration_documents_the_first_declaration(self):
+        source = "def g():\n    pass\n# @doc docs/a.md#g\ndef g(): ...\n"
+        result = scan(source)
+        (symbol,) = result["symbols"]
+        self.assertEqual(symbol["location"], location(1, 5))
+        self.assertEqual(symbol["declarationRange"], span(1, 1, 2, 9))
+        (link,) = result["links"]
+        self.assertEqual(link["location"], location(3, 8))
+        self.assertEqual(result["undocumentedSymbols"], [])
+        self.assertEqual(result["diagnostics"], [])
 
     def test_same_name_in_different_containers_is_not_a_duplicate(self):
         source = (
