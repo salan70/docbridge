@@ -4,7 +4,9 @@ description: Choose between check, related, context, graph, docs, and upgrade.
 
 # Commands
 
-Use the narrowest command for the question you need to answer.
+Use the narrowest command for the question you need to answer. Every option,
+output shape, and exit status is specified in the
+[CLI specification](https://github.com/salan70/docbridge/blob/main/docs/specs/cli.md).
 
 <!-- @code src/cli/index.ts#run -->
 
@@ -26,10 +28,12 @@ Markdown sections. Add `--json` for machine-readable diagnostics.
 
 ### `related`: find counterpart files
 
-Pass changed paths to learn which linked files may also need attention:
+Pass changed paths to learn which linked files may also need attention. This
+input covers staged, unstaged, and untracked files:
 
 ```sh
-git diff --name-only | docbridge related --stdin
+{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } |
+  docbridge related --stdin
 ```
 
 `--gate` exits `1` when a linked counterpart is absent from the supplied change
@@ -94,6 +98,10 @@ the managed directory, or make it a symlink to a copy you own. Destructive opera
 passed, and a non-interactive run without `--yes` fails instead of replacing
 local edits. Configuration, hooks, CI recipes, and your own files are never
 touched.
+
+A copied skill does not update with the package. A skill copied from 0.8.0
+calls guide names that newer versions reject, so refresh it before relying on
+it.
 
 ## Update notification
 

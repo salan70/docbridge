@@ -9,7 +9,11 @@
 message は file が見つからないと表示します。
 `config_unknown_key` は未対応 property、`config_invalid_value` は pattern、language、
 visibility などの値が不正です。[設定](configuration.md) の最小例と比較し、
-`docbridge init --dry-run` で生成案を確認してください。
+include pattern が選んだ `--root` からの相対 path で実在ファイルに一致するか確認します。
+
+ファイルが欠落している場合は `docbridge init --dry-run` で生成案を確認します。path が
+存在する場合は、有効な JSON を持つ読み取り可能なファイルにするか、削除して
+`docbridge init` で作り直してから、`check` を再実行します。
 
 同じ 3 つの code は、任意の link manifest `docbridge.links.json` にも使われます。
 このファイルを読めない、または解析できない場合、CLI は修復か削除を促す案内を表示します。
@@ -17,9 +21,15 @@ visibility などの値が不正です。[設定](configuration.md) の最小例
 
 ## Scanner エラー
 
-`code_scanner_unavailable` は必要な scanner を起動できない状態、
-`code_scanner_failed` は worker の実行失敗です。対応 platform、実行権限、runtime、
-source syntax を順に確認します。
+Swift、Dart、Rust、Go は package に同梱された scanner worker を使います。
+`code_scanner_unavailable` は必要な scanner を起動できない状態で、多くの場合は
+現在の platform 用 binary が package にないか、binary を実行できないことを示します。
+まず package を再インストールします。platform が非対応なら、対応環境で DocBridge を
+実行するか、repository から scanner を build します。
+
+`code_scanner_failed` は worker の実行失敗で、壊れたリンクに変換せずに失敗内容を
+含みます。project 自身の toolchain で source を解析できるか確認し、設定対象を最小の
+file set に絞って再現します。
 
 `code_parse_error` は TypeScript、Swift、Dart、Rust、Go の source file の構文エラーです。
 診断は、その言語の parser が最初に見つけたエラーの位置を指し、parser のメッセージを含みます。

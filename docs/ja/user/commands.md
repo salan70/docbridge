@@ -1,7 +1,8 @@
 # コマンド
 
 知りたいことに対して最も狭いコマンドを使います。正確な option と終了条件は
-`docbridge <command> --help` で確認できます。
+`docbridge <command> --help` で確認できます。すべての option、出力形式、終了コードは
+[CLI specification](https://github.com/salan70/docbridge/blob/main/docs/specs/cli.md)（英語）が定めます。
 
 ## check: プロジェクトを検証する
 
@@ -17,10 +18,11 @@ docbridge check
 ## related: カウンターパートを探す
 
 ```sh
-git diff --name-only | docbridge related --stdin
+{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } |
+  docbridge related --stdin
 ```
 
-変更ファイルにリンクされた相手を列挙します。`--gate` は変更セットに含まれない相手が
+変更ファイル（stage 済み、未 stage、未追跡を含む）にリンクされた相手を列挙します。`--gate` は変更セットに含まれない相手が
 あれば `1` になりますが、更新が必要かどうかは判断しません。
 
 ## context: カウンターパートを読む
@@ -52,7 +54,9 @@ package manager に応じた upgrade コマンド、管理対象 `docbridge` ski
 旧 5 skill 構成の残骸、symlink、ローカル編集を報告します。
 
 DocBridge は自身を upgrade せず、package manager を代行実行もしません。表示された
-コマンドで CLI を更新してから、`docbridge upgrade` を再実行してください。
+コマンドで CLI を更新してから、`docbridge upgrade` を再実行してください。コピーした
+skill は package と一緒には更新されません。0.8.0 からコピーした skill は新しい
+version が受け付けない guide 名を呼ぶため、使う前に更新します。
 
 ```sh
 docbridge upgrade --dry-run

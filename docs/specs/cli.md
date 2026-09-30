@@ -606,7 +606,9 @@ retried; an unwritable cache is ignored entirely. Failures are cached too, so
 an offline machine attempts the registry at most once per window.
 
 `upgrade` bypasses a fresh record and always requests the registry, because the
-user asked for the diagnosis. Every other command reads the cache only.
+user asked for the diagnosis. Every other command uses a fresh record and
+requests the registry only when the record is missing or stale, and only when
+the [update notification](#update-notification) is enabled for that invocation.
 
 `DOCBRIDGE_NO_UPDATE_CHECK` suppresses the lookup for every command, `upgrade`
 included: the variable names the check, not the notice, so setting it keeps

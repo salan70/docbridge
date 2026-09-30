@@ -45,10 +45,11 @@ Before editing a linked file, read its counterpart:
 docbridge context path/to/file
 ```
 
-After editing, inspect the change set:
+After editing, inspect the change set, including staged and untracked files:
 
 ```sh
-git diff --name-only | docbridge related --stdin --gate
+{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } |
+  docbridge related --stdin --gate
 ```
 
 For every reported counterpart, make one explicit judgment:
@@ -64,10 +65,13 @@ Never remove a valid link just to silence the gate.
 
 Put shared checks in repository hooks rather than one agent's configuration.
 A pre-commit hook can run `docbridge check` as a blocking validity gate and
-then report related files from the staged set:
+then report related files from the staged set. `|| exit $?` stops the hook
+when `check` fails, even without `set -e`. The gate exits `1` on a violation,
+so `|| true` keeps that stage from blocking the commit:
 
 ```sh
-git diff --cached --name-only | docbridge related --stdin --gate
+docbridge check || exit $?
+git diff --cached --name-only | docbridge related --stdin --gate || true
 ```
 
 Add `docbridge context --stdin` when the report should include counterpart

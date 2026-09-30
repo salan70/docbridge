@@ -44,6 +44,9 @@
             pkgs.dart
             pkgs.deadnix
             pkgs.go
+            # The related-gate CI recipe test executes the documented step,
+            # which validates the gate's JSON report with jq.
+            pkgs.jq
             pkgs.just
             # The npm package targets the Node.js runtime; verify-dist and
             # pack-smoke execute the built CLI with Node.

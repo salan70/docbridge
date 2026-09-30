@@ -1,5 +1,15 @@
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "../..");
@@ -98,4 +108,147 @@ test("related-gate CI recipe run bodies stay aligned with docs/integrations/ci.m
         : fromDocs;
     expect(fromWorkflow, stepName).toBe(expected);
   }
+});
+
+type GateRun = { outcome: string | undefined; reason: string | undefined; report: string };
+
+/**
+ * Parse a `$GITHUB_ENV` file the way the runner does: `NAME=value` lines and
+ * `NAME<<DELIMITER` blocks that must close with a line equal to the delimiter.
+ */
+function parseGithubEnv(content: string): Map<string, string> {
+  const values = new Map<string, string>();
+  const lines = content.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    if (line === "") {
+      continue;
+    }
+    const heredoc = /^([A-Za-z_][A-Za-z0-9_]*)<<(.+)$/.exec(line);
+    if (heredoc !== null) {
+      const [, name = "", delimiter = ""] = heredoc;
+      const end = lines.indexOf(delimiter, index + 1);
+      if (end === -1) {
+        throw new Error(`unterminated ${name} block in GITHUB_ENV`);
+      }
+      values.set(name, lines.slice(index + 1, end).join("\n"));
+      index = end;
+      continue;
+    }
+    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line);
+    if (assignment === null) {
+      throw new Error(`malformed GITHUB_ENV line: ${line}`);
+    }
+    values.set(assignment[1] ?? "", assignment[2] ?? "");
+  }
+  return values;
+}
+
+/**
+ * Execute the documented gate step with a stub `docbridge` that prints
+ * `stdout` and exits with `status`, the way GitHub Actions runs a `run:` body.
+ */
+function runDocumentedGateStep(stub: { stdout: string; status: number }): GateRun {
+  const docs = readFileSync(join(ROOT, "docs/integrations/ci.md"), "utf8");
+  const body = extractRunBody(
+    extractFencedYaml(docs, "## Gate the PR change set"),
+    "Run related-gate over the PR change set",
+  );
+  const workDir = mkdtempSync(join(tmpdir(), "docbridge-gate-recipe-"));
+  try {
+    const binDir = join(workDir, "bin");
+    mkdirSync(binDir);
+    writeFileSync(join(workDir, "stub-stdout.txt"), stub.stdout);
+    writeFileSync(
+      join(binDir, "docbridge"),
+      `#!/usr/bin/env bash\ncat "${join(workDir, "stub-stdout.txt")}"\necho "stub stderr" >&2\nexit ${stub.status}\n`,
+    );
+    chmodSync(join(binDir, "docbridge"), 0o755);
+    writeFileSync(join(workDir, "changed-files.txt"), "src/auth.ts\n");
+    const githubEnv = join(workDir, "github-env");
+    writeFileSync(githubEnv, "");
+
+    const result = spawnSync("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", body], {
+      cwd: workDir,
+      env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}`, GITHUB_ENV: githubEnv },
+      encoding: "utf8",
+    });
+    expect(result.status, result.stderr).toBe(0);
+
+    const env = parseGithubEnv(readFileSync(githubEnv, "utf8"));
+    const reportPath = join(workDir, "gate-report.txt");
+    return {
+      outcome: env.get("GATE_OUTCOME"),
+      reason: env.get("INFRA_REASON"),
+      report: existsSync(reportPath) ? readFileSync(reportPath, "utf8") : "",
+    };
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
+  }
+}
+
+test("documented gate step records clean for exit 0 with a valid empty report", () => {
+  const stdout = JSON.stringify({ violations: [], summary: { changedFiles: 1, violations: 0 } });
+
+  expect(runDocumentedGateStep({ stdout, status: 0 }).outcome).toBe("clean");
+});
+
+test("documented gate step records a violation only for exit 1 with a valid report", () => {
+  const stdout = JSON.stringify({
+    violations: [
+      {
+        changedEndpoint: "src/auth.ts#login",
+        changedFilePath: "src/auth.ts",
+        counterpartEndpoint: "docs/auth.md#login-flow",
+        counterpartFilePath: "docs/auth.md",
+      },
+    ],
+    summary: { changedFiles: 1, violations: 1 },
+  });
+
+  const run = runDocumentedGateStep({ stdout, status: 1 });
+
+  expect(run.outcome).toBe("violation");
+  expect(run.report).toContain(
+    "src/auth.ts#login -> docs/auth.md#login-flow (counterpart not in change set)",
+  );
+});
+
+test("documented gate step records infra-error for exit 1 without a report", () => {
+  expect(runDocumentedGateStep({ stdout: "", status: 1 }).outcome).toBe("infra-error");
+});
+
+test("documented gate step records infra-error for exit 0 with unparsable output", () => {
+  expect(runDocumentedGateStep({ stdout: "not json\n", status: 0 }).outcome).toBe("infra-error");
+});
+
+test("documented gate step records infra-error when the exit status contradicts the report", () => {
+  const stdout = JSON.stringify({ violations: [], summary: { changedFiles: 1, violations: 0 } });
+
+  expect(runDocumentedGateStep({ stdout, status: 1 }).outcome).toBe("infra-error");
+});
+
+test("documented gate step records infra-error when the summary count disagrees with the violations", () => {
+  const stdout = JSON.stringify({ violations: [], summary: { changedFiles: 1, violations: 2 } });
+
+  expect(runDocumentedGateStep({ stdout, status: 1 }).outcome).toBe("infra-error");
+});
+
+test("documented gate step records infra-error for an unexpected exit status", () => {
+  const stdout = JSON.stringify({ violations: [], summary: { changedFiles: 1, violations: 0 } });
+
+  expect(runDocumentedGateStep({ stdout, status: 2 }).outcome).toBe("infra-error");
+});
+
+test("documented gate step records infra-error for a fractional changed-file count", () => {
+  const stdout = JSON.stringify({ violations: [], summary: { changedFiles: 1.5, violations: 0 } });
+
+  expect(runDocumentedGateStep({ stdout, status: 0 }).outcome).toBe("infra-error");
+});
+
+test("documented gate step keeps the infra-error reason intact for hostile output", () => {
+  const run = runDocumentedGateStep({ stdout: "notice\nEOF\nGATE_OUTCOME=clean", status: 1 });
+
+  expect(run.outcome).toBe("infra-error");
+  expect(run.reason).toContain("GATE_OUTCOME=clean");
 });

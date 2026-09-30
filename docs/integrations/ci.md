@@ -3,11 +3,12 @@
 How to run the DocBridge gate in CI so the pull request — not the agent
 session — is the enforcement point for linked counterparts.
 
-A local Git `pre-commit` hook (see
-[automation guide](../user/automation.md)) is informational by design:
-it raises awareness while the work is in progress but never blocks, and it sees
-only one commit's staged files. CI re-runs the same gate over the whole PR
-change set, and the human merge approval enforces the outcome.
+The related-gate stage of a local Git `pre-commit` hook (see
+[automation guide](../user/automation.md)) is informational by design: it
+raises awareness while the work is in progress, and it sees only one commit's
+staged files. Other hook stages may still block, for example on
+`docbridge check`. CI re-runs the gate over the whole PR change set, and the
+human merge approval enforces the outcome.
 
 ## Validate the link graph
 
@@ -78,11 +79,13 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
 
     record_infra_error() {
       local reason="$1"
+      local delimiter
+      delimiter="INFRA_REASON_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
       {
         echo "GATE_OUTCOME=infra-error"
-        echo "INFRA_REASON<<EOF"
+        echo "INFRA_REASON<<${delimiter}"
         printf '%s\n' "$reason"
-        echo "EOF"
+        echo "${delimiter}"
       } >> "$GITHUB_ENV"
     }
 
@@ -121,23 +124,46 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
   if: ${{ env.GATE_OUTCOME != 'infra-error' }}
   run: |
     gate_status=0
-    docbridge related --stdin --gate \
-      < changed-files.txt > gate-output.txt 2> gate-stderr.txt || gate_status=$?
-    if [ "$gate_status" = "0" ]; then
+    docbridge related --stdin --gate --json \
+      < changed-files.txt > gate-output.json 2> gate-stderr.txt || gate_status=$?
+
+    # Exit 1 also covers configuration and invocation errors, so only a
+    # well-formed gate report may classify the run as clean or violation.
+    report_violations=""
+    if jq -se '
+        length == 1 and (.[0] | type == "object"
+          and (.violations | type == "array")
+          and all(.violations[]; type == "object"
+            and all(.changedEndpoint, .changedFilePath,
+              .counterpartEndpoint, .counterpartFilePath; type == "string"))
+          and (.summary.changedFiles | type == "number" and . >= 0 and . == floor)
+          and .summary.violations == (.violations | length))
+      ' gate-output.json >/dev/null 2>&1; then
+      report_violations="$(jq -r '.summary.violations' gate-output.json)"
+    fi
+
+    if [ "$gate_status" = "0" ] && [ "$report_violations" = "0" ]; then
       echo "GATE_OUTCOME=clean" >> "$GITHUB_ENV"
-    elif [ "$gate_status" = "1" ]; then
+    elif [ "$gate_status" = "1" ] && [ -n "$report_violations" ] \
+      && [ "$report_violations" != "0" ]; then
+      jq -r '.violations[]
+        | "\(.changedEndpoint) -> \(.counterpartEndpoint) (counterpart not in change set)"' \
+        gate-output.json > gate-report.txt
       echo "GATE_OUTCOME=violation" >> "$GITHUB_ENV"
     else
+      # A random delimiter, and a newline after each captured chunk, keep tool
+      # output from closing or swallowing the multiline value.
+      delimiter="INFRA_REASON_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
       {
         echo "GATE_OUTCOME=infra-error"
-        echo "INFRA_REASON<<EOF"
-        echo "docbridge related --gate exited ${gate_status}"
-        tail -n 40 gate-stderr.txt
-        tail -n 40 gate-output.txt
-        echo "EOF"
+        echo "INFRA_REASON<<${delimiter}"
+        echo "docbridge related --gate exited ${gate_status} without a matching gate report"
+        printf '%s\n' "$(tail -n 40 gate-stderr.txt)"
+        printf '%s\n' "$(tail -n 40 gate-output.json)"
+        echo "${delimiter}"
       } >> "$GITHUB_ENV"
     fi
-    cat gate-output.txt
+    cat gate-output.json
     cat gate-stderr.txt >&2
 
 - name: Create or update the sticky PR comment
@@ -185,7 +211,7 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
         echo "For each entry, either update the counterpart or make sure the PR explains why no update is needed."
         echo
         echo '```'
-        cat gate-output.txt
+        cat gate-report.txt
         echo '```'
       else
         echo "DocBridge related-gate could not run — infrastructure failure."
@@ -218,7 +244,7 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
         echo "Changed files have linked counterparts that this PR does not update."
         echo
         echo '```'
-        cat gate-output.txt
+        cat gate-report.txt
         echo '```'
       fi
     } >> "$GITHUB_STEP_SUMMARY"
@@ -236,27 +262,42 @@ prefix replaced by `nix develop -c bun run src/cli/index.ts`.
     fi
 ````
 
-The gate step writes stderr to `gate-stderr.txt`, so the sticky comment shows
-only the gate report. Tool output such as a development-shell banner or a
-package-manager notice stays in the job log, and an `infra-error` reason
-includes it. The step captures the exit status from the gate command itself;
-piping the command through `tail` or another filter would record the filter's
-status instead and hide every violation.
-
 The gate exits `1` when a changed file has a linked counterpart that the PR
-does not also change. A violation does not necessarily mean the counterpart
-must change; it means nobody has decided yet. Two reporting styles:
+does not also change, but configuration and invocation errors exit `1` too. The
+gate step therefore runs with `--json` and validates the report with `jq`,
+which GitHub-hosted runners provide. Only exit `0` with a valid report of zero
+violations is `clean`, and only exit `1` with a valid report of at least one
+violation is `violation`. Every other result is `infra-error`, so a broken
+configuration never posts an empty violation comment. The step renders the
+validated violations to `gate-report.txt` for the comment.
+
+The gate step writes stderr to `gate-stderr.txt`, so tool output such as a
+development-shell banner or a package-manager notice stays in the job log, and
+an `infra-error` reason includes it. The step captures the exit status from the
+gate command itself; piping the command through `tail` or another filter would
+record the filter's status instead and hide every violation.
+
+A violation does not necessarily mean the counterpart must change; it means
+nobody has decided yet. Two reporting styles:
 
 - **Informational (recommended)** — set `continue-on-error: true` on the job so
   a `violation` or `infra-error` does not block merge, and post the outcome as
   a sticky PR comment (`if: ${{ !cancelled() }}` so an infrastructure failure
   overwrites a prior success, while a cancelled superseded run stays silent).
   The three outcomes are distinguishable from the comment alone.
-- **Blocking** — make the job required, forcing every PR to either update
-  counterparts or carve them out of the gate. Only adopt this once the link
-  graph is dense enough that violations are rare; with a sparse graph it
-  mostly trains people to bypass the check. Prefer leaving `infra-error`
-  distinguishable even when blocking violations.
+- **Blocking** — remove `continue-on-error`, make the job required, and append
+  the enforcement step below after the comment step. A `violation` or an
+  `infra-error` then fails the job, while the comment still tells the two
+  apart. Only adopt this once the link graph is dense enough that violations
+  are rare; with a sparse graph it mostly trains people to bypass the check.
+
+```yaml
+- name: Fail unless the gate is clean
+  if: ${{ !cancelled() }}
+  run: test "${GATE_OUTCOME:-infra-error}" = clean
+```
+
+This repository's own job stays informational.
 
 ## Report stale versions
 
@@ -292,8 +333,8 @@ the same filtering as the DocBridge repository's own `pre-commit` report.
 
 ## Exit-code summary
 
-| Command                    | `0`               | `1`                                  |
-| -------------------------- | ----------------- | ------------------------------------ |
-| `docbridge check`          | warnings or clean | any error diagnostic                 |
-| `docbridge related --gate` | no violations     | at least one violation               |
-| `docbridge context`        | always on success | invocation/configuration errors only |
+| Command                    | `0`               | `1`                                                          |
+| -------------------------- | ----------------- | ------------------------------------------------------------ |
+| `docbridge check`          | warnings or clean | any error diagnostic                                         |
+| `docbridge related --gate` | no violations     | at least one violation, or an invocation/configuration error |
+| `docbridge context`        | always on success | invocation/configuration errors only                         |

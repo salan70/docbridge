@@ -14,8 +14,8 @@ stderr. Use `docbridge <command> --help` for invocation errors and
 (for example, the path is a directory or lacks read permission), or is not
 valid JSON. The message says the file was not found in both of the first two
 cases. Run `docbridge init --dry-run` when the file is missing. When the path
-exists, make it a readable file with valid JSON, or remove it, before running
-`check` again.
+exists, make it a readable file with valid JSON, or remove it and create a new
+one with `docbridge init`, before running `check` again.
 
 `config_unknown_key` means a parsed file has a key DocBridge does not know,
 such as a misspelled property. `config_invalid_value` means a known key has a

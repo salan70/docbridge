@@ -1248,6 +1248,11 @@
     },
     {
       "code": "unlinked_doc_section",
+      "target": "docs/user/configuration.md#languages",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
       "target": "docs/user/configuration.md#minimal-configuration",
       "class": "structural_doc"
     },

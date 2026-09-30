@@ -1,5 +1,9 @@
 # テスト規約
 
+> この翻訳は部分的で、テストの配置と共有ヘルパーだけを扱います。型検査、scanner
+> worker のテスト、conformance fixture、examples、self-audit を含む最新の規約は
+> 英語版の [Testing Convention](../../contributing/testing.md) が正です。
+
 DocBridge は Bun のテストランナー(`bun test`、ラッパーは `just test`)を
 使用します。
 

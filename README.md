@@ -15,9 +15,9 @@ change drifts.
 - Node.js 22 or later, or Bun 1.1.31 or later
 - A project containing Markdown and supported source files
 
-Prebuilt Swift, Dart, Rust, and Go scanners are included for supported macOS and
-Linux platforms. See [Releases](https://github.com/salan70/docbridge/releases)
-for packaged-platform details.
+Prebuilt Swift, Dart, Rust, and Go scanners are included for `darwin-arm64` and
+`linux-x64`. See [Languages](docs/user/configuration.md#languages) for each
+language's file extension, visibility defaults, and scanner.
 
 ## Install
 
@@ -41,7 +41,8 @@ Create a starting configuration interactively:
 npx docbridge init
 ```
 
-Or write the minimal TypeScript configuration yourself:
+Or write the minimal TypeScript configuration yourself as
+`docbridge.config.json` in the project root:
 
 ```json
 {
@@ -57,14 +58,15 @@ Or write the minimal TypeScript configuration yourself:
 }
 ```
 
-Add a documentation target to a supported declaration:
+Add a documentation target to a supported declaration in `src/auth.ts`:
 
 ```ts
 /** @doc docs/auth.md#login-flow */
 export function login(): void {}
 ```
 
-Add the reciprocal code target immediately before the Markdown heading:
+Add the reciprocal code target immediately before the heading in
+`docs/auth.md`:
 
 ```md
 <!-- @code src/auth.ts#login -->
@@ -79,7 +81,8 @@ npx docbridge check
 ```
 
 A valid graph exits `0`. Invalid configuration, unresolved targets, and missing
-backlinks produce diagnostics and exit `1`.
+backlinks produce diagnostics and exit `1`. Paths in annotations are relative
+to the project root, and each file must match a configured pattern.
 
 ## Choose the next guide
 
@@ -96,6 +99,8 @@ backlinks produce diagnostics and exit `1`.
 - [Automation](docs/user/automation.md) — coding agents, Git hooks, and CI
 - [Troubleshooting](docs/user/troubleshooting.md) — diagnose configuration,
   scanning, and link failures
+- [Examples](examples/) — one small project per supported language
+- [Changelog](CHANGELOG.md) — release history
 - [日本語ドキュメント](docs/ja/README.md)
 
 The CLI ships the English task guides with its own version. Run

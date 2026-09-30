@@ -268,11 +268,13 @@ jobs:
 
           record_infra_error() {
             local reason="$1"
+            local delimiter
+            delimiter="INFRA_REASON_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
             {
               echo "GATE_OUTCOME=infra-error"
-              echo "INFRA_REASON<<EOF"
+              echo "INFRA_REASON<<${delimiter}"
               printf '%s\n' "$reason"
-              echo "EOF"
+              echo "${delimiter}"
             } >> "$GITHUB_ENV"
           }
 
@@ -311,23 +313,46 @@ jobs:
         if: ${{ env.GATE_OUTCOME != 'infra-error' }}
         run: |
           gate_status=0
-          nix develop -c bun run src/cli/index.ts related --stdin --gate \
-            < changed-files.txt > gate-output.txt 2> gate-stderr.txt || gate_status=$?
-          if [ "$gate_status" = "0" ]; then
+          nix develop -c bun run src/cli/index.ts related --stdin --gate --json \
+            < changed-files.txt > gate-output.json 2> gate-stderr.txt || gate_status=$?
+
+          # Exit 1 also covers configuration and invocation errors, so only a
+          # well-formed gate report may classify the run as clean or violation.
+          report_violations=""
+          if jq -se '
+              length == 1 and (.[0] | type == "object"
+                and (.violations | type == "array")
+                and all(.violations[]; type == "object"
+                  and all(.changedEndpoint, .changedFilePath,
+                    .counterpartEndpoint, .counterpartFilePath; type == "string"))
+                and (.summary.changedFiles | type == "number" and . >= 0 and . == floor)
+                and .summary.violations == (.violations | length))
+            ' gate-output.json >/dev/null 2>&1; then
+            report_violations="$(jq -r '.summary.violations' gate-output.json)"
+          fi
+
+          if [ "$gate_status" = "0" ] && [ "$report_violations" = "0" ]; then
             echo "GATE_OUTCOME=clean" >> "$GITHUB_ENV"
-          elif [ "$gate_status" = "1" ]; then
+          elif [ "$gate_status" = "1" ] && [ -n "$report_violations" ] \
+            && [ "$report_violations" != "0" ]; then
+            jq -r '.violations[]
+              | "\(.changedEndpoint) -> \(.counterpartEndpoint) (counterpart not in change set)"' \
+              gate-output.json > gate-report.txt
             echo "GATE_OUTCOME=violation" >> "$GITHUB_ENV"
           else
+            # A random delimiter, and a newline after each captured chunk, keep tool
+            # output from closing or swallowing the multiline value.
+            delimiter="INFRA_REASON_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
             {
               echo "GATE_OUTCOME=infra-error"
-              echo "INFRA_REASON<<EOF"
-              echo "docbridge related --gate exited ${gate_status}"
-              tail -n 40 gate-stderr.txt
-              tail -n 40 gate-output.txt
-              echo "EOF"
+              echo "INFRA_REASON<<${delimiter}"
+              echo "docbridge related --gate exited ${gate_status} without a matching gate report"
+              printf '%s\n' "$(tail -n 40 gate-stderr.txt)"
+              printf '%s\n' "$(tail -n 40 gate-output.json)"
+              echo "${delimiter}"
             } >> "$GITHUB_ENV"
           fi
-          cat gate-output.txt
+          cat gate-output.json
           cat gate-stderr.txt >&2
 
       - name: Create or update the sticky PR comment
@@ -375,7 +400,7 @@ jobs:
               echo "For each entry, either update the counterpart or make sure the PR explains why no update is needed."
               echo
               echo '```'
-              cat gate-output.txt
+              cat gate-report.txt
               echo '```'
             else
               echo "DocBridge related-gate could not run — infrastructure failure."
@@ -408,7 +433,7 @@ jobs:
               echo "Changed files have linked counterparts that this PR does not update."
               echo
               echo '```'
-              cat gate-output.txt
+              cat gate-report.txt
               echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"

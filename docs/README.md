@@ -23,6 +23,10 @@ through `docbridge docs show <name>`:
 - [Troubleshooting](user/troubleshooting.md) — recover from configuration,
   scanner, parsing, and link diagnostics
 
+Runnable showcases, one per supported language, live under
+[`examples/`](../examples/). Release history is in the
+[Changelog](../CHANGELOG.md).
+
 ## Automate and integrate
 
 - [Claude Code](integrations/claude-code.md)
@@ -55,13 +59,16 @@ with the specification for the interface whose exact contract you need:
 - [Writing guidelines](contributing/writing.md)
 - [Documentation guidelines](contributing/documentation.md)
 - [Testing](contributing/testing.md)
+- [Adding a language](contributing/adding-a-language.md)
 - [Commit messages](contributing/commits.md)
 - [Pull requests](contributing/pull-requests.md)
 - [Releasing](contributing/releasing.md)
 - [Self-audit baseline](contributing/self-audit.md)
-- [Dogfooding review, September 2026](reports/2026-09-dogfooding-review.md)
+
+## Historical records
 
 Architectural choices are recorded in [Decisions](decisions/README.md).
 Completed delivery records are archived under
-[Completed plans](plans/done/README.md). They are historical context, not
-current user instructions.
+[Completed plans](plans/done/README.md), and dated evidence reports such as the
+[Dogfooding review, September 2026](reports/2026-09-dogfooding-review.md) live
+under `reports/`. They are historical context, not current user instructions.

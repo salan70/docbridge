@@ -18,6 +18,12 @@ other people's repositories, so the format is a compatibility surface from the
 first release that ships it. Changing it later invalidates annotations DocBridge
 does not own.
 
+> **Note, 2026-09-30.** Source citations such as `src/core/typescript.ts:314`
+> and `src/core/resolver.ts` name paths and lines from before the #159 core
+> split, which moved this code to `src/scan/code/typescript.ts` and
+> `src/link/resolver.ts`. They are kept as historical evidence of what the code
+> said when each decision was made.
+
 ## Canonical IDs Carry No Parameters
 
 **Decision.** A member endpoint is `Type.member`. No parameter types, no
@@ -285,10 +291,13 @@ example as established.
 | Two `@doc` tags on one canonical ID — overloads, static/instance, get/set                                                                                                                 | `duplicate_code_symbol`   |
 | `@code` naming a member with no reciprocal `@doc`                                                                                                                                         | `code_backlink_not_found` |
 
-DocBridge has no `code_symbol_not_found`; `@code` targets are validated by the
-presence of a reciprocal `@doc`. That is why exempting members from audit opens
-no hole in `@code` resolution — the same bidirectional-pair requirement that
-already governs top-level endpoints governs members.
+A Markdown `@code` target is validated by the presence of a reciprocal `@doc`,
+not by a symbol lookup. That is why exempting members from audit opens no hole in
+`@code` resolution — the same bidirectional-pair requirement that already
+governs top-level endpoints governs members. When this record was written,
+DocBridge had no `code_symbol_not_found`. The
+[link manifest](../specs/link-manifest.md) later added it for manifest `code`
+targets only; annotation resolution is unchanged.
 
 ### What Is Visited Versus What Is Diagnosed
 
@@ -319,8 +328,9 @@ feature has no stake in.
 The compatibility guarantee is narrower than "no new diagnostics", and stating it
 loosely would be wrong.
 
-`check --audit` output is genuinely unchanged, because members never enter
-`undocumentedSymbols`. But a `@doc` sitting on a public class member in an
+`check --audit` output is genuinely unchanged, because members are never
+reported as undocumented. Since the 2026-09-17 amendment they do enter
+`undocumentedSymbols`, flagged `isMember`, and the rule skips them. But a `@doc` sitting on a public class member in an
 existing project is ignored today and becomes a real link after this change. That
 link then goes through ordinary resolution and can produce `invalid_link_target`,
 `doc_file_not_found`, `doc_anchor_not_found`, or `doc_backlink_not_found`

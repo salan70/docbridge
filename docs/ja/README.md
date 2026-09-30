@@ -13,9 +13,9 @@ Markdown 見出しに書く `@code` を検証し、人間とコーディング�
 - Node.js 22 以降、または Bun 1.1.31 以降
 - Markdown と対応言語のソースコードを含むプロジェクト
 
-対応する macOS / Linux 向けの Swift、Dart、Rust、Go scanner はパッケージに同梱
-されています。対応 platform の詳細は
-[Releases](https://github.com/salan70/docbridge/releases) を参照してください。
+`darwin-arm64` と `linux-x64` 向けの Swift、Dart、Rust、Go scanner はパッケージに
+同梱されています。言語ごとの拡張子、visibility の既定値、scanner は
+[設定の言語一覧](user/configuration.md#言語) を参照してください。
 
 ## インストール
 
@@ -37,7 +37,8 @@ bun add --dev docbridge
 npx docbridge init
 ```
 
-TypeScript 向けの最小設定を手動で書く場合は次のとおりです。
+TypeScript 向けの最小設定を手動で書く場合は、project root に
+`docbridge.config.json` として次の内容を保存します。
 
 ```json
 {
@@ -53,14 +54,14 @@ TypeScript 向けの最小設定を手動で書く場合は次のとおりです
 }
 ```
 
-対応するコード宣言にドキュメントのリンク先を追加します。
+`src/auth.ts` の対応するコード宣言にドキュメントのリンク先を追加します。
 
 ```ts
 /** @doc docs/auth.md#login-flow */
 export function login(): void {}
 ```
 
-Markdown 見出しの直前に逆向きのリンクを追加します。
+`docs/auth.md` の見出しの直前に逆向きのリンクを追加します。
 
 ```md
 <!-- @code src/auth.ts#login -->
@@ -75,7 +76,8 @@ npx docbridge check
 ```
 
 リンクグラフが正しければ終了コードは `0` です。設定不備、未解決のリンク先、
-backlink の欠落がある場合は診断を表示して `1` で終了します。
+backlink の欠落がある場合は診断を表示して `1` で終了します。アノテーションの path は
+project root からの相対 path で、各ファイルは設定した pattern に一致する必要があります。
 
 ## 次に読むガイド
 
@@ -85,6 +87,8 @@ backlink の欠落がある場合は診断を表示して `1` で終了します
 - [コマンド](user/commands.md) — check、related、context、graph、docs、upgrade
 - [自動化](user/automation.md) — エージェント、Git hook、CI
 - [トラブルシューティング](user/troubleshooting.md) — 設定・scanner・リンク診断
+- [サンプル](../../examples/) — 対応言語ごとの小さなプロジェクト
+- [変更履歴](../../CHANGELOG.md) — リリース履歴（英語）
 - [英語のドキュメントハブ](../README.md)
 
 英語のタスクガイドは CLI と同じ version で配布されます。

@@ -53,9 +53,18 @@ just doctor
 ```
 
 The setup command configures `core.hooksPath` as `.githooks`. The pre-commit
-hook runs the read-only `just verify` gate and never modifies files, then
-reports the staged changes' unstaged linked counterparts without blocking the
-commit.
+hook runs the read-only `just verify` gate and never modifies files, then runs
+`just related-gate-report`, which reports the staged changes' unstaged linked
+counterparts with their content without blocking the commit. Run the same
+report yourself after staging with `just related-gate-report`.
+
+To run the CLI from this checkout, for example the `docbridge docs show`
+commands that the `docbridge` skill suggests, use `bun run src/cli/index.ts`
+in place of `docbridge`:
+
+```sh
+bun run src/cli/index.ts docs show linking
+```
 
 ## Start non-trivial work with an accepted issue
 
@@ -94,7 +103,8 @@ owns distinct information; link to an existing fact instead of paraphrasing it.
    `status: accepted` label before implementation.
 3. Keep code, tests, specifications, and user documentation consistent. Use
    `just related-gate` before committing to find linked counterparts that your
-   uncommitted changes did not update.
+   uncommitted changes did not update, or `just related-gate-report` for the
+   staged set with the counterparts' content, as the pre-commit hook prints it.
 4. For logic changes, write the failing test first and follow the conventions
    in [Testing](docs/contributing/testing.md).
 5. Apply deterministic formatting with `just format`. `just lint-fix` applies
@@ -155,6 +165,10 @@ with `just install-editor-deps`.
 - Write pull request titles as `<gitmoji> <type>: <summary>` describing the
   whole PR. See [Pull requests](docs/contributing/pull-requests.md).
 - Keep unrelated changes in separate commits and pull requests.
+- Add exactly one `release:` label to every pull request; the required
+  `release-label` check fails without it. See
+  [Pull requests](docs/contributing/pull-requests.md#release-label) for the
+  labels and the version bump a releasing label requires.
 - Link non-trivial work to its accepted issue as described in
   [Pull requests](docs/contributing/pull-requests.md#linking-issues). If an
   issue is not required, state the content-based exception in the pull request
@@ -163,9 +177,9 @@ with `just install-editor-deps`.
   results. Do not check a command that was not run.
 - For every linked counterpart reported for the pull request's changes, update
   it or explain in the pull request why no corresponding change is needed.
-  `just related-gate` covers only uncommitted and untracked files; on a
-  committed branch, use the CI related-gate comment, which covers the whole
-  pull request.
+  `just related-gate` covers only uncommitted and untracked files, and
+  `just related-gate-report` only staged files; on a committed branch, use the
+  CI related-gate comment, which covers the whole pull request.
 - All changes land through a pull request. Maintainers merge with a merge
   commit after the required CI checks pass.
 
@@ -173,6 +187,7 @@ with `just install-editor-deps`.
 
 - [Module architecture](docs/contributing/architecture.md)
 - [Testing](docs/contributing/testing.md)
+- [Adding a language](docs/contributing/adding-a-language.md)
 - [Writing](docs/contributing/writing.md)
 - [Documentation](docs/contributing/documentation.md)
 - [Self-audit](docs/contributing/self-audit.md)
