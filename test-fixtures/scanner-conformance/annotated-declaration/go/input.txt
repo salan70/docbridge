@@ -1,0 +1,6 @@
+package auth
+
+// @doc docs/auth.md#login
+func Login() {}
+
+func Logout() {}

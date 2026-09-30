@@ -64,6 +64,12 @@ for (const fixture of [
     filePath: "src/auth.rs",
     content: "pub struct Auth;\n",
   },
+  {
+    language: "go" as const,
+    executable: resolve(repoRoot, "packages/go-scanner/bin/docbridge-go-scanner"),
+    filePath: "internal/auth/auth.go",
+    content: "package auth\n\ntype Auth struct{}\n",
+  },
 ]) {
   test(`${fixture.language} worker conforms to the shared request and response schema`, () => {
     const request: ScannerWorkerRequest = {

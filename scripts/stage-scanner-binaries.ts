@@ -8,6 +8,7 @@ type Options = {
   swift: string;
   dart: string;
   rust: string;
+  go: string;
 };
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -17,6 +18,7 @@ const outputDir = join(repoRoot, "dist/bin", options.platform);
 stageBinary(options.swift, join(outputDir, "docbridge-swift-scanner"));
 stageBinary(options.dart, join(outputDir, "docbridge_dart_scanner"));
 stageBinary(options.rust, join(outputDir, "docbridge-rust-scanner"));
+stageBinary(options.go, join(outputDir, "docbridge-go-scanner"));
 
 function parseArgs(args: string[]): Options {
   const platform = `${process.platform}-${process.arch}`;
@@ -25,6 +27,7 @@ function parseArgs(args: string[]): Options {
     swift: join(repoRoot, "packages/swift-scanner/.build/release/docbridge-swift-scanner"),
     dart: join(repoRoot, "packages/dart-scanner/bin/docbridge_dart_scanner"),
     rust: join(repoRoot, "packages/rust-scanner/target/release/docbridge-rust-scanner"),
+    go: join(repoRoot, "packages/go-scanner/bin/docbridge-go-scanner"),
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -41,6 +44,9 @@ function parseArgs(args: string[]): Options {
       index += 1;
     } else if (arg === "--rust" && value !== undefined) {
       parsedOptions.rust = resolve(value);
+      index += 1;
+    } else if (arg === "--go" && value !== undefined) {
+      parsedOptions.go = resolve(value);
       index += 1;
     } else {
       fail(`Unknown or incomplete argument: ${arg}`);

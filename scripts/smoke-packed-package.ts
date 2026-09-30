@@ -85,7 +85,12 @@ function smokeExecutableBitRepair(tarballPath: string, tempRoot: string): void {
 
   writeScannerFixtures(installRoot);
   for (const runtime of cliRuntimes) {
-    for (const fixture of ["swift-fixture", "dart-fixture", "rust-fixture"] as const) {
+    for (const fixture of [
+      "swift-fixture",
+      "dart-fixture",
+      "rust-fixture",
+      "go-fixture",
+    ] as const) {
       stripInstalledScannerExecutableBits(installRoot);
       run(
         [
@@ -207,7 +212,12 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
 
   writeScannerFixtures(tempRoot);
   for (const runtime of cliRuntimes) {
-    for (const fixture of ["swift-fixture", "dart-fixture", "rust-fixture"] as const) {
+    for (const fixture of [
+      "swift-fixture",
+      "dart-fixture",
+      "rust-fixture",
+      "go-fixture",
+    ] as const) {
       run(
         [
           runtime,
@@ -263,6 +273,20 @@ function writeScannerFixtures(root: string): void {
   writeFileSync(
     join(root, "rust-fixture/docs/auth.md"),
     "<!-- @code src/auth_service.rs#AuthService -->\n## Auth Service\n",
+  );
+
+  mkdirSync(join(root, "go-fixture/internal/auth"), { recursive: true });
+  mkdirSync(join(root, "go-fixture/docs"), { recursive: true });
+  writeFixtureConfig(root, "go-fixture", {
+    go: { patterns: ["internal/**/*.go"] },
+  });
+  writeFileSync(
+    join(root, "go-fixture/internal/auth/service.go"),
+    "package auth\n\n// AuthService authenticates requests.\n//\n// @doc docs/auth.md#auth-service\ntype AuthService struct{}\n",
+  );
+  writeFileSync(
+    join(root, "go-fixture/docs/auth.md"),
+    "<!-- @code internal/auth/service.go#AuthService -->\n## Auth Service\n",
   );
 }
 

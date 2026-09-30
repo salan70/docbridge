@@ -46,6 +46,7 @@ export const LANGUAGE_SUFFIX: Readonly<Record<CodeLanguage, string>> = {
   swift: ".swift",
   dart: ".dart",
   rust: ".rs",
+  go: ".go",
 };
 
 export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[]>> = {
@@ -53,6 +54,7 @@ export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[
   swift: ["public", "open", "internal"],
   dart: ["public"],
   rust: ["pub", "private"],
+  go: ["exported", "unexported"],
 };
 
 /**

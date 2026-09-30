@@ -94,6 +94,7 @@ const FENCE_LANGUAGE: Readonly<Record<CodeLanguage, string>> = {
   swift: "swift",
   dart: "dart",
   rust: "rust",
+  go: "go",
 };
 
 /** Languages whose block comments nest, so an inner block comment opens a new level. */

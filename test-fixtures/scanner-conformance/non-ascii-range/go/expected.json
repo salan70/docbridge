@@ -1,0 +1,72 @@
+{
+  "filePath": "input.go",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "go",
+      "filePath": "input.go",
+      "symbolName": "Login",
+      "canonicalId": "Login",
+      "endpoint": "input.go#Login",
+      "location": {
+        "filePath": "input.go",
+        "line": 5,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 5,
+          "column": 6
+        },
+        "end": {
+          "line": 5,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 3,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 36
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 3,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 20
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.go#Login",
+      "target": "docs/ログイン😀.md#login",
+      "location": {
+        "filePath": "input.go",
+        "line": 4,
+        "column": 9
+      },
+      "targetRange": {
+        "start": {
+          "line": 4,
+          "column": 9
+        },
+        "end": {
+          "line": 4,
+          "column": 29
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "go"
+}

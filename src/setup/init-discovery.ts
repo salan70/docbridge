@@ -94,11 +94,15 @@ const DART_PATTERNS = ["lib/**/*.dart"] as const;
 
 const RUST_PATTERNS = ["src/**/*.rs", "*/src/**/*.rs"] as const;
 
+// The conventional Go layout; `vendor/` at the root is never a candidate.
+const GO_PATTERNS = ["*.go", "cmd/**/*.go", "internal/**/*.go", "pkg/**/*.go"] as const;
+
 const LANGUAGE_PATTERNS: Record<CodeLanguage, readonly string[]> = {
   typescript: TYPESCRIPT_PATTERNS,
   swift: SWIFT_PATTERNS,
   dart: DART_PATTERNS,
   rust: RUST_PATTERNS,
+  go: GO_PATTERNS,
 };
 
 /**
@@ -372,6 +376,16 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
       segments.includes("tests") ||
       segments.includes("benches") ||
       segments.includes("examples")
+    ) {
+      return true;
+    }
+  }
+
+  if (language === "go") {
+    if (
+      lower.endsWith("_test.go") ||
+      segments.includes("vendor") ||
+      segments.includes("testdata")
     ) {
       return true;
     }

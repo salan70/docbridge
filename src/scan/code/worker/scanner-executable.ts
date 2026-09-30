@@ -13,6 +13,7 @@ const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> 
   swift: "docbridge-swift-scanner",
   dart: "docbridge_dart_scanner",
   rust: "docbridge-rust-scanner",
+  go: "docbridge-go-scanner",
 };
 
 export type ScannerWorkerCommandResolution =
@@ -107,6 +108,13 @@ function scannerExecutableCandidates(
     return [
       join(sourceRoot, "packages/rust-scanner/target/release", executable),
       join(sourceRoot, "packages/rust-scanner/target/debug", executable),
+      ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
+    ];
+  }
+  if (language === "go") {
+    // Go has no debug/release split: one static binary serves both.
+    return [
+      join(sourceRoot, "packages/go-scanner/bin", executable),
       ...(platformSupported ? [join(distRoot, "bin", platformKey, executable)] : []),
     ];
   }
