@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "config_file_invalid",
+      "target": "docbridge.config.json",
+      "message": "Failed to parse docbridge.config.json: JSON Parse error: Expected '}'"
+    }
+  ],
+  "counterparts": {}
+}

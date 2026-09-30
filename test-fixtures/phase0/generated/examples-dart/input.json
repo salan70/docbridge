@@ -1,0 +1,206 @@
+{
+  "codeFiles": [
+    {
+      "filePath": "lib/auth_service.dart",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "dart",
+          "filePath": "lib/auth_service.dart",
+          "symbolName": "login",
+          "canonicalId": "AuthService.login",
+          "endpoint": "lib/auth_service.dart#AuthService.login",
+          "location": {
+            "filePath": "lib/auth_service.dart",
+            "line": 3,
+            "column": 8
+          },
+          "nameRange": {
+            "start": {
+              "line": 3,
+              "column": 8
+            },
+            "end": {
+              "line": 3,
+              "column": 13
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 2,
+              "column": 3
+            },
+            "end": {
+              "line": 3,
+              "column": 47
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 2,
+              "column": 3
+            },
+            "end": {
+              "line": 3,
+              "column": 45
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "dart",
+          "filePath": "lib/auth_service.dart",
+          "symbolName": "AuthService",
+          "canonicalId": "AuthService",
+          "endpoint": "lib/auth_service.dart#AuthService",
+          "location": {
+            "filePath": "lib/auth_service.dart",
+            "line": 1,
+            "column": 7
+          },
+          "nameRange": {
+            "start": {
+              "line": 1,
+              "column": 7
+            },
+            "end": {
+              "line": 1,
+              "column": 18
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 2
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 19
+            }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "lib/auth_service.dart#AuthService.login",
+          "target": "docs/auth.md#login-flow",
+          "location": {
+            "filePath": "lib/auth_service.dart",
+            "line": 2,
+            "column": 12
+          },
+          "targetRange": {
+            "start": {
+              "line": 2,
+              "column": 12
+            },
+            "end": {
+              "line": 2,
+              "column": 35
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "language": "dart"
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/auth.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "login-flow",
+          "endpoint": "docs/auth.md#login-flow",
+          "headingText": "Login Flow",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 3,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 3,
+              "column": 4
+            },
+            "end": {
+              "line": 3,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "headings": [
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "login-flow",
+            "endpoint": "docs/auth.md#login-flow",
+            "headingText": "Login Flow",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 3,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 3,
+                "column": 4
+              },
+              "end": {
+                "line": 3,
+                "column": 14
+              }
+            }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/auth.md#login-flow",
+          "target": "lib/auth_service.dart#AuthService.login",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 1,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 1,
+              "column": 12
+            },
+            "end": {
+              "line": 1,
+              "column": 51
+            }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [],
+  "audit": true,
+  "queries": [
+    "lib/auth_service.dart#AuthService.login",
+    "lib/auth_service.dart#AuthService",
+    "docs/auth.md#login-flow"
+  ]
+}

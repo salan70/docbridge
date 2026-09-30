@@ -1,0 +1,29 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "doc_file_not_found",
+      "source": "src/example.ts#example",
+      "target": "docs/missing.md#example-section",
+      "message": "Doc file docs/missing.md referenced by src/example.ts#example is not in the managed docs set.",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 2,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 9
+        },
+        "end": {
+          "line": 2,
+          "column": 40
+        }
+      }
+    }
+  ],
+  "counterparts": {
+    "src/example.ts#example": []
+  }
+}

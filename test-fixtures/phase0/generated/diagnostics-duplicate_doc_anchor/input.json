@@ -1,0 +1,157 @@
+{
+  "codeFiles": [],
+  "docFiles": [
+    {
+      "filePath": "docs/spec.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/spec.md",
+          "anchor": "example-section",
+          "endpoint": "docs/spec.md#example-section",
+          "headingText": "Example Section",
+          "location": {
+            "filePath": "docs/spec.md",
+            "line": 1,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 1,
+              "column": 3
+            },
+            "end": {
+              "line": 1,
+              "column": 18
+            }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/spec.md",
+          "anchor": "example-section",
+          "endpoint": "docs/spec.md#example-section",
+          "headingText": "Example Section",
+          "location": {
+            "filePath": "docs/spec.md",
+            "line": 3,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 3,
+              "column": 3
+            },
+            "end": {
+              "line": 3,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/spec.md",
+            "anchor": "example-section",
+            "endpoint": "docs/spec.md#example-section",
+            "headingText": "Example Section",
+            "location": {
+              "filePath": "docs/spec.md",
+              "line": 1,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 1,
+                "column": 3
+              },
+              "end": {
+                "line": 1,
+                "column": 18
+              }
+            }
+          }
+        },
+        {
+          "level": 1,
+          "hasCodeAnnotation": false,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/spec.md",
+            "anchor": "example-section",
+            "endpoint": "docs/spec.md#example-section",
+            "headingText": "Example Section",
+            "location": {
+              "filePath": "docs/spec.md",
+              "line": 3,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 3,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 18
+              }
+            }
+          }
+        }
+      ],
+      "links": [],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "duplicate_doc_anchor",
+          "target": "docs/spec.md#example-section",
+          "message": "Duplicate doc anchor \"example-section\" in docs/spec.md.",
+          "location": {
+            "filePath": "docs/spec.md",
+            "line": 3,
+            "column": 1
+          },
+          "range": {
+            "start": {
+              "line": 3,
+              "column": 3
+            },
+            "end": {
+              "line": 3,
+              "column": 18
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "duplicate_doc_anchor",
+      "target": "docs/spec.md#example-section",
+      "message": "Duplicate doc anchor \"example-section\" in docs/spec.md.",
+      "location": {
+        "filePath": "docs/spec.md",
+        "line": 3,
+        "column": 1
+      },
+      "range": {
+        "start": {
+          "line": 3,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 18
+        }
+      }
+    }
+  ],
+  "audit": true,
+  "queries": ["docs/spec.md#example-section"]
+}

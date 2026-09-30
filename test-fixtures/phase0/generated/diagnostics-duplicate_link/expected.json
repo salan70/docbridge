@@ -1,0 +1,457 @@
+{
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/spec.md#example-section",
+      "language": "go",
+      "source": "internal/example.go#Example",
+      "message": "Duplicate @doc link from internal/example.go#Example to docs/spec.md#example-section.",
+      "location": {
+        "filePath": "internal/example.go",
+        "line": 4,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 4,
+          "column": 9
+        },
+        "end": {
+          "line": 4,
+          "column": 37
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/spec.md#example-section",
+      "language": "dart",
+      "source": "lib/example.dart#example",
+      "message": "Duplicate @doc link from lib/example.dart#example to docs/spec.md#example-section.",
+      "location": {
+        "filePath": "lib/example.dart",
+        "line": 2,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 10
+        },
+        "end": {
+          "line": 2,
+          "column": 38
+        }
+      }
+    },
+    {
+      "code": "duplicate_link",
+      "language": "swift",
+      "location": {
+        "column": 10,
+        "filePath": "Sources/Example.swift",
+        "line": 2
+      },
+      "message": "Duplicate @doc link from Sources/Example.swift#example() to docs/spec.md#example-section.",
+      "range": {
+        "end": {
+          "column": 38,
+          "line": 2
+        },
+        "start": {
+          "column": 10,
+          "line": 2
+        }
+      },
+      "severity": "warning",
+      "source": "Sources/Example.swift#example()",
+      "target": "docs/spec.md#example-section"
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/spec.md#example-section",
+      "language": "rust",
+      "source": "src/example.rs#example",
+      "message": "Duplicate @doc link from src/example.rs#example to docs/spec.md#example-section.",
+      "location": {
+        "filePath": "src/example.rs",
+        "line": 2,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 10
+        },
+        "end": {
+          "line": 2,
+          "column": 38
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/spec.md#example-section",
+      "source": "src/example.ts#example",
+      "message": "Duplicate @doc link from src/example.ts#example to docs/spec.md#example-section.",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 3,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 37
+        }
+      }
+    }
+  ],
+  "counterparts": {
+    "Sources/Example.swift#example()": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "example-section",
+        "endpoint": "docs/spec.md#example-section",
+        "headingText": "Example Section",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 6,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 6,
+            "column": 3
+          },
+          "end": {
+            "line": 6,
+            "column": 18
+          }
+        }
+      }
+    ],
+    "internal/example.go#Example": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "example-section",
+        "endpoint": "docs/spec.md#example-section",
+        "headingText": "Example Section",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 6,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 6,
+            "column": 3
+          },
+          "end": {
+            "line": 6,
+            "column": 18
+          }
+        }
+      }
+    ],
+    "lib/example.dart#example": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "example-section",
+        "endpoint": "docs/spec.md#example-section",
+        "headingText": "Example Section",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 6,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 6,
+            "column": 3
+          },
+          "end": {
+            "line": 6,
+            "column": 18
+          }
+        }
+      }
+    ],
+    "src/example.rs#example": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "example-section",
+        "endpoint": "docs/spec.md#example-section",
+        "headingText": "Example Section",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 6,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 6,
+            "column": 3
+          },
+          "end": {
+            "line": 6,
+            "column": 18
+          }
+        }
+      }
+    ],
+    "src/example.ts#example": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "example-section",
+        "endpoint": "docs/spec.md#example-section",
+        "headingText": "Example Section",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 6,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 6,
+            "column": 3
+          },
+          "end": {
+            "line": 6,
+            "column": 18
+          }
+        }
+      }
+    ],
+    "docs/spec.md#example-section": [
+      {
+        "kind": "code",
+        "language": "go",
+        "filePath": "internal/example.go",
+        "symbolName": "Example",
+        "canonicalId": "Example",
+        "endpoint": "internal/example.go#Example",
+        "location": {
+          "filePath": "internal/example.go",
+          "line": 5,
+          "column": 6
+        },
+        "nameRange": {
+          "start": {
+            "line": 5,
+            "column": 6
+          },
+          "end": {
+            "line": 5,
+            "column": 13
+          }
+        },
+        "declarationRange": {
+          "start": {
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "line": 5,
+            "column": 18
+          }
+        },
+        "signatureRange": {
+          "start": {
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "line": 5,
+            "column": 15
+          }
+        }
+      },
+      {
+        "kind": "code",
+        "language": "dart",
+        "filePath": "lib/example.dart",
+        "symbolName": "example",
+        "canonicalId": "example",
+        "endpoint": "lib/example.dart#example",
+        "location": {
+          "filePath": "lib/example.dart",
+          "line": 3,
+          "column": 6
+        },
+        "nameRange": {
+          "start": {
+            "line": 3,
+            "column": 6
+          },
+          "end": {
+            "line": 3,
+            "column": 13
+          }
+        },
+        "declarationRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 3,
+            "column": 18
+          }
+        },
+        "signatureRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 3,
+            "column": 16
+          }
+        }
+      },
+      {
+        "canonicalId": "example()",
+        "declarationRange": {
+          "end": {
+            "column": 25,
+            "line": 3
+          },
+          "start": {
+            "column": 1,
+            "line": 1
+          }
+        },
+        "endpoint": "Sources/Example.swift#example()",
+        "filePath": "Sources/Example.swift",
+        "kind": "code",
+        "language": "swift",
+        "location": {
+          "column": 13,
+          "filePath": "Sources/Example.swift",
+          "line": 3
+        },
+        "nameRange": {
+          "end": {
+            "column": 20,
+            "line": 3
+          },
+          "start": {
+            "column": 13,
+            "line": 3
+          }
+        },
+        "signatureRange": {
+          "end": {
+            "column": 22,
+            "line": 3
+          },
+          "start": {
+            "column": 1,
+            "line": 1
+          }
+        },
+        "symbolName": "example"
+      },
+      {
+        "kind": "code",
+        "language": "rust",
+        "filePath": "src/example.rs",
+        "symbolName": "example",
+        "canonicalId": "example",
+        "endpoint": "src/example.rs#example",
+        "location": {
+          "filePath": "src/example.rs",
+          "line": 3,
+          "column": 8
+        },
+        "nameRange": {
+          "start": {
+            "line": 3,
+            "column": 8
+          },
+          "end": {
+            "line": 3,
+            "column": 15
+          }
+        },
+        "declarationRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 3,
+            "column": 20
+          }
+        },
+        "signatureRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 3,
+            "column": 17
+          }
+        }
+      },
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/example.ts",
+        "symbolName": "example",
+        "canonicalId": "example",
+        "endpoint": "src/example.ts#example",
+        "location": {
+          "filePath": "src/example.ts",
+          "line": 5,
+          "column": 17
+        },
+        "nameRange": {
+          "start": {
+            "line": 5,
+            "column": 17
+          },
+          "end": {
+            "line": 5,
+            "column": 24
+          }
+        },
+        "declarationRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 5,
+            "column": 35
+          }
+        },
+        "signatureRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 5,
+            "column": 33
+          }
+        }
+      }
+    ]
+  }
+}

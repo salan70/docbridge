@@ -1,0 +1,508 @@
+{
+  "codeFiles": [
+    {
+      "diagnostics": [
+        {
+          "code": "invalid_link_target",
+          "language": "swift",
+          "location": {
+            "column": 10,
+            "filePath": "Sources/Example.swift",
+            "line": 1
+          },
+          "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+          "range": {
+            "end": {
+              "column": 22,
+              "line": 1
+            },
+            "start": {
+              "column": 10,
+              "line": 1
+            }
+          },
+          "severity": "error",
+          "source": "Sources/Example.swift#example()",
+          "target": "docs/spec.md"
+        }
+      ],
+      "filePath": "Sources/Example.swift",
+      "links": [],
+      "symbols": [
+        {
+          "canonicalId": "example()",
+          "declarationRange": {
+            "end": {
+              "column": 25,
+              "line": 2
+            },
+            "start": {
+              "column": 1,
+              "line": 1
+            }
+          },
+          "endpoint": "Sources/Example.swift#example()",
+          "filePath": "Sources/Example.swift",
+          "kind": "code",
+          "language": "swift",
+          "location": {
+            "column": 13,
+            "filePath": "Sources/Example.swift",
+            "line": 2
+          },
+          "nameRange": {
+            "end": {
+              "column": 20,
+              "line": 2
+            },
+            "start": {
+              "column": 13,
+              "line": 2
+            }
+          },
+          "signatureRange": {
+            "end": {
+              "column": 22,
+              "line": 2
+            },
+            "start": {
+              "column": 1,
+              "line": 1
+            }
+          },
+          "symbolName": "example"
+        }
+      ],
+      "undocumentedSymbols": [],
+      "language": "swift"
+    },
+    {
+      "filePath": "internal/example.go",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/example.go",
+          "symbolName": "Example",
+          "canonicalId": "Example",
+          "endpoint": "internal/example.go#Example",
+          "location": {
+            "filePath": "internal/example.go",
+            "line": 4,
+            "column": 6
+          },
+          "nameRange": {
+            "start": {
+              "line": 4,
+              "column": 6
+            },
+            "end": {
+              "line": 4,
+              "column": 13
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 18
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "invalid_link_target",
+          "target": "docs/spec.md",
+          "language": "go",
+          "source": "internal/example.go#Example",
+          "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+          "location": {
+            "filePath": "internal/example.go",
+            "line": 3,
+            "column": 9
+          },
+          "range": {
+            "start": {
+              "line": 3,
+              "column": 9
+            },
+            "end": {
+              "line": 3,
+              "column": 21
+            }
+          }
+        }
+      ],
+      "language": "go"
+    },
+    {
+      "filePath": "lib/example.dart",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "dart",
+          "filePath": "lib/example.dart",
+          "symbolName": "example",
+          "canonicalId": "example",
+          "endpoint": "lib/example.dart#example",
+          "location": {
+            "filePath": "lib/example.dart",
+            "line": 2,
+            "column": 6
+          },
+          "nameRange": {
+            "start": {
+              "line": 2,
+              "column": 6
+            },
+            "end": {
+              "line": 2,
+              "column": 13
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 2,
+              "column": 18
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 2,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "invalid_link_target",
+          "target": "docs/spec.md",
+          "language": "dart",
+          "source": "lib/example.dart#example",
+          "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+          "location": {
+            "filePath": "lib/example.dart",
+            "line": 1,
+            "column": 10
+          },
+          "range": {
+            "start": {
+              "line": 1,
+              "column": 10
+            },
+            "end": {
+              "line": 1,
+              "column": 22
+            }
+          }
+        }
+      ],
+      "language": "dart"
+    },
+    {
+      "filePath": "src/example.rs",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "rust",
+          "filePath": "src/example.rs",
+          "symbolName": "example",
+          "canonicalId": "example",
+          "endpoint": "src/example.rs#example",
+          "location": {
+            "filePath": "src/example.rs",
+            "line": 2,
+            "column": 8
+          },
+          "nameRange": {
+            "start": {
+              "line": 2,
+              "column": 8
+            },
+            "end": {
+              "line": 2,
+              "column": 15
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 2,
+              "column": 20
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 2,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "invalid_link_target",
+          "target": "docs/spec.md",
+          "language": "rust",
+          "source": "src/example.rs#example",
+          "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+          "location": {
+            "filePath": "src/example.rs",
+            "line": 1,
+            "column": 10
+          },
+          "range": {
+            "start": {
+              "line": 1,
+              "column": 10
+            },
+            "end": {
+              "line": 1,
+              "column": 22
+            }
+          }
+        }
+      ],
+      "language": "rust"
+    },
+    {
+      "language": "typescript",
+      "filePath": "src/example.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/example.ts",
+          "symbolName": "example",
+          "canonicalId": "example",
+          "endpoint": "src/example.ts#example",
+          "location": {
+            "filePath": "src/example.ts",
+            "line": 4,
+            "column": 17
+          },
+          "nameRange": {
+            "start": {
+              "line": 4,
+              "column": 17
+            },
+            "end": {
+              "line": 4,
+              "column": 24
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 35
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 33
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "invalid_link_target",
+          "target": "docs/spec.md",
+          "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+          "source": "src/example.ts#example",
+          "location": {
+            "filePath": "src/example.ts",
+            "line": 2,
+            "column": 9
+          },
+          "range": {
+            "start": {
+              "line": 2,
+              "column": 9
+            },
+            "end": {
+              "line": 2,
+              "column": 21
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "docFiles": [],
+  "scanDiagnostics": [
+    {
+      "code": "invalid_link_target",
+      "language": "swift",
+      "location": {
+        "column": 10,
+        "filePath": "Sources/Example.swift",
+        "line": 1
+      },
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "range": {
+        "end": {
+          "column": 22,
+          "line": 1
+        },
+        "start": {
+          "column": 10,
+          "line": 1
+        }
+      },
+      "severity": "error",
+      "source": "Sources/Example.swift#example()",
+      "target": "docs/spec.md"
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "language": "go",
+      "source": "internal/example.go#Example",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "internal/example.go",
+        "line": 3,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 21
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "language": "dart",
+      "source": "lib/example.dart#example",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "lib/example.dart",
+        "line": 1,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 22
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "language": "rust",
+      "source": "src/example.rs#example",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "src/example.rs",
+        "line": 1,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 22
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "source": "src/example.ts#example",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 2,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 9
+        },
+        "end": {
+          "line": 2,
+          "column": 21
+        }
+      }
+    }
+  ],
+  "audit": true,
+  "queries": [
+    "Sources/Example.swift#example()",
+    "internal/example.go#Example",
+    "lib/example.dart#example",
+    "src/example.rs#example",
+    "src/example.ts#example"
+  ]
+}

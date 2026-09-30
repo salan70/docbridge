@@ -1,0 +1,816 @@
+{
+  "codeFiles": [
+    {
+      "filePath": "internal/auth/service.go",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/auth/service.go",
+          "symbolName": "MaxAttempts",
+          "canonicalId": "MaxAttempts",
+          "endpoint": "internal/auth/service.go#MaxAttempts",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 13,
+            "column": 2
+          },
+          "nameRange": {
+            "start": {
+              "line": 13,
+              "column": 2
+            },
+            "end": {
+              "line": 13,
+              "column": 13
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 10,
+              "column": 2
+            },
+            "end": {
+              "line": 13,
+              "column": 17
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 10,
+              "column": 2
+            },
+            "end": {
+              "line": 13,
+              "column": 17
+            }
+          }
+        },
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/auth/service.go",
+          "symbolName": "Authenticator",
+          "canonicalId": "Authenticator",
+          "endpoint": "internal/auth/service.go#Authenticator",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 22,
+            "column": 6
+          },
+          "nameRange": {
+            "start": {
+              "line": 22,
+              "column": 6
+            },
+            "end": {
+              "line": 22,
+              "column": 19
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 19,
+              "column": 1
+            },
+            "end": {
+              "line": 27,
+              "column": 2
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 19,
+              "column": 1
+            },
+            "end": {
+              "line": 27,
+              "column": 2
+            }
+          }
+        },
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/auth/service.go",
+          "symbolName": "Authenticate",
+          "canonicalId": "Authenticator.Authenticate",
+          "endpoint": "internal/auth/service.go#Authenticator.Authenticate",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 26,
+            "column": 2
+          },
+          "nameRange": {
+            "start": {
+              "line": 26,
+              "column": 2
+            },
+            "end": {
+              "line": 26,
+              "column": 14
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 23,
+              "column": 2
+            },
+            "end": {
+              "line": 26,
+              "column": 52
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 23,
+              "column": 2
+            },
+            "end": {
+              "line": 26,
+              "column": 52
+            }
+          }
+        },
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/auth/service.go",
+          "symbolName": "AuthService",
+          "canonicalId": "AuthService",
+          "endpoint": "internal/auth/service.go#AuthService",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 32,
+            "column": 6
+          },
+          "nameRange": {
+            "start": {
+              "line": 32,
+              "column": 6
+            },
+            "end": {
+              "line": 32,
+              "column": 17
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 29,
+              "column": 1
+            },
+            "end": {
+              "line": 35,
+              "column": 2
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 29,
+              "column": 1
+            },
+            "end": {
+              "line": 35,
+              "column": 2
+            }
+          }
+        },
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/auth/service.go",
+          "symbolName": "NewAuthService",
+          "canonicalId": "NewAuthService",
+          "endpoint": "internal/auth/service.go#NewAuthService",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 40,
+            "column": 6
+          },
+          "nameRange": {
+            "start": {
+              "line": 40,
+              "column": 6
+            },
+            "end": {
+              "line": 40,
+              "column": 20
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 37,
+              "column": 1
+            },
+            "end": {
+              "line": 42,
+              "column": 2
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 37,
+              "column": 1
+            },
+            "end": {
+              "line": 40,
+              "column": 62
+            }
+          }
+        },
+        {
+          "kind": "code",
+          "language": "go",
+          "filePath": "internal/auth/service.go",
+          "symbolName": "Login",
+          "canonicalId": "AuthService.Login",
+          "endpoint": "internal/auth/service.go#AuthService.Login",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 49,
+            "column": 23
+          },
+          "nameRange": {
+            "start": {
+              "line": 49,
+              "column": 23
+            },
+            "end": {
+              "line": 49,
+              "column": 28
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 44,
+              "column": 1
+            },
+            "end": {
+              "line": 58,
+              "column": 2
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 44,
+              "column": 1
+            },
+            "end": {
+              "line": 49,
+              "column": 58
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "internal/auth/service.go#MaxAttempts",
+          "target": "docs/auth.md#max-attempts",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 12,
+            "column": 10
+          },
+          "targetRange": {
+            "start": {
+              "line": 12,
+              "column": 10
+            },
+            "end": {
+              "line": 12,
+              "column": 35
+            }
+          }
+        },
+        {
+          "source": "internal/auth/service.go#Authenticator",
+          "target": "docs/auth.md#authenticator",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 21,
+            "column": 9
+          },
+          "targetRange": {
+            "start": {
+              "line": 21,
+              "column": 9
+            },
+            "end": {
+              "line": 21,
+              "column": 35
+            }
+          }
+        },
+        {
+          "source": "internal/auth/service.go#Authenticator.Authenticate",
+          "target": "docs/auth.md#authenticate",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 25,
+            "column": 10
+          },
+          "targetRange": {
+            "start": {
+              "line": 25,
+              "column": 10
+            },
+            "end": {
+              "line": 25,
+              "column": 35
+            }
+          }
+        },
+        {
+          "source": "internal/auth/service.go#AuthService",
+          "target": "docs/auth.md#auth-service",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 31,
+            "column": 9
+          },
+          "targetRange": {
+            "start": {
+              "line": 31,
+              "column": 9
+            },
+            "end": {
+              "line": 31,
+              "column": 34
+            }
+          }
+        },
+        {
+          "source": "internal/auth/service.go#NewAuthService",
+          "target": "docs/auth.md#constructing-the-service",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 39,
+            "column": 9
+          },
+          "targetRange": {
+            "start": {
+              "line": 39,
+              "column": 9
+            },
+            "end": {
+              "line": 39,
+              "column": 46
+            }
+          }
+        },
+        {
+          "source": "internal/auth/service.go#AuthService.Login",
+          "target": "docs/auth.md#login-flow",
+          "location": {
+            "filePath": "internal/auth/service.go",
+            "line": 47,
+            "column": 6
+          },
+          "targetRange": {
+            "start": {
+              "line": 47,
+              "column": 6
+            },
+            "end": {
+              "line": 47,
+              "column": 29
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "language": "go"
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/auth.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "auth-service",
+          "endpoint": "docs/auth.md#auth-service",
+          "headingText": "Auth Service",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 3,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 3,
+              "column": 4
+            },
+            "end": {
+              "line": 3,
+              "column": 16
+            }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "constructing-the-service",
+          "endpoint": "docs/auth.md#constructing-the-service",
+          "headingText": "Constructing the Service",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 9,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 9,
+              "column": 4
+            },
+            "end": {
+              "line": 9,
+              "column": 28
+            }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "login-flow",
+          "endpoint": "docs/auth.md#login-flow",
+          "headingText": "Login Flow",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 15,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 15,
+              "column": 4
+            },
+            "end": {
+              "line": 15,
+              "column": 14
+            }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "authenticator",
+          "endpoint": "docs/auth.md#authenticator",
+          "headingText": "Authenticator",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 21,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 21,
+              "column": 4
+            },
+            "end": {
+              "line": 21,
+              "column": 17
+            }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "authenticate",
+          "endpoint": "docs/auth.md#authenticate",
+          "headingText": "Authenticate",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 27,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 27,
+              "column": 4
+            },
+            "end": {
+              "line": 27,
+              "column": 16
+            }
+          }
+        },
+        {
+          "kind": "doc",
+          "filePath": "docs/auth.md",
+          "anchor": "max-attempts",
+          "endpoint": "docs/auth.md#max-attempts",
+          "headingText": "Max Attempts",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 33,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 33,
+              "column": 4
+            },
+            "end": {
+              "line": 33,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "headings": [
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "auth-service",
+            "endpoint": "docs/auth.md#auth-service",
+            "headingText": "Auth Service",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 3,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 3,
+                "column": 4
+              },
+              "end": {
+                "line": 3,
+                "column": 16
+              }
+            }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "constructing-the-service",
+            "endpoint": "docs/auth.md#constructing-the-service",
+            "headingText": "Constructing the Service",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 9,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 9,
+                "column": 4
+              },
+              "end": {
+                "line": 9,
+                "column": 28
+              }
+            }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "login-flow",
+            "endpoint": "docs/auth.md#login-flow",
+            "headingText": "Login Flow",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 15,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 15,
+                "column": 4
+              },
+              "end": {
+                "line": 15,
+                "column": 14
+              }
+            }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "authenticator",
+            "endpoint": "docs/auth.md#authenticator",
+            "headingText": "Authenticator",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 21,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 21,
+                "column": 4
+              },
+              "end": {
+                "line": 21,
+                "column": 17
+              }
+            }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "authenticate",
+            "endpoint": "docs/auth.md#authenticate",
+            "headingText": "Authenticate",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 27,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 27,
+                "column": 4
+              },
+              "end": {
+                "line": 27,
+                "column": 16
+              }
+            }
+          }
+        },
+        {
+          "level": 2,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/auth.md",
+            "anchor": "max-attempts",
+            "endpoint": "docs/auth.md#max-attempts",
+            "headingText": "Max Attempts",
+            "location": {
+              "filePath": "docs/auth.md",
+              "line": 33,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 33,
+                "column": 4
+              },
+              "end": {
+                "line": 33,
+                "column": 16
+              }
+            }
+          }
+        }
+      ],
+      "links": [
+        {
+          "source": "docs/auth.md#auth-service",
+          "target": "internal/auth/service.go#AuthService",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 1,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 1,
+              "column": 12
+            },
+            "end": {
+              "line": 1,
+              "column": 48
+            }
+          }
+        },
+        {
+          "source": "docs/auth.md#constructing-the-service",
+          "target": "internal/auth/service.go#NewAuthService",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 7,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 7,
+              "column": 12
+            },
+            "end": {
+              "line": 7,
+              "column": 51
+            }
+          }
+        },
+        {
+          "source": "docs/auth.md#login-flow",
+          "target": "internal/auth/service.go#AuthService.Login",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 13,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 13,
+              "column": 12
+            },
+            "end": {
+              "line": 13,
+              "column": 54
+            }
+          }
+        },
+        {
+          "source": "docs/auth.md#authenticator",
+          "target": "internal/auth/service.go#Authenticator",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 19,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 19,
+              "column": 12
+            },
+            "end": {
+              "line": 19,
+              "column": 50
+            }
+          }
+        },
+        {
+          "source": "docs/auth.md#authenticate",
+          "target": "internal/auth/service.go#Authenticator.Authenticate",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 25,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 25,
+              "column": 12
+            },
+            "end": {
+              "line": 25,
+              "column": 63
+            }
+          }
+        },
+        {
+          "source": "docs/auth.md#max-attempts",
+          "target": "internal/auth/service.go#MaxAttempts",
+          "location": {
+            "filePath": "docs/auth.md",
+            "line": 31,
+            "column": 1
+          },
+          "targetRange": {
+            "start": {
+              "line": 31,
+              "column": 12
+            },
+            "end": {
+              "line": 31,
+              "column": 48
+            }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [],
+  "audit": true,
+  "queries": [
+    "internal/auth/service.go#MaxAttempts",
+    "internal/auth/service.go#Authenticator",
+    "internal/auth/service.go#Authenticator.Authenticate",
+    "internal/auth/service.go#AuthService",
+    "internal/auth/service.go#NewAuthService",
+    "internal/auth/service.go#AuthService.Login",
+    "docs/auth.md#auth-service",
+    "docs/auth.md#constructing-the-service",
+    "docs/auth.md#login-flow",
+    "docs/auth.md#authenticator",
+    "docs/auth.md#authenticate",
+    "docs/auth.md#max-attempts"
+  ]
+}

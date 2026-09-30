@@ -1,0 +1,118 @@
+{
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "unlinked_doc_section",
+      "target": "docs/spec.md#example-section",
+      "message": "Doc section docs/spec.md#example-section has no @code annotation.",
+      "location": {
+        "filePath": "docs/spec.md",
+        "line": 1,
+        "column": 1
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 3
+        },
+        "end": {
+          "line": 1,
+          "column": 18
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "doc_backlink_not_found",
+      "source": "src/example.ts#example",
+      "target": "docs/spec.md#example-section",
+      "message": "Doc anchor docs/spec.md#example-section has no matching @code backlink to src/example.ts#example.",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 2,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 9
+        },
+        "end": {
+          "line": 2,
+          "column": 37
+        }
+      }
+    }
+  ],
+  "counterparts": {
+    "src/example.ts#example": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "example-section",
+        "endpoint": "docs/spec.md#example-section",
+        "headingText": "Example Section",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 1,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 1,
+            "column": 3
+          },
+          "end": {
+            "line": 1,
+            "column": 18
+          }
+        }
+      }
+    ],
+    "docs/spec.md#example-section": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/example.ts",
+        "symbolName": "example",
+        "canonicalId": "example",
+        "endpoint": "src/example.ts#example",
+        "location": {
+          "filePath": "src/example.ts",
+          "line": 4,
+          "column": 17
+        },
+        "nameRange": {
+          "start": {
+            "line": 4,
+            "column": 17
+          },
+          "end": {
+            "line": 4,
+            "column": 24
+          }
+        },
+        "declarationRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 4,
+            "column": 35
+          }
+        },
+        "signatureRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 4,
+            "column": 33
+          }
+        }
+      }
+    ]
+  }
+}

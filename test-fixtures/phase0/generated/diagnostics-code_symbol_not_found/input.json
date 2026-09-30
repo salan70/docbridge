@@ -1,0 +1,189 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/example.ts",
+      "symbols": [],
+      "undocumentedSymbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/example.ts",
+          "symbolName": "Session",
+          "canonicalId": "Session",
+          "endpoint": "src/example.ts#Session",
+          "location": {
+            "filePath": "src/example.ts",
+            "line": 1,
+            "column": 14
+          },
+          "nameRange": {
+            "start": {
+              "line": 1,
+              "column": 14
+            },
+            "end": {
+              "line": 1,
+              "column": 21
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 3,
+              "column": 2
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 22
+            }
+          }
+        },
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/example.ts",
+          "symbolName": "findSession",
+          "canonicalId": "Session.findSession",
+          "endpoint": "src/example.ts#Session.findSession",
+          "location": {
+            "filePath": "src/example.ts",
+            "line": 2,
+            "column": 3
+          },
+          "isMember": true,
+          "nameRange": {
+            "start": {
+              "line": 2,
+              "column": 3
+            },
+            "end": {
+              "line": 2,
+              "column": 14
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 2,
+              "column": 3
+            },
+            "end": {
+              "line": 2,
+              "column": 25
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 2,
+              "column": 3
+            },
+            "end": {
+              "line": 2,
+              "column": 23
+            }
+          }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [
+    {
+      "filePath": "docs/spec.md",
+      "anchors": [
+        {
+          "kind": "doc",
+          "filePath": "docs/spec.md",
+          "anchor": "example-section",
+          "endpoint": "docs/spec.md#example-section",
+          "headingText": "Example Section",
+          "location": {
+            "filePath": "docs/spec.md",
+            "line": 1,
+            "column": 1
+          },
+          "headingTextRange": {
+            "start": {
+              "line": 1,
+              "column": 3
+            },
+            "end": {
+              "line": 1,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "hasCodeAnnotation": true,
+          "anchor": {
+            "kind": "doc",
+            "filePath": "docs/spec.md",
+            "anchor": "example-section",
+            "endpoint": "docs/spec.md#example-section",
+            "headingText": "Example Section",
+            "location": {
+              "filePath": "docs/spec.md",
+              "line": 1,
+              "column": 1
+            },
+            "headingTextRange": {
+              "start": {
+                "line": 1,
+                "column": 3
+              },
+              "end": {
+                "line": 1,
+                "column": 18
+              }
+            }
+          }
+        }
+      ],
+      "links": [],
+      "diagnostics": []
+    }
+  ],
+  "scanDiagnostics": [
+    {
+      "severity": "error",
+      "code": "code_symbol_not_found",
+      "target": "src/example.ts#Session.find",
+      "message": "Code symbol src/example.ts#Session.find declared in the link manifest does not exist. Did you mean `Session.findSession`?",
+      "location": {
+        "filePath": "docbridge.links.json",
+        "line": 5,
+        "column": 16
+      },
+      "range": {
+        "start": {
+          "line": 5,
+          "column": 16
+        },
+        "end": {
+          "line": 5,
+          "column": 43
+        }
+      },
+      "language": "typescript"
+    }
+  ],
+  "audit": true,
+  "queries": [
+    "src/example.ts#Session",
+    "src/example.ts#Session.findSession",
+    "docs/spec.md#example-section"
+  ]
+}

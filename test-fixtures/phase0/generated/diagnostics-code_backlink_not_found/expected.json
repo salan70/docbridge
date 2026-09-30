@@ -1,0 +1,42 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_backlink_not_found",
+      "source": "docs/spec.md#example-section",
+      "target": "src/example.ts#example",
+      "message": "Code endpoint src/example.ts#example has no matching @doc pair back to docs/spec.md#example-section.",
+      "location": {
+        "filePath": "docs/spec.md",
+        "line": 1,
+        "column": 1
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 12
+        },
+        "end": {
+          "line": 1,
+          "column": 34
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "undocumented_symbol",
+      "language": "typescript",
+      "target": "src/example.ts#example",
+      "message": "Exported symbol src/example.ts#example has no @doc annotation.",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 1,
+        "column": 17
+      }
+    }
+  ],
+  "counterparts": {
+    "src/example.ts#example": [],
+    "docs/spec.md#example-section": []
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_symbol_not_found",
+      "target": "src/example.ts#Session.find",
+      "message": "Code symbol src/example.ts#Session.find declared in the link manifest does not exist. Did you mean `Session.findSession`?",
+      "location": {
+        "filePath": "docbridge.links.json",
+        "line": 5,
+        "column": 16
+      },
+      "range": {
+        "start": {
+          "line": 5,
+          "column": 16
+        },
+        "end": {
+          "line": 5,
+          "column": 43
+        }
+      },
+      "language": "typescript"
+    },
+    {
+      "severity": "warning",
+      "code": "undocumented_symbol",
+      "language": "typescript",
+      "target": "src/example.ts#Session",
+      "message": "Exported symbol src/example.ts#Session has no @doc annotation.",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 1,
+        "column": 14
+      }
+    }
+  ],
+  "counterparts": {
+    "src/example.ts#Session": [],
+    "src/example.ts#Session.findSession": [],
+    "docs/spec.md#example-section": []
+  }
+}

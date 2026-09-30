@@ -1,0 +1,80 @@
+{
+  "codeFiles": [
+    {
+      "language": "typescript",
+      "filePath": "src/example.ts",
+      "symbols": [
+        {
+          "kind": "code",
+          "language": "typescript",
+          "filePath": "src/example.ts",
+          "symbolName": "example",
+          "canonicalId": "example",
+          "endpoint": "src/example.ts#example",
+          "location": {
+            "filePath": "src/example.ts",
+            "line": 4,
+            "column": 17
+          },
+          "nameRange": {
+            "start": {
+              "line": 4,
+              "column": 17
+            },
+            "end": {
+              "line": 4,
+              "column": 24
+            }
+          },
+          "declarationRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 35
+            }
+          },
+          "signatureRange": {
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 4,
+              "column": 33
+            }
+          }
+        }
+      ],
+      "undocumentedSymbols": [],
+      "links": [
+        {
+          "source": "src/example.ts#example",
+          "target": "docs/missing.md#example-section",
+          "location": {
+            "filePath": "src/example.ts",
+            "line": 2,
+            "column": 9
+          },
+          "targetRange": {
+            "start": {
+              "line": 2,
+              "column": 9
+            },
+            "end": {
+              "line": 2,
+              "column": 40
+            }
+          }
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "docFiles": [],
+  "scanDiagnostics": [],
+  "audit": true,
+  "queries": ["src/example.ts#example"]
+}

@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "config_unknown_key",
+      "target": "extra",
+      "message": "Unknown top-level configuration key: extra"
+    }
+  ],
+  "counterparts": {}
+}

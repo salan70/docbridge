@@ -1,0 +1,125 @@
+{
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "language": "go",
+      "source": "internal/example.go#Example",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "internal/example.go",
+        "line": 3,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 21
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "language": "dart",
+      "source": "lib/example.dart#example",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "lib/example.dart",
+        "line": 1,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 22
+        }
+      }
+    },
+    {
+      "code": "invalid_link_target",
+      "language": "swift",
+      "location": {
+        "column": 10,
+        "filePath": "Sources/Example.swift",
+        "line": 1
+      },
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "range": {
+        "end": {
+          "column": 22,
+          "line": 1
+        },
+        "start": {
+          "column": 10,
+          "line": 1
+        }
+      },
+      "severity": "error",
+      "source": "Sources/Example.swift#example()",
+      "target": "docs/spec.md"
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "language": "rust",
+      "source": "src/example.rs#example",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "src/example.rs",
+        "line": 1,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 22
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/spec.md",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "source": "src/example.ts#example",
+      "location": {
+        "filePath": "src/example.ts",
+        "line": 2,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 9
+        },
+        "end": {
+          "line": 2,
+          "column": 21
+        }
+      }
+    }
+  ],
+  "counterparts": {
+    "Sources/Example.swift#example()": [],
+    "internal/example.go#Example": [],
+    "lib/example.dart#example": [],
+    "src/example.rs#example": [],
+    "src/example.ts#example": []
+  }
+}

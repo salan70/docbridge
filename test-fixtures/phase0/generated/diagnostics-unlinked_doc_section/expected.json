@@ -1,0 +1,120 @@
+{
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "unlinked_doc_section",
+      "target": "docs/spec.md#unlinked",
+      "message": "Doc section docs/spec.md#unlinked has no @code annotation.",
+      "location": {
+        "filePath": "docs/spec.md",
+        "line": 9,
+        "column": 1
+      },
+      "range": {
+        "start": {
+          "line": 9,
+          "column": 4
+        },
+        "end": {
+          "line": 9,
+          "column": 12
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "unlinked_doc_section",
+      "target": "docs/spec.md#below-empty",
+      "message": "Doc section docs/spec.md#below-empty has no @code annotation.",
+      "location": {
+        "filePath": "docs/spec.md",
+        "line": 15,
+        "column": 1
+      },
+      "range": {
+        "start": {
+          "line": 15,
+          "column": 5
+        },
+        "end": {
+          "line": 15,
+          "column": 16
+        }
+      }
+    }
+  ],
+  "counterparts": {
+    "src/example.ts#example": [
+      {
+        "kind": "doc",
+        "filePath": "docs/spec.md",
+        "anchor": "linked",
+        "endpoint": "docs/spec.md#linked",
+        "headingText": "Linked",
+        "location": {
+          "filePath": "docs/spec.md",
+          "line": 7,
+          "column": 1
+        },
+        "headingTextRange": {
+          "start": {
+            "line": 7,
+            "column": 4
+          },
+          "end": {
+            "line": 7,
+            "column": 10
+          }
+        }
+      }
+    ],
+    "docs/spec.md#spec": [],
+    "docs/spec.md#linked": [
+      {
+        "kind": "code",
+        "language": "typescript",
+        "filePath": "src/example.ts",
+        "symbolName": "example",
+        "canonicalId": "example",
+        "endpoint": "src/example.ts#example",
+        "location": {
+          "filePath": "src/example.ts",
+          "line": 7,
+          "column": 17
+        },
+        "nameRange": {
+          "start": {
+            "line": 7,
+            "column": 17
+          },
+          "end": {
+            "line": 7,
+            "column": 24
+          }
+        },
+        "declarationRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 7,
+            "column": 35
+          }
+        },
+        "signatureRange": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 7,
+            "column": 33
+          }
+        }
+      }
+    ],
+    "docs/spec.md#unlinked": [],
+    "docs/spec.md#below-empty": []
+  }
+}
