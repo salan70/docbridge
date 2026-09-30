@@ -376,8 +376,32 @@ the original content, so `//line` directives do not move it.
 ## JavaScript Scanning
 
 JavaScript scanning is pending registration: the `javascript` language ID is
-not accepted by configuration yet. This section is filled in when the adapter
-lands.
+not accepted by configuration yet. The contract below is normative once the
+adapter lands.
+
+JavaScript scanning reuses the TypeScript scanner in process. The `javascript`
+language claims `.js`, `.jsx`, `.mjs`, and `.cjs` files, and the `typescript`
+language additionally claims `.tsx`, `.mts`, and `.cts` files while excluding
+`.d.ts`, `.d.mts`, and `.d.cts` declaration files. The parser's script kind
+follows the suffix (`JS`, `JSX`, `TS`, `TSX`), so JSX in a declaration parses
+without configuration.
+
+Supported JavaScript declarations are the ESM `export` forms the TypeScript
+scanner supports and the members of exported classes, with the same JSDoc
+attachment, canonical IDs, ranges, duplicate handling, and diagnostics as
+[TypeScript Scanning](#typescript-scanning). Scan results report
+`language: "javascript"`.
+
+CommonJS assignments (`module.exports = ...`, `exports.name = ...`), script
+globals, and JSDoc `@typedef` declarations are not endpoints; an `@doc` on
+`module.exports` is `unsupported_declaration`.
+
+The visibility contract is the TypeScript one: `public`, `protected`, and
+`private` are accepted and `["public", "protected"]` is the default. JavaScript
+members carry no modifier, so every member classifies as `public`; `#private`
+names are unsupported as in TypeScript.
+
+Context and hover fences follow the suffix: `js`, `jsx`, `ts`, and `tsx`.
 
 ## Python Scanning
 
