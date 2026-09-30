@@ -65,11 +65,12 @@ Never remove a valid link just to silence the gate.
 
 Put shared checks in repository hooks rather than one agent's configuration.
 A pre-commit hook can run `docbridge check` as a blocking validity gate and
-then report related files from the staged set. The gate exits `1` on a
-violation, so `|| true` keeps that stage from blocking the commit:
+then report related files from the staged set. `|| exit $?` stops the hook
+when `check` fails, even without `set -e`. The gate exits `1` on a violation,
+so `|| true` keeps that stage from blocking the commit:
 
 ```sh
-docbridge check
+docbridge check || exit $?
 git diff --cached --name-only | docbridge related --stdin --gate || true
 ```
 

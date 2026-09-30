@@ -49,11 +49,12 @@ docbridge context path/to/file
 
 共有チェックは個々のエージェント設定ではなく repository hook に置きます。
 pre-commit では `docbridge check` を blocking gate とし、staged file について
-related の結果を情報として提示できます。gate は違反があると `1` で終了するため、
+related の結果を情報として提示できます。`|| exit $?` により、`set -e` がなくても
+`check` が失敗した時点で hook を終了します。gate は違反があると `1` で終了するため、
 `|| true` でその段が commit を止めないようにします。
 
 ```sh
-docbridge check
+docbridge check || exit $?
 git diff --cached --name-only | docbridge related --stdin --gate || true
 ```
 
