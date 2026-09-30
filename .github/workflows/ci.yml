@@ -174,6 +174,25 @@ jobs:
           go test ./...
 
       # --- Python worker: setup, format, lint, and tests ---
+      # The worker's runtime floor is CPython 3.10. setup-python provides that
+      # interpreter for a floor run of the unittest suite; the nix shell's
+      # CPython (the latest release) covers the same suite through `just`.
+      - name: Install CPython 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Test the Python scanner on CPython 3.10
+        run: python3 -m unittest discover -s packages/python-scanner/tests
+
+      - name: just format-check-python
+        run: nix develop -c just format-check-python
+
+      - name: just lint-python
+        run: nix develop -c just lint-python
+
+      - name: just test-python-scanner
+        run: nix develop -c just test-python-scanner
       # --- end Python worker ---
 
       # --- Ruby worker: setup and tests ---
