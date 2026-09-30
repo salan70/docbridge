@@ -310,6 +310,14 @@ func Body() {
 	}
 }
 
+func TestTrailingCommentIsNotRecoveredAsInterfaceElementDoc(t *testing.T) {
+	source := "package p\n\ntype T interface {\n\tA() // @doc docs/a.md#x\n\t~int\n\tB() /* @doc docs/b.md#y */\n\tint | string\n}\n"
+	result := scan(t, source, nil)
+	assertList(t, "diagnostics", diagnosticCodes(result.Diagnostics), []string{})
+	assertList(t, "symbols", symbolIDs(result.Symbols), []string{})
+	assertList(t, "undocumented", symbolIDs(result.UndocumentedSymbols), []string{"T", "T.A", "T.B"})
+}
+
 func TestDuplicateEndpointsAndLinks(t *testing.T) {
 	source := `package auth
 

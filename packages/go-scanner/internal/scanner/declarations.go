@@ -254,12 +254,16 @@ func (c *collector) interfaceElements(typeName string, interfaceType *ast.Interf
 }
 
 // leadComment finds the comment group that immediately precedes pos, ending on
-// the line before it and starting after prev, the way go/parser assigns doc
-// comments.
+// the line before it, the way go/parser assigns doc comments. A group that
+// starts on the previous element's line is that element's trailing comment,
+// never a doc comment, so it must begin on a later line than prev.
 func (c *collector) leadComment(prev, pos token.Pos) *ast.CommentGroup {
 	var lead *ast.CommentGroup
 	for _, group := range c.file.Comments {
 		if group.Pos() <= prev || group.End() >= pos {
+			continue
+		}
+		if c.tokenFile.Line(group.Pos()) <= c.tokenFile.Line(prev) {
 			continue
 		}
 		if c.tokenFile.Line(group.End())+1 == c.tokenFile.Line(pos) {
