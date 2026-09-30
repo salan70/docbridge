@@ -8,6 +8,3 @@ editors/vscode/.tmp/
 
 # Machine-specific editor settings (e.g. absolute bunPath); keep local.
 .vscode/settings.json
-
-# CPython bytecode caches written when the Python worker tests run.
-__pycache__/
