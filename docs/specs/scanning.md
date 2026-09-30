@@ -88,8 +88,9 @@ The bundled Dart worker is a Dart package under `packages/dart-scanner`. It uses
 the Dart `analyzer` and communicates through the worker protocol. From a source
 checkout, the adapter executes the compiled
 `packages/dart-scanner/bin/docbridge_dart_scanner` binary; run
-`just test-dart-scanner` or `just build-dart-scanner` locally to build it before
-checking Dart projects from a source checkout. In the npm package, the adapter
+`just build-dart-scanner` locally to compile it before checking Dart projects
+from a source checkout; `just test-dart-scanner` runs the package tests without
+compiling the binary. In the npm package, the adapter
 executes `dist/bin/<platform>/docbridge_dart_scanner`. Building the package
 requires the Dart SDK, which the Nix dev shell provides.
 
@@ -351,8 +352,9 @@ Grouped declarations follow these rules:
 - A spec that declares several names (`var a, b int`) exposes every name as a
   symbol, but an `@doc` above it is `unsupported_declaration` at the first name
   because the annotation cannot say which name it documents. When splitting the
-  spec would change semantics (`iota` sequences, multi-value initializers), use
-  a Markdown `@code` backlink or a `docbridge.links.json` entry instead.
+  spec would change semantics (`iota` sequences, multi-value initializers),
+  declare the link in `docbridge.links.json` instead. A Markdown `@code` alone
+  does not work: without a matching `@doc` it is `code_backlink_not_found`.
 
 The blank identifier `_`, `func init()`, struct fields, embedded fields, the
 `package` clause, `import` declarations, and non-method interface elements

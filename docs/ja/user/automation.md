@@ -34,10 +34,11 @@ docbridge init-with-agent --agent-target codex
 docbridge context path/to/file
 ```
 
-編集後に変更セットを検査します。
+編集後に、stage 済みと未追跡のファイルも含めて変更セットを検査します。
 
 ```sh
-git diff --name-only | docbridge related --stdin --gate
+{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } |
+  docbridge related --stdin --gate
 ```
 
 報告された相手ごとに、契約が変わったなら更新する、記述が現在も正しければ内容を根拠に
@@ -48,10 +49,12 @@ git diff --name-only | docbridge related --stdin --gate
 
 共有チェックは個々のエージェント設定ではなく repository hook に置きます。
 pre-commit では `docbridge check` を blocking gate とし、staged file について
-次の結果を情報として提示できます。
+related の結果を情報として提示できます。gate は違反があると `1` で終了するため、
+`|| true` でその段が commit を止めないようにします。
 
 ```sh
-git diff --cached --name-only | docbridge related --stdin --gate
+docbridge check
+git diff --cached --name-only | docbridge related --stdin --gate || true
 ```
 
 必要なら `docbridge context --stdin` で相手の内容も添えます。hook はファイルを自動

@@ -21,7 +21,10 @@ context for the reader to choose the next step.
 | `docs/reports/`                      | Dated evidence reports such as dogfooding reviews; historical observations, not current guidance          |
 
 Task guides explain how to achieve an outcome and link to specifications for
-exact contracts. Integration pages build on the general automation guide and
+exact contracts. Specifications are not packaged, so a packaged guide under
+`docs/user/` links to them with an absolute
+`https://github.com/salan70/docbridge/blob/main/...` URL; a relative link
+would break in `docbridge docs show` and in the installed package. Integration pages build on the general automation guide and
 own only client-specific details. Decisions and completed plans explain why or
 how work landed; they are not current user instructions.
 

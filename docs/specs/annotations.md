@@ -71,7 +71,7 @@ Supported TypeScript declarations are top-level exported:
 - `abstract class`
 - `interface`
 - `type`
-- `const` with a single declarator
+- a variable statement (`const`, `let`, or `var`) with a single declarator
 - `enum`
 - `const enum`
 - named default `function`
@@ -94,7 +94,7 @@ Unsupported declarations with `@doc` produce `unsupported_declaration`. Unsuppor
 Unsupported examples include:
 
 - anonymous default exports
-- `export const a = 1, b = 2`
+- variable statements with several declarators, such as `export const a = 1, b = 2`
 - namespace and module declarations
 - re-exports, including type-only re-exports
 - non-exported declarations with `@doc`

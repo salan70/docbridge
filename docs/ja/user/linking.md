@@ -2,12 +2,21 @@
 
 このガイドでは、意味のあるドキュメントセクションを選び、`@doc` / `@code` の
 双方向リンクを作成し、その関係が現在も正しいかレビューするまでを扱います。
+厳密な契約は
+[Annotations](https://github.com/salan70/docbridge/blob/main/docs/specs/annotations.md)、
+[Link resolution](https://github.com/salan70/docbridge/blob/main/docs/specs/link-resolution.md)、
+[Link manifest](https://github.com/salan70/docbridge/blob/main/docs/specs/link-manifest.md)
+の各 specification（英語）にあります。
 
 ## リンク対象を選ぶ
 
 挙動、契約、入出力、制約、ユーザーに見える仕様、設計判断を説明するセクションを
 優先します。README、changelog、コントリビューションガイド、runbook、release note は、
-特定のセクションが継続的な仕様として機能する場合を除いて対象外にします。
+特定のセクションが継続的な仕様として機能する場合を除いてリンクしません。
+`docbridge init` はドキュメント directory を選ぶときに `README.md`、`CHANGELOG.md`、
+`CONTRIBUTING.md` などの慣習的なファイルを無視しますが、DocBridge は提案された
+`docs/**/*.md` を含め、設定した `docs` パターンに一致するすべての Markdown ファイルを
+走査します。これらを graph から外すには pattern を狭めます。
 
 コード側は、仕様を実装または代表する対応済み public API 宣言を優先します。適切な
 宣言がなければ無理にリンクせず、採用・除外・保留をセクション単位で判断します。
@@ -66,15 +75,19 @@ pub fn login(email: &str, password: &str) {}
 func Login(email, password string) error { return nil }
 ```
 
-対応形式と visibility は [設定](configuration.md) で選びます。対象外の宣言に
-`@doc` を書くと `unsupported_declaration` です。
+対応形式と visibility は [設定](configuration.md) で選びます。対応していない宣言や、
+visibility で対象外になった TypeScript member に `@doc` を書くと
+`unsupported_declaration` です。Swift、Dart、Rust、Go では、visibility で対象外に
+なった宣言の `@doc` は診断なしで無視されます。リンクするには、言語が受け付ける範囲で
+その可視性を `visibility` に加えます。Dart は `public` しか受け付けないため、private な
+Dart 宣言はリンクできません。
 
 ### TypeScript の宣言
 
 top-level の export された function、class、interface、type alias、enum、1つだけを
-宣言する const と、対応する `declare` / 名前付き default 形式を扱います。class の
-method、property、accessor、constructor、static member、interface member、object literal
-型 alias の member も対象です。
+宣言する変数（`const`、`let`、`var`）と、対応する `declare` / 名前付き default 形式を
+扱います。class の method、property、accessor、constructor、static member、
+interface member、object literal 型 alias の member も対象です。
 
 member ID は引数を含まず、`AuthService.login` や `AuthService.constructor` の形式です。
 既定では `public` と `protected` を含み、`private` は明示的に設定します。匿名 default

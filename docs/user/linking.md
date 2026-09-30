@@ -7,13 +7,22 @@ description: Choose, create, and semantically review @doc and @code links.
 DocBridge connects supported code declarations to Markdown headings. This
 guide covers the complete workflow: choose meaningful sections, create a
 reciprocal annotation pair, and review whether the relationship is still true.
+The exact contracts are in the
+[Annotations](https://github.com/salan70/docbridge/blob/main/docs/specs/annotations.md),
+[Link resolution](https://github.com/salan70/docbridge/blob/main/docs/specs/link-resolution.md),
+and [Link manifest](https://github.com/salan70/docbridge/blob/main/docs/specs/link-manifest.md)
+specifications.
 
 ## Choose what to link
 
 Prefer sections that define behavior, contracts, inputs and outputs,
-constraints, user-visible behavior, or design decisions. README files,
-changelogs, contribution guides, runbooks, and release notes are excluded by
-default unless a specific section acts as an enduring specification.
+constraints, user-visible behavior, or design decisions. Do not link README
+files, changelogs, contribution guides, runbooks, or release notes unless a
+specific section acts as an enduring specification. `docbridge init` skips
+conventional files such as `README.md`, `CHANGELOG.md`, and `CONTRIBUTING.md`
+when it chooses a documentation directory. DocBridge still scans every
+Markdown file that the configured `docs` patterns match, including a proposed
+`docs/**/*.md`, so narrow the patterns to keep these files out of the graph.
 
 Prefer supported public API declarations as code targets. Do not force a link
 when no declaration implements or represents the section, and do not use link
@@ -79,17 +88,21 @@ pub fn login(email: &str, password: &str) {}
 func Login(email, password string) error { return nil }
 ```
 
-Paths are relative to the configured root. An annotation on an unsupported or
-visibility-excluded declaration produces `unsupported_declaration`; the same
-declaration without an annotation is ignored.
+Paths are relative to the configured root. An annotation on an unsupported
+declaration, or on a TypeScript member excluded by visibility, produces
+`unsupported_declaration`; the same declaration without an annotation is
+ignored. Swift, Dart, Rust, and Go ignore an annotation on a declaration
+excluded by visibility without a diagnostic. To link such a declaration, add
+its tier to `visibility` where the language accepts one; Dart accepts only
+`public`, so a private Dart declaration cannot be linked.
 
 ### TypeScript declarations
 
 Supported top-level exported forms include functions, classes, interfaces,
-type aliases, enums, and single-declarator constants, including supported
-`declare` and named default forms. Supported members include class methods,
-properties, accessors, constructors, and static members; interface members;
-and members of object-literal type aliases.
+type aliases, enums, and single-declarator variables (`const`, `let`, or
+`var`), including supported `declare` and named default forms. Supported members
+include class methods, properties, accessors, constructors, and static members;
+interface members; and members of object-literal type aliases.
 
 Members use type-qualified IDs without parameter signatures, such as
 `AuthService.login` and `AuthService.constructor`. Visibility defaults to

@@ -2,8 +2,9 @@
 
 This package builds the VS Code-compatible DocBridge extension under the public
 extension ID `salan70.docbridge`. It launches the bundled DocBridge language
-server (`docbridge lsp`) and binds it to TypeScript, TSX, Swift, Dart, and
-Markdown documents.
+server (`docbridge lsp`) and binds it to TypeScript, Swift, Dart, Rust, Go, and
+Markdown documents. DocBridge scans `.ts` files only; `.tsx` files are not
+scanned.
 
 The package carries the only `vscode-languageclient` dependency in the
 repository. The server and the CLI source under `src/` do not depend on it.
