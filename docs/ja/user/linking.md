@@ -75,9 +75,27 @@ pub fn login(email: &str, password: &str) {}
 func Login(email, password string) error { return nil }
 ```
 
+```js
+/** @doc docs/auth.md#login-flow */
+export function login(email, password) {}
+```
+
+```python
+def login(email: str, password: str) -> None:
+    """Start the login flow.
+
+    @doc docs/auth.md#login-flow
+    """
+```
+
+```ruby
+# @doc docs/auth.md#login-flow
+def login(email, password); end
+```
+
 対応形式と visibility は [設定](configuration.md) で選びます。対応していない宣言や、
-visibility で対象外になった TypeScript member に `@doc` を書くと
-`unsupported_declaration` です。Swift、Dart、Rust、Go では、visibility で対象外に
+visibility で対象外になった TypeScript / JavaScript / Python / Ruby の宣言に `@doc` を
+書くと `unsupported_declaration` です。Swift、Dart、Rust、Go では、visibility で対象外に
 なった宣言の `@doc` は診断なしで無視されます。リンクするには、言語が受け付ける範囲で
 その可視性を `visibility` に加えます。Dart は `public` しか受け付けないため、private な
 Dart 宣言はリンクできません。
@@ -131,6 +149,37 @@ interface の型名の両方が exported のときだけ exported として扱�
 埋め込み field、`package` 句、import、`init`、`_` は endpoint ではありません。scanner は
 構文だけを見るため、pattern に一致する `_test.go` や `//go:build` 付きのファイルも
 走査されます。
+
+### JavaScript の宣言
+
+JavaScript は、ES module で書ける形について TypeScript と同じ規則に従います。export
+された function、class、1つだけを宣言する変数、名前付き default export、export された
+class の member を、同じ JSDoc comment と `AuthService.login` のような同じ ID で扱います。
+member はすべて `public` で、`#private` member は endpoint になりません。
+`module.exports = ...` や `exports.name = ...` などの CommonJS の代入は endpoint では
+なく、`@doc` を書くと `unsupported_declaration` です。JSX はすべての JavaScript
+ファイルで解析されます。
+
+### Python の宣言
+
+module レベルの function と class、class の method と入れ子の class を、`if`、`try`、
+`with` の block 内も含めて扱います。function の本体の中は endpoint になりません。
+`@doc` は docstring か、宣言またはその最初の decorator の直上にある `#` comment block
+に書きます。ID は `AuthService.login` のように `.` で修飾します。property の getter、
+setter、deleter は 1 つの endpoint を共有し、`@overload` の stub と実装も同様です。
+`__dunder__` 以外で `_` から始まる名前と、private な class の member は `private` です。
+module の docstring、代入、入れ子の function は endpoint ではありません。
+
+### Ruby の宣言
+
+class、module、定数、instance method、singleton method（`def self.x` と
+`class << self` 内の `def x`）、top-level の method を扱います。`@doc` は宣言の直上の
+`#` comment block に書きます。ID は定数の間を `::`、method 名の前を `.` でつなぎ、
+`Auth::Service`、`Auth::MAX_ATTEMPTS`、`Auth::Service.login`、singleton method の
+`Auth::Service.self.build` の形式です。同じファイル内で再度開いた class は 1 つの
+endpoint です。method の可視性は引数なしの `private`、`protected`、`public` 呼び出し、
+`private def x`、`private_class_method` で決まり、class、module、定数は常に `public`
+です。`attr_reader` などや `alias`、`define_method` は endpoint ではありません。
 
 ## ドキュメントからコードへ
 

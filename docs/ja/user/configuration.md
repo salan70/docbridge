@@ -46,28 +46,67 @@ DocBridge は、`--root` で指定した project root、または現在の direc
 
 ## 言語
 
-| Key          | ファイル              | `visibility` の値                | 既定値                | Scanner                   |
-| ------------ | --------------------- | -------------------------------- | --------------------- | ------------------------- |
-| `typescript` | `.ts`（`.d.ts` 以外） | `public`、`protected`、`private` | `public`、`protected` | 組み込み                  |
-| `swift`      | `.swift`              | `public`、`open`、`internal`     | `public`、`open`      | `docbridge-swift-scanner` |
-| `dart`       | `.dart`               | `public`                         | `public`              | `docbridge_dart_scanner`  |
-| `rust`       | `.rs`                 | `pub`、`private`                 | `pub`                 | `docbridge-rust-scanner`  |
-| `go`         | `.go`                 | `exported`、`unexported`         | `exported`            | `docbridge-go-scanner`    |
+| Key          | ファイル                                               | `visibility` の値                | 既定値                | Scanner                   |
+| ------------ | ------------------------------------------------------ | -------------------------------- | --------------------- | ------------------------- |
+| `typescript` | `.ts`、`.tsx`、`.mts`、`.cts`（declaration file 以外） | `public`、`protected`、`private` | `public`、`protected` | 組み込み                  |
+| `javascript` | `.js`、`.jsx`、`.mjs`、`.cjs`                          | `public`、`protected`、`private` | `public`、`protected` | 組み込み                  |
+| `swift`      | `.swift`                                               | `public`、`open`、`internal`     | `public`、`open`      | `docbridge-swift-scanner` |
+| `dart`       | `.dart`                                                | `public`                         | `public`              | `docbridge_dart_scanner`  |
+| `rust`       | `.rs`                                                  | `pub`、`private`                 | `pub`                 | `docbridge-rust-scanner`  |
+| `go`         | `.go`                                                  | `exported`、`unexported`         | `exported`            | `docbridge-go-scanner`    |
+| `python`     | `.py`                                                  | `public`、`private`              | `public`              | CPython 3.10 以降         |
+| `ruby`       | `.rb`                                                  | `public`、`protected`、`private` | `public`              | CRuby 3.3 以降            |
 
-pattern は言語の拡張子で終わる必要があります。npm package は Swift、Dart、Rust、Go の
-scanner を `darwin-arm64` と `linux-x64` 向けに同梱します。TypeScript と Markdown には
-scanner binary は不要です。
+pattern は言語の拡張子のいずれかで終わる必要があります。npm package は Swift、Dart、
+Rust、Go の scanner を `darwin-arm64` と `linux-x64` 向けに同梱します。TypeScript、
+JavaScript、Markdown には scanner binary は不要です。Python と Ruby は、package に
+含まれる script をマシンにインストールされた interpreter で実行して走査するため、
+platform を問いません。[Scanner の実行環境](#scanner-の実行環境) を参照してください。
 
-各言語は任意の `visibility` 配列を受け取り、省略時は上の既定値を使います。TypeScript の
-`visibility` は型の member にだけ適用され、top-level の宣言は export されている必要が
-あります。Rust の `pub` は制限なしの `pub`、`private` はそれより狭いすべての可視性です。
-visibility で対象外になった宣言は endpoint になりません。対象外の TypeScript member
-に `@doc` を書くと `unsupported_declaration` になり、Swift、Dart、Rust、Go の scanner は
-対象外の宣言の `@doc` を診断なしで無視します。Dart の先頭 underscore による private や、Go の
-method の exported 判定など、言語ごとの宣言規則は [リンク](linking.md) を参照して
-ください。scanner の厳密な挙動と platform key は
+各言語は任意の `visibility` 配列を受け取り、省略時は上の既定値を使います。TypeScript と
+JavaScript の `visibility` は class や型の member にだけ適用され、top-level の宣言は
+export されている必要があります。JavaScript の member はすべて `public` です。Rust の
+`pub` は制限なしの `pub`、`private` はそれより狭いすべての可視性です。visibility で
+対象外になった宣言は endpoint になりません。対象外の TypeScript / JavaScript member や、
+対象外の Python / Ruby の宣言に `@doc` を書くと `unsupported_declaration` になり、
+Swift、Dart、Rust、Go の scanner は対象外の宣言の `@doc` を診断なしで無視します。
+Dart と Python の先頭 underscore による private、Go の method の exported 判定、Ruby の
+`private` 呼び出しなど、言語ごとの宣言規則は [リンク](linking.md) を参照してください。scanner の厳密な挙動と platform key は
 [Scanning specification](https://github.com/salan70/docbridge/blob/main/docs/specs/scanning.md)
 （英語）が定めます。
+
+## Scanner の実行環境
+
+Python と Ruby のファイルは、マシンにインストールされた interpreter で動く script が
+走査します。CPython 3.10 以降と、同梱の Prism が source を解析する CRuby 3.3 以降が
+必要です。DocBridge は `PATH` から `python3`、次に `python`（Windows では `py -3`、
+次に `python`）と、`ruby` を探し、使う前にそれぞれを検査します。script が project の
+コードを import したり実行したりすることはありません。
+
+別の interpreter を使うには `scanners` に指定します。
+
+```json
+{
+  "include": {
+    "code": { "python": { "patterns": ["src/**/*.py"] } },
+    "docs": ["docs/**/*.md"]
+  },
+  "scanners": {
+    "python": { "command": ["/opt/python3.12/bin/python3"] }
+  }
+}
+```
+
+`command` は interpreter とその引数を並べた配列で、shell の文字列ではありません。相対
+path は project root から解決します。設定で command を指定しない場合は、環境変数
+`DOCBRIDGE_PYTHON_RUNTIME` または `DOCBRIDGE_RUBY_RUNTIME` で interpreter の実行ファイル
+を 1 つ指定できます。設定の command や環境変数を指定すると、その interpreter だけを
+試します。存在しない、または使えない場合、`PATH` に戻らず各ファイルが
+`code_scanner_unavailable` を報告します。
+
+設定した command は、CLI でも editor extension でも、DocBridge を実行するユーザーの
+権限で動きます。信頼できない repository では、DocBridge を実行する前に `scanners` を
+確認してください。
 
 ## 対象外のファイル
 
@@ -88,10 +127,11 @@ method の exported 判定など、言語ごとの宣言規則は [リンク](li
 ```
 
 Go では `**/*.go` より `cmd/**/*.go` と `internal/**/*.go` の方が対象は少なく
-なりますが、その配下の `_test.go` は引き続き走査されます。
+なりますが、その配下の `_test.go` は引き続き走査されます。Python と Ruby でも、
+`tests/` や `spec/` などの test directory は同じように pattern の外に置きます。
 
 dependency directory、Git metadata、dot で始まる path segment、symbolic link、
-TypeScript declaration file（`.d.ts`）は常に無視されます。`docbridge check --audit`
+TypeScript declaration file（`.d.ts`、`.d.mts`、`.d.cts`）は常に無視されます。`docbridge check --audit`
 が実装の細部や一般的な文書まで報告せず、有用な不足箇所を示すように pattern を
 絞ります。
 

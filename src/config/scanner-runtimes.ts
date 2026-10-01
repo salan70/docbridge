@@ -10,6 +10,7 @@ export type RuntimeWorkerLanguage = (typeof RUNTIME_WORKER_LANGUAGES)[number];
  * argv that starts its runtime in place of automatic discovery.
  *
  * @doc docs/specs/configuration.md#scanner-runtimes
+ * @doc docs/user/configuration.md#scanner-runtimes
  */
 export type ScannerRuntimes = Partial<Record<RuntimeWorkerLanguage, { command: string[] }>>;
 
