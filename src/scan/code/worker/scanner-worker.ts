@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -9,6 +9,7 @@ import commonOutputSchema from "../../../../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../../../../schemas/scanner-worker.schema.json";
 import type { CodeScanResult } from "../../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../../model/types";
+import { abortError, deferred, type Cancelable } from "../../../shared/cancelable";
 import { reasonOf } from "../../../shared/error";
 import type { CodeScanOptions } from "../adapter";
 
@@ -38,7 +39,29 @@ type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
 type ScannerWorkerProcessInput = {
   command: string[];
   stdin: string;
+  /**
+   * Environment variables removed before the worker starts. Runtime-backed
+   * workers name the variables that can load code or options into their
+   * interpreter before the bundled entrypoint runs.
+   */
+  stripEnv?: readonly string[];
+  /** Milliseconds before the worker is killed; no limit when omitted. */
+  timeoutMs?: number;
+  /** Bytes stdout and stderr may carry together; defaults to 1 GiB. */
+  maxOutputBytes?: number;
 };
+
+/**
+ * The default cap on stdout and stderr together. It must exceed Node's 1 MiB
+ * default because worker responses embed scanned file contents.
+ */
+const WORKER_OUTPUT_LIMIT_BYTES = 1024 * 1024 * 1024;
+
+/**
+ * How long a killed worker's output may stay open, held by a process the kill
+ * did not reach, before the asynchronous runner closes it and settles.
+ */
+const KILLED_WORKER_GRACE_MS = 500;
 
 export type ScannerWorkerProcessResult =
   | {
@@ -49,11 +72,20 @@ export type ScannerWorkerProcessResult =
     }
   | {
       ok: false;
+      /**
+       * Whether the worker never started (`start`, the default) or started and
+       * then failed (`execution`): a signal, a timeout, or oversized output.
+       */
+      kind?: "start" | "execution";
       error: unknown;
       stderr: string;
     };
 
 export type ScannerWorkerRun = (input: ScannerWorkerProcessInput) => ScannerWorkerProcessResult;
+
+export type ScannerWorkerRunAsync = (
+  input: ScannerWorkerProcessInput,
+) => Cancelable<ScannerWorkerProcessResult>;
 
 type ScannerWorkerSuccess = {
   ok: true;
@@ -94,16 +126,56 @@ export function invokeScannerWorker(
   request: ScannerWorkerRequest,
   command: string[],
   run: ScannerWorkerRun = runScannerWorkerProcess,
+  stripEnv: readonly string[] = [],
 ): ScannerWorkerResult {
-  const processResult = run({
+  return interpretWorkerProcess(request, command, run(processInput(request, command, stripEnv)));
+}
+
+/**
+ * The asynchronous counterpart of {@link invokeScannerWorker}, used by the
+ * Language Server. Cancelling it cancels the process run.
+ */
+export function invokeScannerWorkerAsync(
+  request: ScannerWorkerRequest,
+  command: string[],
+  runAsync: ScannerWorkerRunAsync = runScannerWorkerProcessAsync,
+  stripEnv: readonly string[] = [],
+): Cancelable<ScannerWorkerResult> {
+  const run = runAsync(processInput(request, command, stripEnv));
+  return {
+    promise: run.promise.then((processResult) =>
+      interpretWorkerProcess(request, command, processResult),
+    ),
+    cancel: () => run.cancel(),
+  };
+}
+
+function processInput(
+  request: ScannerWorkerRequest,
+  command: string[],
+  stripEnv: readonly string[],
+): ScannerWorkerProcessInput {
+  return {
     command,
     stdin: JSON.stringify(request),
-  });
+    stripEnv,
+    timeoutMs: workerTimeoutMs(request.files.length),
+  };
+}
 
+/** Turn a finished worker process into scan results or one failure diagnostic. */
+function interpretWorkerProcess(
+  request: ScannerWorkerRequest,
+  command: string[],
+  processResult: ScannerWorkerProcessResult,
+): ScannerWorkerResult {
   if (!processResult.ok) {
     return {
       ok: false,
-      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error, command[0]),
+      diagnostic:
+        processResult.kind === "execution"
+          ? scannerFailedDiagnostic(request.language, reasonOf(processResult.error))
+          : scannerUnavailableDiagnostic(request.language, processResult.error, command[0]),
       stderr: processResult.stderr,
     };
   }
@@ -162,46 +234,312 @@ export function clangModuleCachePath(): string {
 }
 
 /**
+ * The environment a worker process starts with: the current environment
+ * without the variables in `stripEnv`, plus the clang module cache path the
+ * Swift toolchain needs. Every process runner, synchronous or not, and the
+ * runtime probe use it. Windows variable names ignore case, so there a name
+ * is stripped in any letter case.
+ */
+export function workerProcessEnv(
+  stripEnv: readonly string[] = [],
+  platform: NodeJS.Platform = process.platform,
+): Record<string, string> {
+  const moduleCachePath = clangModuleCachePath();
+  mkdirSync(moduleCachePath, { recursive: true });
+  const fold = platform === "win32" ? (name: string) => name.toUpperCase() : (name: string) => name;
+  const stripped = new Set(stripEnv.map(fold));
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(process.env)) {
+    if (value !== undefined && !stripped.has(fold(name))) {
+      env[name] = value;
+    }
+  }
+  env.CLANG_MODULE_CACHE_PATH = moduleCachePath;
+  return env;
+}
+
+/** The time one worker invocation may take: 30 s plus 1 s per requested file. */
+function workerTimeoutMs(fileCount: number): number {
+  return 30_000 + 1_000 * fileCount;
+}
+
+/**
  * Default worker process runner. Spawns via `node:child_process` so the
- * bundled CLI runs under both Node.js and Bun. `maxBuffer` must exceed Node's
- * 1 MiB default because worker responses embed scanned file contents.
+ * bundled CLI runs under both Node.js and Bun.
  */
 export function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
+  const maxOutputBytes = input.maxOutputBytes ?? WORKER_OUTPUT_LIMIT_BYTES;
   try {
-    const moduleCachePath = clangModuleCachePath();
-    mkdirSync(moduleCachePath, { recursive: true });
     const [executable = "", ...args] = input.command;
     const result = spawnSync(executable, args, {
-      env: {
-        ...process.env,
-        CLANG_MODULE_CACHE_PATH: moduleCachePath,
-      },
+      env: workerProcessEnv(input.stripEnv),
       input: input.stdin,
       encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 1024,
+      maxBuffer: maxOutputBytes,
+      killSignal: "SIGKILL",
+      ...(input.timeoutMs === undefined ? {} : { timeout: input.timeoutMs }),
     });
-    const stderr = result.stderr ?? "";
-    if (result.error !== undefined) {
-      return { ok: false, error: result.error, stderr };
-    }
-    if (result.status === null) {
-      return {
-        ok: false,
-        error: new Error(`worker terminated by signal ${result.signal ?? "unknown"}`),
-        stderr,
-      };
-    }
-    return {
-      ok: true,
-      exitCode: result.status,
-      stdout: result.stdout ?? "",
-      stderr,
-    };
+    return syncWorkerProcessResult(result, input.timeoutMs, maxOutputBytes);
   } catch (error) {
-    return { ok: false, error, stderr: "" };
+    return { ok: false, kind: "start", error, stderr: "" };
   }
+}
+
+/**
+ * What `spawnSync` returned for a worker. Node and Bun fill it differently:
+ * Bun leaves `pid` and `status` undefined for a command that never started.
+ */
+type SyncSpawnOutcome = {
+  pid?: number | undefined;
+  status?: number | null | undefined;
+  signal?: string | null | undefined;
+  stdout?: string | null | undefined;
+  stderr?: string | null | undefined;
+  error?: Error | undefined;
+};
+
+/**
+ * Classify a finished `spawnSync` run of a worker.
+ *
+ * @internal Exported to pin the classification of each runtime's result shape.
+ */
+export function syncWorkerProcessResult(
+  result: SyncSpawnOutcome,
+  timeoutMs: number | undefined,
+  maxOutputBytes: number,
+): ScannerWorkerProcessResult {
+  const stderr = result.stderr ?? "";
+  if (result.error !== undefined) {
+    return syncSpawnFailure(result.error, workerStarted(result), timeoutMs, maxOutputBytes, stderr);
+  }
+  // Node's `maxBuffer` counts both streams together, Bun's each stream alone;
+  // this holds Bun to the same combined cap once the worker has exited.
+  if (Buffer.byteLength(result.stdout ?? "") + Buffer.byteLength(stderr) > maxOutputBytes) {
+    return { ok: false, kind: "execution", error: outputLimitError(maxOutputBytes), stderr };
+  }
+  if (typeof result.status !== "number") {
+    return { ok: false, kind: "execution", error: signalError(result.signal), stderr };
+  }
+  return { ok: true, exitCode: result.status, stdout: result.stdout ?? "", stderr };
+}
+
+/**
+ * Asynchronous worker process runner for the Language Server. It spawns with
+ * an argv array and no shell, counts both output streams' bytes against one
+ * cap, and settles once, after the streams close. The timeout and an oversized
+ * stream kill the worker with `SIGKILL` and report an execution failure;
+ * cancelling kills it the same way and rejects with an `AbortError`. A killed
+ * worker's output streams are closed after {@link KILLED_WORKER_GRACE_MS} even
+ * if a process the kill missed still holds them, so the run always settles.
+ */
+export function runScannerWorkerProcessAsync(
+  input: ScannerWorkerProcessInput,
+): Cancelable<ScannerWorkerProcessResult> {
+  const run = deferred<ScannerWorkerProcessResult>();
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let grace: ReturnType<typeof setTimeout> | undefined;
+  const settle = (complete: () => void): void => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    clearTimeout(timer);
+    clearTimeout(grace);
+    complete();
+  };
+
+  const ownGroup = process.platform !== "win32";
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    const [executable = "", ...args] = input.command;
+    child = spawn(executable, args, { env: workerProcessEnv(input.stripEnv), detached: ownGroup });
+  } catch (error) {
+    settle(() => run.resolve({ ok: false, kind: "start", error, stderr: "" }));
+    return { promise: run.promise, cancel: () => undefined };
+  }
+
+  const maxOutputBytes = input.maxOutputBytes ?? WORKER_OUTPUT_LIMIT_BYTES;
+  const budget = { bytes: 0, limit: maxOutputBytes };
+  const stdout = new OutputCollector(budget);
+  const stderr = new OutputCollector(budget);
+  let failure: Error | undefined;
+  const kill = (reason: Error): void => {
+    failure ??= reason;
+    killWorker(child, ownGroup);
+    grace ??= setTimeout(() => {
+      closeStreams(child);
+      settle(() => run.resolve(closedProcessResult(null, null, failure, stdout, stderr)));
+    }, KILLED_WORKER_GRACE_MS);
+  };
+  let spawned = false;
+
+  child.on("spawn", () => {
+    spawned = true;
+  });
+  child.on("error", (error) => {
+    if (!spawned) {
+      settle(() => run.resolve({ ok: false, kind: "start", error, stderr: stderr.text() }));
+      return;
+    }
+    failure ??= error;
+  });
+  child.stdout.on("data", (chunk: Buffer) => {
+    if (!stdout.add(chunk)) {
+      kill(outputLimitError(maxOutputBytes));
+    }
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    if (!stderr.add(chunk)) {
+      kill(outputLimitError(maxOutputBytes));
+    }
+  });
+  // A worker may exit without reading its input; its exit status reports why.
+  child.stdin.on("error", () => undefined);
+  child.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
+    settle(() => run.resolve(closedProcessResult(code, signal, failure, stdout, stderr)));
+  });
+  child.stdin.end(input.stdin);
+  const { timeoutMs } = input;
+  if (timeoutMs !== undefined) {
+    timer = setTimeout(() => kill(timeoutError(timeoutMs)), timeoutMs);
+  }
+
+  return {
+    promise: run.promise,
+    cancel() {
+      settle(() => {
+        killWorker(child, ownGroup);
+        closeStreams(child);
+        run.reject(abortError());
+      });
+    },
+  };
+}
+
+/**
+ * Kill a worker the asynchronous runner started. On POSIX the worker leads its
+ * own process group, so killing the group also kills the processes it started,
+ * such as the runtime behind a wrapper script. On Windows only the worker
+ * itself is killed; a process it started may outlive it.
+ */
+function killWorker(child: ChildProcessWithoutNullStreams, ownGroup: boolean): void {
+  if (ownGroup && child.pid !== undefined) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+      return;
+    } catch {
+      // The group is gone already; killing the worker directly is harmless.
+    }
+  }
+  child.kill("SIGKILL");
+}
+
+function closeStreams(child: ChildProcessWithoutNullStreams): void {
+  child.stdin.destroy();
+  child.stdout.destroy();
+  child.stderr.destroy();
+}
+
+/** The bytes a worker's output streams have carried together, against their shared cap. */
+type OutputBudget = { bytes: number; readonly limit: number };
+
+/** One output stream collected as bytes and decoded once the stream closes. */
+class OutputCollector {
+  private readonly chunks: Buffer[] = [];
+
+  constructor(private readonly budget: OutputBudget) {}
+
+  /** Keep `chunk`; false once both streams together exceed the cap, after which chunks are dropped. */
+  add(chunk: Buffer): boolean {
+    this.budget.bytes += chunk.byteLength;
+    if (this.budget.bytes > this.budget.limit) {
+      return false;
+    }
+    this.chunks.push(chunk);
+    return true;
+  }
+
+  text(): string {
+    return Buffer.concat(this.chunks).toString("utf8");
+  }
+}
+
+function closedProcessResult(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  failure: Error | undefined,
+  stdout: OutputCollector,
+  stderr: OutputCollector,
+): ScannerWorkerProcessResult {
+  if (failure !== undefined) {
+    return { ok: false, kind: "execution", error: failure, stderr: stderr.text() };
+  }
+  if (code === null) {
+    return { ok: false, kind: "execution", error: signalError(signal), stderr: stderr.text() };
+  }
+  return { ok: true, exitCode: code, stdout: stdout.text(), stderr: stderr.text() };
+}
+
+/**
+ * Whether a `spawnSync` result shows the worker started: an exit status, a
+ * terminating signal, or a process ID. Node reports pid 0 for a command that
+ * never started; Bun leaves it undefined.
+ */
+function workerStarted(result: SyncSpawnOutcome): boolean {
+  return (
+    typeof result.status === "number" ||
+    typeof result.signal === "string" ||
+    (typeof result.pid === "number" && result.pid > 0)
+  );
+}
+
+/**
+ * Classify a `spawnSync` error. Node and Bun both report a timeout as
+ * `ETIMEDOUT` and an output stream over `maxBuffer` as `ENOBUFS`; the worker
+ * ran in both cases. Any other error is an execution failure when the worker
+ * started (Node reports `EPIPE` for a worker that exits without reading its
+ * input) and a start failure otherwise.
+ */
+function syncSpawnFailure(
+  error: Error,
+  started: boolean,
+  timeoutMs: number | undefined,
+  maxOutputBytes: number,
+  stderr: string,
+): ScannerWorkerProcessResult {
+  const code = (error as { code?: unknown }).code;
+  if (code === "ETIMEDOUT") {
+    return { ok: false, kind: "execution", error: timeoutError(timeoutMs ?? 0), stderr };
+  }
+  if (code === "ENOBUFS") {
+    return { ok: false, kind: "execution", error: outputLimitError(maxOutputBytes), stderr };
+  }
+  return { ok: false, kind: started ? "execution" : "start", error, stderr };
+}
+
+// The runner's execution errors carry what `spawnSync` reports for the same
+// failure, a `signal` or the `ETIMEDOUT` and `ENOBUFS` codes, so a runtime
+// probe run by either runner is classified the same way.
+
+function signalError(signal: string | null | undefined): Error {
+  const name = signal ?? "unknown";
+  return Object.assign(new Error(`worker terminated by signal ${name}`), { signal: name });
+}
+
+function timeoutError(timeoutMs: number): Error {
+  return Object.assign(new Error(`worker timed out after ${timeoutMs} ms`), {
+    code: "ETIMEDOUT",
+  });
+}
+
+function outputLimitError(maxOutputBytes: number): Error {
+  return Object.assign(
+    new Error(`worker wrote more than ${maxOutputBytes} bytes to stdout and stderr together`),
+    { code: "ENOBUFS" },
+  );
 }
 
 function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {

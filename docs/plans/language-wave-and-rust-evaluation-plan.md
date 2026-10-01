@@ -27,9 +27,9 @@ Normative behavior is reflected in these specs as the slices land:
 - [ ] Slice B (#172): comparison tasks, report, and decision record
 - [x] Slice C (#173): language specifications, provisional worker schema,
       pending fixtures, and the Python, Ruby, and Java workers (unregistered)
-- [ ] Slice D (#173): core infrastructure T1–T3 and the JavaScript adapter, in
+- [x] Slice D (#173): core infrastructure T1–T3 and the JavaScript adapter, in
       the core the decision record names
-- [ ] Slice E (#173): registration, examples, docs, and release of JavaScript,
+- [x] Slice E (#173): registration, examples, docs, and release of JavaScript,
       Python, and Ruby
 - [ ] Slice F (#173): registration, examples, docs, and release of Java
 
@@ -457,9 +457,11 @@ CodeScanResult[]`; `scanFile` remains for single-file callers. The worker
   failure yields the file-scoped `code_scanner_failed` or
   `code_scanner_unavailable` for every file in the request, and the resolver
   suppresses derived diagnostics for each as today.
-- Limits: the request is not capped, because the core already holds every
-  managed file's content in memory before scanning, so batching does not
-  raise the peak. Worker output above the existing 1 GiB `maxBuffer` is
+- Limits: the request is not capped. Batching raises the CLI's peak memory:
+  per-file dispatch held one file's content at a time, while a batched scan
+  holds every readable managed code file's content until its language's
+  request completes, plus one serialized request while the worker runs.
+  Worker output above the existing 1 GiB `maxBuffer` is
   `code_scanner_failed` for every file in the request. The per-invocation
   timeout becomes `30 s + 1 s × files`.
 - `scanFiles` stays synchronous for the CLI. Worker adapters also expose

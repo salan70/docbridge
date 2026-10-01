@@ -47,9 +47,7 @@ Go uses the doc comment of a supported declaration, as `//` lines or a
 func Login(email, password string) error { return nil }
 ```
 
-JavaScript, Python, Ruby, and Java are pending registration; their annotation
-forms are fixed in [Scanning](scanning.md#javascript-scanning). JavaScript uses
-JSDoc `@doc` tags exactly as TypeScript does:
+JavaScript uses JSDoc `@doc` tags exactly as TypeScript does:
 
 ```js
 /** @doc docs/specs/auth.md#login-flow */
@@ -75,7 +73,9 @@ declaration:
 def login(email, password); end
 ```
 
-Java uses the Javadoc comment that javac associates with the declaration:
+Java is pending registration; its annotation form is fixed in
+[Scanning](scanning.md#java-scanning). Java uses the Javadoc comment that javac
+associates with the declaration:
 
 ```java
 /**
@@ -161,6 +161,37 @@ canonical ID exactly:
 <!-- @code lib/auth_service.dart#AuthService.login -->
 
 ## Login Flow
+```
+
+Supported JavaScript declarations are the TypeScript forms an ES module can
+express, listed in [Scanning](./scanning.md#javascript-scanning), with the
+same canonical IDs:
+
+```md
+<!-- @code src/auth/service.js#AuthService.login -->
+
+## Login Flow
+```
+
+Supported Python declarations are listed in
+[Scanning](./scanning.md#python-scanning). Python canonical IDs are
+dot-qualified names, and a property's getter, setter, and deleter share one
+endpoint:
+
+```md
+<!-- @code src/auth/service.py#AuthService.login -->
+
+## Login Flow
+```
+
+Supported Ruby declarations are listed in
+[Scanning](./scanning.md#ruby-scanning). Ruby canonical IDs use `::` between
+constants and `.` before a method name, and a singleton method adds `self.`:
+
+```md
+<!-- @code lib/auth/service.rb#Auth::Service.self.build -->
+
+## Constructing the Service
 ```
 
 Markdown `@code` comments may be indented by 0 to 3 spaces. Comments indented by 4 or more spaces are ignored.

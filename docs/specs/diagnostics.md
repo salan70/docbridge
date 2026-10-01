@@ -9,7 +9,7 @@ type DocBridgeDiagnostic = {
   severity: "error" | "warning";
   code: DiagnosticCode;
   target: string;
-  language?: "typescript" | "swift" | "dart" | "rust" | "go";
+  language?: "typescript" | "swift" | "dart" | "rust" | "go" | "javascript" | "python" | "ruby";
   source?: string;
   message: string;
   location?: {
@@ -24,8 +24,8 @@ type DocBridgeDiagnostic = {
 };
 ```
 
-`language` gains `javascript`, `python`, `ruby`, and `java` when those
-languages are registered; the worker protocol schema already accepts them.
+`language` gains `java` when Java is registered; the worker protocol schema
+already accepts it.
 
 `location.filePath`, `source`, and `target` use project-root-relative paths.
 
@@ -64,12 +64,18 @@ Error diagnostic codes:
   [Scanning](scanning.md#code-scanning).
 - `code_scanner_failed` — no fixture; worker protocol failures are covered by
   unit tests instead of a checked-in project fixture.
-  For the runtime-backed workers that are pending registration (Python, Ruby,
-  and Java), a missing runtime, a runtime below the documented floor, or a
-  runtime without the required capability will report
-  `code_scanner_unavailable` naming the runtime, the floor, and what was found.
-  A probe or scan that crashes, times out, or returns malformed output will
-  report `code_scanner_failed`.
+  For the runtime-backed workers (Python and Ruby, and Java once it is
+  registered), a missing bundled worker, a runtime that cannot be started, or a
+  probe that answers `ok: false` (a runtime below the documented floor or
+  without the required capability), reports another runtime, or reports a
+  version below the floor is `code_scanner_unavailable`, naming the
+  runtime, the floor, and what was found. A failing explicit override
+  (`scanners.<language>.command` or `DOCBRIDGE_<LANGUAGE>_RUNTIME`) is named
+  in the message, and no other runtime is tried. A probe or scan that exits
+  unsuccessfully, is killed, times out, exceeds its output limit, or returns
+  malformed output is `code_scanner_failed`. See
+  [Scanning](scanning.md#code-scanning) and
+  [Scanner Runtimes](configuration.md#scanner-runtimes).
 - `file_read_error` — no fixture; I/O failures are not deterministically
   reproducible from checked-in files, so unit tests cover this code instead.
 

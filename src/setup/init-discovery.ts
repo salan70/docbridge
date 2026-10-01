@@ -1,7 +1,11 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { KNOWN_CODE_LANGUAGES } from "../config/code-language";
+import {
+  hasExcludedSuffix,
+  KNOWN_CODE_LANGUAGES,
+  LANGUAGE_SUFFIXES,
+} from "../config/code-language";
 import type { CodeLanguage } from "../model/types";
 import { collectFiles } from "../shared/glob";
 
@@ -81,12 +85,12 @@ const EXCLUDED_DIR_SEGMENTS = new Set([
 
 const IGNORED_WALK_SEGMENTS = new Set(["node_modules", ".git", "dist", "build"]);
 
-const TYPESCRIPT_PATTERNS = [
-  "src/**/*.ts",
-  "lib/**/*.ts",
-  "packages/*/src/**/*.ts",
-  "apps/*/src/**/*.ts",
-] as const;
+// The conventional source roots of a TypeScript or JavaScript project, once per suffix.
+const SCRIPT_SOURCE_ROOTS = ["src", "lib", "packages/*/src", "apps/*/src"] as const;
+
+const TYPESCRIPT_PATTERNS = scriptPatterns("typescript");
+
+const JAVASCRIPT_PATTERNS = scriptPatterns("javascript");
 
 const SWIFT_PATTERNS = ["Sources/**/*.swift", "*/Sources/**/*.swift"] as const;
 
@@ -97,12 +101,38 @@ const RUST_PATTERNS = ["src/**/*.rs", "*/src/**/*.rs"] as const;
 // The conventional Go layout; `vendor/` at the root is never a candidate.
 const GO_PATTERNS = ["*.go", "cmd/**/*.go", "internal/**/*.go", "pkg/**/*.go"] as const;
 
-const LANGUAGE_PATTERNS: Record<CodeLanguage, readonly string[]> = {
+const RUBY_PATTERNS = ["lib/**/*.rb", "app/**/*.rb"] as const;
+
+// Python's candidates depend on which top-level directories are packages.
+const LANGUAGE_PATTERNS: Record<Exclude<CodeLanguage, "python">, readonly string[]> = {
   typescript: TYPESCRIPT_PATTERNS,
   swift: SWIFT_PATTERNS,
   dart: DART_PATTERNS,
   rust: RUST_PATTERNS,
   go: GO_PATTERNS,
+  javascript: JAVASCRIPT_PATTERNS,
+  ruby: RUBY_PATTERNS,
+};
+
+// Path segments that hold tests, build output, environments, or vendored code.
+const EXCLUDED_CODE_SEGMENTS: Record<CodeLanguage, readonly string[]> = {
+  typescript: ["__tests__", "tests", "test"],
+  swift: ["Tests", "tests"],
+  dart: ["test"],
+  rust: ["target", "tests", "benches", "examples"],
+  go: ["vendor", "testdata"],
+  javascript: ["__tests__", "tests", "test"],
+  python: ["tests", "venv", "dist", "site-packages"],
+  ruby: ["spec", "test", "vendor"],
+};
+
+// Test file names, matched against the lowercased path.
+const TEST_FILE_PATTERNS: Partial<Record<CodeLanguage, RegExp>> = {
+  typescript: /\.(?:test|spec)\.[cm]?tsx?$/u,
+  swift: /tests\.swift$/u,
+  dart: /_test\.dart$/u,
+  go: /_test\.go$/u,
+  javascript: /\.(?:test|spec)\.[cm]?jsx?$/u,
 };
 
 /**
@@ -321,10 +351,39 @@ function scoreDocsDirectory(directory: string): number {
   return score;
 }
 
-function activeCodePatterns(projectRoot: string, language: CodeLanguage): string[] {
-  return LANGUAGE_PATTERNS[language].filter(
-    (pattern) => countCodeFiles(projectRoot, [pattern], language) > 0,
+/** Every source root of {@link SCRIPT_SOURCE_ROOTS} combined with every suffix of `language`. */
+function scriptPatterns(language: CodeLanguage): string[] {
+  return SCRIPT_SOURCE_ROOTS.flatMap((root) =>
+    LANGUAGE_SUFFIXES[language].map((suffix) => `${root}/**/*${suffix}`),
   );
+}
+
+function activeCodePatterns(projectRoot: string, language: CodeLanguage): string[] {
+  const candidates =
+    language === "python" ? pythonPatterns(projectRoot) : LANGUAGE_PATTERNS[language];
+  return candidates.filter((pattern) => countCodeFiles(projectRoot, [pattern], language) > 0);
+}
+
+/** Every `.py` file under `src` and under each top-level directory that holds `__init__.py`. */
+function pythonPatterns(projectRoot: string): string[] {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(projectRoot, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const packages = entries
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        entry.name !== "src" &&
+        !entry.name.startsWith(".") &&
+        !IGNORED_WALK_SEGMENTS.has(entry.name) &&
+        existsSync(join(projectRoot, entry.name, "__init__.py")),
+    )
+    .map((entry) => entry.name)
+    .toSorted();
+  return ["src/**/*.py", ...packages.map((name) => `${name}/**/*.py`)];
 }
 
 function countCodeFiles(projectRoot: string, patterns: string[], language: CodeLanguage): number {
@@ -343,52 +402,12 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
   const lower = filePath.toLowerCase();
   const segments = filePath.split("/");
 
-  if (language === "typescript") {
-    if (lower.endsWith(".d.ts")) {
-      return true;
-    }
-    if (
-      lower.endsWith(".test.ts") ||
-      lower.endsWith(".spec.ts") ||
-      segments.includes("__tests__") ||
-      segments.includes("tests") ||
-      segments.includes("test")
-    ) {
-      return true;
-    }
-  }
-
-  if (language === "swift") {
-    if (lower.endsWith("tests.swift") || segments.includes("Tests") || segments.includes("tests")) {
-      return true;
-    }
-  }
-
-  if (language === "dart") {
-    if (lower.endsWith("_test.dart") || segments.includes("test")) {
-      return true;
-    }
-  }
-
-  if (language === "rust") {
-    if (
-      segments.includes("target") ||
-      segments.includes("tests") ||
-      segments.includes("benches") ||
-      segments.includes("examples")
-    ) {
-      return true;
-    }
-  }
-
-  if (language === "go") {
-    if (
-      lower.endsWith("_test.go") ||
-      segments.includes("vendor") ||
-      segments.includes("testdata")
-    ) {
-      return true;
-    }
+  if (
+    hasExcludedSuffix(language, lower) ||
+    TEST_FILE_PATTERNS[language]?.test(lower) === true ||
+    EXCLUDED_CODE_SEGMENTS[language].some((segment) => segments.includes(segment))
+  ) {
+    return true;
   }
 
   if (

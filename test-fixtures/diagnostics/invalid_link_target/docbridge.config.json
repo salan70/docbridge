@@ -26,6 +26,21 @@
         "patterns": [
           "internal/**/*.go"
         ]
+      },
+      "javascript": {
+        "patterns": [
+          "src/**/*.js"
+        ]
+      },
+      "python": {
+        "patterns": [
+          "src/**/*.py"
+        ]
+      },
+      "ruby": {
+        "patterns": [
+          "lib/**/*.rb"
+        ]
       }
     },
     "docs": [

@@ -140,7 +140,9 @@ Run additional checks when the affected area requires them:
 | Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
 | Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`       |
 | Go scanner            | `just test-go-scanner`, `just build-go-scanner`           |
-| Examples              | `just check-example <typescript\|swift\|dart\|rust\|go>`  |
+| Python scanner        | `just test-python-scanner`                                |
+| Ruby scanner          | `just test-ruby-scanner`                                  |
+| Examples              | `just check-example <language>`                           |
 | npm distribution      | `just verify-dist`                                        |
 | Editor client         | `just typecheck-extension` (also in `just verify`)        |
 | VS Code extension     | `just package-vsix`, `just verify-vsix`                   |
@@ -152,7 +154,8 @@ an activated shell, prefix it with `nix develop -c`.
 
 `just setup` builds the debug Swift, compiled Dart, debug Rust, and Go workers
 required by the Bun integration tests. Rebuild all four after changing worker
-code with `just build-test-scanners`.
+code with `just build-test-scanners`. The Python and Ruby workers run from
+source on the CPython and CRuby that the Nix dev shell provides.
 
 `just setup` also installs the editor client's own locked dependencies under
 `editors/vscode`, which `just typecheck-extension` needs. Install them alone

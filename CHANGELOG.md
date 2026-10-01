@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-01
+
+### Added
+
+- JavaScript is a first-party code language. Configure
+  `include.code.javascript` with `.js`, `.jsx`, `.mjs`, or `.cjs` patterns and
+  put `@doc` in the JSDoc comment of an exported declaration or a member of an
+  exported class. The built-in TypeScript scanner reads these files, so the
+  declarations, canonical IDs, and `visibility` values match TypeScript, and
+  JSX parses in every JavaScript file. CommonJS assignments such as
+  `module.exports = ...` are not endpoints; an `@doc` on one is
+  `unsupported_declaration`.
+- `include.code.typescript` accepts `.tsx`, `.mts`, and `.cts` patterns, and
+  `.d.mts` and `.d.cts` declaration files are skipped like `.d.ts`. JSX parses
+  in `.tsx` files, and hover and `context` fence their declarations as `tsx`.
+- Python is a first-party code language. Configure `include.code.python` and
+  put `@doc` in the docstring of a `def`, `async def`, or `class`, or in the
+  `#` comment block above it. The bundled worker runs on the CPython 3.10 or
+  later installed on the machine, on any platform, and parses with the
+  standard library alone; it never imports project code. Canonical IDs are
+  dot-qualified (`AuthService.login`), and a property's accessors and an
+  `@overload` group each share one endpoint. Visibility defaults to `public`;
+  `private` adds names that start with `_`.
+- Ruby is a first-party code language. Configure `include.code.ruby` and put
+  `@doc` in the `#` comment block above a `class`, `module`, constant, or
+  method. The bundled worker runs on the CRuby 3.3 or later installed on the
+  machine with its bundled Prism parser. Canonical IDs use `::` between
+  constants and `.` before a method (`Auth::Service.login`, and
+  `Auth::Service.self.build` for a singleton method). Visibility follows
+  `private`, `protected`, and `public` calls and defaults to `public`.
+- An optional top-level `scanners` key names the interpreter that runs the
+  Python or Ruby worker, for example
+  `"scanners": { "python": { "command": ["/opt/py/bin/python3"] } }`. Without
+  it, `DOCBRIDGE_PYTHON_RUNTIME` or `DOCBRIDGE_RUBY_RUNTIME` can name one, and
+  otherwise DocBridge tries `python3` and then `python` (`py -3` and then
+  `python` on Windows), and `ruby`, on `PATH`. A missing or too-old interpreter
+  is `code_scanner_unavailable` naming what was found, and a configured
+  interpreter is never replaced by another.
+- The VS Code extension activates for JavaScript, JavaScript React, Python,
+  and Ruby files. `docbridge init` proposes JavaScript and TypeScript source
+  roots for every suffix, `src/` and each top-level Python package, and Ruby's
+  `lib/` and `app/`.
+
+### Changed
+
+- A scan sends every file of a worker-backed language to its scanner in one
+  request instead of starting a process per file, which speeds up checking
+  large Swift, Dart, Rust, and Go projects. A failed request reports its
+  diagnostic on every file it carried, and each request may run for 30
+  seconds plus 1 second per file.
+- The editor language server rescans in the background: it keeps answering
+  hover, definition, and references from the last completed scan, rescans only
+  files that changed, and drops a scan that a newer edit made stale.
+
 ## [0.11.0] - 2026-09-30
 
 ### Added
@@ -469,7 +523,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/salan70/docbridge/releases/tag/v0.12.0
 [0.11.0]: https://github.com/salan70/docbridge/releases/tag/v0.11.0
 [0.10.1]: https://github.com/salan70/docbridge/releases/tag/v0.10.1
 [0.10.0]: https://github.com/salan70/docbridge/releases/tag/v0.10.0

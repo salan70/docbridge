@@ -1,0 +1,72 @@
+{
+  "filePath": "input.rb",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "ruby",
+      "filePath": "input.rb",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.rb#login",
+      "location": {
+        "filePath": "input.rb",
+        "line": 3,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 5
+        },
+        "end": {
+          "line": 3,
+          "column": 10
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 17
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 10
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.rb#login",
+      "target": "docs/ログイン😀.md#login",
+      "location": {
+        "filePath": "input.rb",
+        "line": 2,
+        "column": 8
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 8
+        },
+        "end": {
+          "line": 2,
+          "column": 28
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "ruby"
+}

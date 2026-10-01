@@ -1,12 +1,16 @@
 import { accessSync, chmodSync, constants, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import type { RuntimeWorkerLanguage } from "../../../config/scanner-runtimes";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../../model/types";
 import { reasonOf } from "../../../shared/error";
 import { resolvePackageRoot } from "../../../shared/package-root";
 
-/** Every language whose scanner runs as a separate worker executable. */
-type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
+/** Every language whose scanner runs as a native worker executable. */
+type ScannerWorkerLanguage = Exclude<
+  CodeLanguage,
+  "typescript" | "javascript" | RuntimeWorkerLanguage
+>;
 
 const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
 const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> = {
@@ -17,7 +21,21 @@ const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> 
 };
 
 export type ScannerWorkerCommandResolution =
-  | { ok: true; command: string[] }
+  | {
+      ok: true;
+      command: string[];
+      /**
+       * Environment variables the worker must start without. Runtime-backed
+       * resolutions always set it; a native executable needs none.
+       */
+      stripEnv?: readonly string[];
+      /**
+       * The runtime the command runs, which its argv alone may not name: a
+       * bare `python3` runs whichever install `PATH` finds. Runtime-backed
+       * resolutions always set it; a native executable needs none.
+       */
+      runtime?: readonly string[];
+    }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 type ScannerWorkerResolutionOptions = {

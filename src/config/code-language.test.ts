@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { codeFileOwners, type CodeInclude } from "./code-language";
+import { codeFileOwners, collectCodeFiles, type CodeInclude } from "./code-language";
 
 function withProject(files: Record<string, string>, run: (root: string) => void): void {
   const root = mkdtempSync(join(tmpdir(), "docbridge-lang-"));
@@ -30,4 +30,46 @@ test("codeFileOwners flags a file matched by more than one language", () => {
     const owners = codeFileOwners(root, include);
     expect(owners.get("shared/a.ts")).toEqual(["typescript", "swift"]);
   });
+});
+
+test("collectCodeFiles drops a matched file with its language's excluded suffix", () => {
+  withProject(
+    { "src/app.ts": "export const app = 1;\n", "src/types.d.ts": "export {};\n" },
+    (root) => {
+      const files = collectCodeFiles(root, { typescript: { patterns: ["src/**/*.ts"] } });
+      expect(files).toEqual([{ language: "typescript", relPath: "src/app.ts" }]);
+    },
+  );
+});
+
+test("collectCodeFiles claims .tsx, .mts, and .cts files as typescript but no declaration file", () => {
+  withProject(
+    {
+      "src/view.tsx": "export const view = 1;\n",
+      "src/module.mts": "export const module = 1;\n",
+      "src/common.cts": "export const common = 1;\n",
+      "src/module.d.mts": "export {};\n",
+      "src/common.d.cts": "export {};\n",
+    },
+    (root) => {
+      const files = collectCodeFiles(root, {
+        typescript: { patterns: ["src/**/*.tsx", "src/**/*.mts", "src/**/*.cts"] },
+      });
+      expect(files).toEqual([
+        { language: "typescript", relPath: "src/common.cts" },
+        { language: "typescript", relPath: "src/module.mts" },
+        { language: "typescript", relPath: "src/view.tsx" },
+      ]);
+    },
+  );
+});
+
+test("codeFileOwners gives no owner to a matched file with an excluded suffix", () => {
+  withProject(
+    { "src/app.ts": "export const app = 1;\n", "src/types.d.ts": "export {};\n" },
+    (root) => {
+      const owners = codeFileOwners(root, { typescript: { patterns: ["src/**/*.ts"] } });
+      expect([...owners.keys()]).toEqual(["src/app.ts"]);
+    },
+  );
 });

@@ -1,0 +1,21 @@
+{
+  "filePath": "input.rb",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "target": "input.rb",
+      "language": "ruby",
+      "message": "Ruby parse error: expected a `=>` between the hash key and value.",
+      "location": {
+        "filePath": "input.rb",
+        "line": 3,
+        "column": 11
+      }
+    }
+  ],
+  "language": "ruby"
+}

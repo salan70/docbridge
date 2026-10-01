@@ -9,12 +9,18 @@ follow (release labels and `just release-bump`) live in the
 
 When a pull request labeled `release: patch`, `release: minor`, or
 `release: major` merges, **Release Publish** (`release-publish.yml`) re-checks
-CI for the merge commit, builds the dist CLI with the platform scanner binaries,
-and publishes the `docbridge` package to npm with
+CI for the merge commit, builds the dist CLI with the platform scanner binaries
+and the runtime-backed workers, and publishes the `docbridge` package to npm with
 `npm publish --provenance --access public`. It authenticates through npm Trusted
 Publishing (GitHub Actions OIDC), then creates the `vX.Y.Z` tag and a GitHub
 Release from the matching `CHANGELOG.md` section. A version whose tag already
 exists is skipped. Merging a `release: none` pull request publishes nothing.
+
+`just build` stages the Python and Ruby workers and the Java worker JAR under
+`dist/workers/`, building the JAR first, so every job that runs it needs the
+JDK pinned by `.java-version`. These workers are platform-independent, so no
+release-matrix entry covers them; `verify-dist` and `pack-smoke` run them in
+each platform job and again before publishing.
 
 If the automatic run does not fire, dispatch **Release Publish** manually with
 the version as input. The dispatch uses the same workflow file, so it keeps the

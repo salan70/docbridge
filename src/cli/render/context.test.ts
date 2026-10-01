@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import type { CodeLanguage } from "../../model/types";
 import { computeContext } from "../../query/context";
 import { graphFrom, type GraphSources } from "../../test-support";
 import { formatContextResult } from "./context";
@@ -60,6 +61,52 @@ test("formatContextResult renders doc sections raw and code declarations fenced"
       "2 input files, 2 context blocks",
     ].join("\n"),
   );
+});
+
+/** A one-line code context block for a declaration in `filePath`. */
+function codeBlock(filePath: string, language: CodeLanguage) {
+  return {
+    endpoint: `${filePath}#Login`,
+    kind: "code" as const,
+    filePath,
+    language,
+    startLine: 1,
+    endLine: 1,
+    linkedFrom: ["docs/a.md#login"],
+    content: "export function Login() {}",
+  };
+}
+
+test("formatContextResult fences a TypeScript declaration by its file suffix", () => {
+  const result = {
+    contexts: [codeBlock("src/login.tsx", "typescript"), codeBlock("src/login.mts", "typescript")],
+    summary: { inputFiles: 1, contexts: 2 },
+    diagnostics: [],
+  };
+
+  const fences = formatContextResult(result)
+    .split("\n")
+    .filter((line) => line.startsWith("```") && line.length > 3);
+
+  expect(fences).toEqual(["```tsx", "```ts"]);
+});
+
+test("formatContextResult fences a JavaScript declaration by its file suffix", () => {
+  const result = {
+    contexts: [
+      codeBlock("src/login.jsx", "javascript"),
+      codeBlock("src/login.cjs", "javascript"),
+      codeBlock("src/login.js", "javascript"),
+    ],
+    summary: { inputFiles: 1, contexts: 3 },
+    diagnostics: [],
+  };
+
+  const fences = formatContextResult(result)
+    .split("\n")
+    .filter((line) => line.startsWith("```") && line.length > 3);
+
+  expect(fences).toEqual(["```jsx", "```js", "```js"]);
 });
 
 test("formatContextResult lengthens the code fence beyond backtick runs in the content", () => {

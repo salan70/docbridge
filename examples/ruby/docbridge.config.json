@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "ruby": {
+        "patterns": ["lib/**/*.rb"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

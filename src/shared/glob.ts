@@ -71,8 +71,8 @@ export function matchGlob(pattern: string, relativePath: string): boolean {
  * project-root-relative POSIX paths matching any of the patterns.
  *
  * Ignore rules: skip `node_modules`, `.git`, any dot-prefixed segment, and
- * symlink files and directories. Code patterns (ending in `.ts`) drop
- * `.d.ts` files, which would otherwise match textually.
+ * symlink files and directories. Matching knows no code language; a
+ * language's excluded suffixes are dropped by `collectCodeFiles`.
  *
  * @doc docs/specs/scanning.md#file-collection
  * @doc docs/user/configuration.md#excluded-files
@@ -116,15 +116,8 @@ export function collectFiles(projectRoot: string, patterns: string[]): string[] 
         continue;
       }
 
-      for (const pattern of patterns) {
-        if (!matchGlob(pattern, relPath)) {
-          continue;
-        }
-        if (isCodePattern(pattern) && relPath.endsWith(".d.ts")) {
-          continue;
-        }
+      if (patterns.some((pattern) => matchGlob(pattern, relPath))) {
         matched.add(relPath);
-        break;
       }
     }
   };
@@ -157,10 +150,6 @@ export function readManagedFile(
       },
     };
   }
-}
-
-function isCodePattern(pattern: string): boolean {
-  return pattern.endsWith(".ts");
 }
 
 function globToRegExp(pattern: string): string {

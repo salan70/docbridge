@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -7,8 +7,8 @@ import Ajv2020 from "ajv/dist/2020";
 
 import configSchema from "../../schemas/docbridge.schema.json";
 import { codes } from "../test-support";
-import { KNOWN_CODE_LANGUAGES } from "./code-language";
-import { LANGUAGE_SUFFIX, LANGUAGE_VISIBILITY, loadConfig, resolveConfig } from "./config";
+import { EXCLUDED_SUFFIXES, KNOWN_CODE_LANGUAGES, LANGUAGE_SUFFIXES } from "./code-language";
+import { checkPatternSuffix, LANGUAGE_VISIBILITY, loadConfig, resolveConfig } from "./config";
 
 const TS_CONFIG = {
   include: {
@@ -53,7 +53,10 @@ test("published config schema mirrors every CLI language contract", () => {
   expect(Object.keys(codeProperties).toSorted()).toEqual([...KNOWN_CODE_LANGUAGES].toSorted());
   for (const language of KNOWN_CODE_LANGUAGES) {
     const reference = codeProperties[language].$ref;
-    const definitionName = reference.slice("#/$defs/".length) as keyof typeof configSchema.$defs;
+    const definitionName = reference.slice("#/$defs/".length) as Exclude<
+      keyof typeof configSchema.$defs,
+      "scannerRuntime"
+    >;
     const definition = configSchema.$defs[definitionName];
 
     expect(definition.properties.visibility.items.enum).toEqual([...LANGUAGE_VISIBILITY[language]]);
@@ -62,7 +65,7 @@ test("published config schema mirrors every CLI language contract", () => {
         include: {
           code: {
             [language]: {
-              patterns: [`src/**/*${LANGUAGE_SUFFIX[language]}`],
+              patterns: LANGUAGE_SUFFIXES[language].map((suffix) => `src/**/*${suffix}`),
               visibility: [...LANGUAGE_VISIBILITY[language]],
             },
           },
@@ -71,7 +74,229 @@ test("published config schema mirrors every CLI language contract", () => {
       }),
       JSON.stringify(validateConfigSchema.errors),
     ).toBe(true);
+    for (const excluded of EXCLUDED_SUFFIXES[language]) {
+      expect(
+        validateConfigSchema({
+          include: {
+            code: { [language]: { patterns: [`src/**/*${excluded}`] } },
+            docs: ["docs/**/*.md"],
+          },
+        }),
+      ).toBe(false);
+    }
   }
+});
+
+test("resolveConfig names the single suffix a code pattern must end with", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: { code: { go: { patterns: ["cmd/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  expect(result.diagnostics).toEqual([
+    {
+      severity: "error",
+      code: "config_invalid_value",
+      target: "cmd/**/*.ts",
+      message: "Pattern must end with `.go`.",
+    },
+  ]);
+});
+
+test("resolveConfig rejects a typescript pattern that targets declaration files", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.d.ts"] } }, docs: ["docs/**/*.md"] },
+    }),
+  );
+  expect(result.diagnostics).toEqual([
+    {
+      severity: "error",
+      code: "config_invalid_value",
+      target: "src/**/*.d.ts",
+      message: "Pattern must not target `.d.ts` declaration files.",
+    },
+  ]);
+});
+
+test("resolveConfig and the schema accept typescript patterns for .tsx, .mts, and .cts files", () => {
+  const raw = {
+    include: {
+      code: { typescript: { patterns: ["src/**/*.tsx", "src/**/*.mts", "src/**/*.cts"] } },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([]);
+  expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+});
+
+test.each([".d.mts", ".d.cts"])(
+  "resolveConfig and the schema reject a typescript pattern that targets %s files",
+  (suffix) => {
+    const pattern = `src/**/*${suffix}`;
+    const raw = {
+      include: { code: { typescript: { patterns: [pattern] } }, docs: ["docs/**/*.md"] },
+    };
+
+    expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+      {
+        severity: "error",
+        code: "config_invalid_value",
+        target: pattern,
+        message: `Pattern must not target \`${suffix}\` declaration files.`,
+      },
+    ]);
+    expect(validateConfigSchema(raw)).toBe(false);
+  },
+);
+
+test("resolveConfig and the schema accept a javascript entry with the TypeScript visibility values", () => {
+  const raw = {
+    include: {
+      code: {
+        javascript: {
+          patterns: ["src/**/*.js", "src/**/*.jsx", "src/**/*.mjs", "src/**/*.cjs"],
+          visibility: ["public", "protected", "private"],
+        },
+      },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  const result = resolveConfig(JSON.stringify(raw));
+
+  expect(result.diagnostics).toEqual([]);
+  expect(result.config.include.code.javascript).toEqual(raw.include.code.javascript);
+  expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+});
+
+test.each([
+  [
+    { patterns: ["src/**/*.ts"] },
+    "src/**/*.ts",
+    "Pattern must end with one of `.js`, `.jsx`, `.mjs`, `.cjs`.",
+  ],
+  [
+    { patterns: ["src/**/*.js"], visibility: ["exported"] },
+    "include.code.javascript.visibility",
+    "Unsupported javascript visibility: exported. Supported values: public, protected, private.",
+  ],
+])("resolveConfig and the schema reject the javascript entry %j", (entry, target, message) => {
+  const raw = { include: { code: { javascript: entry }, docs: ["docs/**/*.md"] } };
+
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+    { severity: "error", code: "config_invalid_value", target, message },
+  ]);
+  expect(validateConfigSchema(raw)).toBe(false);
+});
+
+test.each([
+  ["python", { patterns: ["src/**/*.py"], visibility: ["public", "private"] }],
+  [
+    "ruby",
+    { patterns: ["lib/**/*.rb", "app/**/*.rb"], visibility: ["public", "protected", "private"] },
+  ],
+])(
+  "resolveConfig and the schema accept a %s entry with its visibility values",
+  (language, entry) => {
+    const raw = { include: { code: { [language]: entry }, docs: ["docs/**/*.md"] } };
+
+    const result = resolveConfig(JSON.stringify(raw));
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.config.include.code).toEqual({ [language]: entry });
+    expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  },
+);
+
+test.each([
+  ["python", { patterns: ["src/**/*.rb"] }, "src/**/*.rb", "Pattern must end with `.py`."],
+  [
+    "python",
+    { patterns: ["src/**/*.py"], visibility: ["protected"] },
+    "include.code.python.visibility",
+    "Unsupported python visibility: protected. Supported values: public, private.",
+  ],
+  ["ruby", { patterns: ["lib/**/*.py"] }, "lib/**/*.py", "Pattern must end with `.rb`."],
+  [
+    "ruby",
+    { patterns: ["lib/**/*.rb"], visibility: ["package"] },
+    "include.code.ruby.visibility",
+    "Unsupported ruby visibility: package. Supported values: public, protected, private.",
+  ],
+])("resolveConfig and the schema reject the %s entry %j", (language, entry, target, message) => {
+  const raw = { include: { code: { [language]: entry }, docs: ["docs/**/*.md"] } };
+
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+    { severity: "error", code: "config_invalid_value", target, message },
+  ]);
+  expect(validateConfigSchema(raw)).toBe(false);
+});
+
+test("loadConfig accepts typescript and javascript patterns over one directory", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
+  try {
+    writeFileSync(
+      join(root, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: {
+            typescript: { patterns: ["src/**/*.ts"] },
+            javascript: { patterns: ["src/**/*.js"] },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src/a.ts"), "export const a = 1;\n");
+    writeFileSync(join(root, "src/b.js"), "export const b = 1;\n");
+
+    const result = loadConfig(root);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.config.include.code.javascript).toEqual({ patterns: ["src/**/*.js"] });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("resolveConfig names the suffix a docs pattern must end with", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.txt"] },
+    }),
+  );
+  expect(result.diagnostics).toEqual([
+    {
+      severity: "error",
+      code: "config_invalid_value",
+      target: "docs/**/*.txt",
+      message: "Pattern must end with `.md`.",
+    },
+  ]);
+});
+
+test("checkPatternSuffix accepts a pattern ending with any suffix of a multi-suffix set", () => {
+  const suffixes = [".ts", ".tsx", ".mts"];
+  const excluded = [".d.ts", ".d.mts"];
+
+  expect(checkPatternSuffix("src/**/*.ts", suffixes, excluded)).toBeUndefined();
+  expect(checkPatternSuffix("src/**/*.tsx", suffixes, excluded)).toBeUndefined();
+  expect(checkPatternSuffix("src/**/*.mts", suffixes, excluded)).toBeUndefined();
+});
+
+test("checkPatternSuffix lists every suffix of a multi-suffix set", () => {
+  expect(checkPatternSuffix("src/**/*.js", [".ts", ".tsx", ".mts"], [".d.ts", ".d.mts"])).toBe(
+    "Pattern must end with one of `.ts`, `.tsx`, `.mts`.",
+  );
+});
+
+test("checkPatternSuffix names the excluded suffix a pattern targets", () => {
+  expect(checkPatternSuffix("src/**/*.d.mts", [".ts", ".tsx", ".mts"], [".d.ts", ".d.mts"])).toBe(
+    "Pattern must not target `.d.mts` declaration files.",
+  );
 });
 
 test("resolveConfig rejects a missing config file", () => {

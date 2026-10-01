@@ -90,7 +90,10 @@ test("fixture invalid_link_target fires exactly invalid_link_target", () => {
   expect(diagnostics).toEqual([
     { code: "invalid_link_target", filePath: "internal/example.go", line: 3 },
     { code: "invalid_link_target", filePath: "lib/example.dart", line: 1 },
+    { code: "invalid_link_target", filePath: "lib/example.rb", line: 1 },
     { code: "invalid_link_target", filePath: "Sources/Example.swift", line: 1 },
+    { code: "invalid_link_target", filePath: "src/example.js", line: 2 },
+    { code: "invalid_link_target", filePath: "src/example.py", line: 1 },
     { code: "invalid_link_target", filePath: "src/example.rs", line: 1 },
     { code: "invalid_link_target", filePath: "src/example.ts", line: 2 },
   ]);
@@ -185,7 +188,10 @@ test("fixture duplicate_link fires exactly duplicate_link", () => {
   expect(diagnostics).toEqual([
     { code: "duplicate_link", filePath: "internal/example.go", line: 4 },
     { code: "duplicate_link", filePath: "lib/example.dart", line: 2 },
+    { code: "duplicate_link", filePath: "lib/example.rb", line: 2 },
     { code: "duplicate_link", filePath: "Sources/Example.swift", line: 2 },
+    { code: "duplicate_link", filePath: "src/example.js", line: 3 },
+    { code: "duplicate_link", filePath: "src/example.py", line: 2 },
     { code: "duplicate_link", filePath: "src/example.rs", line: 2 },
     { code: "duplicate_link", filePath: "src/example.ts", line: 3 },
   ]);
@@ -206,6 +212,9 @@ test("fixture unsupported_declaration fires exactly unsupported_declaration", ()
 
   expect(diagnostics).toEqual([
     { code: "unsupported_declaration", filePath: "internal/example.go", line: 5 },
+    { code: "unsupported_declaration", filePath: "lib/example.rb", line: 3 },
+    { code: "unsupported_declaration", filePath: "src/example.cjs", line: 4 },
+    { code: "unsupported_declaration", filePath: "src/example.py", line: 2 },
     { code: "unsupported_declaration", filePath: "src/example.ts", line: 4 },
     { code: "unsupported_declaration", filePath: "src/member.ts", line: 5 },
   ]);

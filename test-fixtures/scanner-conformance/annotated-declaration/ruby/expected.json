@@ -1,0 +1,116 @@
+{
+  "filePath": "input.rb",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "ruby",
+      "filePath": "input.rb",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.rb#login",
+      "location": {
+        "filePath": "input.rb",
+        "line": 2,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 5
+        },
+        "end": {
+          "line": 2,
+          "column": 10
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 15
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 10
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "ruby",
+      "filePath": "input.rb",
+      "symbolName": "logout",
+      "canonicalId": "logout",
+      "endpoint": "input.rb#logout",
+      "location": {
+        "filePath": "input.rb",
+        "line": 4,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 4,
+          "column": 5
+        },
+        "end": {
+          "line": 4,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 16
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 11
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "input.rb#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.rb",
+        "line": 1,
+        "column": 8
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "line": 1,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "language": "ruby"
+}

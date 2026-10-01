@@ -22,6 +22,7 @@ import {
   supportedScannerPlatformKeys,
 } from "../src/scan/code/worker/scanner-executable";
 import { documentUri, startLspSession, type LspSession } from "./lsp-client";
+import { stageRuntimeWorkers } from "./stage-runtime-workers";
 
 /**
  * Which machines the artifact has to run on.
@@ -81,6 +82,10 @@ const activationEvents = [
   "onLanguage:dart",
   "onLanguage:rust",
   "onLanguage:go",
+  "onLanguage:javascript",
+  "onLanguage:javascriptreact",
+  "onLanguage:python",
+  "onLanguage:ruby",
   "onLanguage:markdown",
 ];
 
@@ -215,6 +220,8 @@ export function packageVsix(root: string = repoRoot, mode: PackageMode = "releas
   run(serverBundleCommand(), root);
   chmodSync(join(root, "dist/index.js"), 0o755);
   cpSync(preserveBin, join(root, "dist/bin"), { recursive: true });
+  // The rebuild wiped dist/workers; the server needs them as much as dist/bin.
+  stageRuntimeWorkers(root);
   run(["bun", "run", "scripts/verify-dist.ts"], root);
   run(["bun", "run", "compile"], extensionRoot);
   run(extensionBundleCommand(), extensionRoot);
@@ -316,6 +323,9 @@ async function verifyPackagedLanguageServer(
       "typescript",
       readFileSync(join(fixtureRoot, "src/auth.ts"), "utf8"),
     );
+    // The server scans in the background and answers from its last finished
+    // scan, so wait for the scan that saw the document before asking about it.
+    await session.waitForPublish(authUri);
     const position = { line: 3, character: 18 };
     const hover = await session.request<{ contents?: { value?: string } } | null>(
       "textDocument/hover",

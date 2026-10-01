@@ -19,10 +19,11 @@ DocBridge ignores these paths even when they match an include glob:
 
 DocBridge does not read `.gitignore`.
 
-Code files belong to a configured language: TypeScript `.ts` files (declaration
-files ending in `.d.ts` are excluded), Swift `.swift` files, Dart `.dart`
-files, Rust `.rs` files, and Go `.go` files. Each code file is scanned by its
-language adapter.
+Code files belong to a configured language: TypeScript `.ts`, `.tsx`, `.mts`,
+and `.cts` files (declaration files ending in `.d.ts`, `.d.mts`, or `.d.cts` are
+excluded), Swift `.swift` files, Dart `.dart` files, Rust `.rs` files, Go `.go`
+files, JavaScript `.js`, `.jsx`, `.mjs`, and `.cjs` files, Python `.py` files,
+and Ruby `.rb` files. Each code file is scanned by its language adapter.
 
 Markdown files are `.md` files.
 
@@ -37,12 +38,13 @@ that depend on that file are suppressed.
 <!-- @code src/model/scan-result.ts#CodeScanResult -->
 <!-- @code src/scan/code/adapter.ts#CodeLanguageAdapter -->
 <!-- @code src/scan/code/worker/scanner-executable.ts#resolveScannerWorkerCommand -->
+<!-- @code src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommand -->
 
 ## Code Scanning
 
 Code scanning is language-aware but not language-specific. Every code language
-adapter, in-process (TypeScript) or worker-backed (Swift, Dart, Rust, Go), produces the
-same language-neutral result: the supported symbols, the undocumented symbols
+adapter, in-process (TypeScript and JavaScript) or worker-backed (Swift, Dart,
+Rust, Go, Python, and Ruby), produces the same language-neutral result: the supported symbols, the undocumented symbols
 used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
 be added without changing them.
@@ -60,17 +62,48 @@ language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
 does not affect stdout JSON parsing. The complete protocol is defined by
 [schemas/scanner-worker.schema.json](../../schemas/scanner-worker.schema.json),
-and actual TypeScript, Swift, Dart, Rust, and Go scan results are checked against
-it.
+and actual TypeScript, Swift, Dart, Rust, Go, Python, and Ruby scan results are
+checked against it.
+
+A scan invokes each worker-backed language once. The request carries every
+readable managed file of that language in collection order. A file that cannot
+be read is reported as `file_read_error` and left out of the request, and a
+language without a readable file starts no worker. The scan result keeps
+collection order across languages, with each read failure at its file's
+position. The request is not capped. A scan holds the content of every readable
+managed code file in memory until its language's request completes, plus one
+serialized copy of the request while the worker runs.
+
+Each invocation may run for 30 seconds plus 1 second per requested file; a
+worker still running then is killed. Stdout and stderr together may carry up
+to 1 GiB; a worker that writes more fails and may be killed before it finishes.
+The CLI waits for each invocation. The Language Server runs the same request in
+the background and kills the worker when the scan is cancelled; see
+[LSP](lsp.md#rescan-scheduling).
+
+A worker is killed with `SIGKILL`, which it cannot ignore. The Language Server
+starts each worker in its own process group on POSIX systems and kills the whole
+group, so processes the worker started, such as a runtime behind a wrapper
+script, die with it; on Windows it kills only the worker process. The CLI kills
+only the worker process on every platform, so a process the worker started may
+outlive it. Neither waits on such a process: the CLI returns at the time limit,
+and the Language Server settles at most half a second after the kill, even
+while such a process still holds the worker's output open.
 
 If a configured worker cannot be started, DocBridge emits
-`code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
-returns invalid JSON, or returns a response whose schema version, request ID, or
+`code_scanner_unavailable`. If the worker starts but exits unsuccessfully, is
+killed by a signal, outlives its time limit, exceeds its output limit, returns
+invalid JSON, or returns a response whose schema version, request ID, or
 language does not match the request, DocBridge emits `code_scanner_failed`.
 Responses with missing, mistyped, or unexpected nested fields also emit
 `code_scanner_failed` rather than being consumed as incomplete scan data.
 Worker responses must contain exactly the requested file paths in request order;
 missing files, unexpected files, or reordered files are `code_scanner_failed`.
+
+A failure that leaves a request without a usable response applies to every file
+in the request. Each file gets an empty scan result and its own copy of the
+diagnostic, targeted at that file, so link diagnostics that depend on any of
+those files are suppressed as for a file that failed alone.
 
 The bundled Swift worker is a SwiftPM package under `packages/swift-scanner`.
 It uses SwiftSyntax/SwiftParser and communicates through the worker protocol.
@@ -118,8 +151,10 @@ instead of letting Go download one.
 
 The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
-TypeScript and Markdown checks do not require scanner binaries. If a configured
-Swift, Dart, Rust, or Go project runs on any other platform, or the expected binary
+TypeScript, JavaScript, and Markdown checks do not require scanner binaries, and
+Python and Ruby need a language runtime instead, as described below. If a
+configured Swift, Dart, Rust, or Go project runs on any other platform, or the
+expected binary
 is not present for a supported platform, DocBridge emits
 `code_scanner_unavailable` with the missing platform key and the supported keys.
 
@@ -139,6 +174,49 @@ executable and the spawn is still refused with a permission error, the
 filesystem itself refuses execution, which is what a `noexec` mount does;
 DocBridge emits `code_scanner_unavailable` naming the binary's directory and
 that cause.
+
+Python and Ruby are scanned by runtime-backed workers, and the Java worker is
+resolved and run the same way once Java is registered. Each is a script or JAR that runs on a language runtime found on
+the machine instead of a bundled binary, so it is not platform-gated and runs
+wherever its runtime runs, Windows included. Its entrypoint is under
+`packages/` in a source checkout (the Java JAR needs `just build-java-scanner`
+first) and under `dist/workers/<language>/` in the npm package. The command is
+the runtime argv followed by fixed flags and the entrypoint, and the listed
+variables are removed from the worker's environment because each can load code
+or options into the runtime before the entrypoint runs. On Windows, where
+variable names ignore case, each is removed in any letter case:
+
+| Language | Runtime floor              | Flags before the entrypoint                                  | npm package entrypoint                            | Removed variables                                             |
+| -------- | -------------------------- | ------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------- |
+| Python   | CPython 3.10               | `-I -S`                                                      | `dist/workers/python/docbridge_python_scanner.py` | `PYTHONPATH`, `PYTHONSTARTUP`, `PYTHONHOME`, `PYTHONSAFEPATH` |
+| Ruby     | CRuby 3.3 with Prism       | `--disable=gems,did_you_mean,error_highlight -W0`            | `dist/workers/ruby/bin/docbridge-ruby-scanner`    | `RUBYOPT`, `RUBYLIB`, `PRISM_FFI_BACKEND`                     |
+| Java     | JDK 17 with `jdk.compiler` | `-Xshare:auto -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -jar` | `dist/workers/java/docbridge-java-scanner.jar`    | `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, `_JAVA_OPTIONS`      |
+
+The runtime argv comes from configuration, an environment variable, or the
+documented candidates, in the order that
+[Scanner Runtimes](configuration.md#scanner-runtimes) defines. Before using a
+runtime, DocBridge runs the full command with `--probe` in the same stripped
+environment and reads the one JSON line the worker prints (see each language's
+section). The probe is limited to 10 seconds and to 64 KiB of stdout and
+stderr together; a probe still running after 10 seconds is killed with
+`SIGKILL`, which it cannot ignore. The CLI waits for each probe. The Language
+Server runs it in the background, the way it runs a worker: the probe starts
+in its own process group on POSIX systems, the time and output limits kill the
+group, and cancelling the scan kills the probe at once, so the server keeps
+answering while a slow runtime starts. Its result is cached for the rest of
+the CLI process or language server session, keyed by the full command and the
+values of `PATH` and every `DOCBRIDGE_*` variable; a configuration change
+clears the cache. A cancelled probe caches nothing, and neither does a probe
+that was still running when the cache was cleared.
+
+A missing bundled entrypoint, a runtime that cannot be started, and a probe
+that answers `ok: false`, reports another runtime, or reports a version below
+the floor are `code_scanner_unavailable`, naming the runtime, the floor, and
+what was found. A probe that exits unsuccessfully, is killed, times out,
+exceeds the output limit, or prints anything but the expected JSON line is
+`code_scanner_failed`. When no candidate is usable, the message lists each
+candidate's outcome and takes its code from the first candidate that started.
+The scan itself then follows the worker protocol rules above.
 
 <!-- @code src/shared/glob.ts#collectFiles -->
 
@@ -173,7 +251,9 @@ heading is never annotated: a `@code` comment before one becomes
 ## TypeScript Scanning
 
 TypeScript scanning extracts exported declarations, their type members, and
-`@doc` annotations using the TypeScript Compiler API.
+`@doc` annotations using the TypeScript Compiler API. It reads `.ts`, `.tsx`,
+`.mts`, and `.cts` files, with the parser's script kind taken from the suffix,
+so JSX parses in `.tsx` files only.
 
 For each supported declaration the scanner records, alongside the name range
 used for navigation, a `declarationRange` covering the whole declaration
@@ -373,26 +453,31 @@ A syntax error makes the file a `code_parse_error` with no symbols; the
 reported position is the error with the smallest byte offset, converted from
 the original content, so `//line` directives do not move it.
 
-## JavaScript Scanning
+<!-- @code src/scan/code/typescript.ts#scanTypeScript -->
 
-JavaScript scanning is pending registration: the `javascript` language ID is
-not accepted by configuration yet, and the adapter lands with registration. The
-contract below is already fixed. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
+## JavaScript Scanning
 
 JavaScript scanning reuses the TypeScript scanner in process. The `javascript`
 language claims `.js`, `.jsx`, `.mjs`, and `.cjs` files, and the `typescript`
 language additionally claims `.tsx`, `.mts`, and `.cts` files while excluding
 `.d.ts`, `.d.mts`, and `.d.cts` declaration files. The parser's script kind
 follows the suffix (`JS`, `JSX`, `TS`, `TSX`), so JSX in a declaration parses
-without configuration.
+without configuration. As in the TypeScript compiler, every JavaScript suffix
+accepts JSX, not only `.jsx`.
+
+A JavaScript file is also held to the TypeScript compiler's JavaScript
+grammar. Syntax that only TypeScript allows, such as an `interface`, a `type`
+alias, an `enum`, a type annotation, or an `implements` clause, is a syntax
+error even though the parser accepts it. The first such error, with the
+compiler's message, is a `code_parse_error` like any other syntax error, and a
+parser error, when the file has one, is reported instead. JSDoc types are
+comments and stay valid. TypeScript files are not affected.
 
 Supported JavaScript declarations are the ESM `export` forms the TypeScript
 scanner supports and the members of exported classes, with the same JSDoc
 attachment, canonical IDs, ranges, duplicate handling, and diagnostics as
-[TypeScript Scanning](#typescript-scanning). Scan results report
-`language: "javascript"`.
+[TypeScript Scanning](#typescript-scanning). Scan results and diagnostics
+report `language: "javascript"`, and diagnostic messages name JavaScript.
 
 CommonJS assignments (`module.exports = ...`, `exports.name = ...`), script
 globals, and JSDoc `@typedef` declarations are not endpoints; an `@doc` on
@@ -406,14 +491,6 @@ names are unsupported as in TypeScript.
 Context and hover fences follow the suffix: `js`, `jsx`, `ts`, and `tsx`.
 
 ## Python Scanning
-
-Python scanning is pending registration: the `python` language ID is
-not accepted by configuration yet. The worker under `packages/python-scanner`
-implements the contract below, and its conformance cases live under
-`test-fixtures/pending-languages/python/` until registration moves them into
-the corpus. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 Python scanning extracts `@doc` annotations from docstrings and from the
 comment block that leads a declaration, using the standard library's `ast` and
@@ -564,14 +641,6 @@ The message wording follows the installed CPython, which may differ between
 versions for the same input. `tokenize` runs only after `ast.parse` succeeds.
 
 ## Ruby Scanning
-
-Ruby scanning is pending registration: the `ruby` language ID is
-not accepted by configuration yet. The worker under `packages/ruby-scanner`
-implements the contract below, and its conformance cases live under
-`test-fixtures/pending-languages/ruby/` until registration moves them into
-the corpus. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 The worker is a Ruby script, not a compiled binary. It runs on the project's
 CRuby, 3.3 or later, and parses with Prism, the parser gem bundled with CRuby

@@ -1,0 +1,96 @@
+{
+  "filePath": "input.rb",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "ruby",
+      "filePath": "input.rb",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.rb#login",
+      "location": {
+        "filePath": "input.rb",
+        "line": 3,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 5
+        },
+        "end": {
+          "line": 3,
+          "column": 10
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 15
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 10
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.rb#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.rb",
+        "line": 1,
+        "column": 8
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "line": 1,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/auth.md#login",
+      "language": "ruby",
+      "source": "input.rb#login",
+      "message": "Duplicate @doc link from input.rb#login to docs/auth.md#login.",
+      "location": {
+        "filePath": "input.rb",
+        "line": 2,
+        "column": 8
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 8
+        },
+        "end": {
+          "line": 2,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "language": "ruby"
+}

@@ -105,6 +105,97 @@ test("discoverCodeScope excludes tests and declaration files from detection", ()
   }
 });
 
+test("discoverCodeScope proposes every TypeScript suffix that has non-test source files", () => {
+  const project = makeProject({
+    "src/app.ts": "export const app = 1;\n",
+    "src/view.tsx": "export const view = 1;\n",
+    "src/view.test.tsx": "test();\n",
+    "src/module.spec.mts": "test();\n",
+    "src/types.d.mts": "export {};\n",
+    "lib/common.cts": "export const common = 1;\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const typescript = discovery.languages.find((entry) => entry.language === "typescript");
+    expect(typescript?.patterns).toEqual(["src/**/*.ts", "src/**/*.tsx", "lib/**/*.cts"]);
+    expect(typescript?.fileCount).toBe(3);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope proposes JavaScript source roots apart from TypeScript", () => {
+  const project = makeProject({
+    "src/app.ts": "export const app = 1;\n",
+    "src/legacy.js": "export const legacy = 1;\n",
+    "src/view.jsx": "export const View = () => null;\n",
+    "src/view.test.jsx": "test();\n",
+    "src/__tests__/helper.js": "test();\n",
+    "packages/cli/src/main.mjs": "export const main = 1;\n",
+    "lib/config.cjs": "module.exports = {};\n",
+    "lib/config.spec.cjs": "test();\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const javascript = discovery.languages.find((entry) => entry.language === "javascript");
+    expect(javascript?.patterns).toEqual([
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "lib/**/*.cjs",
+      "packages/*/src/**/*.mjs",
+    ]);
+    expect(javascript?.fileCount).toBe(4);
+    expect(discovery.languages.find((entry) => entry.language === "typescript")?.patterns).toEqual([
+      "src/**/*.ts",
+    ]);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope proposes src and each top-level Python package", () => {
+  const project = makeProject({
+    "src/app/__init__.py": "",
+    "src/app/main.py": "def main(): pass\n",
+    "src/app/tests/test_main.py": "def test_main(): pass\n",
+    "billing/__init__.py": "",
+    "billing/invoice.py": "class Invoice: pass\n",
+    "scripts/release.py": "print()\n",
+    "tests/__init__.py": "",
+    "tests/test_invoice.py": "def test_invoice(): pass\n",
+    "venv/__init__.py": "",
+    "venv/lib/site.py": "x = 1\n",
+    "build/__init__.py": "",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const python = discovery.languages.find((entry) => entry.language === "python");
+    expect(python?.patterns).toEqual(["src/**/*.py", "billing/**/*.py"]);
+    expect(python?.fileCount).toBe(4);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope proposes lib and app for Ruby without tests or vendored gems", () => {
+  const project = makeProject({
+    "lib/auth.rb": "module Auth; end\n",
+    "lib/auth/vendor/gem.rb": "module Gem; end\n",
+    "app/models/user.rb": "class User; end\n",
+    "app/spec/user_spec.rb": "describe User\n",
+    "spec/auth_spec.rb": "describe Auth\n",
+    "test/auth_test.rb": "class AuthTest; end\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const ruby = discovery.languages.find((entry) => entry.language === "ruby");
+    expect(ruby?.patterns).toEqual(["lib/**/*.rb", "app/**/*.rb"]);
+    expect(ruby?.fileCount).toBe(2);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("discoverCodeScope keeps only the Go layout patterns that match non-test files", () => {
   const project = makeProject({
     "main.go": "package main\n",
