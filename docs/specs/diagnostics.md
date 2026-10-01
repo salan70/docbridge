@@ -9,7 +9,16 @@ type DocBridgeDiagnostic = {
   severity: "error" | "warning";
   code: DiagnosticCode;
   target: string;
-  language?: "typescript" | "swift" | "dart" | "rust" | "go" | "javascript" | "python" | "ruby";
+  language?:
+    | "typescript"
+    | "swift"
+    | "dart"
+    | "rust"
+    | "go"
+    | "javascript"
+    | "python"
+    | "ruby"
+    | "java";
   source?: string;
   message: string;
   location?: {
@@ -23,9 +32,6 @@ type DocBridgeDiagnostic = {
   };
 };
 ```
-
-`language` gains `java` when Java is registered; the worker protocol schema
-already accepts it.
 
 `location.filePath`, `source`, and `target` use project-root-relative paths.
 
@@ -64,8 +70,8 @@ Error diagnostic codes:
   [Scanning](scanning.md#code-scanning).
 - `code_scanner_failed` — no fixture; worker protocol failures are covered by
   unit tests instead of a checked-in project fixture.
-  For the runtime-backed workers (Python and Ruby, and Java once it is
-  registered), a missing bundled worker, a runtime that cannot be started, or a
+  For the runtime-backed workers (Python, Ruby, and Java), a missing bundled
+  worker, a runtime that cannot be started, or a
   probe that answers `ok: false` (a runtime below the documented floor or
   without the required capability), reports another runtime, or reports a
   version below the floor is `code_scanner_unavailable`, naming the

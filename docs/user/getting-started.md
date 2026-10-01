@@ -1,5 +1,5 @@
 ---
-description: Set up DocBridge in an existing TypeScript, JavaScript, Swift, Dart, Rust, Go, Python, or Ruby project.
+description: Set up DocBridge in an existing TypeScript, JavaScript, Swift, Dart, Rust, Go, Python, Ruby, or Java project.
 ---
 
 # Getting Started

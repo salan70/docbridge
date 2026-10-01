@@ -103,6 +103,9 @@ const GO_PATTERNS = ["*.go", "cmd/**/*.go", "internal/**/*.go", "pkg/**/*.go"] a
 
 const RUBY_PATTERNS = ["lib/**/*.rb", "app/**/*.rb"] as const;
 
+// The Maven and Gradle source root, else `src`: only the first that holds files is proposed.
+const JAVA_PATTERNS = ["src/main/java/**/*.java", "src/**/*.java"] as const;
+
 // Python's candidates depend on which top-level directories are packages.
 const LANGUAGE_PATTERNS: Record<Exclude<CodeLanguage, "python">, readonly string[]> = {
   typescript: TYPESCRIPT_PATTERNS,
@@ -112,9 +115,11 @@ const LANGUAGE_PATTERNS: Record<Exclude<CodeLanguage, "python">, readonly string
   go: GO_PATTERNS,
   javascript: JAVASCRIPT_PATTERNS,
   ruby: RUBY_PATTERNS,
+  java: JAVA_PATTERNS,
 };
 
-// Path segments that hold tests, build output, environments, or vendored code.
+// Path segments, or runs of segments such as `src/test`, that hold tests, build
+// output, environments, or vendored code.
 const EXCLUDED_CODE_SEGMENTS: Record<CodeLanguage, readonly string[]> = {
   typescript: ["__tests__", "tests", "test"],
   swift: ["Tests", "tests"],
@@ -124,6 +129,7 @@ const EXCLUDED_CODE_SEGMENTS: Record<CodeLanguage, readonly string[]> = {
   javascript: ["__tests__", "tests", "test"],
   python: ["tests", "venv", "dist", "site-packages"],
   ruby: ["spec", "test", "vendor"],
+  java: ["target", "src/test"],
 };
 
 // Test file names, matched against the lowercased path.
@@ -361,7 +367,10 @@ function scriptPatterns(language: CodeLanguage): string[] {
 function activeCodePatterns(projectRoot: string, language: CodeLanguage): string[] {
   const candidates =
     language === "python" ? pythonPatterns(projectRoot) : LANGUAGE_PATTERNS[language];
-  return candidates.filter((pattern) => countCodeFiles(projectRoot, [pattern], language) > 0);
+  const active = candidates.filter(
+    (pattern) => countCodeFiles(projectRoot, [pattern], language) > 0,
+  );
+  return language === "java" ? active.slice(0, 1) : active;
 }
 
 /** Every `.py` file under `src` and under each top-level directory that holds `__init__.py`. */
@@ -401,11 +410,12 @@ function countCodeFiles(projectRoot: string, patterns: string[], language: CodeL
 function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
   const lower = filePath.toLowerCase();
   const segments = filePath.split("/");
+  const delimited = `/${filePath}/`;
 
   if (
     hasExcludedSuffix(language, lower) ||
     TEST_FILE_PATTERNS[language]?.test(lower) === true ||
-    EXCLUDED_CODE_SEGMENTS[language].some((segment) => segments.includes(segment))
+    EXCLUDED_CODE_SEGMENTS[language].some((run) => delimited.includes(`/${run}/`))
   ) {
     return true;
   }

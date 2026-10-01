@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-01
+
+### Added
+
+- Java is a first-party code language. Configure `include.code.java` with
+  `.java` patterns and put `@doc` in the Javadoc comment of a class,
+  interface, enum, record, annotation type, method, constructor, field, or
+  enum constant. The bundled worker runs on the JDK 17 or later installed on
+  the machine, on any platform, and parses with the JDK's own `jdk.compiler`
+  module; it never compiles, loads, or runs project code. Canonical IDs are
+  dot-qualified without the package, and methods and constructors add their
+  parameter types (`AuthService.login(String,char[])`,
+  `AuthService.AuthService(Authenticator)`), so each overload is its own
+  endpoint. Visibility accepts `public`, `protected`, `package`, and
+  `private` and defaults to `public`; interface members without a modifier
+  are `public`. Projects that run `javadoc` with `-Xdoclint` register the tag
+  with `-tag doc:a:"DocBridge:"`.
+- `scanners.java.command` or `DOCBRIDGE_JAVA_RUNTIME` names the JDK's `java`;
+  otherwise DocBridge uses `java` on `PATH`. A missing or too-old JDK, or a
+  Java runtime without `jdk.compiler` such as a JRE, is
+  `code_scanner_unavailable` naming what was found.
+- The VS Code extension activates for Java files, and `docbridge init`
+  proposes `src/main/java` when it holds Java files, else `src`.
+
 ## [0.12.0] - 2026-10-01
 
 ### Added
@@ -523,7 +547,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/salan70/docbridge/releases/tag/v0.13.0
 [0.12.0]: https://github.com/salan70/docbridge/releases/tag/v0.12.0
 [0.11.0]: https://github.com/salan70/docbridge/releases/tag/v0.11.0
 [0.10.1]: https://github.com/salan70/docbridge/releases/tag/v0.10.1

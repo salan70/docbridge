@@ -17,5 +17,8 @@ reports `unsupported_declaration` (warning) for each. No links are created.
   `async def`, and `class` declarations.
 - `lib/example.rb`: an `attr_reader` call. Ruby endpoints are modules,
   classes, constants, and methods.
+- `src/Example.java`: a field statement that declares two names. The
+  annotation cannot say which name it documents; declare the link in
+  `docbridge.links.json` instead.
 
 Run: `just check-fixture unsupported_declaration`

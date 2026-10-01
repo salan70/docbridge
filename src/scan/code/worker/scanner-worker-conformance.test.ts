@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import Ajv2020 from "ajv/dist/2020";
 
@@ -46,9 +47,41 @@ test("TypeScript scan results conform to the shared response schema", () => {
   expect(validateResponse(response), JSON.stringify(validateResponse.errors)).toBe(true);
 });
 
+const CORPUS_ROOT = resolve(repoRoot, "test-fixtures/scanner-conformance");
+
+/**
+ * One file per scanner-conformance case, holding that case's `language` input
+ * under `<case>/<fileName>`, so a response covers parse errors and repeated
+ * links as well as plain declarations.
+ */
+function corpusFiles(language: string, fileName: string): ScannerWorkerRequest["files"] {
+  return readdirSync(CORPUS_ROOT)
+    .toSorted()
+    .map((name) => ({
+      filePath: `${name}/${fileName}`,
+      content: readFileSync(join(CORPUS_ROOT, name, language, "input.txt"), "utf8"),
+    }));
+}
+
 for (const fixture of [
-  { language: "python" as const, filePath: "src/auth.py", content: "class Auth:\n    pass\n" },
-  { language: "ruby" as const, filePath: "lib/auth.rb", content: "class Auth; end\n" },
+  {
+    language: "python" as const,
+    filePath: "src/auth.py",
+    content: "class Auth:\n    pass\n",
+    corpusName: "input.py",
+  },
+  {
+    language: "ruby" as const,
+    filePath: "lib/auth.rb",
+    content: "class Auth; end\n",
+    corpusName: "input.rb",
+  },
+  {
+    language: "java" as const,
+    filePath: "src/main/java/auth/Auth.java",
+    content: "package auth;\n\npublic class Auth {}\n",
+    corpusName: "Input.java",
+  },
 ]) {
   test(`${fixture.language} runtime worker conforms to the shared request and response schema`, () => {
     const request: ScannerWorkerRequest = {
@@ -56,7 +89,10 @@ for (const fixture of [
       requestId: `conformance-${fixture.language}`,
       language: fixture.language,
       projectRoot: repoRoot,
-      files: [{ filePath: fixture.filePath, content: fixture.content }],
+      files: [
+        { filePath: fixture.filePath, content: fixture.content },
+        ...corpusFiles(fixture.language, fixture.corpusName),
+      ],
       options: {},
     };
     const resolution = resolveRuntimeWorkerCommand(fixture.language, { projectRoot: repoRoot });
@@ -75,8 +111,20 @@ for (const fixture of [
       throw new Error(`cannot start ${resolution.command[0]}: ${String(result.error)}`);
     }
     expect(result.exitCode, result.stderr).toBe(0);
-    const response: unknown = JSON.parse(result.stdout);
+    const response = JSON.parse(result.stdout) as {
+      requestId: string;
+      language: string;
+      files: { filePath: string }[];
+    };
     expect(validateResponse(response), JSON.stringify(validateResponse.errors)).toBe(true);
+    expect(response).toMatchObject({
+      schemaVersion: 1,
+      requestId: request.requestId,
+      language: fixture.language,
+    });
+    expect(response.files.map((file) => file.filePath)).toEqual(
+      request.files.map((file) => file.filePath),
+    );
   });
 }
 

@@ -197,6 +197,13 @@ test.each([
     "ruby",
     { patterns: ["lib/**/*.rb", "app/**/*.rb"], visibility: ["public", "protected", "private"] },
   ],
+  [
+    "java",
+    {
+      patterns: ["src/main/java/**/*.java"],
+      visibility: ["public", "protected", "package", "private"],
+    },
+  ],
 ])(
   "resolveConfig and the schema accept a %s entry with its visibility values",
   (language, entry) => {
@@ -224,6 +231,13 @@ test.each([
     { patterns: ["lib/**/*.rb"], visibility: ["package"] },
     "include.code.ruby.visibility",
     "Unsupported ruby visibility: package. Supported values: public, protected, private.",
+  ],
+  ["java", { patterns: ["src/**/*.kt"] }, "src/**/*.kt", "Pattern must end with `.java`."],
+  [
+    "java",
+    { patterns: ["src/**/*.java"], visibility: ["internal"] },
+    "include.code.java.visibility",
+    "Unsupported java visibility: internal. Supported values: public, protected, package, private.",
   ],
 ])("resolveConfig and the schema reject the %s entry %j", (language, entry, target, message) => {
   const raw = { include: { code: { [language]: entry }, docs: ["docs/**/*.md"] } };

@@ -26,6 +26,11 @@
         "patterns": [
           "lib/**/*.rb"
         ]
+      },
+      "java": {
+        "patterns": [
+          "src/**/*.java"
+        ]
       }
     },
     "docs": [

@@ -23,7 +23,8 @@ Code files belong to a configured language: TypeScript `.ts`, `.tsx`, `.mts`,
 and `.cts` files (declaration files ending in `.d.ts`, `.d.mts`, or `.d.cts` are
 excluded), Swift `.swift` files, Dart `.dart` files, Rust `.rs` files, Go `.go`
 files, JavaScript `.js`, `.jsx`, `.mjs`, and `.cjs` files, Python `.py` files,
-and Ruby `.rb` files. Each code file is scanned by its language adapter.
+Ruby `.rb` files, and Java `.java` files. Each code file is scanned by its
+language adapter.
 
 Markdown files are `.md` files.
 
@@ -44,7 +45,7 @@ that depend on that file are suppressed.
 
 Code scanning is language-aware but not language-specific. Every code language
 adapter, in-process (TypeScript and JavaScript) or worker-backed (Swift, Dart,
-Rust, Go, Python, and Ruby), produces the same language-neutral result: the supported symbols, the undocumented symbols
+Rust, Go, Python, Ruby, and Java), produces the same language-neutral result: the supported symbols, the undocumented symbols
 used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
 be added without changing them.
@@ -62,8 +63,8 @@ language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
 does not affect stdout JSON parsing. The complete protocol is defined by
 [schemas/scanner-worker.schema.json](../../schemas/scanner-worker.schema.json),
-and actual TypeScript, Swift, Dart, Rust, Go, Python, and Ruby scan results are
-checked against it.
+and actual TypeScript, Swift, Dart, Rust, Go, Python, Ruby, and Java scan
+results are checked against it.
 
 A scan invokes each worker-backed language once. The request carries every
 readable managed file of that language in collection order. A file that cannot
@@ -152,7 +153,7 @@ instead of letting Go download one.
 The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
 TypeScript, JavaScript, and Markdown checks do not require scanner binaries, and
-Python and Ruby need a language runtime instead, as described below. If a
+Python, Ruby, and Java need a language runtime instead, as described below. If a
 configured Swift, Dart, Rust, or Go project runs on any other platform, or the
 expected binary
 is not present for a supported platform, DocBridge emits
@@ -175,9 +176,8 @@ filesystem itself refuses execution, which is what a `noexec` mount does;
 DocBridge emits `code_scanner_unavailable` naming the binary's directory and
 that cause.
 
-Python and Ruby are scanned by runtime-backed workers, and the Java worker is
-resolved and run the same way once Java is registered. Each is a script or JAR that runs on a language runtime found on
-the machine instead of a bundled binary, so it is not platform-gated and runs
+Python, Ruby, and Java are scanned by runtime-backed workers. Each is a script
+or JAR that runs on a language runtime found on the machine instead of a bundled binary, so it is not platform-gated and runs
 wherever its runtime runs, Windows included. Its entrypoint is under
 `packages/` in a source checkout (the Java JAR needs `just build-java-scanner`
 first) and under `dist/workers/<language>/` in the npm package. The command is
@@ -773,14 +773,6 @@ offset, and the recovered tree is discarded. Prism's messages differ between
 0.19 and 1.x, so the message wording depends on the installed runtime.
 
 ## Java Scanning
-
-Java scanning is pending registration: the `java` language ID is
-not accepted by configuration yet. The worker under `packages/java-scanner`
-implements the contract below, and its conformance cases live under
-`test-fixtures/pending-languages/java/` until registration moves them into
-the corpus. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 Java scanning extracts `@doc` annotations from the Javadoc comment
 (`/** ... */`) that documents a declaration. The worker is a JAR built from

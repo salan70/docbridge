@@ -3,8 +3,8 @@
 This package builds the VS Code-compatible DocBridge extension under the public
 extension ID `salan70.docbridge`. It launches the bundled DocBridge language
 server (`docbridge lsp`) and binds it to TypeScript, JavaScript, Swift, Dart,
-Rust, Go, Python, Ruby, and Markdown documents, including TypeScript React and
-JavaScript React files.
+Rust, Go, Python, Ruby, Java, and Markdown documents, including TypeScript React
+and JavaScript React files.
 
 The package carries the only `vscode-languageclient` dependency in the
 repository. The server and the CLI source under `src/` do not depend on it.
@@ -46,9 +46,9 @@ and writes it to `docbridge-<version>-local.vsix`. See
 
 TypeScript, JavaScript, and Markdown support require only Bun. Swift, Dart,
 Rust, and Go editor support uses the bundled scanner binary for the user's
-platform. Python and Ruby support needs CPython 3.10 or later or CRuby 3.3 or
-later on the machine running the editor; the project's `scanners`
-configuration can name the interpreter.
+platform. Python, Ruby, and Java support needs CPython 3.10 or later, CRuby
+3.3 or later, or a JDK 17 or later on the machine running the editor; the
+project's `scanners` configuration can name the runtime.
 
 ## Features
 

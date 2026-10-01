@@ -55,6 +55,7 @@ export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[
   javascript: ["public", "protected", "private"],
   python: ["public", "private"],
   ruby: ["public", "protected", "private"],
+  java: ["public", "protected", "package", "private"],
 };
 
 /**

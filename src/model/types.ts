@@ -15,7 +15,8 @@ export type CodeLanguage =
   | "go"
   | "javascript"
   | "python"
-  | "ruby";
+  | "ruby"
+  | "java";
 
 type DiagnosticSeverity = "error" | "warning";
 

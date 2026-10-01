@@ -8,13 +8,13 @@
       "symbolName": "login",
       "canonicalId": "Auth.login()",
       "endpoint": "Input.java#Auth.login()",
-      "location": { "filePath": "Input.java", "line": 8, "column": 15 },
-      "nameRange": { "start": { "line": 8, "column": 15 }, "end": { "line": 8, "column": 20 } },
+      "location": { "filePath": "Input.java", "line": 8, "column": 17 },
+      "nameRange": { "start": { "line": 8, "column": 17 }, "end": { "line": 8, "column": 22 } },
       "declarationRange": {
         "start": { "line": 4, "column": 3 },
-        "end": { "line": 8, "column": 25 }
+        "end": { "line": 8, "column": 41 }
       },
-      "signatureRange": { "start": { "line": 4, "column": 3 }, "end": { "line": 8, "column": 22 } }
+      "signatureRange": { "start": { "line": 4, "column": 3 }, "end": { "line": 8, "column": 24 } }
     }
   ],
   "undocumentedSymbols": [
@@ -37,21 +37,11 @@
   "links": [
     {
       "source": "Input.java#Auth.login()",
-      "target": "docs/auth.md#login",
-      "location": { "filePath": "Input.java", "line": 5, "column": 11 },
-      "targetRange": { "start": { "line": 5, "column": 11 }, "end": { "line": 5, "column": 29 } }
+      "target": "docs/ログイン😀.md#login",
+      "location": { "filePath": "Input.java", "line": 6, "column": 11 },
+      "targetRange": { "start": { "line": 6, "column": 11 }, "end": { "line": 6, "column": 31 } }
     }
   ],
-  "diagnostics": [
-    {
-      "severity": "warning",
-      "code": "duplicate_link",
-      "target": "docs/auth.md#login",
-      "language": "java",
-      "source": "Input.java#Auth.login()",
-      "message": "Duplicate @doc link from Input.java#Auth.login() to docs/auth.md#login.",
-      "location": { "filePath": "Input.java", "line": 6, "column": 11 },
-      "range": { "start": { "line": 6, "column": 11 }, "end": { "line": 6, "column": 29 } }
-    }
-  ]
+  "diagnostics": [],
+  "language": "java"
 }

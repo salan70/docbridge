@@ -73,9 +73,7 @@ declaration:
 def login(email, password); end
 ```
 
-Java is pending registration; its annotation form is fixed in
-[Scanning](scanning.md#java-scanning). Java uses the Javadoc comment that javac
-associates with the declaration:
+Java uses the Javadoc comment that javac associates with the declaration:
 
 ```java
 /**
@@ -192,6 +190,17 @@ constants and `.` before a method name, and a singleton method adds `self.`:
 <!-- @code lib/auth/service.rb#Auth::Service.self.build -->
 
 ## Constructing the Service
+```
+
+Supported Java declarations are listed in
+[Scanning](./scanning.md#java-scanning). Java canonical IDs are dot-qualified
+type names without the package, and a method or constructor adds its
+parameter types, so overloads are separate endpoints:
+
+```md
+<!-- @code src/main/java/com/example/auth/AuthService.java#AuthService.login(String,char[]) -->
+
+## Login Flow
 ```
 
 Markdown `@code` comments may be indented by 0 to 3 spaces. Comments indented by 4 or more spaces are ignored.

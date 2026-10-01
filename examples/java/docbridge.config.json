@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "java": {
+        "patterns": ["src/main/java/**/*.java"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

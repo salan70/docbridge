@@ -72,6 +72,7 @@ export function activate(context: ExtensionContext): void {
       { scheme: "file", language: "javascriptreact" },
       { scheme: "file", language: "python" },
       { scheme: "file", language: "ruby" },
+      { scheme: "file", language: "java" },
       { scheme: "file", language: "markdown" },
     ],
     outputChannel: output,

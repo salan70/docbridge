@@ -1,7 +1,7 @@
 {
   "name": "docbridge",
   "displayName": "DocBridge",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Language Server support for DocBridge documentation links.",
   "categories": [
     "Linters",
@@ -11,6 +11,7 @@
     "dart",
     "documentation",
     "go",
+    "java",
     "javascript",
     "language-server",
     "lsp",
@@ -64,6 +65,7 @@
   "activationEvents": [
     "onLanguage:dart",
     "onLanguage:go",
+    "onLanguage:java",
     "onLanguage:javascript",
     "onLanguage:javascriptreact",
     "onLanguage:markdown",

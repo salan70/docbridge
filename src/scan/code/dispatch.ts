@@ -1,5 +1,5 @@
 import type { CodeFileRead, CodeInclude, CollectedCodeFile } from "../../config/code-language";
-import type { ScannerRuntimes } from "../../config/scanner-runtimes";
+import type { RuntimeWorkerLanguage, ScannerRuntimes } from "../../config/scanner-runtimes";
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../model/types";
 import {
@@ -292,6 +292,7 @@ const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
   javascript: javaScriptAdapter,
   python: runtimeWorkerAdapter("python"),
   ruby: runtimeWorkerAdapter("ruby"),
+  java: runtimeWorkerAdapter("java"),
 };
 
 /**
@@ -299,7 +300,7 @@ const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
  * from the configured `scanners` entry, the environment, or the candidates,
  * and the Language Server's scans probe it without blocking.
  */
-function runtimeWorkerAdapter(language: "python" | "ruby"): CodeLanguageAdapter {
+function runtimeWorkerAdapter(language: RuntimeWorkerLanguage): CodeLanguageAdapter {
   const resolution = ({ projectRoot, scanners }: CodeScanContext) => {
     const command = scanners?.[language]?.command;
     return command === undefined ? { projectRoot } : { projectRoot, command };

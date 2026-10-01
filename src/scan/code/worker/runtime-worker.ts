@@ -1,7 +1,6 @@
 import { accessSync, constants, existsSync, realpathSync, statSync } from "node:fs";
 import { extname, isAbsolute, join, resolve } from "node:path";
 
-import { isCodeLanguage } from "../../../config/code-language";
 import type { RuntimeWorkerLanguage } from "../../../config/scanner-runtimes";
 import type { DocBridgeDiagnostic } from "../../../model/types";
 import {
@@ -485,10 +484,7 @@ function rejected(code: DiagnosticCode, startable: boolean, reason: string): Ver
   return { ok: false, code, startable, reason };
 }
 
-/**
- * The diagnostic carries the `language` field once the language is registered;
- * Java is not registered yet.
- */
+/** A resolution failure of `language`'s worker, as a diagnostic carrying that language. */
 function failure(
   spec: RuntimeWorkerSpec,
   language: RuntimeWorkerLanguage,
@@ -501,7 +497,7 @@ function failure(
     diagnostic: {
       severity: "error",
       code,
-      ...(isCodeLanguage(language) ? { language } : {}),
+      language,
       target: language,
       message: `${spec.label} scanner worker ${state}: ${reason}`,
     },

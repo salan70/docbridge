@@ -9,16 +9,16 @@ This plan implements two accepted issues that share infrastructure:
 
 The issues own the problem statements, boundaries, and acceptance criteria.
 This plan owns the decisions and the order. The
-[Go plan](done/go-language-support-plan.md) is the precedent for a language
+[Go plan](go-language-support-plan.md) is the precedent for a language
 slice; this plan repeats only what differs.
 
 Normative behavior is reflected in these specs as the slices land:
 
-- [Configuration](../specs/configuration.md)
-- [Scanning](../specs/scanning.md)
-- [Annotations](../specs/annotations.md)
-- [Diagnostics](../specs/diagnostics.md)
-- [LSP](../specs/lsp.md)
+- [Configuration](../../specs/configuration.md)
+- [Scanning](../../specs/scanning.md)
+- [Annotations](../../specs/annotations.md)
+- [Diagnostics](../../specs/diagnostics.md)
+- [LSP](../../specs/lsp.md)
 
 ## Status
 
@@ -31,7 +31,7 @@ Normative behavior is reflected in these specs as the slices land:
       the core the decision record names
 - [x] Slice E (#173): registration, examples, docs, and release of JavaScript,
       Python, and Ruby
-- [ ] Slice F (#173): registration, examples, docs, and release of Java
+- [x] Slice F (#173): registration, examples, docs, and release of Java
 
 Slices A and C are independent and run in parallel. Slice D starts after
 Slice B's decision record. Slices E and F need C and D.
@@ -85,7 +85,7 @@ edges in the graph.
   and writes `{ "diagnostics": [...], "counterparts": { "<endpoint>": [...] } }`
   where `diagnostics` is the merged and sorted set (`scanDiagnostics` plus the
   relationship diagnostics, ordered by the rule in
-  [Sorting Diagnostics](../specs/diagnostics.md#sorting-diagnostics)) and each
+  [Sorting Diagnostics](../../specs/diagnostics.md#sorting-diagnostics)) and each
   `counterparts` entry is the ordered `counterpartsOf` result for that query.
   JSON field names and optional-field omission match the TypeScript types in
   `src/model/types.ts` exactly.

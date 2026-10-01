@@ -6,4 +6,5 @@
 <!-- @code src/example.js#example -->
 <!-- @code src/example.py#example -->
 <!-- @code lib/example.rb#example -->
+<!-- @code src/Example.java#Example -->
 # Example Section

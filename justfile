@@ -243,9 +243,10 @@ test-java-scanner: build-java-scanner
     java -cp packages/java-scanner/build/classes:packages/java-scanner/build/test-classes dev.docbridge.javascanner.tests.TestMain packages/java-scanner/tests/cases
 
 # javac is the linter: every lint category enabled, warnings are errors, output discarded.
+# It also compiles examples/java, so the example stays valid Java.
 lint-java:
     rm -rf packages/java-scanner/build/lint
-    find packages/java-scanner/src packages/java-scanner/tests/src -name '*.java' | xargs javac --release 17 -encoding UTF-8 -Xlint:all -Werror -d packages/java-scanner/build/lint
+    find packages/java-scanner/src packages/java-scanner/tests/src examples/java/src -name '*.java' | xargs javac --release 17 -encoding UTF-8 -Xlint:all -Werror -d packages/java-scanner/build/lint
 # --- end Java worker ---
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
@@ -297,6 +298,13 @@ verify-dist:
 
 pack-smoke *ARGS:
     bun run scripts/smoke-packed-package.ts {{ ARGS }}
+
+# Time the built Language Server on examples/java: cold (server start to the
+# first publishDiagnostics) and warm (an edit to the next publish), as p50 and
+# p95. `--runs N` sets the server starts (default 20) and `--edits N` the edits
+# per start (default 5). Building needs the JDK, and the scans need JDK 17+.
+lsp-latency *ARGS: build
+    bun run scripts/lsp-latency.ts {{ ARGS }}
 
 # Build a release VSIX under editors/vscode/.tmp/out. Requires every supported
 # platform's scanner binaries staged under dist/bin; the runtime-backed workers

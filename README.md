@@ -6,7 +6,7 @@
 
 DocBridge keeps Markdown documentation and the code that implements it linked
 in both directions. It validates `@doc` annotations on supported TypeScript,
-JavaScript, Swift, Dart, Rust, Go, Python, and Ruby declarations against
+JavaScript, Swift, Dart, Rust, Go, Python, Ruby, and Java declarations against
 `@code` annotations on Markdown headings, so humans and coding agents can find the right counterpart before a
 change drifts.
 
@@ -16,8 +16,8 @@ change drifts.
 - A project containing Markdown and supported source files
 
 Prebuilt Swift, Dart, Rust, and Go scanners are included for `darwin-arm64` and
-`linux-x64`. Python and Ruby projects need CPython 3.10 or later or CRuby 3.3
-or later on the machine, on any platform. See
+`linux-x64`. Python, Ruby, and Java projects need CPython 3.10 or later,
+CRuby 3.3 or later, or a JDK 17 or later on the machine, on any platform. See
 [Languages](docs/user/configuration.md#languages) for each language's file
 extensions, visibility defaults, and scanner.
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import type { CodeScanResult } from "../model/scan-result";
+import type { CodeLanguage, Range } from "../model/types";
 import { scanTypeScript } from "../scan/code/typescript";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
 import { hover } from "./hover";
@@ -99,42 +100,39 @@ describe(hover, () => {
     "doc to code drops a leading # comment block from a %s signature",
     (language, filePath, code, signatureRange, fenced) => {
       const doc = `<!-- @code ${filePath}#login -->\n## Login Spec\n`;
-      const nameLine = signatureRange.end.line;
-      const scan: CodeScanResult = {
-        language,
-        filePath,
-        symbols: [
-          {
-            kind: "code",
-            language,
-            filePath,
-            symbolName: "login",
-            canonicalId: "login",
-            endpoint: `${filePath}#login`,
-            location: { filePath, line: nameLine, column: 5 },
-            nameRange: {
-              start: { line: nameLine, column: 5 },
-              end: { line: nameLine, column: 10 },
-            },
-            signatureRange,
-          },
-        ],
-        undocumentedSymbols: [],
-        links: [
-          {
-            source: `${filePath}#login`,
-            target: "docs/auth.md#login-spec",
-            location: { filePath, line: nameLine - 1, column: 8 },
-          },
-        ],
-        diagnostics: [],
-      };
+      const scan = loginScan(language, filePath, "login", signatureRange);
 
       const result = hover(stateOf(code, doc, scan), DOC_FILE, HEADING);
 
       expect(result?.value).toBe(`**${filePath}#login**\n\n${fenced}`);
     },
   );
+
+  test("doc to code drops Javadoc, line, and unnested block comments from a Java signature", () => {
+    const filePath = "src/main/java/auth/Auth.java";
+    const code = [
+      "/**",
+      " * Starts the login flow.",
+      " * @doc docs/auth.md#login-spec",
+      " */",
+      "// Kept for the old client.",
+      "/* Java block comments do not nest: /* this closes the comment */",
+      "@Deprecated",
+      "public void login(String email) {}",
+      "",
+    ].join("\n");
+    const doc = `<!-- @code ${filePath}#Auth.login(String) -->\n## Login Spec\n`;
+    const scan = loginScan("java", filePath, "Auth.login(String)", {
+      start: { line: 1, column: 1 },
+      end: { line: 8, column: 32 },
+    });
+
+    const result = hover(stateOf(code, doc, scan), DOC_FILE, HEADING);
+
+    expect(result?.value).toBe(
+      `**${filePath}#Auth.login(String)**\n\n\`\`\`java\n@Deprecated\npublic void login(String email)\n\`\`\``,
+    );
+  });
 
   test("concatenates one-to-many sections with a divider", () => {
     const code =
@@ -157,3 +155,46 @@ describe(hover, () => {
     expect(hover(stateOf(code, "## Other\n"), CODE_FILE, CODE_NAME)).toBeNull();
   });
 });
+
+/**
+ * The scan of one documented `login` declaration with `canonicalId`, whose
+ * name sits on the last line of `signatureRange` and whose link sits on the
+ * line above it.
+ */
+function loginScan(
+  language: CodeLanguage,
+  filePath: string,
+  canonicalId: string,
+  signatureRange: Range,
+): CodeScanResult {
+  const nameLine = signatureRange.end.line;
+  return {
+    language,
+    filePath,
+    symbols: [
+      {
+        kind: "code",
+        language,
+        filePath,
+        symbolName: "login",
+        canonicalId,
+        endpoint: `${filePath}#${canonicalId}`,
+        location: { filePath, line: nameLine, column: 5 },
+        nameRange: {
+          start: { line: nameLine, column: 5 },
+          end: { line: nameLine, column: 10 },
+        },
+        signatureRange,
+      },
+    ],
+    undocumentedSymbols: [],
+    links: [
+      {
+        source: `${filePath}#${canonicalId}`,
+        target: "docs/auth.md#login-spec",
+        location: { filePath, line: nameLine - 1, column: 8 },
+      },
+    ],
+    diagnostics: [],
+  };
+}

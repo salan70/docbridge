@@ -259,6 +259,7 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
       "javascript-fixture",
       "python-fixture",
       "ruby-fixture",
+      "java-fixture",
     ] as const) {
       run(
         [
@@ -349,12 +350,18 @@ function writeScannerFixtures(root: string): void {
     "lib/auth.rb",
     "# @doc docs/auth.md#auth-service\nclass AuthService; end\n",
   );
+  writeAuthServiceFixture(
+    root,
+    "java",
+    "src/main/java/auth/AuthService.java",
+    "package auth;\n\n/** @doc docs/auth.md#auth-service */\npublic class AuthService {}\n",
+  );
 }
 
 /**
  * The `<language>-fixture` project: `content` declares `AuthService` in
- * `relPath` and links it to `docs/auth.md`, which links back. The Python and
- * Ruby fixtures run on the runtimes the smoke host provides.
+ * `relPath` and links it to `docs/auth.md`, which links back. The Python,
+ * Ruby, and Java fixtures run on the runtimes the smoke host provides.
  */
 function writeAuthServiceFixture(
   root: string,

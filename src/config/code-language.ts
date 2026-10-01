@@ -36,6 +36,7 @@ export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = [
   "javascript",
   "python",
   "ruby",
+  "java",
 ];
 
 export function isCodeLanguage(value: string): value is CodeLanguage {
@@ -55,6 +56,7 @@ export const LANGUAGE_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>
   javascript: [".js", ".jsx", ".mjs", ".cjs"],
   python: [".py"],
   ruby: [".rb"],
+  java: [".java"],
 };
 
 /**
@@ -71,6 +73,7 @@ export const EXCLUDED_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>
   javascript: [],
   python: [],
   ruby: [],
+  java: [],
 };
 
 /**
