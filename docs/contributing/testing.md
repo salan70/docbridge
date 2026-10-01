@@ -31,10 +31,12 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 ## Scanner workers
 
-- `just test` includes TypeScript, Swift, Dart, Rust, and Go end-to-end
-  integration tests. The Swift, Dart, Rust, and Go integration tests spawn the
-  built worker binaries, which `just setup` builds for a fresh source checkout.
-  Rebuild all four after changing worker code with `just build-test-scanners`.
+- `just test` includes TypeScript, JavaScript, Swift, Dart, Rust, Go, Python,
+  and Ruby end-to-end integration tests. The Swift, Dart, Rust, and Go
+  integration tests spawn the built worker binaries, which `just setup` builds
+  for a fresh source checkout. Rebuild all four after changing worker code with
+  `just build-test-scanners`. The Python and Ruby integration tests run the
+  workers from source on the runtimes on `PATH`.
 - `just test-swift-scanner` runs the SwiftPM test suite for
   `packages/swift-scanner`. It requires a Swift 6 toolchain on `PATH`; the Nix
   dev shell intentionally does not provide Swift, and CI installs it
@@ -56,15 +58,17 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   `packages/java-scanner` (`unittest`, `minitest`, and a `main`-based runner).
   The Nix dev shell provides CPython, CRuby with Prism, and the JDK;
   `just build-test-scanners` also builds the Java worker JAR, which
-  `scripts/pending-worker-cases.test.ts` spawns. These languages are pending
-  registration, so their conformance cases live under
-  `test-fixtures/pending-languages/` until they join the corpus below.
+  `scripts/pending-worker-cases.test.ts` spawns. Java is pending
+  registration, so its conformance cases live under
+  `test-fixtures/pending-languages/` until they join the corpus below; the
+  Ruby suite also runs the registered Ruby cases of that corpus.
 - `src/scan/code/worker/runtime-worker.test.ts` covers runtime resolution with
   an injected probe; `runtime-worker-integration.test.ts` resolves the real
   Python, Ruby, and Java workers of the checkout, probe included, and scans one
   file with each. `scripts/pending-worker-cases.test.ts` starts the workers
-  with the same resolved command and stripped environment. A runtime missing
-  from `PATH` fails these tests instead of skipping them.
+  with the same resolved command and stripped environment, and the Python and
+  Ruby integration tests run them through the registered adapters. A runtime
+  missing from `PATH` fails these tests instead of skipping them.
 - `just verify-dist` runs each runtime-backed worker from `dist/workers/`, and
   `just pack-smoke <tarball>` runs each from the installed package: in an
   install path with spaces, read-only and then writable, plus a configured
@@ -76,8 +80,8 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   `test-fixtures/scanner-conformance/<case>/<language>/` through the real
   adapter for that language. It compares the result with that directory's
   `expected.json`. Inputs are stored as `input.txt` so formatters and linters
-  leave them alone, including cases that must not parse. Every case covers all
-  five languages. Expectations stay per language because canonical IDs and
+  leave them alone, including cases that must not parse. Every case covers
+  every registered language. Expectations stay per language because canonical IDs and
   positions differ by language. When you add a case, review each
   `expected.json` against the input before committing it.
 - CI treats the scanner-native test suites as mandatory before the shared
@@ -87,8 +91,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 ## Executable examples
 
 `just check-example <lang>` runs `docbridge check` against
-`examples/<lang>`, where `<lang>` is `typescript` (the default), `swift`,
-`dart`, `rust`, or `go`. Extra flags such as `--json` pass through.
+`examples/<lang>`, where `<lang>` is `typescript` (the default),
+`javascript`, `swift`, `dart`, `rust`, `go`, `python`, or `ruby`. Extra flags
+such as `--json` pass through.
 
 ## Repository self-audit
 

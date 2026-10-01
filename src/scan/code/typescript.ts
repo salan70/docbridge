@@ -67,6 +67,7 @@ type SupportedDeclaration = {
 /**
  * @doc docs/specs/scanning.md#typescript-scanning
  * @doc docs/specs/scanning.md#typescript-members
+ * @doc docs/specs/scanning.md#javascript-scanning
  */
 export function scanTypeScript(
   filePath: string,

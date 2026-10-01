@@ -1418,11 +1418,6 @@
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#javascript-scanning",
-      "class": "structural_doc"
-    },
-    {
-      "code": "unlinked_doc_section",
       "target": "docs/specs/scanning.md#python-scanning",
       "class": "structural_doc"
     },

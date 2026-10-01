@@ -27,9 +27,9 @@ Normative behavior is reflected in these specs as the slices land:
 - [ ] Slice B (#172): comparison tasks, report, and decision record
 - [x] Slice C (#173): language specifications, provisional worker schema,
       pending fixtures, and the Python, Ruby, and Java workers (unregistered)
-- [ ] Slice D (#173): core infrastructure T1–T3 and the JavaScript adapter, in
+- [x] Slice D (#173): core infrastructure T1–T3 and the JavaScript adapter, in
       the core the decision record names
-- [ ] Slice E (#173): registration, examples, docs, and release of JavaScript,
+- [x] Slice E (#173): registration, examples, docs, and release of JavaScript,
       Python, and Ruby
 - [ ] Slice F (#173): registration, examples, docs, and release of Java
 

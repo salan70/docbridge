@@ -448,6 +448,8 @@ A syntax error makes the file a `code_parse_error` with no symbols; the
 reported position is the error with the smallest byte offset, converted from
 the original content, so `//line` directives do not move it.
 
+<!-- @code src/scan/code/typescript.ts#scanTypeScript -->
+
 ## JavaScript Scanning
 
 JavaScript scanning reuses the TypeScript scanner in process. The `javascript`

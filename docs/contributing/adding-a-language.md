@@ -33,7 +33,9 @@ language ID.
       `src/config/config.ts`. The worker applies the default visibility.
 - [ ] Register the worker adapter in `src/scan/code/dispatch.ts`.
 - [ ] Add the binary name and its source-checkout and package paths to
-      `src/scan/code/worker/scanner-executable.ts`.
+      `src/scan/code/worker/scanner-executable.ts`, or, for a worker that runs
+      on an installed runtime, its runtime spec to
+      `src/scan/code/worker/runtime-worker.ts`.
 - [ ] Add candidate patterns and excluded files to
       `src/setup/init-discovery.ts`.
 - [ ] Add the code-fence language to `src/lsp/hover.ts` and
