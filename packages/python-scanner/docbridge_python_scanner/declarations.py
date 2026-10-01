@@ -102,7 +102,7 @@ class DeclarationCollector:
         docstring = docstring_node(module.body)
         if docstring is None:
             return
-        targets = docstring_targets(docstring, self.table)
+        targets = docstring_targets(docstring, self.table, self.tokens)
         if targets:
             self.entries.append(UnsupportedEntry(self._node_range(docstring), targets))
 
@@ -190,7 +190,7 @@ class DeclarationCollector:
         targets = comment_block_targets(block, self.table)
         docstring = docstring_node(node.body)
         if docstring is not None:
-            targets.extend(docstring_targets(docstring, self.table))
+            targets.extend(docstring_targets(docstring, self.table, self.tokens))
 
         start_row = block[0].row if block else first_line
         start = self.table.position_from_chars(start_row, keyword_col)

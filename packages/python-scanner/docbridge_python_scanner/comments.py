@@ -130,20 +130,39 @@ def _string_body_span(text: str) -> tuple[int, int]:
     return prefix_length, len(text)
 
 
-def docstring_targets(node: ast.Expr, table: LineTable) -> list[DocTarget]:
-    """Find ``@doc`` targets in a docstring's raw source, delimiters excluded."""
+def docstring_targets(node: ast.Expr, table: LineTable, tokens: TokenIndex) -> list[DocTarget]:
+    """Find ``@doc`` targets in each literal of a docstring, delimiters excluded.
+
+    A docstring may be parenthesized or implicitly concatenated, so its span
+    holds several ``STRING`` tokens between brackets and comments. Each
+    literal's body, without its prefix and quotes, is searched on its own, so
+    a target never absorbs a closing quote or bracket or continues into the
+    next literal. A ``str`` constant never contains an f-string, so every
+    literal is a plain ``STRING`` token.
+    """
     start_row = node.lineno
     start_col = table.chars_from_bytes(start_row, node.col_offset)
     end_row = node.end_lineno if node.end_lineno is not None else start_row
     end_col = table.chars_from_bytes(
         end_row, node.end_col_offset if node.end_col_offset is not None else 0
     )
-    text = _source_text(table, (start_row, start_col), (end_row, end_col))
+    targets: list[DocTarget] = []
+    for token in tokens.tokens[tokens.index_at(start_row, start_col) :]:
+        if token.start >= (end_row, end_col):
+            break
+        if token.type == tokenize.STRING:
+            targets.extend(_literal_targets(token, table))
+    return targets
+
+
+def _literal_targets(token: tokenize.TokenInfo, table: LineTable) -> list[DocTarget]:
+    """Find ``@doc`` targets in one string literal's body, at their source positions."""
+    start_row, start_col = token.start
+    text = _source_text(table, token.start, token.end)
     body_start, body_end = _string_body_span(text)
-    body = text[body_start:body_end]
 
     targets: list[DocTarget] = []
-    for match in find_doc_matches(body):
+    for match in find_doc_matches(text[body_start:body_end]):
         offset = body_start + match.start
         line_break = text.rfind("\n", 0, offset)
         row = start_row + text.count("\n", 0, offset)

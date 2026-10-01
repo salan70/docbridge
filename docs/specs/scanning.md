@@ -469,10 +469,16 @@ Grouped declarations follow these rules:
 Annotations come from two sources, searched with `@doc\s+(\S+)`:
 
 - The docstring: the first statement of the `def` or `class` body when it is a
-  string expression. The search covers the string's source text with its
-  prefix and quote delimiters excluded, so a target directly followed by `"""`
-  ends before it. Positions come from the source text, never from
-  `ast.get_docstring()`, so escapes and indentation do not move them.
+  string expression whose value is a `str` constant, as CPython defines a
+  docstring. An f-string, a concatenation that contains one, and a bytes
+  literal are not docstrings. A docstring may be parenthesized or implicitly
+  concatenated from several literals; the body of each literal, with its
+  prefix (`r`, `u`, `R`, or `U`) and its single or triple quote delimiters
+  excluded, is searched on its own. A target therefore ends before a closing
+  `"""` or `)` and never continues into the next literal, and the brackets,
+  comments, and whitespace between literals are never searched. Positions
+  come from the source text, never from `ast.get_docstring()`, so escapes and
+  indentation do not move them.
 - The leading comment block: the contiguous run of comment-only lines that
   ends on the line directly above the first decorator, or above the `def` /
   `class` keyword when there is none, where every line's `#` starts at the

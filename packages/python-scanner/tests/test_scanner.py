@@ -353,6 +353,45 @@ class AnnotationSourcesTest(unittest.TestCase):
                 'def f():\n    x = 1\n    """@doc docs/a.md#f"""\n',
                 [],
             ),
+            (
+                "parenthesized docstring excludes the parentheses",
+                'def f():\n    ("@doc docs/a.md#f")\n',
+                [("docs/a.md#f", span(2, 12, 2, 23))],
+            ),
+            (
+                "implicitly concatenated literals are searched one by one",
+                'def f():\n    "@doc docs/a.md#f" "@doc docs/a.md#g"\n',
+                [("docs/a.md#f", span(2, 11, 2, 22)), ("docs/a.md#g", span(2, 30, 2, 41))],
+            ),
+            (
+                "a target never continues into the next literal",
+                'def f():\n    "@doc " "docs/a.md#f"\n',
+                [],
+            ),
+            (
+                "parenthesized multi-line concatenation with prefixes and a comment",
+                "def f():\n"
+                "    (\n"
+                '        u"@doc docs/a.md#f"  # @doc docs/a.md#comment\n'
+                "        R'''@doc docs/a.md#g'''\n"
+                "    )\n",
+                [("docs/a.md#f", span(3, 16, 3, 27)), ("docs/a.md#g", span(4, 18, 4, 29))],
+            ),
+            (
+                "an f-string is never a docstring",
+                'def f():\n    f"@doc docs/a.md#f"\n',
+                [],
+            ),
+            (
+                "a leading f-string makes the concatenation no docstring",
+                'def f():\n    rf"@doc docs/a.md#f" "@doc docs/a.md#g"\n',
+                [],
+            ),
+            (
+                "a later f-string makes the concatenation no docstring",
+                'def f():\n    "@doc docs/a.md#f" f"x"\n',
+                [],
+            ),
         ]
         for name, source, expected in cases:
             with self.subTest(name):
