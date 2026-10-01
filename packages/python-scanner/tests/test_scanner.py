@@ -813,6 +813,82 @@ class DeclarationWalkTest(unittest.TestCase):
             ],
         )
 
+    def test_one_duplicate_code_symbol_per_endpoint(self):
+        cases = [
+            (
+                "three annotated definitions",
+                "# @doc docs/a.md#f\n"
+                "def f(): ...\n"
+                "# @doc docs/a.md#f2\n"
+                "def f(): ...\n"
+                "# @doc docs/a.md#f3\n"
+                "def f(): ...\n",
+                [("input.py#f", "docs/a.md#f")],
+                [("duplicate_code_symbol", "input.py#f", location(4, 5))],
+            ),
+            (
+                "unannotated repeats between annotated ones stay silent",
+                "def f(): ...\n"
+                "# @doc docs/a.md#f\n"
+                "def f(): ...\n"
+                "def f(): ...\n"
+                "# @doc docs/a.md#f2\n"
+                "def f(): ...\n"
+                "# @doc docs/a.md#f3\n"
+                "def f(): ...\n",
+                [("input.py#f", "docs/a.md#f")],
+                [("duplicate_code_symbol", "input.py#f", location(6, 5))],
+            ),
+            (
+                "an annotated group ahead of two annotated repeats",
+                "class C:\n"
+                "    @property\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#value"""\n'
+                "    # @doc docs/c.md#again\n"
+                "    def value(self): ...\n"
+                "    # @doc docs/c.md#third\n"
+                "    def value(self): ...\n",
+                [("input.py#C.value", "docs/c.md#value")],
+                [("duplicate_code_symbol", "input.py#C.value", location(6, 9))],
+            ),
+            (
+                "a member repeated across three class bodies",
+                "class C:\n"
+                "    # @doc docs/a.md#f\n"
+                "    def f(self): ...\n"
+                "class C:\n"
+                "    # @doc docs/a.md#f2\n"
+                "    def f(self): ...\n"
+                "class C:\n"
+                "    # @doc docs/a.md#f3\n"
+                "    def f(self): ...\n",
+                [("input.py#C.f", "docs/a.md#f")],
+                [("duplicate_code_symbol", "input.py#C.f", location(6, 9))],
+            ),
+            (
+                "invalid targets in a dropped repeat are not reported",
+                "# @doc docs/a.md#f\n"
+                "def f(): ...\n"
+                "# @doc docs/a.md#f2\n"
+                "def f(): ...\n"
+                "# @doc not-a-target\n"
+                "def f(): ...\n",
+                [("input.py#f", "docs/a.md#f")],
+                [("duplicate_code_symbol", "input.py#f", location(4, 5))],
+            ),
+        ]
+        for name, source, links, diagnostics in cases:
+            with self.subTest(name):
+                result = scan(source)
+                self.assertEqual(
+                    [(link["source"], link["target"]) for link in result["links"]], links
+                )
+                self.assertEqual(
+                    [(d["code"], d["target"], d["location"]) for d in result["diagnostics"]],
+                    diagnostics,
+                )
+
     def test_later_annotated_declaration_documents_the_first_declaration(self):
         source = "def g():\n    pass\n# @doc docs/a.md#g\ndef g(): ...\n"
         result = scan(source)

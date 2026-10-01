@@ -445,10 +445,13 @@ declaration's. Endpoints are tracked per file by canonical ID, so this holds
 for classes too: the second `class C` is a repeat of the endpoint `C`, and the
 members of both bodies merge into one set of member endpoints, so `f` defined
 in each body is the single endpoint `C.f` and the second definition is a
-repeat of it. The endpoint is documented when any declaration carries
-`@doc`, and its links come from the first annotated one; as in TypeScript and
-Go, a further annotated declaration is `duplicate_code_symbol` at its name
-and contributes no links, while unannotated repeats are silently subsumed.
+repeat of it. The endpoint is documented when any of its declarations
+carries `@doc`, and its links come from the first annotated declaration. As
+in the Go, Ruby, and Java workers, when more than one declaration of the
+endpoint in a file is annotated, exactly one `duplicate_code_symbol` is
+reported for it, at the name of the first annotated repeat; further annotated
+repeats are dropped without a diagnostic, and no repeat contributes links or
+link diagnostics. Unannotated repeats are silently subsumed.
 
 Python canonical IDs are dot-qualified names: `login`, `Client.login`, and
 `Outer.Inner.login`. Members carry no `isMember`, so a public method without

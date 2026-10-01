@@ -132,15 +132,16 @@ class ResponseBuilder:
         endpoint = f"{self.file_path}#{entry.canonical_id}"
         symbol = self._symbol(entry, entry.members[0], endpoint)
         # A group's members document the endpoint together. The first annotated
-        # declaration owns the links; every later annotated one is a duplicate.
+        # declaration owns the links; the endpoint is reported once, at the
+        # first annotated repeat, and later repeats are dropped silently.
         annotated = [declaration for declaration in entry.declarations if declaration.targets]
         if not annotated:
             self.undocumented.append(symbol)
             return
         self.symbols.append(symbol)
         self._links(endpoint, annotated[0].targets)
-        for repeat in annotated[1:]:
-            self._duplicate_code_symbol(endpoint, repeat.first_annotated_member)
+        if len(annotated) > 1:
+            self._duplicate_code_symbol(endpoint, annotated[1].first_annotated_member)
 
     def _symbol(self, entry: DeclarationEntry, member: Member, endpoint: str) -> dict[str, object]:
         return {
