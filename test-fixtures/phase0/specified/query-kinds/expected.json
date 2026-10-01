@@ -43,6 +43,7 @@
     "docs/a.md#lonely": [],
     "src/a.ts#b": [],
     "src/a.ts": [],
-    "": []
+    "": [],
+    "__proto__": []
   }
 }

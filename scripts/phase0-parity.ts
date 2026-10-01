@@ -3,6 +3,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { canonicalJson } from "./phase0-canonical-json";
+
 /**
  * Run the Rust `phase0-runner` over every frozen Phase 0 case and diff its
  * output against `expected.json` after canonical JSON formatting. Only object
@@ -12,25 +14,6 @@ import { join, resolve } from "node:path";
 const REPO_ROOT = resolve(import.meta.dir, "..");
 const CASE_ROOTS = ["test-fixtures/phase0/specified", "test-fixtures/phase0/generated"];
 const RUNNER = join(REPO_ROOT, "packages/rust-core-experiment/target/release/phase0-runner");
-
-/** Serialize with object keys sorted at every depth; arrays keep their order. */
-export function canonicalJson(value: unknown): string {
-  return JSON.stringify(sortKeys(value), null, 2);
-}
-
-function sortKeys(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(sortKeys);
-  }
-  if (value !== null && typeof value === "object") {
-    const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(value).toSorted()) {
-      sorted[key] = sortKeys((value as Record<string, unknown>)[key]);
-    }
-    return sorted;
-  }
-  return value;
-}
 
 function listCases(caseRoots: string[]): { name: string; caseDir: string }[] {
   const cases: { name: string; caseDir: string }[] = [];

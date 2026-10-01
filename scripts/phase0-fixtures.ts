@@ -9,6 +9,7 @@ import { sortDiagnostics } from "../src/model/diagnostics";
 import type { CodeScanResult, MarkdownScanResult } from "../src/model/scan-result";
 import type { DocBridgeDiagnostic } from "../src/model/types";
 import { scanProject } from "../src/query/project-scan";
+import { canonicalJson } from "./phase0-canonical-json";
 
 /** The document `phase0-runner` reads on stdin. */
 export type Phase0Input = {
@@ -39,7 +40,8 @@ export function runPhase0(input: Phase0Input): Phase0Output {
     audit: input.audit,
   });
   const graph = buildLinkGraph(input.codeFiles, input.docFiles);
-  const counterparts: Record<string, GraphEndpoint[]> = {};
+  // No prototype, so a query such as `__proto__` is an ordinary key.
+  const counterparts: Record<string, GraphEndpoint[]> = Object.create(null);
   for (const query of input.queries) {
     counterparts[query] = counterpartsOf(graph, query);
   }
@@ -94,12 +96,12 @@ function serialize(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-/** Return the semantic (formatting-independent) JSON of a file, or null. */
+/** Return the canonical (formatting- and key-order-independent) JSON of a file, or null. */
 function readCanonical(path: string): string | null {
   if (!existsSync(path)) {
     return null;
   }
-  return JSON.stringify(JSON.parse(readFileSync(path, "utf8")));
+  return canonicalJson(JSON.parse(readFileSync(path, "utf8")));
 }
 
 function main(args: string[]): number {
@@ -118,7 +120,7 @@ function main(args: string[]): number {
     for (const [fileName, value] of files) {
       const path = join(caseDir, fileName);
       if (check) {
-        if (readCanonical(path) !== JSON.stringify(value)) {
+        if (readCanonical(path) !== canonicalJson(value)) {
           drift.push(`${project.name}/${fileName}`);
         }
         continue;
