@@ -123,8 +123,8 @@ while one runs.
   last accepted scan, even while a newer one runs. Before the first scan is
   accepted, they answer as for an empty project: `null` for Hover and
   Definition, an empty list for References.
-- After `shutdown`, the server cancels the running scan, starts no other, and
-  publishes nothing more.
+- After `shutdown`, the server cancels the running scan, starts no other,
+  ignores document notifications, and publishes nothing more.
 - A scan that fails for any reason other than cancellation is reported on
   stderr and publishes nothing; the next request scans again.
 

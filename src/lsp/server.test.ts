@@ -437,6 +437,24 @@ describe("Server rescan scheduling", () => {
     expect(publishes()).toEqual([]);
   });
 
+  test("a document notification after shutdown publishes nothing and starts no scan", async () => {
+    const project = new ScriptedProject(EXAMPLE_ROOT);
+    const { server, sent, clock, publishes } = harness(() => project);
+    init(server);
+    open(server, CODE_URI, CODE_TEXT);
+
+    server.handle({ method: "shutdown", id: 2 });
+    server.handle({ method: "textDocument/didClose", params: { textDocument: { uri: CODE_URI } } });
+    open(server, DOC_URI, DOC_LINES.join("\n"));
+    change(server, CODE_URI, BROKEN_LINK);
+    clock.fire();
+    await settle();
+
+    expect(sent.at(-1)).toEqual({ jsonrpc: "2.0", id: 2, result: null });
+    expect(publishes()).toEqual([]);
+    expect(project.scans).toHaveLength(1);
+  });
+
   test("a scan that fails unexpectedly is reported and the next change rescans", async () => {
     const errors: unknown[] = [];
     let scans = 0;

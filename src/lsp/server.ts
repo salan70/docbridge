@@ -97,14 +97,21 @@ export class Server {
         this.scheduler?.stop();
         this.onExit(this.shuttingDown ? 0 : 1);
         break;
+      // After `shutdown`, document notifications change nothing and publish nothing.
       case "textDocument/didOpen":
-        this.onDidOpen(message.params);
+        if (!this.shuttingDown) {
+          this.onDidOpen(message.params);
+        }
         break;
       case "textDocument/didChange":
-        this.onDidChange(message.params);
+        if (!this.shuttingDown) {
+          this.onDidChange(message.params);
+        }
         break;
       case "textDocument/didClose":
-        this.onDidClose(message.params);
+        if (!this.shuttingDown) {
+          this.onDidClose(message.params);
+        }
         break;
       case "textDocument/hover":
         this.respond(message.id, this.onHover(message.params));
@@ -248,8 +255,9 @@ export class Server {
     }
   }
 
+  /** Send diagnostics for one document; nothing is published once `shutdown` has begun. */
   private publish(rel: string, diagnostics: unknown[]): void {
-    if (this.project === null) {
+    if (this.project === null || this.shuttingDown) {
       return;
     }
     this.send({
