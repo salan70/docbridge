@@ -44,7 +44,7 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
  * its language's suffixes. Suffix sets never overlap across languages.
  */
 export const LANGUAGE_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>> = {
-  typescript: [".ts"],
+  typescript: [".ts", ".tsx", ".mts", ".cts"],
   swift: [".swift"],
   dart: [".dart"],
   rust: [".rs"],
@@ -57,12 +57,23 @@ export const LANGUAGE_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>
  * file that ends with one is not a managed code file.
  */
 export const EXCLUDED_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>> = {
-  typescript: [".d.ts"],
+  typescript: [".d.ts", ".d.mts", ".d.cts"],
   swift: [],
   dart: [],
   rust: [],
   go: [],
 };
+
+/**
+ * The Markdown code-fence language for a declaration in `filePath`: the
+ * language ID, except that TypeScript follows the file suffix (`ts`, `tsx`).
+ */
+export function codeFenceLanguage(language: CodeLanguage, filePath: string): string {
+  if (language === "typescript") {
+    return filePath.endsWith(".tsx") ? "tsx" : "ts";
+  }
+  return language;
+}
 
 /** Whether `relPath` ends with one of `language`'s {@link EXCLUDED_SUFFIXES}. */
 export function hasExcludedSuffix(language: CodeLanguage, relPath: string): boolean {

@@ -74,7 +74,7 @@ export function scanTypeScript(
     content,
     ts.ScriptTarget.Latest,
     /* setParentNodes */ true,
-    ts.ScriptKind.TS,
+    scriptKindOf(filePath),
   );
 
   const parseDiagnostics = getParseDiagnostics(sourceFile);
@@ -217,6 +217,11 @@ export function scanTypeScript(
     links,
     diagnostics,
   };
+}
+
+/** The parser's script kind follows the suffix, so JSX parses only where it is allowed. */
+function scriptKindOf(filePath: string): ts.ScriptKind {
+  return filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
 }
 
 function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {

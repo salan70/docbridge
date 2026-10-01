@@ -119,6 +119,38 @@ test("resolveConfig rejects a typescript pattern that targets declaration files"
   ]);
 });
 
+test("resolveConfig and the schema accept typescript patterns for .tsx, .mts, and .cts files", () => {
+  const raw = {
+    include: {
+      code: { typescript: { patterns: ["src/**/*.tsx", "src/**/*.mts", "src/**/*.cts"] } },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([]);
+  expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+});
+
+test.each([".d.mts", ".d.cts"])(
+  "resolveConfig and the schema reject a typescript pattern that targets %s files",
+  (suffix) => {
+    const pattern = `src/**/*${suffix}`;
+    const raw = {
+      include: { code: { typescript: { patterns: [pattern] } }, docs: ["docs/**/*.md"] },
+    };
+
+    expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+      {
+        severity: "error",
+        code: "config_invalid_value",
+        target: pattern,
+        message: `Pattern must not target \`${suffix}\` declaration files.`,
+      },
+    ]);
+    expect(validateConfigSchema(raw)).toBe(false);
+  },
+);
+
 test("resolveConfig names the suffix a docs pattern must end with", () => {
   const result = resolveConfig(
     JSON.stringify({

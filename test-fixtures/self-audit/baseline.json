@@ -243,6 +243,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#codeFenceLanguage",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#codeFileOwners",
       "class": "sibling_export"
     },

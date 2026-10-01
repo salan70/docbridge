@@ -42,6 +42,28 @@ test("collectCodeFiles drops a matched file with its language's excluded suffix"
   );
 });
 
+test("collectCodeFiles claims .tsx, .mts, and .cts files as typescript but no declaration file", () => {
+  withProject(
+    {
+      "src/view.tsx": "export const view = 1;\n",
+      "src/module.mts": "export const module = 1;\n",
+      "src/common.cts": "export const common = 1;\n",
+      "src/module.d.mts": "export {};\n",
+      "src/common.d.cts": "export {};\n",
+    },
+    (root) => {
+      const files = collectCodeFiles(root, {
+        typescript: { patterns: ["src/**/*.tsx", "src/**/*.mts", "src/**/*.cts"] },
+      });
+      expect(files).toEqual([
+        { language: "typescript", relPath: "src/common.cts" },
+        { language: "typescript", relPath: "src/module.mts" },
+        { language: "typescript", relPath: "src/view.tsx" },
+      ]);
+    },
+  );
+});
+
 test("codeFileOwners gives no owner to a matched file with an excluded suffix", () => {
   withProject(
     { "src/app.ts": "export const app = 1;\n", "src/types.d.ts": "export {};\n" },

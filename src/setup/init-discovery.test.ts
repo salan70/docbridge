@@ -105,6 +105,25 @@ test("discoverCodeScope excludes tests and declaration files from detection", ()
   }
 });
 
+test("discoverCodeScope proposes every TypeScript suffix that has non-test source files", () => {
+  const project = makeProject({
+    "src/app.ts": "export const app = 1;\n",
+    "src/view.tsx": "export const view = 1;\n",
+    "src/view.test.tsx": "test();\n",
+    "src/module.spec.mts": "test();\n",
+    "src/types.d.mts": "export {};\n",
+    "lib/common.cts": "export const common = 1;\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const typescript = discovery.languages.find((entry) => entry.language === "typescript");
+    expect(typescript?.patterns).toEqual(["src/**/*.ts", "src/**/*.tsx", "lib/**/*.cts"]);
+    expect(typescript?.fileCount).toBe(3);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("discoverCodeScope keeps only the Go layout patterns that match non-test files", () => {
   const project = makeProject({
     "main.go": "package main\n",

@@ -1,7 +1,11 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { hasExcludedSuffix, KNOWN_CODE_LANGUAGES } from "../config/code-language";
+import {
+  hasExcludedSuffix,
+  KNOWN_CODE_LANGUAGES,
+  LANGUAGE_SUFFIXES,
+} from "../config/code-language";
 import type { CodeLanguage } from "../model/types";
 import { collectFiles } from "../shared/glob";
 
@@ -81,12 +85,10 @@ const EXCLUDED_DIR_SEGMENTS = new Set([
 
 const IGNORED_WALK_SEGMENTS = new Set(["node_modules", ".git", "dist", "build"]);
 
-const TYPESCRIPT_PATTERNS = [
-  "src/**/*.ts",
-  "lib/**/*.ts",
-  "packages/*/src/**/*.ts",
-  "apps/*/src/**/*.ts",
-] as const;
+// The conventional source roots of a TypeScript project, once per suffix.
+const SCRIPT_SOURCE_ROOTS = ["src", "lib", "packages/*/src", "apps/*/src"] as const;
+
+const TYPESCRIPT_PATTERNS = scriptPatterns("typescript");
 
 const SWIFT_PATTERNS = ["Sources/**/*.swift", "*/Sources/**/*.swift"] as const;
 
@@ -321,6 +323,13 @@ function scoreDocsDirectory(directory: string): number {
   return score;
 }
 
+/** Every source root of {@link SCRIPT_SOURCE_ROOTS} combined with every suffix of `language`. */
+function scriptPatterns(language: CodeLanguage): string[] {
+  return SCRIPT_SOURCE_ROOTS.flatMap((root) =>
+    LANGUAGE_SUFFIXES[language].map((suffix) => `${root}/**/*${suffix}`),
+  );
+}
+
 function activeCodePatterns(projectRoot: string, language: CodeLanguage): string[] {
   return LANGUAGE_PATTERNS[language].filter(
     (pattern) => countCodeFiles(projectRoot, [pattern], language) > 0,
@@ -349,8 +358,7 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
 
   if (language === "typescript") {
     if (
-      lower.endsWith(".test.ts") ||
-      lower.endsWith(".spec.ts") ||
+      /\.(?:test|spec)\.[cm]?tsx?$/u.test(lower) ||
       segments.includes("__tests__") ||
       segments.includes("tests") ||
       segments.includes("test")

@@ -1,3 +1,4 @@
+import { codeFenceLanguage } from "../config/code-language";
 import { counterpartsOf, type GraphEndpoint } from "../link/graph";
 import { endpointRange } from "../model/endpoint";
 import type { CodeLanguage, Position, Range } from "../model/types";
@@ -82,20 +83,12 @@ function renderCodeSignatures(state: ProjectState, counterparts: GraphEndpoint[]
           ).trimEnd();
     const fenced =
       signature.length > 0
-        ? `\n\n\`\`\`${FENCE_LANGUAGE[symbol.language]}\n${signature}\n\`\`\``
+        ? `\n\n\`\`\`${codeFenceLanguage(symbol.language, symbol.filePath)}\n${signature}\n\`\`\``
         : "";
     blocks.push(`**${symbol.endpoint}**${fenced}`);
   }
   return blocks.length > 0 ? blocks.join(DIVIDER) : null;
 }
-
-const FENCE_LANGUAGE: Readonly<Record<CodeLanguage, string>> = {
-  typescript: "ts",
-  swift: "swift",
-  dart: "dart",
-  rust: "rust",
-  go: "go",
-};
 
 /** Languages whose block comments nest, so an inner block comment opens a new level. */
 const NESTED_BLOCK_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["swift", "dart", "rust"]);

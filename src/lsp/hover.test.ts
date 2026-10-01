@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { scanTypeScript } from "../scan/code/typescript";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
 import { hover } from "./hover";
 
@@ -45,6 +46,21 @@ describe(hover, () => {
 
     expect(result?.value).toBe(
       "**src/auth/login.ts#login**\n\n```ts\n@sealed\nexport class login\n```",
+    );
+  });
+
+  test("doc to code fences a .tsx signature as tsx", () => {
+    const code =
+      "/** @doc docs/auth.md#login-spec */\nexport function Login() {\n  return <form />;\n}\n";
+    const doc = "<!-- @code src/auth/login.tsx#Login -->\n## Login Spec\n";
+
+    const result = hover(stateOf(code, doc, scanTypeScript("src/auth/login.tsx", code)), DOC_FILE, {
+      line: 2,
+      column: 5,
+    });
+
+    expect(result?.value).toBe(
+      "**src/auth/login.tsx#Login**\n\n```tsx\nexport function Login()\n```",
     );
   });
 

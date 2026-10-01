@@ -71,7 +71,7 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^(?!.*\\.d\\.ts$).*\\.ts$"
+            "pattern": "^(?!.*\\.d\\.[cm]?ts$).*\\.(ts|tsx|mts|cts)$"
           }
         },
         "visibility": {
