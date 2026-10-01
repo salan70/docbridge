@@ -75,7 +75,9 @@ language's files while the worker runs.
 
 Each invocation may run for 30 seconds plus 1 second per requested file; a
 worker still running then is killed. Stdout and stderr may each carry up to
-1 GiB; a worker that writes more is killed.
+1 GiB; a worker that writes more is killed. The CLI waits for each invocation.
+The Language Server runs the same request in the background and kills the
+worker when the scan is cancelled; see [LSP](lsp.md#rescan-scheduling).
 
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully, is

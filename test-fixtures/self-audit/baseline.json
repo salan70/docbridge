@@ -988,6 +988,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/lsp/scheduler.ts#Timers",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/lsp/transport.ts#MessageReader",
       "class": "sibling_export"
     },

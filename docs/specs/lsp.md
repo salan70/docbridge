@@ -36,8 +36,9 @@ The server implements the standard LSP lifecycle:
 
 - `initialize` — the server declares its capabilities and resolves the project
   root from `rootUri` or `workspaceFolders`.
-- `initialized` — handshake complete; the server builds the initial link graph.
-- `shutdown` — prepare to exit; stop producing work.
+- `initialized` — handshake complete; the server starts building the initial
+  link graph in the background.
+- `shutdown` — prepare to exit; cancel the running scan and stop producing work.
 - `exit` — terminate the process.
 
 Declared server capabilities:
@@ -65,10 +66,19 @@ The server uses a whole-project model.
 - Open documents overlay their on-disk content. For any open URI, the server uses
   the editor's buffer text (including unsaved edits) instead of the file on disk.
 - The whole graph is rebuilt when content changes, so cross-file diagnostics and
-  References stay correct.
+  References stay correct. Rebuilds run in the background; see
+  [Rescan scheduling](#rescan-scheduling).
 - `docbridge.config.json` and the optional `docbridge.links.json` link manifest
   are read from disk on every rebuild. Unsaved edits to them are not used; a
   saved change takes effect at the next rebuild.
+- A rebuild reuses the code scan result of a file whose language, path,
+  content, configured visibility, and resolved worker command are unchanged
+  since the last accepted rebuild, and sends only the other files to their
+  language's worker, one request per language as in
+  [Code Scanning](scanning.md#code-scanning). A parse error is reused; a
+  scanner failure is retried at the next rebuild. A configuration change
+  discards every reused result and every cached runtime probe. Markdown, the
+  link manifest, and the graph are rebuilt in full each time.
 
 A whole-project model is required: backlink diagnostics and "find all code that
 links to this spec" cannot be derived from a single open file.
@@ -87,8 +97,36 @@ Full synchronization (`TextDocumentSyncKind.Full`).
 - `textDocument/didClose` — drop the buffer overlay; the file reverts to its
   on-disk version in the graph.
 
-After a change, the server re-resolves the project. A short debounce coalesces
-rapid edits before re-resolution.
+Each of these notifications makes the running scan stale and requests a new
+one. `didOpen` and `didClose` request it at once. `didChange` requests it after
+a 50 ms debounce that each further change restarts, so rapid edits coalesce
+into one rescan.
+
+<!-- @code src/lsp/scheduler.ts#RescanScheduler -->
+
+### Rescan scheduling
+
+Scans run in the background; the server keeps reading and answering messages
+while one runs.
+
+- At most one scan runs at a time. A request cancels the running scan at once,
+  which kills its worker process.
+- Requests that arrive while a scan runs leave exactly one follow-up scan. It
+  starts once the running scan has settled and any debounce has elapsed.
+- A scan takes its configuration, manifest, open-buffer text, and file content
+  when it starts. Its result is accepted only if no request arrived after it
+  started; otherwise it is discarded, and neither its diagnostics nor its
+  reusable code scan results are kept.
+- After each accepted scan, the server publishes diagnostics for every open
+  document.
+- Hover, Definition, and References never wait for a scan. They answer from the
+  last accepted scan, even while a newer one runs. Before the first scan is
+  accepted, they answer as for an empty project: `null` for Hover and
+  Definition, an empty list for References.
+- After `shutdown`, the server cancels the running scan, starts no other, and
+  publishes nothing more.
+- A scan that fails for any reason other than cancellation is reported on
+  stderr and publishes nothing; the next request scans again.
 
 <!-- @code src/lsp/position.ts#toLspPosition -->
 <!-- @code src/lsp/paths.ts#uriToRelativePath -->
@@ -204,8 +242,9 @@ The server publishes the same diagnostics as `docbridge check` through
 LSP is defined in [Diagnostics](./diagnostics.md). The server adds no
 diagnostic codes of its own.
 
-The server publishes diagnostics for open documents. Because the whole graph is
-in memory, open documents receive correct cross-file diagnostics.
+The server publishes diagnostics for open documents after each accepted scan.
+Because the whole graph is in memory, open documents receive correct cross-file
+diagnostics.
 
 <!-- @code src/lsp/server.ts#runLspServer -->
 
