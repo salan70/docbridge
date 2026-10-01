@@ -254,6 +254,28 @@ test("syncWorkerProcessResult reports an error with no sign of a started worker 
   }
 });
 
+/** A shell script that writes `each` bytes to stdout, then `each` bytes to stderr. */
+function writeBothStreams(each: number): string {
+  return `head -c ${each} /dev/zero | tr '\\0' a; head -c ${each} /dev/zero | tr '\\0' b >&2`;
+}
+
+test("runScannerWorkerProcess caps stdout and stderr together", () => {
+  const over = runScannerWorkerProcess({
+    command: ["sh", "-c", writeBothStreams(600)],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  });
+  const atCap = runScannerWorkerProcess({
+    command: ["sh", "-c", writeBothStreams(500)],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  });
+
+  expect(over).toMatchObject({ ok: false, kind: "execution" });
+  expect(String((over as { error?: unknown }).error)).toContain("more than 1000 bytes");
+  expect(atCap).toMatchObject({ ok: true, exitCode: 0 });
+});
+
 test("runScannerWorkerProcess reports output above the cap as an execution failure", () => {
   const result = runScannerWorkerProcess({
     command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
@@ -769,6 +791,23 @@ test("runScannerWorkerProcessAsync reports stdout above the cap as an execution 
     expect(result.kind).toBe("execution");
     expect(String(result.error)).toContain("more than 1000 bytes");
   }
+});
+
+test("runScannerWorkerProcessAsync caps stdout and stderr together", async () => {
+  const over = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", writeBothStreams(600)],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  }).promise;
+  const atCap = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", writeBothStreams(500)],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  }).promise;
+
+  expect(over).toMatchObject({ ok: false, kind: "execution" });
+  expect(String((over as { error?: unknown }).error)).toContain("more than 1000 bytes");
+  expect(atCap).toMatchObject({ ok: true, exitCode: 0 });
 });
 
 test("runScannerWorkerProcessAsync reports stderr above the cap as an execution failure", async () => {

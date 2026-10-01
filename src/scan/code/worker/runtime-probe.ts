@@ -122,7 +122,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * The default {@link RuntimeProbeSpawn}. It kills a probe that outlives the
- * time limit with `SIGKILL`, which a runtime cannot ignore, so the limit holds.
+ * time limit with `SIGKILL`, which a runtime cannot ignore, so the limit holds,
+ * and caps stdout and stderr together under Node and Bun alike.
  */
 export function spawnRuntimeProbe(
   executable: string,
@@ -140,12 +141,21 @@ export function spawnRuntimeProbe(
       encoding: "utf8",
       windowsHide: true,
     });
+    const stdout = result.stdout ?? "";
+    const stderr = result.stderr ?? "";
+    // Node's `maxBuffer` counts both streams together, Bun's each stream alone;
+    // this holds Bun to the same combined cap.
+    const error =
+      result.error === undefined &&
+      Buffer.byteLength(stdout) + Buffer.byteLength(stderr) > options.maxBuffer
+        ? Object.assign(new Error("probe output exceeded maxBuffer"), { code: "ENOBUFS" })
+        : result.error;
     return {
       status: result.status,
       signal: result.signal,
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
-      ...(result.error === undefined ? {} : { error: result.error }),
+      stdout,
+      stderr,
+      ...(error === undefined ? {} : { error }),
     };
   } catch (error) {
     return {

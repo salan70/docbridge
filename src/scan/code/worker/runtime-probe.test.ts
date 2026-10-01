@@ -148,6 +148,21 @@ test("probeRuntime bounds a real probe's output with the default spawn", () => {
   expect(outcome).toEqual({ kind: "failed", reason: "probe printed more than 64 KiB" });
 });
 
+test("probeRuntime caps a real probe's stdout and stderr together with the default spawn", () => {
+  const outcome = probeRuntime(
+    [
+      process.execPath,
+      "-e",
+      'process.stdout.write(\'{"ok": true, "runtime": "cpython", "version": "3.12.4"}\\n\'); ' +
+        "process.stderr.write('x'.repeat(65500))",
+      "--",
+    ],
+    [],
+  );
+
+  expect(outcome).toEqual({ kind: "failed", reason: "probe printed more than 64 KiB" });
+});
+
 test("probeRuntime reports a real missing executable as unstartable with the default spawn", () => {
   const outcome = probeRuntime(["/nonexistent/docbridge-runtime"], []);
 

@@ -74,10 +74,11 @@ managed code file in memory until its language's request completes, plus one
 serialized copy of the request while the worker runs.
 
 Each invocation may run for 30 seconds plus 1 second per requested file; a
-worker still running then is killed. Stdout and stderr may each carry up to
-1 GiB; a worker that writes more is killed. The CLI waits for each invocation.
-The Language Server runs the same request in the background and kills the
-worker when the scan is cancelled; see [LSP](lsp.md#rescan-scheduling).
+worker still running then is killed. Stdout and stderr together may carry up
+to 1 GiB; a worker that writes more fails and may be killed before it finishes.
+The CLI waits for each invocation. The Language Server runs the same request in
+the background and kills the worker when the scan is cancelled; see
+[LSP](lsp.md#rescan-scheduling).
 
 A worker is killed with `SIGKILL`, which it cannot ignore. The Language Server
 starts each worker in its own process group on POSIX systems and kills the whole
@@ -194,11 +195,12 @@ documented candidates, in the order that
 [Scanner Runtimes](configuration.md#scanner-runtimes) defines. Before using a
 runtime, DocBridge runs the full command with `--probe` in the same stripped
 environment and reads the one JSON line the worker prints (see each language's
-section). The probe is limited to 10 seconds and 64 KiB of output; a probe
-still running after 10 seconds is killed with `SIGKILL`, which it cannot
-ignore. Its result is cached for the rest of the CLI process or language server session, keyed by
-the full command and the values of `PATH` and every `DOCBRIDGE_*` variable; a
-configuration change clears the cache.
+section). The probe is limited to 10 seconds and to 64 KiB of stdout and
+stderr together; a probe still running after 10 seconds is killed with
+`SIGKILL`, which it cannot ignore. Its result is cached for the rest of the CLI
+process or language server session, keyed by the full command and the values of
+`PATH` and every `DOCBRIDGE_*` variable; a configuration change clears the
+cache.
 
 A missing bundled entrypoint, a runtime that cannot be started, and a probe
 that answers `ok: false`, reports another runtime, or reports a version below

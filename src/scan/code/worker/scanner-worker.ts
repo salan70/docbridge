@@ -47,13 +47,13 @@ type ScannerWorkerProcessInput = {
   stripEnv?: readonly string[];
   /** Milliseconds before the worker is killed; no limit when omitted. */
   timeoutMs?: number;
-  /** Bytes each of stdout and stderr may carry; defaults to 1 GiB. */
+  /** Bytes stdout and stderr may carry together; defaults to 1 GiB. */
   maxOutputBytes?: number;
 };
 
 /**
- * The default cap on each output stream. It must exceed Node's 1 MiB default
- * because worker responses embed scanned file contents.
+ * The default cap on stdout and stderr together. It must exceed Node's 1 MiB
+ * default because worker responses embed scanned file contents.
  */
 const WORKER_OUTPUT_LIMIT_BYTES = 1024 * 1024 * 1024;
 
@@ -314,6 +314,11 @@ export function syncWorkerProcessResult(
   if (result.error !== undefined) {
     return syncSpawnFailure(result.error, workerStarted(result), timeoutMs, maxOutputBytes, stderr);
   }
+  // Node's `maxBuffer` counts both streams together, Bun's each stream alone;
+  // this holds Bun to the same combined cap once the worker has exited.
+  if (Buffer.byteLength(result.stdout ?? "") + Buffer.byteLength(stderr) > maxOutputBytes) {
+    return { ok: false, kind: "execution", error: outputLimitError(maxOutputBytes), stderr };
+  }
   if (typeof result.status !== "number") {
     return { ok: false, kind: "execution", error: signalError(result.signal), stderr };
   }
@@ -322,7 +327,7 @@ export function syncWorkerProcessResult(
 
 /**
  * Asynchronous worker process runner for the Language Server. It spawns with
- * an argv array and no shell, counts each output stream's bytes against the
+ * an argv array and no shell, counts both output streams' bytes against one
  * cap, and settles once, after the streams close. The timeout and an oversized
  * stream kill the worker with `SIGKILL` and report an execution failure;
  * cancelling kills it the same way and rejects with an `AbortError`. A killed
@@ -357,8 +362,9 @@ export function runScannerWorkerProcessAsync(
   }
 
   const maxOutputBytes = input.maxOutputBytes ?? WORKER_OUTPUT_LIMIT_BYTES;
-  const stdout = new OutputCollector(maxOutputBytes);
-  const stderr = new OutputCollector(maxOutputBytes);
+  const budget = { bytes: 0, limit: maxOutputBytes };
+  const stdout = new OutputCollector(budget);
+  const stderr = new OutputCollector(budget);
   let failure: Error | undefined;
   const kill = (reason: Error): void => {
     failure ??= reason;
@@ -437,17 +443,19 @@ function closeStreams(child: ChildProcessWithoutNullStreams): void {
   child.stderr.destroy();
 }
 
+/** The bytes a worker's output streams have carried together, against their shared cap. */
+type OutputBudget = { bytes: number; readonly limit: number };
+
 /** One output stream collected as bytes and decoded once the stream closes. */
 class OutputCollector {
   private readonly chunks: Buffer[] = [];
-  private bytes = 0;
 
-  constructor(private readonly limit: number) {}
+  constructor(private readonly budget: OutputBudget) {}
 
-  /** Keep `chunk`; false once the stream exceeds the cap, after which chunks are dropped. */
+  /** Keep `chunk`; false once both streams together exceed the cap, after which chunks are dropped. */
   add(chunk: Buffer): boolean {
-    this.bytes += chunk.byteLength;
-    if (this.bytes > this.limit) {
+    this.budget.bytes += chunk.byteLength;
+    if (this.budget.bytes > this.budget.limit) {
       return false;
     }
     this.chunks.push(chunk);
@@ -521,7 +529,7 @@ function timeoutError(timeoutMs: number): Error {
 }
 
 function outputLimitError(maxOutputBytes: number): Error {
-  return new Error(`worker wrote more than ${maxOutputBytes} bytes to stdout or stderr`);
+  return new Error(`worker wrote more than ${maxOutputBytes} bytes to stdout and stderr together`);
 }
 
 function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {
