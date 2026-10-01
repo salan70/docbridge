@@ -1,15 +1,16 @@
 package dev.docbridge.javascanner;
 
 /**
- * Mirrors the other workers' target validation: a project-root-relative
- * {@code file#fragment} that is not the source file itself.
+ * Mirrors the core's target grammar: a project-root-relative
+ * {@code file#fragment} with exactly one {@code #} that is not the source file
+ * itself.
  */
 public final class LinkTargets {
   private LinkTargets() {}
 
   public static boolean isValid(String target, String sourceFilePath) {
     int hash = target.indexOf('#');
-    if (hash < 0) {
+    if (hash < 0 || target.indexOf('#', hash + 1) >= 0) {
       return false;
     }
     String filePath = target.substring(0, hash);
