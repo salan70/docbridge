@@ -822,10 +822,13 @@ several names (`int a, b;`, or `int a[], b;` with dimensions on one name)
 exposes every name as a symbol, but an `@doc` above it is
 `unsupported_declaration` at the first name because the annotation cannot say
 which name it documents, as in Go; declare the link in `docbridge.links.json`
-instead. Members carry no `isMember`, so a visible
-method or field without `@doc` is an `undocumented_symbol` in audit mode, as in
-Rust and Go; of several declarations that share an endpoint, only the first is
-reported.
+instead. Members carry no `isMember`, so a visible method or field without
+`@doc` is an `undocumented_symbol` in audit mode, as in Rust and Go. An
+endpoint that any included declaration documents is never also undocumented,
+whichever declaration comes first; an endpoint that none documents is reported
+once, at its first declaration. Included means supported and inside the
+configured visibility classes, so an annotated declaration that the filter
+excludes documents nothing.
 
 A diagnostic of kind `ERROR` from javac makes the file a `code_parse_error`
 with no symbols and javac's English message; the reported position is the
