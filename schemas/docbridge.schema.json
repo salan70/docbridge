@@ -25,7 +25,8 @@
             "go": { "$ref": "#/$defs/goEntry" },
             "javascript": { "$ref": "#/$defs/javascriptEntry" },
             "python": { "$ref": "#/$defs/pythonEntry" },
-            "ruby": { "$ref": "#/$defs/rubyEntry" }
+            "ruby": { "$ref": "#/$defs/rubyEntry" },
+            "java": { "$ref": "#/$defs/javaEntry" }
           }
         },
         "docs": {
@@ -236,6 +237,28 @@
           "items": {
             "type": "string",
             "enum": ["public", "protected", "private"]
+          }
+        }
+      }
+    },
+    "javaEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.java$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "protected", "package", "private"]
           }
         }
       }

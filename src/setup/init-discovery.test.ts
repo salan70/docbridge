@@ -196,6 +196,56 @@ test("discoverCodeScope proposes lib and app for Ruby without tests or vendored 
   }
 });
 
+test("discoverCodeScope proposes only the Maven source root for Java when it holds files", () => {
+  const project = makeProject({
+    "src/main/java/com/acme/App.java": "public class App {}\n",
+    "src/main/java/com/acme/auth/Auth.java": "public class Auth {}\n",
+    "src/main/java/com/acme/build/Generated.java": "public class Generated {}\n",
+    "src/test/java/com/acme/AppTest.java": "public class AppTest {}\n",
+    "src/tools/Release.java": "public class Release {}\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const java = discovery.languages.find((entry) => entry.language === "java");
+    expect(java?.patterns).toEqual(["src/main/java/**/*.java"]);
+    expect(java?.fileCount).toBe(2);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope falls back to src for Java without tests or build output", () => {
+  const project = makeProject({
+    "src/com/acme/App.java": "public class App {}\n",
+    "src/test/com/acme/AppTest.java": "public class AppTest {}\n",
+    "src/target/Generated.java": "public class Generated {}\n",
+    "src/build/Generated.java": "public class Generated {}\n",
+    "src/main/resources/Template.java": "public class Template {}\n",
+    "lib/Vendored.java": "public class Vendored {}\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const java = discovery.languages.find((entry) => entry.language === "java");
+    expect(java?.patterns).toEqual(["src/**/*.java"]);
+    expect(java?.fileCount).toBe(2);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope proposes no Java scope without Java files under src", () => {
+  const project = makeProject({
+    "lib/Vendored.java": "public class Vendored {}\n",
+    "src/test/java/AppTest.java": "public class AppTest {}\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    expect(discovery.languages.map((entry) => entry.language)).not.toContain("java");
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("discoverCodeScope keeps only the Go layout patterns that match non-test files", () => {
   const project = makeProject({
     "main.go": "package main\n",

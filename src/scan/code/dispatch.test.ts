@@ -494,10 +494,13 @@ test("the worker command factory receives the scan context on the sync and async
   ]);
 });
 
-test.each(["python", "ruby"] as const)(
+test.each([
+  ["python", "src/a.py"],
+  ["ruby", "lib/a.rb"],
+  ["java", "src/main/java/A.java"],
+] as const)(
   "the built-in %s adapter runs the configured runtime and reports it without fallback",
-  (language) => {
-    const relPath = language === "python" ? "src/a.py" : "lib/a.rb";
+  (language, relPath) => {
     const runtime = `/nonexistent/docbridge/${language}`;
 
     const result = scanCodeFiles(

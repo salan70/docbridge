@@ -12,5 +12,6 @@
       "message": "Java parse error: illegal start of expression.",
       "location": { "filePath": "Input.java", "line": 6, "column": 12 }
     }
-  ]
+  ],
+  "language": "java"
 }

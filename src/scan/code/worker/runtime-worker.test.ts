@@ -208,6 +208,7 @@ test("resolveRuntimeWorkerCommand reports a missing bundled worker without probi
       diagnostic: {
         severity: "error",
         code: "code_scanner_unavailable",
+        language: "java",
         target: "java",
         message:
           `Java scanner worker is unavailable: the bundled worker is missing; looked for ` +

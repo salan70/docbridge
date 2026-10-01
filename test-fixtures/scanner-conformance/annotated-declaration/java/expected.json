@@ -57,5 +57,6 @@
       "targetRange": { "start": { "line": 4, "column": 12 }, "end": { "line": 4, "column": 30 } }
     }
   ],
-  "diagnostics": []
+  "diagnostics": [],
+  "language": "java"
 }
