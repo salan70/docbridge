@@ -97,6 +97,13 @@ TypeScript `visibility` applies only to type members. Top-level declarations are
 scoped by `export` and are unaffected by it. A member excluded by visibility is
 not an endpoint, and a `@doc` on one is `unsupported_declaration`.
 
+Four more languages have scanner workers in the repository but are not yet
+accepted as `include.code` keys: `javascript`, `python`, `ruby`, and `java`.
+Their scanning contracts are already normative in
+[Scanning](scanning.md#javascript-scanning) and become configurable when the
+languages are registered; until then `include.code.python` and the others are
+`config_unknown_key` like any other unknown key.
+
 If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong
 to exactly one language.

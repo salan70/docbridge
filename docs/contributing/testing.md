@@ -50,6 +50,15 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   `packages/go-scanner/go.mod`, and `GOTOOLCHAIN=local` stops Go from
   downloading another version. Bump the directive together with the flake
   lock when nixpkgs moves.
+- `just test-python-scanner`, `just test-ruby-scanner`, and
+  `just test-java-scanner` run the native suites of the runtime-backed
+  workers under `packages/python-scanner`, `packages/ruby-scanner`, and
+  `packages/java-scanner` (`unittest`, `minitest`, and a `main`-based runner).
+  The Nix dev shell provides CPython, CRuby with Prism, and the JDK;
+  `just build-test-scanners` also builds the Java worker JAR, which
+  `scripts/pending-worker-cases.test.ts` spawns. These languages are pending
+  registration, so their conformance cases live under
+  `test-fixtures/pending-languages/` until they join the corpus below.
 - `src/scan/code/conformance.test.ts` runs every case under
   `test-fixtures/scanner-conformance/<case>/<language>/` through the real
   adapter for that language. It compares the result with that directory's

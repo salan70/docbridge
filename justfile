@@ -62,7 +62,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-shell format-check-nix
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-python format-check-shell format-check-nix
 
 format-check-ox:
     bun run oxfmt --check .
@@ -87,7 +87,7 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-python lint-java lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
@@ -119,7 +119,7 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test
+verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test test-python-scanner test-ruby-scanner test-java-scanner
 
 check:
     bun run src/cli/index.ts check
@@ -166,12 +166,14 @@ test:
 test-swift-scanner:
     swift test --package-path packages/swift-scanner
 
-# Build the debug Swift/Rust workers and compiled Dart and Go workers required by `just test`.
+# Build the debug Swift/Rust workers, the compiled Dart and Go workers, and the Java
+# worker JAR required by `just test`; the Python and Ruby workers run from source.
 build-test-scanners:
     swift build --package-path packages/swift-scanner
     just build-dart-scanner
     just build-rust-scanner-debug
     just build-go-scanner
+    just build-java-scanner
 
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
