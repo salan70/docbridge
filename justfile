@@ -258,10 +258,13 @@ typecheck:
 typecheck-extension:
     cd editors/vscode && bun run tsc --noEmit -p .
 
-build:
+# Bundle the CLI and stage the runtime-backed workers under dist/workers. The
+# Java worker JAR is rebuilt first, so building needs the JDK.
+build: build-java-scanner
     rm -rf dist
     bun build src/cli/index.ts --outdir dist --target node
     chmod +x dist/index.js
+    bun run scripts/stage-runtime-workers.ts
 
 # Apply a release bump inside a pull request: set every versioned manifest and
 # roll CHANGELOG [Unreleased] into the new version. The `release: <kind>` label
@@ -296,13 +299,14 @@ pack-smoke *ARGS:
     bun run scripts/smoke-packed-package.ts {{ ARGS }}
 
 # Build a release VSIX under editors/vscode/.tmp/out. Requires every supported
-# platform's scanner binaries staged under dist/bin.
-package-vsix:
+# platform's scanner binaries staged under dist/bin; the runtime-backed workers
+# are staged from this checkout.
+package-vsix: build-java-scanner
     bun run scripts/vscode-extension.ts package
 
 # Build the same VSIX for this machine only: it requires just the host
 # platform's staged scanner binaries. This is what `just vscode-lsp` installs.
-package-vsix-local:
+package-vsix-local: build-java-scanner
     bun run scripts/vscode-extension.ts package --local
 
 # Verify a release VSIX. Pass a path to verify a non-default artifact.

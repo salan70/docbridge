@@ -22,6 +22,7 @@ import {
   supportedScannerPlatformKeys,
 } from "../src/scan/code/worker/scanner-executable";
 import { documentUri, startLspSession, type LspSession } from "./lsp-client";
+import { stageRuntimeWorkers } from "./stage-runtime-workers";
 
 /**
  * Which machines the artifact has to run on.
@@ -215,6 +216,8 @@ export function packageVsix(root: string = repoRoot, mode: PackageMode = "releas
   run(serverBundleCommand(), root);
   chmodSync(join(root, "dist/index.js"), 0o755);
   cpSync(preserveBin, join(root, "dist/bin"), { recursive: true });
+  // The rebuild wiped dist/workers; the server needs them as much as dist/bin.
+  stageRuntimeWorkers(root);
   run(["bun", "run", "scripts/verify-dist.ts"], root);
   run(["bun", "run", "compile"], extensionRoot);
   run(extensionBundleCommand(), extensionRoot);

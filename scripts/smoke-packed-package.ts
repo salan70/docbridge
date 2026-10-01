@@ -16,6 +16,11 @@ import {
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
 } from "../src/scan/code/worker/scanner-executable";
+import {
+  assertMissingRuntimeUnavailable,
+  smokeRuntimeWorkers,
+  withReadOnlyTree,
+} from "./runtime-worker-smoke";
 
 // The packaged CLI must work for both npm/Node and Bun consumers.
 const cliRuntimes = ["node", "bun"] as const;
@@ -44,24 +49,58 @@ export type CommandResult = {
 
 type SmokeOptions = {
   scannerFixtures: boolean;
+  /** Smoke only the runtime-backed workers, as on Windows where no native scanner ships. */
+  runtimeWorkersOnly: boolean;
 };
 
 export function smokePackedPackage(
   tarball: string,
-  options: SmokeOptions = { scannerFixtures: true },
+  options: SmokeOptions = { scannerFixtures: true, runtimeWorkersOnly: false },
 ): void {
   const tarballPath = resolve(tarball);
   const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-pack-smoke-"));
 
   try {
-    installAndSmoke(tarballPath, tempRoot, options);
-    if (options.scannerFixtures) {
-      smokeExecutableBitRepair(tarballPath, tempRoot);
+    if (!options.runtimeWorkersOnly) {
+      installAndSmoke(tarballPath, tempRoot, options);
+      if (options.scannerFixtures) {
+        smokeExecutableBitRepair(tarballPath, tempRoot);
+      }
     }
+    smokeRuntimeWorkerInstall(tarballPath, tempRoot);
     console.log(`Smoke-tested ${basename(tarballPath)} in ${tempRoot}`);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
+}
+
+/**
+ * Install into a path with spaces and run each runtime-backed worker from the
+ * installed package, first read-only and then writable, then confirm that a
+ * configured runtime that does not exist is reported instead of replaced.
+ */
+function smokeRuntimeWorkerInstall(tarballPath: string, tempRoot: string): void {
+  const installRoot = join(tempRoot, "runtime workers install");
+  mkdirSync(installRoot, { recursive: true });
+  writeFileSync(
+    join(installRoot, "package.json"),
+    JSON.stringify({ private: true, dependencies: {} }, null, 2),
+  );
+  run([...npmCommand(), "install", tarballPath], installRoot);
+  const packageRoot = join(installRoot, "node_modules", "docbridge");
+  const target = { distRoot: join(packageRoot, "dist"), projectRoot: installRoot };
+  // Read-only first, before a writable run can leave Python bytecode behind.
+  withReadOnlyTree(packageRoot, () => smokeRuntimeWorkers(target));
+  smokeRuntimeWorkers(target);
+  assertMissingRuntimeUnavailable({
+    ...target,
+    missingRuntime: join(installRoot, "missing runtime", "python3"),
+  });
+}
+
+/** npm is a batch file on Windows, which only a shell can start. */
+function npmCommand(): string[] {
+  return process.platform === "win32" ? ["cmd.exe", "/d", "/c", "npm"] : ["npm"];
 }
 
 /**
@@ -423,12 +462,16 @@ function fail(message: string): never {
 function parseArgs(args: string[]): { tarball: string; options: SmokeOptions } {
   const tarball = args[0];
   if (tarball === undefined) {
-    fail("Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures]");
+    fail(
+      "Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures] [--runtime-workers-only]",
+    );
   }
-  const options: SmokeOptions = { scannerFixtures: true };
+  const options: SmokeOptions = { scannerFixtures: true, runtimeWorkersOnly: false };
   for (const arg of args.slice(1)) {
     if (arg === "--skip-scanner-fixtures") {
       options.scannerFixtures = false;
+    } else if (arg === "--runtime-workers-only") {
+      options.runtimeWorkersOnly = true;
     } else {
       fail(`Unknown argument: ${arg}`);
     }
