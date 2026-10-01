@@ -1,5 +1,6 @@
 import {
   collectCodeFiles,
+  hasExcludedSuffix,
   KNOWN_CODE_LANGUAGES,
   type CodeFileRead,
   type CodeInclude,
@@ -68,7 +69,7 @@ export class Project {
     const outcome = scanProject({
       projectRoot: this.projectRoot,
       collectCode: (_projectRoot, include) => this.collectCode(include),
-      collectDocs: (_projectRoot, patterns) => this.collect(patterns, false),
+      collectDocs: (_projectRoot, patterns) => this.collectDocs(patterns),
       readFile: (relPath) => this.readContent(relPath),
       buildGraph: true,
       keepContent: true,
@@ -123,7 +124,7 @@ export class Project {
         if (seen.has(relPath)) {
           continue;
         }
-        if (language === "typescript" && relPath.endsWith(".d.ts")) {
+        if (hasExcludedSuffix(language, relPath)) {
           continue;
         }
         if (entry.patterns.some((pattern) => matchGlob(pattern, relPath))) {
@@ -144,14 +145,11 @@ export class Project {
     return readManagedFile(this.projectRoot, relPath);
   }
 
-  /** Collect disk matches plus matching open buffers that do not exist on disk. */
-  private collect(patterns: string[], isCode: boolean): string[] {
+  /** Collect doc disk matches plus matching open buffers that do not exist on disk. */
+  private collectDocs(patterns: string[]): string[] {
     const paths = new Set(collectFiles(this.projectRoot, patterns));
     for (const relPath of this.overlay.keys()) {
       if (paths.has(relPath)) {
-        continue;
-      }
-      if (isCode && relPath.endsWith(".d.ts")) {
         continue;
       }
       if (patterns.some((pattern) => matchGlob(pattern, relPath))) {

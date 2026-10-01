@@ -258,17 +258,17 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#collectCodeFiles",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#CollectedCodeFile",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#EXCLUDED_SUFFIXES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#hasExcludedSuffix",
       "class": "sibling_export"
     },
     {

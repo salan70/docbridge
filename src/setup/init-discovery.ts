@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { KNOWN_CODE_LANGUAGES } from "../config/code-language";
+import { hasExcludedSuffix, KNOWN_CODE_LANGUAGES } from "../config/code-language";
 import type { CodeLanguage } from "../model/types";
 import { collectFiles } from "../shared/glob";
 
@@ -343,10 +343,11 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
   const lower = filePath.toLowerCase();
   const segments = filePath.split("/");
 
+  if (hasExcludedSuffix(language, lower)) {
+    return true;
+  }
+
   if (language === "typescript") {
-    if (lower.endsWith(".d.ts")) {
-      return true;
-    }
     if (
       lower.endsWith(".test.ts") ||
       lower.endsWith(".spec.ts") ||

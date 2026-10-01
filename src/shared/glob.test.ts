@@ -51,7 +51,7 @@ function makeTmp(): string {
   return mkdtempSync(join(tmpdir(), "docbridge-glob-"));
 }
 
-test("collectFiles returns sorted matching paths and excludes .d.ts for code patterns", () => {
+test("collectFiles returns sorted matching paths without language-specific exclusions", () => {
   const root = makeTmp();
   try {
     mkdirSync(join(root, "src", "nested"), { recursive: true });
@@ -64,6 +64,7 @@ test("collectFiles returns sorted matching paths and excludes .d.ts for code pat
       "src/a.ts",
       "src/b.ts",
       "src/nested/c.ts",
+      "src/types.d.ts",
     ]);
   } finally {
     rmSync(root, { recursive: true, force: true });

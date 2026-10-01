@@ -27,4 +27,28 @@ describe(Project, () => {
       counterpartsOf(project.state.graph, `${CODE_FILE}#login`).map((e) => e.endpoint),
     ).toEqual([`${DOC_FILE}#login-spec`]);
   });
+
+  test("an open buffer that matches a code pattern but is not on disk is scanned", () => {
+    const project = new Project(EXAMPLE_ROOT);
+    project.setOverlay(
+      "src/auth/unsaved.ts",
+      "/**\n * @doc docs/auth.md#nonexistent\n */\nexport function unsaved() {}\n",
+    );
+    project.resolve();
+
+    expect(project.state.contentByFile.has("src/auth/unsaved.ts")).toBe(true);
+    expect(codes(project.state.diagnostics)).toContain("doc_anchor_not_found");
+  });
+
+  test("an open buffer with its language's excluded suffix is not scanned", () => {
+    const project = new Project(EXAMPLE_ROOT);
+    project.setOverlay(
+      "src/auth/unsaved.d.ts",
+      "/**\n * @doc docs/auth.md#nonexistent\n */\nexport declare function unsaved(): void;\n",
+    );
+    project.resolve();
+
+    expect(project.state.contentByFile.has("src/auth/unsaved.d.ts")).toBe(false);
+    expect(project.state.diagnostics).toEqual([]);
+  });
 });

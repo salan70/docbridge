@@ -83,6 +83,7 @@ methods. The
 owns the exact scanner behavior and platform keys.
 
 <!-- @code src/shared/glob.ts#collectFiles -->
+<!-- @code src/config/code-language.ts#collectCodeFiles -->
 
 ## Excluded files
 

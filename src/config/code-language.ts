@@ -64,6 +64,11 @@ export const EXCLUDED_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>
   go: [],
 };
 
+/** Whether `relPath` ends with one of `language`'s {@link EXCLUDED_SUFFIXES}. */
+export function hasExcludedSuffix(language: CodeLanguage, relPath: string): boolean {
+  return EXCLUDED_SUFFIXES[language].some((suffix) => relPath.endsWith(suffix));
+}
+
 export type CollectedCodeFile = {
   language: CodeLanguage;
   relPath: string;
@@ -76,8 +81,12 @@ export type CodeFileRead =
 
 /**
  * Collect every managed code file across configured languages, each tagged with
- * its owning language. Results are unique and sorted by path. Files claimed by
- * more than one language are rejected at config load (see {@link codeFileOwners}).
+ * its owning language. Results are unique and sorted by path. A matched file
+ * that ends with one of its language's {@link EXCLUDED_SUFFIXES} is dropped.
+ * Files claimed by more than one language are rejected at config load (see
+ * {@link codeFileOwners}).
+ *
+ * @doc docs/user/configuration.md#excluded-files
  */
 export function collectCodeFiles(
   projectRoot: string,
@@ -90,7 +99,7 @@ export function collectCodeFiles(
     if (entry === undefined) {
       continue;
     }
-    for (const relPath of collectFiles(projectRoot, entry.patterns)) {
+    for (const relPath of collectLanguageFiles(projectRoot, language, entry.patterns)) {
       if (seen.has(relPath)) {
         // Defensive: overlap is rejected at config load, so a repeat here would
         // only occur from concurrent edits. Keep the first owning language.
@@ -118,7 +127,7 @@ export function codeFileOwners(
     if (entry === undefined) {
       continue;
     }
-    for (const relPath of collectFiles(projectRoot, entry.patterns)) {
+    for (const relPath of collectLanguageFiles(projectRoot, language, entry.patterns)) {
       const existing = owners.get(relPath);
       if (existing === undefined) {
         owners.set(relPath, [language]);
@@ -128,4 +137,15 @@ export function codeFileOwners(
     }
   }
   return owners;
+}
+
+/** Collect the files `patterns` match, minus those `language` excludes by suffix. */
+function collectLanguageFiles(
+  projectRoot: string,
+  language: CodeLanguage,
+  patterns: string[],
+): string[] {
+  return collectFiles(projectRoot, patterns).filter(
+    (relPath) => !hasExcludedSuffix(language, relPath),
+  );
 }
