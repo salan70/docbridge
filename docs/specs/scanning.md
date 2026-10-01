@@ -752,7 +752,10 @@ Java canonical IDs use `.` qualification through every enclosing type and a
 parenthesized parameter-type list for methods and constructors: `Foo`,
 `Foo.Inner`, `Foo.MAX`, `Foo.bar(int,String)`, `Foo.Foo(int)`, and
 `Outer.Inner.m()`. A constructor is named after its type, so its symbol name is
-the type's simple name. Parameter types are printed from the type tree alone:
+the type's simple name. Symbol names and IDs use the names javac decodes:
+Unicode escapes are resolved and identifier-ignorable characters such as
+U+200B are dropped, so `class \u0046oo` is `Foo` and a parameter of type
+`\u0046oo` prints as `Foo`. Parameter types are printed from the type tree alone:
 annotations are removed (`@A int` is `int`), type arguments are removed
 (`List<String>` is `List`, `Map.Entry<K, V>` is `Map.Entry`), qualified names
 and type variables are kept as written (`java.util.List`, `T`), each array
@@ -760,9 +763,10 @@ dimension is `[]` whether written on the type or after the name, varargs are
 arrays (`String...` is `String[]`, `String[]...` is `String[][]`), and no
 whitespace or parameter names appear. A method's own type parameters do not
 appear, so `<U> Foo(List<U> u)` is `Foo.Foo(List)`. Overloads that print the
-same way, such as `m(List<String>)` and `m(List<Integer>)`, share one endpoint:
-the first declaration keeps it and a second annotated one is
-`duplicate_code_symbol`.
+same way, such as `m(List<String>)` and `m(List<Integer>)`, share one endpoint.
+As in Go, the first annotated declaration keeps the endpoint and its links, the
+next annotated one reports one `duplicate_code_symbol` per endpoint at its
+name, and further annotated repeats are dropped without another diagnostic.
 
 The annotation source is the Javadoc comment javac associates with the
 declaration: the last `/**` comment before the declaration's first token
@@ -770,26 +774,38 @@ declaration: the last `/**` comment before the declaration's first token
 and non-Javadoc comments. Of two consecutive Javadoc comments only the second
 counts. `DocTrees.getDocComment` decides the association, but it returns the
 comment with its formatting stripped, so the text and its positions come from
-the original source. `@doc\s+(\S+)` is matched over the comment body with the
-`/**` and `*/` delimiters excluded, so a target directly followed by `*/` ends
-before it, and the asterisks that lead continuation lines count as whitespace,
-so a target on the line after `@doc` does not absorb its `*`. `//` and
+the original source. `@doc\s+(\S+)` is matched over the comment body, with
+`\s` the ASCII whitespace set (space, tab, LF, CR, FF, and VT) and `\S` its
+complement, so a no-break space after `@doc` yields no target. The body
+excludes the `/**` and `*/` delimiters, so a target directly followed by `*/`
+ends before it, and the asterisks that lead continuation lines count as
+whitespace, so a target on the line after `@doc` does not absorb its `*`. A
+link's `location` and `targetRange` cover the target text, and a target outside
+the [link resolution](link-resolution.md) grammar is `invalid_link_target`,
+including one with more than one `#`, such as `docs/a.md#one#two`. `//` and
 `/* ... */` comments are never annotation sources. Projects that run `javadoc`
 with `-Xdoclint` register the tag with `-tag doc:a:"DocBridge:"` so the
 unknown-tag check accepts it.
 
 Ranges follow the shared contract. A symbol's `location` and `nameRange` cover
-the name identifier, found in the source after the declaration's modifiers,
-type parameters, and return type. `declarationRange` starts at the Javadoc
-comment when the declaration has one, else at its first annotation or
-modifier (or its first token), and ends where javac ends the declaration: after
-the closing brace of a type or method body, after `;` for a method without a
-body or the last field of a statement, and after the initializer or the
-following `,` for an earlier field. `signatureRange` shares the start and ends
-before the body's opening brace for types and methods, after the last header
-token such as `)`, a `throws` type, or the closing `>` of a type parameter
-list; for a method without a body and for fields it equals
-`declarationRange`.
+the name identifier as spelled in the source. It is found after the
+declaration's modifiers and type parameters by stepping over the element type
+and type annotations of the field or return type, so dimensions written after
+the name (`int xs[]`, `int[] ys[]`, `int legacy()[]`) do not hide it.
+Identifiers are matched by code point against javac's decoded names, and the
+ranges cover the raw spelling: `\u0046oo` is the symbol `Foo` with a
+`nameRange` 8 UTF-16 code units wide. A name that still cannot be located
+keeps its symbol, with `location` at the start javac reports for the
+declaration and an empty `nameRange` there, rather than failing the file.
+`declarationRange` starts at the Javadoc comment when the declaration has
+one, else at its first annotation or modifier (or its first token), and ends
+where javac ends the declaration: after the closing brace of a type or method
+body, after `;` for a method without a body or the last field of a statement,
+and after the initializer or the following `,` for an earlier field.
+`signatureRange` shares the start and ends before the body's opening brace for
+types and methods, after the last header token such as `)`, a `throws` type, or
+the closing `>` of a type parameter list; for a method without a body and for
+fields it equals `declarationRange`.
 
 Offsets from `Trees.getSourcePositions` index the content in UTF-16 code units,
 so columns need no conversion; lines and columns are computed from the
@@ -802,10 +818,11 @@ An `@doc` in the Javadoc of a package declaration, an import, or an initializer
 block, or in a Javadoc dangling at the end of the file, reports one
 `unsupported_declaration` located at the package name, the imported name, the
 block's first token, or the comment itself. A field statement that declares
-several names (`int a, b;`) exposes every name as a symbol, but an `@doc` above
-it is `unsupported_declaration` at the first name because the annotation cannot
-say which name it documents, as in Go; declare the link in
-`docbridge.links.json` instead. Members carry no `isMember`, so a visible
+several names (`int a, b;`, or `int a[], b;` with dimensions on one name)
+exposes every name as a symbol, but an `@doc` above it is
+`unsupported_declaration` at the first name because the annotation cannot say
+which name it documents, as in Go; declare the link in `docbridge.links.json`
+instead. Members carry no `isMember`, so a visible
 method or field without `@doc` is an `undocumented_symbol` in audit mode, as in
 Rust and Go; of several declarations that share an endpoint, only the first is
 reported.
