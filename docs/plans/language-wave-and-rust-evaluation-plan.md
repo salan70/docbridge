@@ -22,9 +22,9 @@ Normative behavior is reflected in these specs as the slices land:
 
 ## Status
 
-- [ ] Slice A (#172): Phase 0 harness, frozen fixtures, and the Rust port of
+- [x] Slice A (#172): Phase 0 harness, frozen fixtures, and the Rust port of
       the resolver and graph
-- [ ] Slice B (#172): comparison tasks, report, and decision record
+- [x] Slice B (#172): comparison tasks, report, and decision record
 - [x] Slice C (#173): language specifications, provisional worker schema,
       pending fixtures, and the Python, Ruby, and Java workers (unregistered)
 - [x] Slice D (#173): core infrastructure T1–T3 and the JavaScript adapter, in
@@ -199,8 +199,9 @@ a task starts from the same frozen baseline commit.
 - `docs/decisions/rust-core-evaluation.md`: go-to-pilot, no-go, or
   inconclusive; where T1–T3 and the JavaScript adapter are implemented; and
   for go, the later slices that need their own acceptance.
-- On no-go or a second inconclusive result, PR 2 deletes the crate and the
-  Phase 0 fixtures and recipes.
+- On no-go, on a decision to stop after an inconclusive result, or on a
+  second inconclusive result, PR 2 deletes the crate and the Phase 0 fixtures
+  and recipes.
 
 ## Slice C: specifications and workers
 
