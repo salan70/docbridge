@@ -218,6 +218,22 @@ jobs:
       # --- end Ruby worker ---
 
       # --- Java worker: setup, build, lint, and tests ---
+      # The JDK pinned by .java-version is installed outside Nix like the Dart
+      # and Go toolchains; the recipes need only javac, jar, and java.
+      - name: Set up the JDK for the Java scanner
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version-file: .java-version
+
+      - name: Build the Java scanner
+        run: nix develop -c just build-java-scanner
+
+      - name: Lint the Java scanner
+        run: nix develop -c just lint-java
+
+      - name: Test the Java scanner
+        run: nix develop -c just test-java-scanner
       # --- end Java worker ---
 
       - name: just test
