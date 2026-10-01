@@ -730,6 +730,74 @@ class DeclarationWalkTest(unittest.TestCase):
         self.assertEqual(result["undocumentedSymbols"], [])
         self.assertEqual(result["diagnostics"], [])
 
+    def test_repeated_classes_share_their_member_endpoints(self):
+        cases = [
+            (
+                "annotated members of an if/else pair are one endpoint",
+                "if X:\n"
+                "    class C:\n"
+                "        # @doc docs/a.md#f\n"
+                "        def f(self): ...\n"
+                "else:\n"
+                "    class C:\n"
+                "        # @doc docs/a.md#f2\n"
+                "        def f(self): ...\n"
+                "        def g(self): ...\n",
+                [("C.f", location(4, 13))],
+                ["C", "C.g"],
+                [("input.py#C.f", "docs/a.md#f")],
+                [("duplicate_code_symbol", "input.py#C.f", location(8, 13))],
+            ),
+            (
+                "an annotated member of the second class documents the first one",
+                "class C:\n"
+                "    def f(self): ...\n"
+                "class C:\n"
+                "    # @doc docs/a.md#f\n"
+                "    def f(self): ...\n",
+                [("C.f", location(2, 9))],
+                ["C"],
+                [("input.py#C.f", "docs/a.md#f")],
+                [],
+            ),
+            (
+                "nested classes merge too",
+                "class C:\n"
+                "    class Inner:\n"
+                "        def f(self): ...\n"
+                "class C:\n"
+                "    class Inner:\n"
+                "        # @doc docs/a.md#f\n"
+                "        def f(self): ...\n",
+                [("C.Inner.f", location(3, 13))],
+                ["C", "C.Inner"],
+                [("input.py#C.Inner.f", "docs/a.md#f")],
+                [],
+            ),
+            (
+                "the second annotated class is a repeat of the class endpoint",
+                "# @doc docs/a.md#c\nclass C: ...\n# @doc docs/a.md#c2\nclass C: ...\n",
+                [("C", location(2, 7))],
+                [],
+                [("input.py#C", "docs/a.md#c")],
+                [("duplicate_code_symbol", "input.py#C", location(4, 7))],
+            ),
+        ]
+        for name, source, symbols, undocumented, links, diagnostics in cases:
+            with self.subTest(name):
+                result = scan(source)
+                self.assertEqual(
+                    [(s["canonicalId"], s["location"]) for s in result["symbols"]], symbols
+                )
+                self.assertEqual(ids(result["undocumentedSymbols"]), undocumented)
+                self.assertEqual(
+                    [(link["source"], link["target"]) for link in result["links"]], links
+                )
+                self.assertEqual(
+                    [(d["code"], d["target"], d["location"]) for d in result["diagnostics"]],
+                    diagnostics,
+                )
+
     def test_same_name_in_different_containers_is_not_a_duplicate(self):
         source = (
             "# @doc docs/a.md#f\n"

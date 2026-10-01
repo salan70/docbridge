@@ -441,7 +441,11 @@ statements at module and class level, including their `else`, `except`,
 inside one is not a symbol, and an `@doc` there is neither a link nor a
 diagnostic. The same name declared twice in one container, as an `if`/`else`
 pair does, is one endpoint whose `location` and ranges are the first
-declaration's. The endpoint is documented when any declaration carries
+declaration's. Endpoints are tracked per file by canonical ID, so this holds
+for classes too: the second `class C` is a repeat of the endpoint `C`, and the
+members of both bodies merge into one set of member endpoints, so `f` defined
+in each body is the single endpoint `C.f` and the second definition is a
+repeat of it. The endpoint is documented when any declaration carries
 `@doc`, and its links come from the first annotated one; as in TypeScript and
 Go, a further annotated declaration is `duplicate_code_symbol` at its name
 and contributes no links, while unannotated repeats are silently subsumed.

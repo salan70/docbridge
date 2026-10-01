@@ -86,16 +86,22 @@ DefinitionNode = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 
 
 class DeclarationCollector:
-    """Collects entries in source order for one parsed file."""
+    """Collects entries in source order for one parsed file.
+
+    Endpoints are kept per file, keyed by canonical ID, so a class declared
+    twice (an ``if``/``else`` pair, say) contributes the members of both
+    bodies to the same member endpoints.
+    """
 
     def __init__(self, table: LineTable, tokens: TokenIndex) -> None:
         self.table = table
         self.tokens = tokens
         self.entries: list[Entry] = []
+        self.endpoints: dict[str, DeclarationEntry] = {}
 
     def collect(self, module: ast.Module) -> list[Entry]:
         self._module_docstring(module)
-        self._walk(module.body, prefix="", private=False, scope={})
+        self._walk(module.body, prefix="", private=False)
         return self.entries
 
     def _module_docstring(self, module: ast.Module) -> None:
@@ -106,16 +112,14 @@ class DeclarationCollector:
         if targets:
             self.entries.append(UnsupportedEntry(self._node_range(docstring), targets))
 
-    def _walk(
-        self, body: list[ast.stmt], prefix: str, private: bool, scope: dict[str, DeclarationEntry]
-    ) -> None:
+    def _walk(self, body: list[ast.stmt], prefix: str, private: bool) -> None:
         for statement in body:
             if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                self._definition(statement, prefix, private, scope)
+                self._definition(statement, prefix, private)
                 continue
             self._unsupported_statement(statement)
             for block in self._nested_blocks(statement):
-                self._walk(block, prefix, private, scope)
+                self._walk(block, prefix, private)
 
     @staticmethod
     def _nested_blocks(statement: ast.stmt) -> list[list[ast.stmt]]:
@@ -151,16 +155,10 @@ class DeclarationCollector:
             )
         )
 
-    def _definition(
-        self,
-        node: DefinitionNode,
-        prefix: str,
-        private: bool,
-        scope: dict[str, DeclarationEntry],
-    ) -> None:
+    def _definition(self, node: DefinitionNode, prefix: str, private: bool) -> None:
         canonical_id = prefix + node.name
         member = self._member(node)
-        existing = scope.get(canonical_id)
+        existing = self.endpoints.get(canonical_id)
         if existing is None:
             entry = DeclarationEntry(
                 symbol_name=node.name,
@@ -168,7 +166,7 @@ class DeclarationCollector:
                 private=private or is_private_name(node.name),
                 members=[member],
             )
-            scope[canonical_id] = entry
+            self.endpoints[canonical_id] = entry
             self.entries.append(entry)
         elif existing.groupable or member.groupable:
             existing.members.append(member)
@@ -180,7 +178,6 @@ class DeclarationCollector:
                 node.body,
                 prefix=canonical_id + ".",
                 private=private or is_private_name(node.name),
-                scope={},
             )
 
     def _member(self, node: DefinitionNode) -> Member:
