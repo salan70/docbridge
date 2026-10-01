@@ -295,6 +295,24 @@ class LinkTargetTest < Minitest::Test
     assert_equal [], link_targets(file)
     assert_equal %w[login], undocumented_ids(file)
   end
+
+  # A `#` comment ends at LF, so the in-line members of the ASCII set are the
+  # ones that can separate `@doc` from its target and end the target.
+  def test_ascii_whitespace_separates_doc_from_its_target_and_ends_it
+    [" ", "\t", "\r", "\f", "\v"].each do |whitespace|
+      file = scan("# @doc#{whitespace}docs/a.md#login#{whitespace}tail\ndef login; end\n")
+      assert_equal [], codes(file), whitespace.inspect
+      assert_equal %w[docs/a.md#login], link_targets(file), whitespace.inspect
+      assert_equal range(1, 8, 1, 23), file[:links][0][:targetRange], whitespace.inspect
+    end
+  end
+
+  def test_a_no_break_space_after_doc_is_not_a_separator
+    file = scan("# @doc\u00A0docs/a.md#login\ndef login; end\n")
+    assert_equal [], codes(file)
+    assert_equal [], link_targets(file)
+    assert_equal %w[login], undocumented_ids(file)
+  end
 end
 
 class ReopeningTest < Minitest::Test
