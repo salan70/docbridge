@@ -124,29 +124,23 @@ class ResponseBuilder:
     def _declaration(self, entry: DeclarationEntry) -> None:
         visibility_class = "private" if entry.private else "public"
         if visibility_class not in self.visible:
-            for member in entry.members + entry.duplicates:
+            for member in entry.members:
                 if member.targets:
                     self._unsupported(member.name_range)
             return
 
         endpoint = f"{self.file_path}#{entry.canonical_id}"
         symbol = self._symbol(entry, entry.members[0], endpoint)
-        # The group's members document the endpoint together; each annotated
-        # non-grouped repeat is a further annotated declaration of it. Only the
-        # first annotated one links; every later one is a duplicate.
-        group_targets = [target for member in entry.members for target in member.targets]
-        annotated_repeats = [member for member in entry.duplicates if member.targets]
-        if group_targets:
-            targets, duplicates = group_targets, annotated_repeats
-        elif annotated_repeats:
-            targets, duplicates = annotated_repeats[0].targets, annotated_repeats[1:]
-        else:
+        # A group's members document the endpoint together. The first annotated
+        # declaration owns the links; every later annotated one is a duplicate.
+        annotated = [declaration for declaration in entry.declarations if declaration.targets]
+        if not annotated:
             self.undocumented.append(symbol)
             return
         self.symbols.append(symbol)
-        self._links(endpoint, targets)
-        for duplicate in duplicates:
-            self._duplicate_code_symbol(endpoint, duplicate)
+        self._links(endpoint, annotated[0].targets)
+        for repeat in annotated[1:]:
+            self._duplicate_code_symbol(endpoint, repeat.first_annotated_member)
 
     def _symbol(self, entry: DeclarationEntry, member: Member, endpoint: str) -> dict[str, object]:
         return {

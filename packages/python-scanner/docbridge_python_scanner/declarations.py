@@ -4,13 +4,23 @@ The walk visits ``def``, ``async def``, and ``class`` at module level and in
 class bodies, recursively for classes, descending into ``if``, ``try``,
 ``with``, ``for``, ``while``, and ``match`` blocks at those levels and never
 into function bodies.
+
+Each endpoint collects its declarations in source order. A declaration is a
+single definition or a group, and a group is either a property chain (a
+``property`` or ``cached_property`` getter followed by functions of the same
+name decorated ``@<name>.getter``, ``.setter``, or ``.deleter``) or a run of
+consecutive ``overload`` stubs plus at most one implementation, the first
+following function of that name not decorated ``overload``. A same-name
+definition that a group does not accept closes it and starts the next
+declaration of the endpoint, which repeats it.
 """
 
 from __future__ import annotations
 
 import ast
+import enum
 import tokenize
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .comments import (
     TokenIndex,
@@ -21,11 +31,13 @@ from .comments import (
 from .links import DocTarget
 from .positions import LineTable
 
-GROUPING_DECORATORS = frozenset(
-    {"property", "cached_property", "getter", "setter", "deleter", "overload"}
-)
+PROPERTY_DECORATORS = frozenset({"property", "cached_property"})
+ACCESSOR_ATTRIBUTES = frozenset({"getter", "setter", "deleter"})
+OVERLOAD_DECORATORS = frozenset({"overload"})
 OPENING_BRACKETS = frozenset({"(", "[", "{"})
 CLOSING_BRACKETS = frozenset({")", "]", "}"})
+
+DefinitionNode = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 
 
 @dataclass
@@ -36,7 +48,57 @@ class Member:
     declaration_range: dict[str, dict[str, int]]
     signature_range: dict[str, dict[str, int]]
     targets: list[DocTarget]
-    groupable: bool
+
+
+class GroupState(enum.Enum):
+    """Whether a declaration still accepts later same-name definitions."""
+
+    CLOSED = enum.auto()
+    PROPERTY_CHAIN = enum.auto()
+    OVERLOAD_STUBS = enum.auto()
+
+
+@dataclass
+class Declaration:
+    """One declaration of an endpoint: a single definition or a group."""
+
+    members: list[Member]
+    state: GroupState
+
+    @classmethod
+    def start(cls, member: Member, node: DefinitionNode) -> Declaration:
+        """Start a declaration; a property getter or overload stub opens a group."""
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return cls([member], GroupState.CLOSED)
+        if has_named_decorator(node, OVERLOAD_DECORATORS):
+            return cls([member], GroupState.OVERLOAD_STUBS)
+        if has_named_decorator(node, PROPERTY_DECORATORS):
+            return cls([member], GroupState.PROPERTY_CHAIN)
+        return cls([member], GroupState.CLOSED)
+
+    @property
+    def targets(self) -> list[DocTarget]:
+        return [target for member in self.members for target in member.targets]
+
+    @property
+    def first_annotated_member(self) -> Member:
+        return next(member for member in self.members if member.targets)
+
+    def accepts(self, node: DefinitionNode) -> bool:
+        """Whether ``node``, a later definition of the same name, joins this group."""
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return False
+        if self.state is GroupState.PROPERTY_CHAIN:
+            return is_property_accessor(node)
+        return self.state is GroupState.OVERLOAD_STUBS
+
+    def join(self, member: Member, node: DefinitionNode) -> None:
+        """Add an accepted definition; an implementation closes an overload group."""
+        self.members.append(member)
+        if self.state is GroupState.OVERLOAD_STUBS and not has_named_decorator(
+            node, OVERLOAD_DECORATORS
+        ):
+            self.state = GroupState.CLOSED
 
 
 @dataclass
@@ -46,12 +108,19 @@ class DeclarationEntry:
     symbol_name: str
     canonical_id: str
     private: bool
-    members: list[Member] = field(default_factory=list)
-    duplicates: list[Member] = field(default_factory=list)
+    declarations: list[Declaration]
 
     @property
-    def groupable(self) -> bool:
-        return any(member.groupable for member in self.members)
+    def members(self) -> list[Member]:
+        return [member for declaration in self.declarations for member in declaration.members]
+
+    def add(self, member: Member, node: DefinitionNode) -> None:
+        """Join the open group that accepts ``node``, else start a new declaration."""
+        last = self.declarations[-1] if self.declarations else None
+        if last is not None and last.accepts(node):
+            last.join(member, node)
+        else:
+            self.declarations.append(Declaration.start(member, node))
 
 
 @dataclass
@@ -73,16 +142,28 @@ def is_private_name(name: str) -> bool:
     return name.startswith("_") and not is_dunder(name)
 
 
-def is_grouping_decorator(decorator: ast.expr) -> bool:
-    """A ``Name`` or ``Attribute`` decorator whose last segment groups members."""
+def decorator_name(decorator: ast.expr) -> str | None:
+    """The last segment of a ``Name`` or ``Attribute`` decorator; ``Call`` has none."""
     if isinstance(decorator, ast.Name):
-        return decorator.id in GROUPING_DECORATORS
+        return decorator.id
     if isinstance(decorator, ast.Attribute):
-        return decorator.attr in GROUPING_DECORATORS
-    return False
+        return decorator.attr
+    return None
 
 
-DefinitionNode = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
+def has_named_decorator(node: DefinitionNode, names: frozenset[str]) -> bool:
+    return any(decorator_name(decorator) in names for decorator in node.decorator_list)
+
+
+def is_property_accessor(node: DefinitionNode) -> bool:
+    """Decorated ``@<name>.getter``, ``.setter``, or ``.deleter`` with its own name."""
+    return any(
+        isinstance(decorator, ast.Attribute)
+        and decorator.attr in ACCESSOR_ATTRIBUTES
+        and isinstance(decorator.value, ast.Name)
+        and decorator.value.id == node.name
+        for decorator in node.decorator_list
+    )
 
 
 class DeclarationCollector:
@@ -157,21 +238,17 @@ class DeclarationCollector:
 
     def _definition(self, node: DefinitionNode, prefix: str, private: bool) -> None:
         canonical_id = prefix + node.name
-        member = self._member(node)
-        existing = self.endpoints.get(canonical_id)
-        if existing is None:
+        entry = self.endpoints.get(canonical_id)
+        if entry is None:
             entry = DeclarationEntry(
                 symbol_name=node.name,
                 canonical_id=canonical_id,
                 private=private or is_private_name(node.name),
-                members=[member],
+                declarations=[],
             )
             self.endpoints[canonical_id] = entry
             self.entries.append(entry)
-        elif existing.groupable or member.groupable:
-            existing.members.append(member)
-        else:
-            existing.duplicates.append(member)
+        entry.add(self._member(node), node)
 
         if isinstance(node, ast.ClassDef):
             self._walk(
@@ -206,8 +283,6 @@ class DeclarationCollector:
             },
             signature_range={"start": start, "end": self.table.position_from_chars(*signature_end)},
             targets=targets,
-            groupable=isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and any(is_grouping_decorator(decorator) for decorator in node.decorator_list),
         )
 
     def _header_tokens(

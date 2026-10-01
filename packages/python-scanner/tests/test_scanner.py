@@ -536,6 +536,100 @@ class GroupingTest(unittest.TestCase):
         )
         self.assertEqual(result["diagnostics"], [])
 
+    def test_a_group_closes_and_later_declarations_repeat_the_endpoint(self):
+        cases = [
+            (
+                "overload stub, then two annotated implementations",
+                "@overload\n"
+                "def get(a: int) -> int: ...\n"
+                "# @doc docs/g.md#impl\n"
+                "def get(a): ...\n"
+                "# @doc docs/g.md#again\n"
+                "def get(a): ...\n",
+                [("get", location(2, 5))],
+                [("input.py#get", "docs/g.md#impl")],
+                [("duplicate_code_symbol", "input.py#get", location(6, 5))],
+            ),
+            (
+                "an overload group closes before a class of that name",
+                "@overload\n"
+                "def get(a: int) -> int:\n"
+                '    """@doc docs/g.md#stub"""\n'
+                "# @doc docs/g.md#class\n"
+                "class get: ...\n",
+                [("get", location(2, 5))],
+                [("input.py#get", "docs/g.md#stub")],
+                [("duplicate_code_symbol", "input.py#get", location(5, 7))],
+            ),
+            (
+                "a property chain closes at an ordinary definition",
+                "class C:\n"
+                "    @property\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#value"""\n'
+                "    @value.setter\n"
+                "    def value(self, v): ...\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#again"""\n',
+                [("C.value", location(3, 9))],
+                [("input.py#C.value", "docs/c.md#value")],
+                [("duplicate_code_symbol", "input.py#C.value", location(7, 9))],
+            ),
+            (
+                "an accessor of another property does not join the chain",
+                "class C:\n"
+                "    @property\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#value"""\n'
+                "    @other.setter\n"
+                "    def value(self, v):\n"
+                '        """@doc docs/c.md#other"""\n',
+                [("C.value", location(3, 9))],
+                [("input.py#C.value", "docs/c.md#value")],
+                [("duplicate_code_symbol", "input.py#C.value", location(6, 9))],
+            ),
+            (
+                "a second property getter starts a repeated chain",
+                "class C:\n"
+                "    @property\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#first"""\n'
+                "    @property\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#second"""\n',
+                [("C.value", location(3, 9))],
+                [("input.py#C.value", "docs/c.md#first")],
+                [("duplicate_code_symbol", "input.py#C.value", location(6, 9))],
+            ),
+            (
+                "a chain after an unannotated definition documents the endpoint",
+                "class C:\n"
+                "    def value(self): ...\n"
+                "    @property\n"
+                "    def value(self):\n"
+                '        """@doc docs/c.md#get"""\n'
+                "    @value.setter\n"
+                "    def value(self, v):\n"
+                '        """@doc docs/c.md#set"""\n',
+                [("C.value", location(2, 9))],
+                [("input.py#C.value", "docs/c.md#get"), ("input.py#C.value", "docs/c.md#set")],
+                [],
+            ),
+        ]
+        for name, source, symbols, links, diagnostics in cases:
+            with self.subTest(name):
+                result = scan(source)
+                self.assertEqual(
+                    [(s["canonicalId"], s["location"]) for s in result["symbols"]], symbols
+                )
+                self.assertEqual(
+                    [(link["source"], link["target"]) for link in result["links"]], links
+                )
+                self.assertEqual(
+                    [(d["code"], d["target"], d["location"]) for d in result["diagnostics"]],
+                    diagnostics,
+                )
+
     def test_group_without_annotation_is_one_undocumented_symbol(self):
         source = (
             "class C:\n"

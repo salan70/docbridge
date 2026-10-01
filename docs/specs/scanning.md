@@ -454,21 +454,41 @@ Python canonical IDs are dot-qualified names: `login`, `Client.login`, and
 `Outer.Inner.login`. Members carry no `isMember`, so a public method without
 `@doc` is an `undocumented_symbol` in audit mode, as in Go.
 
-Grouped declarations follow these rules:
+Some definitions of one name form a group, which counts as a single
+declaration of the endpoint. The definitions of an endpoint are read in source
+order, and each one either joins the group directly before it, when that group
+is still open and accepts it, or starts the endpoint's next declaration. A
+group is one of:
 
-- A function decorated with `property`, `cached_property`, `<name>.getter`,
-  `<name>.setter`, or `<name>.deleter` is the endpoint `Container.<name>`, so
-  a property's getter, setter, and deleter share one endpoint.
-- A function decorated with `overload` shares the endpoint of its
-  implementation, or of the first stub when no implementation follows.
-- A decorator is recognized by the last segment of a `Name` or `Attribute`
-  expression (`property`, `functools.cached_property`, `typing.overload`,
-  `value.setter`); a `Call` decorator such as `@property()` never groups, so
-  a second definition after one follows the same-name rule above instead.
+- A property chain. A function decorated with `property` or
+  `cached_property` opens it, and every later function of the same name
+  decorated `@<name>.getter`, `@<name>.setter`, or `@<name>.deleter`, where
+  `<name>` is that function's own name, joins it. A property's getter, setter,
+  and deleter are therefore one declaration of `Container.<name>`.
+- An overload group. A function decorated with `overload` opens it, each
+  following function of that name decorated with `overload` joins it, and the
+  first following function of that name not decorated with `overload` joins
+  it as the implementation and closes it. Without an implementation the group
+  is the stubs alone.
+
+Any other definition of the name closes the open group without joining it:
+an ordinary function, a class, an accessor decorated with another name
+(`@other.setter`), a second `property` getter, or a definition after the
+implementation. That definition starts the endpoint's next declaration, which
+may open a group of its own, and is a repeat of the endpoint under the
+same-name rule above. An `overload` stub followed by two implementations is
+thus a group of the stub and the first implementation, then a repeat.
+
+- `property`, `cached_property`, and `overload` are recognized by the last
+  segment of a `Name` or `Attribute` decorator (`functools.cached_property`,
+  `typing.overload`), and an accessor by an `Attribute` decorator on a plain
+  `Name` (`value.setter`). A `Call` decorator such as `@property()` never
+  groups.
 - A group's `location`, `nameRange`, `declarationRange`, and `signatureRange`
   are the first member's. Annotations from every member attach to the group
   endpoint in source order, the same target twice across members is
-  `duplicate_link`, and the group is documented when any member is.
+  `duplicate_link`, and the group is documented when any member is. When a
+  group is a repeat, the duplicate is reported at its first annotated member.
 
 Annotations come from two sources, searched with `@doc\s+(\S+)`, where
 whitespace is the ASCII set: space, tab, LF, CR, FF, and VT. Any other
