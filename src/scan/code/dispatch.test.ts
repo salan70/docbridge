@@ -708,3 +708,33 @@ test("cancelling scanCodeFilesAsync cancels the running worker batch and rejects
   expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
   expect(cancelled).toBe(true);
 });
+
+test("a worker adapter starts the worker without the variables its resolution strips", async () => {
+  const stripped: Array<readonly string[] | undefined> = [];
+  const exited: ScannerWorkerProcessResult = { ok: true, exitCode: 2, stdout: "", stderr: "" };
+  const rubyLikeAdapter = createScannerWorkerAdapter(
+    "go",
+    () => ({ ok: true, command: ["/usr/bin/runtime", "worker.rb"], stripEnv: ["RUBYOPT"] }),
+    {
+      run: (input) => {
+        stripped.push(input.stripEnv);
+        return exited;
+      },
+      runAsync: (input) => {
+        stripped.push(input.stripEnv);
+        return settledCancelable(exited);
+      },
+    },
+  );
+
+  rubyLikeAdapter.scanFiles([{ filePath: "a.go", content: "" }], {}, { projectRoot: "/project" });
+  await asyncScan(rubyLikeAdapter)(
+    [{ filePath: "a.go", content: "" }],
+    {},
+    {
+      projectRoot: "/project",
+    },
+  ).promise;
+
+  expect(stripped).toEqual([["RUBYOPT"], ["RUBYOPT"]]);
+});

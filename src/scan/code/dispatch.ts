@@ -379,5 +379,5 @@ function resolveWorkerCommand(
   if (Array.isArray(value)) {
     return { ok: true, command: value, stripEnv: [] };
   }
-  return value.ok ? { ok: true, command: value.command, stripEnv: [] } : value;
+  return value.ok ? { ok: true, command: value.command, stripEnv: value.stripEnv ?? [] } : value;
 }
