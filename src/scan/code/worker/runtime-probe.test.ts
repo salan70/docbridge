@@ -1,15 +1,22 @@
 import { expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { isAbortError, settledCancelable } from "../../../shared/cancelable";
 import {
   probeRuntime,
+  probeRuntimeAsync,
   spawnRuntimeProbe,
   type RuntimeProbeSpawn,
   type RuntimeProbeSpawnResult,
 } from "./runtime-probe";
-import { workerProcessEnv } from "./scanner-worker";
+import {
+  runScannerWorkerProcessAsync,
+  workerProcessEnv,
+  type ScannerWorkerProcessResult,
+  type ScannerWorkerRunAsync,
+} from "./scanner-worker";
 
 function exited(stdout: string, status = 0, stderr = ""): RuntimeProbeSpawnResult {
   return { status, signal: null, stdout, stderr };
@@ -185,6 +192,161 @@ test("spawnRuntimeProbe stops a runtime that ignores SIGTERM at the time limit",
 
     expect(Date.now() - started).toBeLessThan(1_500);
     expect((result.error as { code?: unknown } | undefined)?.code).toBe("ETIMEDOUT");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+const OK_PROBE_LINE = '{"ok": true, "runtime": "cpython", "version": "3.12.4"}';
+
+test("probeRuntimeAsync runs the command with --probe and empty stdin, bounded to 10 s and 64 KiB", async () => {
+  const inputs: Parameters<ScannerWorkerRunAsync>[0][] = [];
+  const runAsync: ScannerWorkerRunAsync = (input) => {
+    inputs.push(input);
+    return settledCancelable<ScannerWorkerProcessResult>({
+      ok: true,
+      exitCode: 0,
+      stdout: `${OK_PROBE_LINE}\n`,
+      stderr: "",
+    });
+  };
+
+  const outcome = await probeRuntimeAsync(
+    ["py", "-3", "-I", "-S", "/opt/docbridge/scanner.py"],
+    ["PYTHONPATH"],
+    runAsync,
+  ).promise;
+
+  expect(inputs).toEqual([
+    {
+      command: ["py", "-3", "-I", "-S", "/opt/docbridge/scanner.py", "--probe"],
+      stdin: "",
+      stripEnv: ["PYTHONPATH"],
+      timeoutMs: 10_000,
+      maxOutputBytes: 64 * 1024,
+    },
+  ]);
+  expect(outcome).toEqual({ kind: "ok", runtime: "cpython", version: "3.12.4" });
+});
+
+test.each([
+  ["an ok probe", ["sh", "-c", `printf '%s\\n' '${OK_PROBE_LINE}'`, "--"]],
+  ["a rejection", ["sh", "-c", `printf '%s\\n' '{"ok": false, "reason": "found PyPy"}'`, "--"]],
+  ["an unsuccessful exit", ["sh", "-c", "echo 'cannot load json' >&2; exit 1", "--"]],
+  ["a kill by a signal", ["sh", "-c", "kill -KILL $$", "--"]],
+  ["malformed output", ["sh", "-c", "echo Python 3.12.4", "--"]],
+  ["stdout over 64 KiB", [process.execPath, "-e", "process.stdout.write('x'.repeat(70000))", "--"]],
+  [
+    "stdout and stderr together over 64 KiB",
+    [
+      process.execPath,
+      "-e",
+      `process.stdout.write('${OK_PROBE_LINE}\\n'); process.stderr.write('x'.repeat(65500))`,
+      "--",
+    ],
+  ],
+])("probeRuntimeAsync classifies %s as probeRuntime does", async (_label, command) => {
+  const expected = probeRuntime(command, []);
+
+  const outcome = await probeRuntimeAsync(command, []).promise;
+
+  expect(outcome).toEqual(expected);
+});
+
+test("probeRuntimeAsync reports a missing executable as unstartable", async () => {
+  const outcome = await probeRuntimeAsync(["/nonexistent/docbridge-runtime"], []).promise;
+
+  expect(outcome.kind).toBe("unstartable");
+});
+
+/** The real asynchronous runner with a 100 ms time limit in place of the probe's 10 s. */
+const runWithShortLimit: ScannerWorkerRunAsync = (input) =>
+  runScannerWorkerProcessAsync({ ...input, timeoutMs: 100 });
+
+test("probeRuntimeAsync reports a probe that outlives the time limit as failed", async () => {
+  const outcome = await probeRuntimeAsync(["sh", "-c", "exec sleep 5", "--"], [], runWithShortLimit)
+    .promise;
+
+  expect(outcome).toEqual({ kind: "failed", reason: "probe did not finish within 10 s" });
+});
+
+test("probeRuntimeAsync starts the probe without the stripped variables", async () => {
+  process.env.DOCBRIDGE_TEST_PROBE_INJECTED = "injected";
+  try {
+    const outcome = await probeRuntimeAsync(
+      [
+        "sh",
+        "-c",
+        'printf \'{"ok": false, "reason": "%s"}\\n\' "${DOCBRIDGE_TEST_PROBE_INJECTED-unset}"',
+        "--",
+      ],
+      ["DOCBRIDGE_TEST_PROBE_INJECTED"],
+    ).promise;
+
+    expect(outcome).toEqual({ kind: "rejected", reason: "unset" });
+  } finally {
+    delete process.env.DOCBRIDGE_TEST_PROBE_INJECTED;
+  }
+});
+
+test("a pending timer fires while an asynchronous probe runs", async () => {
+  const events: string[] = [];
+  const probe = probeRuntimeAsync(
+    ["sh", "-c", `sleep 0.5; printf '%s\\n' '${OK_PROBE_LINE}'`, "--"],
+    [],
+  );
+  setTimeout(() => events.push("timer"), 10);
+
+  const outcome = await probe.promise;
+  events.push("probe");
+
+  expect(events).toEqual(["timer", "probe"]);
+  expect(outcome.kind).toBe("ok");
+});
+
+/** Poll `condition` until it holds; bounded so a broken contract fails instead of hanging. */
+async function eventually(condition: () => boolean, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() > deadline) {
+      throw new Error("condition did not hold in time");
+    }
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+  }
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test("cancelling an asynchronous probe kills the runtime and what it started, and rejects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-probe-cancel-"));
+  try {
+    const pidFile = join(dir, "pid");
+    const probe = probeRuntimeAsync(
+      [
+        "sh",
+        "-c",
+        `sleep 30 & echo $! > '${pidFile}.tmp' && mv '${pidFile}.tmp' '${pidFile}'; wait`,
+        "--",
+      ],
+      [],
+    );
+    await eventually(() => existsSync(pidFile));
+    const descendant = Number(readFileSync(pidFile, "utf8").trim());
+    expect(isAlive(descendant)).toBe(true);
+
+    probe.cancel();
+
+    expect(isAbortError(await probe.promise.catch((reason: unknown) => reason))).toBe(true);
+    await eventually(() => !isAlive(descendant), 1_500);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

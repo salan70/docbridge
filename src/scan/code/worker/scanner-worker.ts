@@ -520,16 +520,26 @@ function syncSpawnFailure(
   return { ok: false, kind: started ? "execution" : "start", error, stderr };
 }
 
+// The runner's execution errors carry what `spawnSync` reports for the same
+// failure, a `signal` or the `ETIMEDOUT` and `ENOBUFS` codes, so a runtime
+// probe run by either runner is classified the same way.
+
 function signalError(signal: string | null | undefined): Error {
-  return new Error(`worker terminated by signal ${signal ?? "unknown"}`);
+  const name = signal ?? "unknown";
+  return Object.assign(new Error(`worker terminated by signal ${name}`), { signal: name });
 }
 
 function timeoutError(timeoutMs: number): Error {
-  return new Error(`worker timed out after ${timeoutMs} ms`);
+  return Object.assign(new Error(`worker timed out after ${timeoutMs} ms`), {
+    code: "ETIMEDOUT",
+  });
 }
 
 function outputLimitError(maxOutputBytes: number): Error {
-  return new Error(`worker wrote more than ${maxOutputBytes} bytes to stdout and stderr together`);
+  return Object.assign(
+    new Error(`worker wrote more than ${maxOutputBytes} bytes to stdout and stderr together`),
+    { code: "ENOBUFS" },
+  );
 }
 
 function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {

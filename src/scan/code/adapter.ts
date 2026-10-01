@@ -55,11 +55,13 @@ export type CodeLanguageAdapter = {
     context: CodeScanContext,
   ): Cancelable<CodeScanResult[]>;
   /**
-   * Resolve what the adapter runs for one scan: the resolved worker argv and
-   * an adapter bound to that resolution, failure included. Adapters that scan
-   * in process omit it and count as argv `[]`.
+   * Resolve, without blocking, what the adapter runs for one scan of the
+   * Language Server: the resolved worker argv and an adapter bound to that
+   * resolution, failure included. Cancelling it stops a resolution in
+   * progress, such as a runtime probe. Adapters that scan in process omit it
+   * and count as argv `[]`.
    */
-  prepare?(context: CodeScanContext): PreparedCodeAdapter;
+  prepare?(context: CodeScanContext): Cancelable<PreparedCodeAdapter>;
 };
 
 export type PreparedCodeAdapter = {

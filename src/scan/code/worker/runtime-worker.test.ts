@@ -3,8 +3,19 @@ import { chmodSync, mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import {
+  abortError,
+  deferred,
+  isAbortError,
+  settledCancelable,
+  type Cancelable,
+} from "../../../shared/cancelable";
 import type { RuntimeProbeOutcome } from "./runtime-probe";
-import { clearRuntimeProbeCache, resolveRuntimeWorkerCommand } from "./runtime-worker";
+import {
+  clearRuntimeProbeCache,
+  resolveRuntimeWorkerCommand,
+  resolveRuntimeWorkerCommandAsync,
+} from "./runtime-worker";
 
 const PYTHON_ENTRY = "packages/python-scanner/docbridge_python_scanner.py";
 const RUBY_ENTRY = "packages/ruby-scanner/bin/docbridge-ruby-scanner";
@@ -670,3 +681,138 @@ test("resolveRuntimeWorkerCommand probes again after the probe cache is cleared"
     expect(calls).toHaveLength(2);
   });
 });
+
+/** The asynchronous form of {@link fakeProbe}: each probe settles at once with its outcome. */
+function fakeProbeAsync(outcomes: Record<string, RuntimeProbeOutcome>) {
+  const { calls, probe } = fakeProbe(outcomes);
+  const probeAsync = (command: readonly string[]): Cancelable<RuntimeProbeOutcome> =>
+    settledCancelable(probe(command));
+  return { calls, probeAsync };
+}
+
+test.each<[string, Record<string, RuntimeProbeOutcome>]>([
+  ["the first usable candidate", { python: PYTHON_OK }],
+  [
+    "no usable candidate",
+    {
+      python3: { kind: "rejected", reason: "expected CPython, found PyPy 3.10.14" },
+      python: { kind: "failed", reason: "probe exited with status 1" },
+    },
+  ],
+])(
+  "resolveRuntimeWorkerCommandAsync resolves %s as the synchronous resolution does",
+  async (_label, outcomes) => {
+    await withPackageAsync([PYTHON_ENTRY], async (root) => {
+      const options = {
+        projectRoot: "/project",
+        sourceRoot: root,
+        env: {},
+        platform: "linux" as const,
+      };
+      const sync = resolveRuntimeWorkerCommand("python", {
+        ...options,
+        probe: fakeProbe(outcomes).probe,
+      });
+      clearRuntimeProbeCache();
+      const { calls, probeAsync } = fakeProbeAsync(outcomes);
+
+      const result = await resolveRuntimeWorkerCommandAsync("python", { ...options, probeAsync })
+        .promise;
+
+      expect(result).toEqual(sync);
+      expect(calls.map((command) => command[0])).toEqual(["python3", "python"]);
+    });
+  },
+);
+
+test("resolveRuntimeWorkerCommandAsync reads the configured command and reports it without fallback", async () => {
+  await withPackageAsync([PYTHON_ENTRY], async (root) => {
+    const { calls, probeAsync } = fakeProbeAsync({});
+
+    const result = await resolveRuntimeWorkerCommandAsync("python", {
+      projectRoot: "/project",
+      command: ["/opt/missing/python3"],
+      sourceRoot: root,
+      env: {},
+      probeAsync,
+    }).promise;
+
+    expect(calls.map((command) => command[0])).toEqual(["/opt/missing/python3"]);
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: {
+        code: "code_scanner_unavailable",
+        message: expect.stringContaining("no other runtime is tried"),
+      },
+    });
+  });
+});
+
+test("a probe result either resolution caches is reused by the other", async () => {
+  await withPackageAsync([PYTHON_ENTRY], async (root) => {
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: { PATH: "/usr/bin" },
+      platform: "linux" as const,
+    };
+    const sync = fakeProbe({ python3: PYTHON_OK });
+    const async = fakeProbeAsync({ python3: PYTHON_OK });
+
+    resolveRuntimeWorkerCommand("python", { ...options, probe: sync.probe });
+    await resolveRuntimeWorkerCommandAsync("python", { ...options, probeAsync: async.probeAsync })
+      .promise;
+    clearRuntimeProbeCache();
+    await resolveRuntimeWorkerCommandAsync("python", { ...options, probeAsync: async.probeAsync })
+      .promise;
+    resolveRuntimeWorkerCommand("python", { ...options, probe: sync.probe });
+
+    expect(sync.calls).toHaveLength(1);
+    expect(async.calls).toHaveLength(1);
+  });
+});
+
+test("cancelling resolveRuntimeWorkerCommandAsync cancels the probe in flight and caches nothing", async () => {
+  await withPackageAsync([PYTHON_ENTRY], async (root) => {
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "linux" as const,
+    };
+    const pending = deferred<RuntimeProbeOutcome>();
+    let cancelled = 0;
+    const task = resolveRuntimeWorkerCommandAsync("python", {
+      ...options,
+      probeAsync: () => ({
+        promise: pending.promise,
+        cancel: () => {
+          cancelled += 1;
+          pending.reject(abortError());
+        },
+      }),
+    });
+
+    task.cancel();
+
+    expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
+    expect(cancelled).toBe(1);
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+    resolveRuntimeWorkerCommand("python", { ...options, probe });
+    expect(calls).toHaveLength(1);
+  });
+});
+
+/** {@link withPackage} for an asynchronous body. */
+async function withPackageAsync(files: string[], run: (root: string) => Promise<void>) {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-runtime-worker-"));
+  try {
+    for (const relPath of files) {
+      mkdirSync(join(root, relPath, ".."), { recursive: true });
+      writeFileSync(join(root, relPath), "");
+    }
+    await run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}

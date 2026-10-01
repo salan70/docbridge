@@ -1,5 +1,13 @@
 import { expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -442,7 +450,7 @@ test("prepare resolves the worker command once and binds the adapter to it", asy
     { run: echoingWorker(requests), runAsync: echoingWorkerAsync(requests) },
   );
 
-  const prepared = prepareOf(goAdapter)({ projectRoot: "/project" });
+  const prepared = await prepareOf(goAdapter)({ projectRoot: "/project" }).promise;
   prepared.adapter.scanFiles([{ filePath: "a.go", content: "" }], {}, { projectRoot: "/project" });
   await asyncScan(prepared.adapter)(
     [{ filePath: "b.go", content: "" }],
@@ -527,7 +535,7 @@ test("prepare carries a command resolution failure to every file without startin
     },
   );
 
-  const prepared = prepareOf(goAdapter)({ projectRoot: "/project" });
+  const prepared = await prepareOf(goAdapter)({ projectRoot: "/project" }).promise;
   const scans = await asyncScan(prepared.adapter)(
     [
       { filePath: "a.go", content: "" },
@@ -543,6 +551,136 @@ test("prepare carries a command resolution failure to every file without startin
     ["a.go"],
     ["b.go"],
   ]);
+});
+
+test("the asynchronous paths run the worker command that commandAsync resolves", async () => {
+  const requests: RecordedRequest[] = [];
+  const commands: string[][] = [];
+  const echo = echoingWorkerAsync(requests);
+  const goAdapter = createScannerWorkerAdapter("go", () => ["sync-go-worker"], {
+    commandAsync: () => settledCancelable(["async-go-worker"]),
+    runAsync: (input) => {
+      commands.push(input.command);
+      return echo(input);
+    },
+  });
+
+  await scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go"),
+    GO_AND_TYPESCRIPT,
+    contentsOf({ "a.go": "package a\n" }),
+    { adapters: { go: goAdapter } },
+  ).promise;
+  await asyncScan(goAdapter)([{ filePath: "b.go", content: "" }], {}, { projectRoot: "/project" })
+    .promise;
+
+  expect(commands).toEqual([["async-go-worker"], ["async-go-worker"]]);
+  expect(requestedPaths(requests)).toEqual([["a.go"], ["b.go"]]);
+});
+
+test("cancelling scanCodeFilesAsync cancels a worker command resolution and starts no worker", async () => {
+  let resolutionCancelled = false;
+  const started: string[][] = [];
+  const goAdapter = createScannerWorkerAdapter(
+    "go",
+    () => {
+      throw new Error("the asynchronous scan resolved the worker command synchronously");
+    },
+    {
+      commandAsync: () => ({
+        promise: deferred<string[]>().promise,
+        cancel: () => {
+          resolutionCancelled = true;
+        },
+      }),
+      runAsync: (input) => {
+        started.push(input.command);
+        return settledCancelable<ScannerWorkerProcessResult>({
+          ok: true,
+          exitCode: 2,
+          stdout: "",
+          stderr: "",
+        });
+      },
+    },
+  );
+  const task = scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go"),
+    GO_AND_TYPESCRIPT,
+    contentsOf({ "a.go": "package a\n" }),
+    { adapters: { go: goAdapter } },
+  );
+
+  task.cancel();
+
+  expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
+  expect(resolutionCancelled).toBe(true);
+  expect(started).toEqual([]);
+});
+
+/** Poll `condition` until it holds; bounded so a broken contract fails instead of hanging. */
+async function eventually(condition: () => boolean, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() > deadline) {
+      throw new Error("condition did not hold in time");
+    }
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+  }
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test("an asynchronous scan probes a configured runtime in the background and kills the probe when cancelled", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-slow-runtime-"));
+  try {
+    const pidFile = join(dir, "pid");
+    const runtime = join(dir, "slow-python");
+    writeFileSync(
+      runtime,
+      [
+        "#!/bin/sh",
+        `echo $$ > '${pidFile}.tmp' && mv '${pidFile}.tmp' '${pidFile}'`,
+        "sleep 1",
+        `printf '%s\\n' '{"ok": false, "reason": "a slow fake runtime"}'`,
+        "",
+      ].join("\n"),
+    );
+    chmodSync(runtime, 0o755);
+    const task = scanCodeFilesAsync(
+      dir,
+      [{ language: "python", relPath: "a.py" }],
+      { python: { patterns: ["**/*.py"] } },
+      () => ({ ok: true, content: "" }),
+      { scanners: { python: { command: [runtime] } } },
+    );
+    let timerFired = false;
+    setTimeout(() => {
+      timerFired = true;
+    }, 10);
+
+    await eventually(() => timerFired && existsSync(pidFile));
+    const probe = Number(readFileSync(pidFile, "utf8").trim());
+    expect(isAlive(probe)).toBe(true);
+
+    task.cancel();
+
+    expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
+    await eventually(() => !isAlive(probe), 1_500);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 function goFiles(...relPaths: string[]): CollectedCodeFile[] {
@@ -737,14 +875,18 @@ test("scanCodeFilesAsync reads every file before the first worker starts", () =>
 
 test("cancelling scanCodeFilesAsync cancels the running worker batch and rejects", async () => {
   let cancelled = false;
+  const started = deferred<void>();
   const adapters = {
     go: createScannerWorkerAdapter("go", () => ["go-worker"], {
-      runAsync: () => ({
-        promise: deferred<ScannerWorkerProcessResult>().promise,
-        cancel: () => {
-          cancelled = true;
-        },
-      }),
+      runAsync: () => {
+        started.resolve();
+        return {
+          promise: deferred<ScannerWorkerProcessResult>().promise,
+          cancel: () => {
+            cancelled = true;
+          },
+        };
+      },
     }),
   };
   const task = scanCodeFilesAsync(
@@ -754,6 +896,8 @@ test("cancelling scanCodeFilesAsync cancels the running worker batch and rejects
     contentsOf({ "a.go": "package a\n" }),
     { adapters },
   );
+  // The adapter is prepared asynchronously, so the batch starts after the call returns.
+  await started.promise;
 
   task.cancel();
 

@@ -199,10 +199,14 @@ runtime, DocBridge runs the full command with `--probe` in the same stripped
 environment and reads the one JSON line the worker prints (see each language's
 section). The probe is limited to 10 seconds and to 64 KiB of stdout and
 stderr together; a probe still running after 10 seconds is killed with
-`SIGKILL`, which it cannot ignore. Its result is cached for the rest of the CLI
-process or language server session, keyed by the full command and the values of
-`PATH` and every `DOCBRIDGE_*` variable; a configuration change clears the
-cache.
+`SIGKILL`, which it cannot ignore. The CLI waits for each probe. The Language
+Server runs it in the background, the way it runs a worker: the probe starts
+in its own process group on POSIX systems, the time and output limits kill the
+group, and cancelling the scan kills the probe at once, so the server keeps
+answering while a slow runtime starts. Its result is cached for the rest of
+the CLI process or language server session, keyed by the full command and the
+values of `PATH` and every `DOCBRIDGE_*` variable; a configuration change
+clears the cache. A cancelled probe caches nothing.
 
 A missing bundled entrypoint, a runtime that cannot be started, and a probe
 that answers `ok: false`, reports another runtime, or reports a version below

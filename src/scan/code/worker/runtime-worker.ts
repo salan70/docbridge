@@ -4,7 +4,8 @@ import { extname, isAbsolute, join, resolve } from "node:path";
 import { isCodeLanguage } from "../../../config/code-language";
 import type { RuntimeWorkerLanguage } from "../../../config/scanner-runtimes";
 import type { DocBridgeDiagnostic } from "../../../model/types";
-import { probeRuntime, type RuntimeProbeOutcome } from "./runtime-probe";
+import { cancelableSequence, settledCancelable, type Cancelable } from "../../../shared/cancelable";
+import { probeRuntime, probeRuntimeAsync, type RuntimeProbeOutcome } from "./runtime-probe";
 import {
   scannerRootsFromModuleUrl,
   type ScannerWorkerCommandResolution,
@@ -89,6 +90,11 @@ type RuntimeProbe = (
   stripEnv: readonly string[],
 ) => RuntimeProbeOutcome;
 
+type RuntimeProbeAsync = (
+  command: readonly string[],
+  stripEnv: readonly string[],
+) => Cancelable<RuntimeProbeOutcome>;
+
 type RuntimeWorkerResolutionOptions = {
   projectRoot: string;
   /** `scanners.<language>.command` from configuration, when set. */
@@ -104,7 +110,19 @@ type RuntimeWorkerResolutionOptions = {
   distRoot?: string;
   /** Seam for the `--probe` run; results are cached either way. */
   probe?: RuntimeProbe;
+  /** Seam for the asynchronous `--probe` run; it shares the cache with `probe`. */
+  probeAsync?: RuntimeProbeAsync;
 };
+
+/** One probe a resolution needs: the full worker command and the variables it starts without. */
+type ProbeRequest = { command: string[]; stripEnv: readonly string[] };
+
+/**
+ * A resolution as steps: it yields each probe it needs and receives the
+ * outcome, so the synchronous and asynchronous resolutions make the same
+ * decisions in the same order.
+ */
+type ResolutionSteps = Generator<ProbeRequest, RuntimeWorkerCommandResolution, RuntimeProbeOutcome>;
 
 type Verdict =
   | { ok: true; runtime: string; version: string }
@@ -150,18 +168,51 @@ export function resolveRuntimeWorkerCommand(
   language: RuntimeWorkerLanguage,
   options: RuntimeWorkerResolutionOptions,
 ): RuntimeWorkerCommandResolution {
+  const env = options.env ?? process.env;
+  const probe = options.probe ?? probeRuntime;
+  const steps = resolutionSteps(language, options, env);
+  let step = steps.next();
+  while (step.done !== true) {
+    step = steps.next(cachedProbe(step.value, env, probe));
+  }
+  return step.value;
+}
+
+/**
+ * The non-blocking counterpart of {@link resolveRuntimeWorkerCommand} for the
+ * Language Server. It makes the same decisions and shares the probe cache, and
+ * runs each probe the cache cannot answer in the background. Cancelling it
+ * kills the probe in flight and rejects with an `AbortError`; a cancelled
+ * probe caches nothing.
+ */
+export function resolveRuntimeWorkerCommandAsync(
+  language: RuntimeWorkerLanguage,
+  options: RuntimeWorkerResolutionOptions,
+): Cancelable<RuntimeWorkerCommandResolution> {
+  const env = options.env ?? process.env;
+  const probeAsync = options.probeAsync ?? probeRuntimeAsync;
+  return cancelableSequence(async (run) => {
+    const steps = resolutionSteps(language, options, env);
+    let step = steps.next();
+    while (step.done !== true) {
+      step = steps.next(await run(cachedProbeAsync(step.value, env, probeAsync)));
+    }
+    return step.value;
+  });
+}
+
+function* resolutionSteps(
+  language: RuntimeWorkerLanguage,
+  options: RuntimeWorkerResolutionOptions,
+  env: Readonly<Record<string, string | undefined>>,
+): ResolutionSteps {
   const spec = RUNTIME_WORKERS[language];
   const entrypoint = findEntrypoint(spec, options);
   if (!entrypoint.ok) {
     return failure(spec, language, "code_scanner_unavailable", entrypoint.reason);
   }
-  const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
-  const probe = options.probe ?? probeRuntime;
-  const attempt = (runtime: string[]) => {
-    const command = [...runtime, ...spec.flags, entrypoint.path];
-    return { command, verdict: judge(spec, cachedProbe(command, spec.stripEnv, env, probe)) };
-  };
+  const commandFor = (runtime: readonly string[]) => [...runtime, ...spec.flags, entrypoint.path];
   const usable = (
     command: string[],
     runtime: readonly string[],
@@ -178,7 +229,8 @@ export function resolveRuntimeWorkerCommand(
     const runtime = override.argv.map((part, index) =>
       index === 0 ? resolveExecutable(part, options.projectRoot) : part,
     );
-    const { command, verdict } = attempt(runtime);
+    const command = commandFor(runtime);
+    const verdict = judge(spec, yield { command, stripEnv: spec.stripEnv });
     if (verdict.ok) {
       return usable(command, runtime, verdict);
     }
@@ -193,7 +245,8 @@ export function resolveRuntimeWorkerCommand(
 
   const rejections: { runtime: string[]; verdict: Exclude<Verdict, { ok: true }> }[] = [];
   for (const runtime of spec.candidates(platform)) {
-    const { command, verdict } = attempt(runtime);
+    const command = commandFor(runtime);
+    const verdict = judge(spec, yield { command, stripEnv: spec.stripEnv });
     if (verdict.ok) {
       return usable(command, runtime, verdict);
     }
@@ -318,15 +371,11 @@ function isExecutableFile(path: string, platform: NodeJS.Platform): boolean {
 }
 
 function cachedProbe(
-  command: string[],
-  stripEnv: readonly string[],
+  { command, stripEnv }: ProbeRequest,
   env: Readonly<Record<string, string | undefined>>,
   probe: RuntimeProbe,
 ): RuntimeProbeOutcome {
-  const docbridgeVariables = Object.entries(env)
-    .filter(([name]) => name.startsWith("DOCBRIDGE_"))
-    .toSorted(([left], [right]) => left.localeCompare(right));
-  const key = JSON.stringify([command, env.PATH ?? "", docbridgeVariables]);
+  const key = probeCacheKey(command, env);
   const cached = probeCache.get(key);
   if (cached !== undefined) {
     return cached;
@@ -334,6 +383,37 @@ function cachedProbe(
   const outcome = probe(command, stripEnv);
   probeCache.set(key, outcome);
   return outcome;
+}
+
+/** {@link cachedProbe} for the asynchronous resolution; only a probe that finished is cached. */
+function cachedProbeAsync(
+  { command, stripEnv }: ProbeRequest,
+  env: Readonly<Record<string, string | undefined>>,
+  probeAsync: RuntimeProbeAsync,
+): Cancelable<RuntimeProbeOutcome> {
+  const key = probeCacheKey(command, env);
+  const cached = probeCache.get(key);
+  if (cached !== undefined) {
+    return settledCancelable(cached);
+  }
+  const task = probeAsync(command, stripEnv);
+  return {
+    promise: task.promise.then((outcome) => {
+      probeCache.set(key, outcome);
+      return outcome;
+    }),
+    cancel: () => task.cancel(),
+  };
+}
+
+function probeCacheKey(
+  command: readonly string[],
+  env: Readonly<Record<string, string | undefined>>,
+): string {
+  const docbridgeVariables = Object.entries(env)
+    .filter(([name]) => name.startsWith("DOCBRIDGE_"))
+    .toSorted(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify([command, env.PATH ?? "", docbridgeVariables]);
 }
 
 function judge(spec: RuntimeWorkerSpec, outcome: RuntimeProbeOutcome): Verdict {

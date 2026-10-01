@@ -1,7 +1,13 @@
 import { spawnSync } from "node:child_process";
 
+import type { Cancelable } from "../../../shared/cancelable";
 import { reasonOf } from "../../../shared/error";
-import { workerProcessEnv } from "./scanner-worker";
+import {
+  runScannerWorkerProcessAsync,
+  workerProcessEnv,
+  type ScannerWorkerProcessResult,
+  type ScannerWorkerRunAsync,
+} from "./scanner-worker";
 
 const PROBE_TIMEOUT_MS = 10_000;
 const PROBE_MAX_OUTPUT_BYTES = 64 * 1024;
@@ -52,11 +58,58 @@ export function probeRuntime(
   spawn: RuntimeProbeSpawn = spawnRuntimeProbe,
 ): RuntimeProbeOutcome {
   const [executable = "", ...args] = command;
-  const result = spawn(executable, [...args, "--probe"], {
-    env: workerProcessEnv(stripEnv),
-    timeout: PROBE_TIMEOUT_MS,
-    maxBuffer: PROBE_MAX_OUTPUT_BYTES,
+  return classifyProbe(
+    spawn(executable, [...args, "--probe"], {
+      env: workerProcessEnv(stripEnv),
+      timeout: PROBE_TIMEOUT_MS,
+      maxBuffer: PROBE_MAX_OUTPUT_BYTES,
+    }),
+  );
+}
+
+/**
+ * The non-blocking counterpart of {@link probeRuntime} for the Language
+ * Server: the same command, environment, empty stdin, bounds, and
+ * classification, run by the asynchronous worker runner. That runner starts
+ * the probe in its own process group on POSIX systems and kills the group
+ * with `SIGKILL` at the time limit, past the output limit, or when the probe
+ * is cancelled, which rejects it with an `AbortError`.
+ */
+export function probeRuntimeAsync(
+  command: readonly string[],
+  stripEnv: readonly string[],
+  runAsync: ScannerWorkerRunAsync = runScannerWorkerProcessAsync,
+): Cancelable<RuntimeProbeOutcome> {
+  const run = runAsync({
+    command: [...command, "--probe"],
+    stdin: "",
+    stripEnv,
+    timeoutMs: PROBE_TIMEOUT_MS,
+    maxOutputBytes: PROBE_MAX_OUTPUT_BYTES,
   });
+  return {
+    promise: run.promise.then((result) => classifyProbe(spawnResultOf(result))),
+    cancel: () => run.cancel(),
+  };
+}
+
+/**
+ * A finished asynchronous probe run in the shape `spawnSync` reports: the
+ * runner's execution errors carry the signal or the `spawnSync` error code.
+ */
+function spawnResultOf(result: ScannerWorkerProcessResult): RuntimeProbeSpawnResult {
+  if (result.ok) {
+    return { status: result.exitCode, signal: null, stdout: result.stdout, stderr: result.stderr };
+  }
+  const error = result.error instanceof Error ? result.error : new Error(reasonOf(result.error));
+  const { signal } = error as { signal?: unknown };
+  if (typeof signal === "string") {
+    return { status: null, signal, stdout: "", stderr: result.stderr };
+  }
+  return { status: null, signal: null, stdout: "", stderr: result.stderr, error };
+}
+
+function classifyProbe(result: RuntimeProbeSpawnResult): RuntimeProbeOutcome {
   if (result.error !== undefined) {
     return classifySpawnError(result.error);
   }

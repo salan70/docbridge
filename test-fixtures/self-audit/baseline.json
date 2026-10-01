@@ -688,6 +688,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntimeAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeOutcome",
       "class": "internal_helper"
     },
@@ -709,6 +714,11 @@
     {
       "code": "undocumented_symbol",
       "target": "src/scan/code/worker/runtime-worker.ts#clearRuntimeProbeCache",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommandAsync",
       "class": "sibling_export"
     },
     {

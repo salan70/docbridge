@@ -114,7 +114,7 @@ Scans run in the background; the server keeps reading and answering messages
 while one runs.
 
 - At most one scan runs at a time. A request cancels the running scan at once,
-  which kills its worker process.
+  which kills its worker process or the runtime probe it is waiting on.
 - Requests that arrive while a scan runs leave exactly one follow-up scan. It
   starts once the running scan has settled and any debounce has elapsed.
 - A scan takes its configuration, manifest, open-buffer text, and file content
