@@ -4,11 +4,14 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+# Git exports GIT_DIR, GIT_INDEX_FILE, and related variables to hooks. Drop
+# them so nothing `just verify` spawns (tests create throwaway git
+# repositories) can act on this repository by accident; see issue #175.
 run_just() {
   if [[ -n "${IN_NIX_SHELL:-}" ]]; then
-    just "$@"
+    env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR just "$@"
   else
-    nix develop -c just "$@"
+    env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR nix develop -c just "$@"
   fi
 }
 
