@@ -468,11 +468,14 @@ order; each one joins the endpoint's latest declaration when that declaration
 is an open group that accepts it, and otherwise starts the endpoint's next
 declaration. A group is one of:
 
-- A property chain. A function decorated with `property` or
-  `cached_property` opens it, and every later function of the same name
-  decorated `@<name>.getter`, `@<name>.setter`, or `@<name>.deleter`, where
-  `<name>` is that function's own name, joins it. A property's getter, setter,
-  and deleter are therefore one declaration of `Container.<name>`.
+- A property chain. A function decorated with `property`,
+  `cached_property`, `@<name>.getter`, `@<name>.setter`, or `@<name>.deleter`,
+  where `<name>` is that function's own name, opens it, and every later
+  function of the same name decorated with one of those accessors joins it.
+  A property's getter, setter, and deleter are therefore one declaration of
+  `Container.<name>`, including when the chain starts at an accessor, as it
+  does for a property bound by assignment (`x = property(...)`) and then
+  extended with `@x.getter` and `@x.setter`.
 - An overload group. A function decorated with `overload` opens it, each
   following function of that name decorated with `overload` joins it, and the
   first following function of that name not decorated with `overload` joins

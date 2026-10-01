@@ -630,6 +630,67 @@ class GroupingTest(unittest.TestCase):
                     diagnostics,
                 )
 
+    def test_a_same_name_accessor_opens_a_property_chain(self):
+        cases = [
+            (
+                "getter and setter over a property() assignment",
+                "class C:\n"
+                "    x = property(lambda self: 0)\n"
+                "\n"
+                "    @x.getter\n"
+                "    def x(self):\n"
+                '        """@doc docs/a.md#get"""\n'
+                "        return 1\n"
+                "\n"
+                "    @x.setter\n"
+                "    def x(self, value):\n"
+                '        """@doc docs/a.md#set"""\n'
+                "        pass\n",
+                [("C.x", location(5, 9))],
+                [("input.py#C.x", "docs/a.md#get"), ("input.py#C.x", "docs/a.md#set")],
+                [],
+            ),
+            (
+                "a setter opens the chain and a deleter joins it",
+                "class C:\n"
+                "    @x.setter\n"
+                "    def x(self, value):\n"
+                '        """@doc docs/a.md#set"""\n'
+                "    @x.deleter\n"
+                "    def x(self):\n"
+                '        """@doc docs/a.md#del"""\n',
+                [("C.x", location(3, 9))],
+                [("input.py#C.x", "docs/a.md#set"), ("input.py#C.x", "docs/a.md#del")],
+                [],
+            ),
+            (
+                "an accessor of another name after an accessor-opened chain is a repeat",
+                "class C:\n"
+                "    @x.setter\n"
+                "    def x(self, value):\n"
+                '        """@doc docs/a.md#set"""\n'
+                "    @y.setter\n"
+                "    def x(self, value):\n"
+                '        """@doc docs/a.md#other"""\n',
+                [("C.x", location(3, 9))],
+                [("input.py#C.x", "docs/a.md#set")],
+                [("duplicate_code_symbol", "input.py#C.x", location(6, 9))],
+            ),
+        ]
+        for name, source, symbols, links, diagnostics in cases:
+            with self.subTest(name):
+                result = scan(source)
+                self.assertEqual(
+                    [(s["canonicalId"], s["location"]) for s in result["symbols"]], symbols
+                )
+                self.assertEqual(
+                    [(link["source"], link["target"]) for link in result["links"]], links
+                )
+                self.assertEqual(
+                    [(d["code"], d["target"], d["location"]) for d in result["diagnostics"]],
+                    diagnostics,
+                )
+
     def test_group_without_annotation_is_one_undocumented_symbol(self):
         source = (
             "class C:\n"

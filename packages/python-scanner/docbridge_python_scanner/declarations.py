@@ -7,12 +7,13 @@ into function bodies.
 
 Each endpoint collects its declarations in source order. A declaration is a
 single definition or a group, and a group is either a property chain (a
-``property`` or ``cached_property`` getter followed by functions of the same
-name decorated ``@<name>.getter``, ``.setter``, or ``.deleter``) or a run of
-consecutive ``overload`` stubs plus at most one implementation, the first
-following function of that name not decorated ``overload``. A same-name
-definition that a group does not accept closes it and starts the next
-declaration of the endpoint, which repeats it.
+function decorated ``property``, ``cached_property``, or ``@<name>.getter``,
+``.setter``, or ``.deleter`` with its own name, followed by functions of that
+name decorated with such an accessor) or a run of consecutive ``overload``
+stubs plus at most one implementation, the first following function of that
+name not decorated ``overload``. A same-name definition that a group does not
+accept closes it and starts the next declaration of the endpoint, which
+repeats it.
 """
 
 from __future__ import annotations
@@ -67,12 +68,12 @@ class Declaration:
 
     @classmethod
     def start(cls, member: Member, node: DefinitionNode) -> Declaration:
-        """Start a declaration; a property getter or overload stub opens a group."""
+        """Start a declaration; a property function or overload stub opens a group."""
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             return cls([member], GroupState.CLOSED)
         if has_named_decorator(node, OVERLOAD_DECORATORS):
             return cls([member], GroupState.OVERLOAD_STUBS)
-        if has_named_decorator(node, PROPERTY_DECORATORS):
+        if has_named_decorator(node, PROPERTY_DECORATORS) or is_property_accessor(node):
             return cls([member], GroupState.PROPERTY_CHAIN)
         return cls([member], GroupState.CLOSED)
 
