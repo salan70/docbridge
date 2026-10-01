@@ -84,6 +84,52 @@ test("runScannerWorkerProcess exposes the clang module cache path to the worker"
   }
 });
 
+test("runScannerWorkerProcess removes the variables named in stripEnv from the worker environment", () => {
+  process.env.DOCBRIDGE_TEST_INJECTED = "injected";
+  process.env.DOCBRIDGE_TEST_KEPT = "kept";
+  try {
+    const result = runScannerWorkerProcess({
+      command: [
+        "sh",
+        "-c",
+        'printf "%s|%s" "${DOCBRIDGE_TEST_INJECTED-unset}" "${DOCBRIDGE_TEST_KEPT-unset}"',
+      ],
+      stdin: "",
+      stripEnv: ["DOCBRIDGE_TEST_INJECTED"],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.stdout).toBe("unset|kept");
+    }
+  } finally {
+    delete process.env.DOCBRIDGE_TEST_INJECTED;
+    delete process.env.DOCBRIDGE_TEST_KEPT;
+  }
+});
+
+test("invokeScannerWorker passes stripEnv to the process runner", () => {
+  let received: readonly string[] | undefined;
+  invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "strip",
+      language: "go",
+      projectRoot: "/project",
+      files: [],
+      options: {},
+    },
+    ["worker"],
+    (input) => {
+      received = input.stripEnv;
+      return { ok: true, exitCode: 1, stdout: "", stderr: "" };
+    },
+    ["RUBYOPT", "JAVA_TOOL_OPTIONS"],
+  );
+
+  expect(received).toEqual(["RUBYOPT", "JAVA_TOOL_OPTIONS"]);
+});
+
 test("runScannerWorkerProcess reports ok: false when the worker is killed by a signal", () => {
   const result = runScannerWorkerProcess({
     command: ["sh", "-c", "kill -KILL $$"],

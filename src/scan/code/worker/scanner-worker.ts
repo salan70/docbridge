@@ -38,6 +38,12 @@ type ScannerWorkerResponseFile = Omit<CodeScanResult, "language">;
 type ScannerWorkerProcessInput = {
   command: string[];
   stdin: string;
+  /**
+   * Environment variables removed before the worker starts. Runtime-backed
+   * workers name the variables that can load code or options into their
+   * interpreter before the bundled entrypoint runs.
+   */
+  stripEnv?: readonly string[];
 };
 
 export type ScannerWorkerProcessResult =
@@ -94,10 +100,12 @@ export function invokeScannerWorker(
   request: ScannerWorkerRequest,
   command: string[],
   run: ScannerWorkerRun = runScannerWorkerProcess,
+  stripEnv: readonly string[] = [],
 ): ScannerWorkerResult {
   const processResult = run({
     command,
     stdin: JSON.stringify(request),
+    stripEnv,
   });
 
   if (!processResult.ok) {
@@ -162,6 +170,24 @@ export function clangModuleCachePath(): string {
 }
 
 /**
+ * The environment a worker process starts with: the current environment
+ * without the variables in `stripEnv`, plus the clang module cache path the
+ * Swift toolchain needs. Every process runner, synchronous or not, uses it.
+ */
+export function workerProcessEnv(stripEnv: readonly string[] = []): Record<string, string> {
+  const moduleCachePath = clangModuleCachePath();
+  mkdirSync(moduleCachePath, { recursive: true });
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(process.env)) {
+    if (value !== undefined && !stripEnv.includes(name)) {
+      env[name] = value;
+    }
+  }
+  env.CLANG_MODULE_CACHE_PATH = moduleCachePath;
+  return env;
+}
+
+/**
  * Default worker process runner. Spawns via `node:child_process` so the
  * bundled CLI runs under both Node.js and Bun. `maxBuffer` must exceed Node's
  * 1 MiB default because worker responses embed scanned file contents.
@@ -170,14 +196,9 @@ export function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
   try {
-    const moduleCachePath = clangModuleCachePath();
-    mkdirSync(moduleCachePath, { recursive: true });
     const [executable = "", ...args] = input.command;
     const result = spawnSync(executable, args, {
-      env: {
-        ...process.env,
-        CLANG_MODULE_CACHE_PATH: moduleCachePath,
-      },
+      env: workerProcessEnv(input.stripEnv),
       input: input.stdin,
       encoding: "utf8",
       maxBuffer: 1024 * 1024 * 1024,

@@ -633,6 +633,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#workerProcessEnv",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRequest",
       "class": "internal_helper"
     },
