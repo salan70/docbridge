@@ -380,6 +380,7 @@ function createFakeSession(
     diagnosticsFor: () => overrides.diagnostics ?? [{ message: "broken link" }],
     waitForDiagnostics: () =>
       Promise.resolve(overrides.diagnostics ?? [{ message: "broken link" }]),
+    waitForPublish: () => Promise.resolve([]),
     stop: () => Promise.resolve(),
   };
 }

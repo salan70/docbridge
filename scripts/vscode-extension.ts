@@ -319,6 +319,9 @@ async function verifyPackagedLanguageServer(
       "typescript",
       readFileSync(join(fixtureRoot, "src/auth.ts"), "utf8"),
     );
+    // The server scans in the background and answers from its last finished
+    // scan, so wait for the scan that saw the document before asking about it.
+    await session.waitForPublish(authUri);
     const position = { line: 3, character: 18 };
     const hover = await session.request<{ contents?: { value?: string } } | null>(
       "textDocument/hover",

@@ -37,6 +37,13 @@ export type LspSession = {
    * not a flake.
    */
   waitForDiagnostics(uri: string, timeoutMs?: number): Promise<Diagnostic[]>;
+  /**
+   * The diagnostics of the first publish for a document, empty ones included.
+   * The server scans in the background and publishes for every open document
+   * after a scan, so this marks the first scan that saw the document. Fails
+   * when nothing is published within `timeoutMs`.
+   */
+  waitForPublish(uri: string, timeoutMs?: number): Promise<Diagnostic[]>;
   stop(): Promise<void>;
 };
 
@@ -164,6 +171,24 @@ export function startLspSession(
         }
         if (Date.now() >= deadline) {
           return published ?? [];
+        }
+        await sleep(25);
+      }
+    },
+    async waitForPublish(uri: string, timeoutMs = 5000): Promise<Diagnostic[]> {
+      const deadline = Date.now() + timeoutMs;
+      for (;;) {
+        if (terminal !== undefined) {
+          throw terminal;
+        }
+        const published = diagnostics.get(uri);
+        if (published !== undefined) {
+          return published;
+        }
+        if (Date.now() >= deadline) {
+          throw new Error(
+            `Language server published no diagnostics for ${uri} within ${timeoutMs}ms.`,
+          );
         }
         await sleep(25);
       }
