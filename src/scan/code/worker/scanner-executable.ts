@@ -25,6 +25,12 @@ export type ScannerWorkerCommandResolution =
        * resolutions always set it; a native executable needs none.
        */
       stripEnv?: readonly string[];
+      /**
+       * The runtime the command runs, which its argv alone may not name: a
+       * bare `python3` runs whichever install `PATH` finds. Runtime-backed
+       * resolutions always set it; a native executable needs none.
+       */
+      runtime?: readonly string[];
     }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 

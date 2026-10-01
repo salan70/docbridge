@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -61,6 +61,7 @@ test("resolveRuntimeWorkerCommand runs a usable python3 isolated on the bundled 
       ok: true,
       command: ["python3", "-I", "-S", join(root, PYTHON_ENTRY)],
       stripEnv: ["PYTHONPATH", "PYTHONSTARTUP", "PYTHONHOME", "PYTHONSAFEPATH"],
+      runtime: ["cpython", "3.12.4", "python3"],
     });
   });
 });
@@ -87,6 +88,7 @@ test("resolveRuntimeWorkerCommand runs Ruby without RubyGems on the bundled scri
         join(root, RUBY_ENTRY),
       ],
       stripEnv: ["RUBYOPT", "RUBYLIB", "PRISM_FFI_BACKEND"],
+      runtime: ["cruby", "3.3.6", "ruby"],
     });
   });
 });
@@ -113,6 +115,41 @@ test("resolveRuntimeWorkerCommand runs Java with start-up flags on the bundled J
         join(root, JAVA_ENTRY),
       ],
       stripEnv: ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"],
+      runtime: ["jdk", "17.0.19", "java"],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand identifies the runtime by its probe and the executable PATH finds", () => {
+  const installs = ["opt/a/bin/python3", "opt/b/bin/python3"];
+  withPackage([PYTHON_ENTRY, ...installs], (root) => {
+    for (const install of installs) {
+      chmodSync(join(root, install), 0o755);
+    }
+    const { probe } = fakeProbe({ python3: PYTHON_OK });
+    const resolveOn = (path: string) =>
+      resolveRuntimeWorkerCommand("python", {
+        projectRoot: "/project",
+        sourceRoot: root,
+        env: { PATH: path },
+        platform: "linux",
+        probe,
+      });
+
+    const first = resolveOn(
+      [join(root, "missing"), join(root, "opt/a/bin"), join(root, "opt/b/bin")].join(":"),
+    );
+    const second = resolveOn(join(root, "opt/b/bin"));
+
+    expect(first).toMatchObject({
+      ok: true,
+      command: ["python3", "-I", "-S", join(root, PYTHON_ENTRY)],
+      runtime: ["cpython", "3.12.4", realpathSync(join(root, "opt/a/bin/python3"))],
+    });
+    expect(second).toMatchObject({
+      ok: true,
+      command: ["python3", "-I", "-S", join(root, PYTHON_ENTRY)],
+      runtime: ["cpython", "3.12.4", realpathSync(join(root, "opt/b/bin/python3"))],
     });
   });
 });

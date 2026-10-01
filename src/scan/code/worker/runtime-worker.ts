@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
+import { accessSync, constants, existsSync, realpathSync, statSync } from "node:fs";
+import { extname, isAbsolute, join, resolve } from "node:path";
 
 import type { RuntimeWorkerLanguage } from "../../../config/scanner-runtimes";
 import type { DocBridgeDiagnostic } from "../../../model/types";
@@ -9,9 +9,15 @@ import {
   type ScannerWorkerCommandResolution,
 } from "./scanner-executable";
 
-/** A runtime-backed resolution always names the variables the worker starts without. */
+/**
+ * A runtime-backed resolution always names the variables the worker starts
+ * without and the runtime it runs: `[runtime, version, executable]`.
+ */
 export type RuntimeWorkerCommandResolution =
-  | (Extract<ScannerWorkerCommandResolution, { ok: true }> & { stripEnv: readonly string[] })
+  | (Extract<ScannerWorkerCommandResolution, { ok: true }> & {
+      stripEnv: readonly string[];
+      runtime: readonly string[];
+    })
   | Extract<ScannerWorkerCommandResolution, { ok: false }>;
 
 type RuntimeWorkerSpec = {
@@ -100,7 +106,7 @@ type RuntimeWorkerResolutionOptions = {
 };
 
 type Verdict =
-  | { ok: true }
+  | { ok: true; runtime: string; version: string }
   | { ok: false; code: DiagnosticCode; startable: boolean; reason: string };
 
 type DiagnosticCode = "code_scanner_unavailable" | "code_scanner_failed";
@@ -149,11 +155,22 @@ export function resolveRuntimeWorkerCommand(
     return failure(spec, language, "code_scanner_unavailable", entrypoint.reason);
   }
   const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
   const probe = options.probe ?? probeRuntime;
   const attempt = (runtime: string[]) => {
     const command = [...runtime, ...spec.flags, entrypoint.path];
     return { command, verdict: judge(spec, cachedProbe(command, spec.stripEnv, env, probe)) };
   };
+  const usable = (
+    command: string[],
+    runtime: readonly string[],
+    verdict: Extract<Verdict, { ok: true }>,
+  ): RuntimeWorkerCommandResolution => ({
+    ok: true,
+    command,
+    stripEnv: spec.stripEnv,
+    runtime: [verdict.runtime, verdict.version, locateExecutable(runtime[0] ?? "", env, platform)],
+  });
 
   const override = explicitOverride(language, options, env);
   if (override !== undefined) {
@@ -162,7 +179,7 @@ export function resolveRuntimeWorkerCommand(
     );
     const { command, verdict } = attempt(runtime);
     if (verdict.ok) {
-      return { ok: true, command, stripEnv: spec.stripEnv };
+      return usable(command, runtime, verdict);
     }
     return failure(
       spec,
@@ -174,10 +191,10 @@ export function resolveRuntimeWorkerCommand(
   }
 
   const rejections: { runtime: string[]; verdict: Exclude<Verdict, { ok: true }> }[] = [];
-  for (const runtime of spec.candidates(options.platform ?? process.platform)) {
+  for (const runtime of spec.candidates(platform)) {
     const { command, verdict } = attempt(runtime);
     if (verdict.ok) {
-      return { ok: true, command, stripEnv: spec.stripEnv };
+      return usable(command, runtime, verdict);
     }
     rejections.push({ runtime, verdict });
   }
@@ -245,6 +262,60 @@ function resolveExecutable(executable: string, projectRoot: string): string {
   return resolve(projectRoot, executable);
 }
 
+/**
+ * The file a runtime executable resolves to, which tells two installs behind
+ * the same command apart: a path as given, or a bare name looked up on `PATH`
+ * (with `PATHEXT` on Windows), with symbolic links resolved. A name not found
+ * stays as given. The lookup is best effort and ignores the other places an
+ * operating system may search.
+ */
+function locateExecutable(
+  executable: string,
+  env: Readonly<Record<string, string | undefined>>,
+  platform: NodeJS.Platform,
+): string {
+  const candidates = /[/\\]/u.test(executable)
+    ? [executable]
+    : pathCandidates(executable, env, platform);
+  const found = candidates.find((candidate) => isExecutableFile(candidate, platform));
+  if (found === undefined) {
+    return executable;
+  }
+  try {
+    return realpathSync(found);
+  } catch {
+    return found;
+  }
+}
+
+function pathCandidates(
+  name: string,
+  env: Readonly<Record<string, string | undefined>>,
+  platform: NodeJS.Platform,
+): string[] {
+  const windows = platform === "win32";
+  const directories = (env.PATH ?? "").split(windows ? ";" : ":").filter((dir) => dir !== "");
+  const extensions =
+    windows && extname(name) === "" ? (env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";") : [""];
+  return directories.flatMap((directory) =>
+    extensions.map((extension) => join(directory, `${name}${extension}`)),
+  );
+}
+
+function isExecutableFile(path: string, platform: NodeJS.Platform): boolean {
+  try {
+    if (!statSync(path).isFile()) {
+      return false;
+    }
+    if (platform !== "win32") {
+      accessSync(path, constants.X_OK);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function cachedProbe(
   command: string[],
   stripEnv: readonly string[],
@@ -303,7 +374,7 @@ function judgeVersion(spec: RuntimeWorkerSpec, runtime: string, version: string)
       `is ${spec.runtimeName} ${version}, below the ${spec.floorText} floor`,
     );
   }
-  return { ok: true };
+  return { ok: true, runtime, version };
 }
 
 function rejected(code: DiagnosticCode, startable: boolean, reason: string): Verdict {

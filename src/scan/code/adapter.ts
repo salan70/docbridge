@@ -61,5 +61,7 @@ export type CodeLanguageAdapter = {
 
 export type PreparedCodeAdapter = {
   argv: readonly string[];
+  /** The resolved runtime behind `argv`, when argv alone does not identify it. */
+  runtime?: readonly string[];
   adapter: CodeLanguageAdapter;
 };

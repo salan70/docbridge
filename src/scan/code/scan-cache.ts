@@ -20,7 +20,8 @@ export function emptyCodeScanCache(): CodeScanCache {
 
 /**
  * Everything one file's scan result depends on: its language, path, content
- * hash, configured visibility, and the resolved worker argv (`[]` in process).
+ * hash, configured visibility, the resolved worker argv (`[]` in process), and
+ * the runtime that argv resolved to (`[]` when argv alone identifies it).
  */
 export function codeScanCacheKey(
   language: CodeLanguage,
@@ -28,9 +29,17 @@ export function codeScanCacheKey(
   content: string,
   options: CodeScanOptions,
   argv: readonly string[],
+  runtime: readonly string[] = [],
 ): string {
   const contentHash = createHash("sha256").update(content).digest("hex");
-  return JSON.stringify([language, filePath, contentHash, options.visibility ?? null, argv]);
+  return JSON.stringify([
+    language,
+    filePath,
+    contentHash,
+    options.visibility ?? null,
+    argv,
+    runtime,
+  ]);
 }
 
 /**

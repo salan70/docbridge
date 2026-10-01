@@ -41,7 +41,7 @@ type ScannerWorkerAdapterOptions = {
 
 /** A resolved worker command in the one shape every batch call consumes. */
 type WorkerCommand =
-  | { ok: true; command: string[]; stripEnv: readonly string[] }
+  | { ok: true; command: string[]; stripEnv: readonly string[]; runtime: readonly string[] }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 /** A worker-backed adapter: every optional member is present. */
@@ -62,6 +62,7 @@ export function createScannerWorkerAdapter(
     const resolved = resolveWorkerCommand(command, context);
     return {
       argv: resolved.ok ? resolved.command : [],
+      runtime: resolved.ok ? resolved.runtime : [],
       adapter: boundWorkerAdapter(language, resolved, adapterOptions),
     };
   };
@@ -128,7 +129,11 @@ function boundWorkerAdapter(
         cancel: () => task.cancel(),
       };
     },
-    prepare: () => ({ argv: resolved.ok ? resolved.command : [], adapter }),
+    prepare: () => ({
+      argv: resolved.ok ? resolved.command : [],
+      runtime: resolved.ok ? resolved.runtime : [],
+      adapter,
+    }),
   };
   return adapter;
 }
@@ -198,9 +203,9 @@ export function scanCodeFilesAsync(
     const cache = new Map<string, CodeScanResult>();
     for (const batch of plan.batches) {
       const base = options.adapters?.[batch.language] ?? builtInAdapters[batch.language];
-      const { argv, adapter } = base.prepare?.(context) ?? { argv: [], adapter: base };
+      const { argv, runtime, adapter } = base.prepare?.(context) ?? { argv: [], adapter: base };
       const keys = batch.files.map((file) =>
-        codeScanCacheKey(batch.language, file.filePath, file.content, batch.options, argv),
+        codeScanCacheKey(batch.language, file.filePath, file.content, batch.options, argv, runtime),
       );
       const cached = keys.map((key) => options.cache?.get(key));
       const missing = batch.files.filter((_, index) => cached[index] === undefined);
@@ -377,7 +382,14 @@ function resolveWorkerCommand(
 ): WorkerCommand {
   const value = command(context.projectRoot);
   if (Array.isArray(value)) {
-    return { ok: true, command: value, stripEnv: [] };
+    return { ok: true, command: value, stripEnv: [], runtime: [] };
   }
-  return value.ok ? { ok: true, command: value.command, stripEnv: value.stripEnv ?? [] } : value;
+  return value.ok
+    ? {
+        ok: true,
+        command: value.command,
+        stripEnv: value.stripEnv ?? [],
+        runtime: value.runtime ?? [],
+      }
+    : value;
 }

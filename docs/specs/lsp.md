@@ -75,10 +75,14 @@ The server uses a whole-project model.
   content, configured visibility, and resolved worker command are unchanged
   since the last accepted rebuild, and sends only the other files to their
   language's worker, one request per language as in
-  [Code Scanning](scanning.md#code-scanning). A parse error is reused; a
-  scanner failure is retried at the next rebuild. A configuration change
-  discards every reused result and every cached runtime probe. Markdown, the
-  link manifest, and the graph are rebuilt in full each time.
+  [Code Scanning](scanning.md#code-scanning). A runtime-backed worker's
+  runtime must be unchanged too: the runtime and version its probe reports
+  and the executable its command's runtime resolves to on `PATH`. A `PATH`
+  change that swaps the `python3` behind the same command therefore rescans
+  every file of that language. A parse error is reused; a scanner failure is
+  retried at the next rebuild. A configuration change discards every reused
+  result and every cached runtime probe. Markdown, the link manifest, and the
+  graph are rebuilt in full each time.
 
 A whole-project model is required: backlink diagnostics and "find all code that
 links to this spec" cannot be derived from a single open file.

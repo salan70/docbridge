@@ -185,4 +185,89 @@ describe("Project runtime probes", () => {
   });
 });
 
+describe("Project scan cache", () => {
+  beforeEach(() => {
+    clearRuntimeProbeCache();
+  });
+
+  test("a runtime that changes behind the same command rescans results cached under the old one", async () => {
+    const pkg = makeProject({ "packages/python-scanner/docbridge_python_scanner.py": "" });
+    const root = makeProject({
+      "docbridge.config.json": JSON.stringify({
+        include: { code: { go: { patterns: ["src/**/*.go"] } }, docs: ["docs/**/*.md"] },
+      }),
+      "src/a.go": "package a\n",
+    });
+    // PATH decides which python3 runs; the command stays `python3 -I -S <entry>`.
+    const env = { PATH: "/opt/python-3.10/bin" };
+    const versions: Record<string, string> = {
+      "/opt/python-3.10/bin": "3.10.14",
+      "/opt/python-3.12/bin": "3.12.4",
+    };
+    let requests = 0;
+    // A runtime-backed resolution standing in for a registered runtime language.
+    const adapter = createScannerWorkerAdapter(
+      "go",
+      (projectRoot) =>
+        resolveRuntimeWorkerCommand("python", {
+          projectRoot,
+          sourceRoot: pkg,
+          env: { ...env },
+          platform: "linux",
+          probe: () => ({ kind: "ok", runtime: "cpython", version: versions[env.PATH] ?? "" }),
+        }),
+      {
+        runAsync: (input) => {
+          requests += 1;
+          return settledCancelable(parseErrorResponse(input.stdin));
+        },
+      },
+    );
+    const project = new Project(root, { adapters: { go: adapter } });
+
+    try {
+      await project.resolveAsync().promise;
+      await project.resolveAsync().promise;
+      expect(requests).toBe(1);
+
+      env.PATH = "/opt/python-3.12/bin";
+      await project.resolveAsync().promise;
+
+      expect(requests).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(pkg, { recursive: true, force: true });
+    }
+  });
+});
+
+/** A worker response reporting a parse error, which a later scan may reuse, for every file. */
+function parseErrorResponse(stdin: string): ScannerWorkerProcessResult {
+  const request = JSON.parse(stdin) as {
+    requestId: string;
+    language: string;
+    files: { filePath: string }[];
+  };
+  const files = request.files.map(({ filePath }) => ({
+    filePath,
+    symbols: [],
+    undocumentedSymbols: [],
+    links: [],
+    diagnostics: [
+      { severity: "error", code: "code_parse_error", target: filePath, message: "bad syntax" },
+    ],
+  }));
+  return {
+    ok: true,
+    exitCode: 0,
+    stdout: JSON.stringify({
+      schemaVersion: 1,
+      requestId: request.requestId,
+      language: request.language,
+      files,
+    }),
+    stderr: "",
+  };
+}
+
 const EXITED: ScannerWorkerProcessResult = { ok: true, exitCode: 2, stdout: "", stderr: "" };
