@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -9,6 +9,7 @@ import commonOutputSchema from "../../../../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../../../../schemas/scanner-worker.schema.json";
 import type { CodeScanResult } from "../../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../../model/types";
+import { abortError, deferred, type Cancelable } from "../../../shared/cancelable";
 import { reasonOf } from "../../../shared/error";
 import type { CodeScanOptions } from "../adapter";
 
@@ -76,6 +77,10 @@ export type ScannerWorkerProcessResult =
 
 export type ScannerWorkerRun = (input: ScannerWorkerProcessInput) => ScannerWorkerProcessResult;
 
+export type ScannerWorkerRunAsync = (
+  input: ScannerWorkerProcessInput,
+) => Cancelable<ScannerWorkerProcessResult>;
+
 type ScannerWorkerSuccess = {
   ok: true;
   codeFiles: CodeScanResult[];
@@ -117,13 +122,47 @@ export function invokeScannerWorker(
   run: ScannerWorkerRun = runScannerWorkerProcess,
   stripEnv: readonly string[] = [],
 ): ScannerWorkerResult {
-  const processResult = run({
+  return interpretWorkerProcess(request, command, run(processInput(request, command, stripEnv)));
+}
+
+/**
+ * The asynchronous counterpart of {@link invokeScannerWorker}, used by the
+ * Language Server. Cancelling it cancels the process run.
+ */
+export function invokeScannerWorkerAsync(
+  request: ScannerWorkerRequest,
+  command: string[],
+  runAsync: ScannerWorkerRunAsync = runScannerWorkerProcessAsync,
+  stripEnv: readonly string[] = [],
+): Cancelable<ScannerWorkerResult> {
+  const run = runAsync(processInput(request, command, stripEnv));
+  return {
+    promise: run.promise.then((processResult) =>
+      interpretWorkerProcess(request, command, processResult),
+    ),
+    cancel: () => run.cancel(),
+  };
+}
+
+function processInput(
+  request: ScannerWorkerRequest,
+  command: string[],
+  stripEnv: readonly string[],
+): ScannerWorkerProcessInput {
+  return {
     command,
     stdin: JSON.stringify(request),
     stripEnv,
     timeoutMs: workerTimeoutMs(request.files.length),
-  });
+  };
+}
 
+/** Turn a finished worker process into scan results or one failure diagnostic. */
+function interpretWorkerProcess(
+  request: ScannerWorkerRequest,
+  command: string[],
+  processResult: ScannerWorkerProcessResult,
+): ScannerWorkerResult {
   if (!processResult.ok) {
     return {
       ok: false,
@@ -250,6 +289,127 @@ export function runScannerWorkerProcess(
   } catch (error) {
     return { ok: false, kind: "start", error, stderr: "" };
   }
+}
+
+/**
+ * Asynchronous worker process runner for the Language Server. It spawns with
+ * an argv array and no shell, counts each output stream's bytes against the
+ * cap, and settles once, after the streams close. The timeout and an oversized
+ * stream kill the worker with `SIGKILL` and report an execution failure;
+ * cancelling kills it the same way and rejects with an `AbortError`.
+ */
+export function runScannerWorkerProcessAsync(
+  input: ScannerWorkerProcessInput,
+): Cancelable<ScannerWorkerProcessResult> {
+  const run = deferred<ScannerWorkerProcessResult>();
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const settle = (complete: () => void): void => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    clearTimeout(timer);
+    complete();
+  };
+
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    const [executable = "", ...args] = input.command;
+    child = spawn(executable, args, { env: workerProcessEnv(input.stripEnv) });
+  } catch (error) {
+    settle(() => run.resolve({ ok: false, kind: "start", error, stderr: "" }));
+    return { promise: run.promise, cancel: () => undefined };
+  }
+
+  const maxOutputBytes = input.maxOutputBytes ?? WORKER_OUTPUT_LIMIT_BYTES;
+  const stdout = new OutputCollector(maxOutputBytes);
+  const stderr = new OutputCollector(maxOutputBytes);
+  let failure: Error | undefined;
+  const kill = (reason: Error): void => {
+    failure ??= reason;
+    child.kill("SIGKILL");
+  };
+  let spawned = false;
+
+  child.on("spawn", () => {
+    spawned = true;
+  });
+  child.on("error", (error) => {
+    if (!spawned) {
+      settle(() => run.resolve({ ok: false, kind: "start", error, stderr: stderr.text() }));
+      return;
+    }
+    failure ??= error;
+  });
+  child.stdout.on("data", (chunk: Buffer) => {
+    if (!stdout.add(chunk)) {
+      kill(outputLimitError(maxOutputBytes));
+    }
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    if (!stderr.add(chunk)) {
+      kill(outputLimitError(maxOutputBytes));
+    }
+  });
+  // A worker may exit without reading its input; its exit status reports why.
+  child.stdin.on("error", () => undefined);
+  child.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
+    settle(() => run.resolve(closedProcessResult(code, signal, failure, stdout, stderr)));
+  });
+  child.stdin.end(input.stdin);
+  const { timeoutMs } = input;
+  if (timeoutMs !== undefined) {
+    timer = setTimeout(() => kill(timeoutError(timeoutMs)), timeoutMs);
+  }
+
+  return {
+    promise: run.promise,
+    cancel() {
+      settle(() => {
+        child.kill("SIGKILL");
+        run.reject(abortError());
+      });
+    },
+  };
+}
+
+/** One output stream collected as bytes and decoded once the stream closes. */
+class OutputCollector {
+  private readonly chunks: Buffer[] = [];
+  private bytes = 0;
+
+  constructor(private readonly limit: number) {}
+
+  /** Keep `chunk`; false once the stream exceeds the cap, after which chunks are dropped. */
+  add(chunk: Buffer): boolean {
+    this.bytes += chunk.byteLength;
+    if (this.bytes > this.limit) {
+      return false;
+    }
+    this.chunks.push(chunk);
+    return true;
+  }
+
+  text(): string {
+    return Buffer.concat(this.chunks).toString("utf8");
+  }
+}
+
+function closedProcessResult(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  failure: Error | undefined,
+  stdout: OutputCollector,
+  stderr: OutputCollector,
+): ScannerWorkerProcessResult {
+  if (failure !== undefined) {
+    return { ok: false, kind: "execution", error: failure, stderr: stderr.text() };
+  }
+  if (code === null) {
+    return { ok: false, kind: "execution", error: signalError(signal), stderr: stderr.text() };
+  }
+  return { ok: true, exitCode: code, stdout: stdout.text(), stderr: stderr.text() };
 }
 
 /**

@@ -1,11 +1,16 @@
 import { expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
+import { deferred, isAbortError } from "../../../shared/cancelable";
 import {
   clangModuleCachePath,
   createLazyWorkerResponseValidator,
   invokeScannerWorker,
+  invokeScannerWorkerAsync,
   runScannerWorkerProcess,
+  runScannerWorkerProcessAsync,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
 
@@ -537,4 +542,286 @@ test("invokeScannerWorker accepts a member symbol flagged isMember", () => {
   if (result.ok) {
     expect(result.codeFiles[0]?.undocumentedSymbols[0]?.isMember).toBe(true);
   }
+});
+
+/** Poll `condition` until it holds; bounded so a broken contract fails instead of hanging. */
+async function eventually(condition: () => boolean, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() > deadline) {
+      throw new Error("condition did not hold in time");
+    }
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+  }
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test("runScannerWorkerProcessAsync pipes stdin to the worker and captures stdout, stderr, and exit code", async () => {
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "cat; echo err >&2; exit 3"],
+    stdin: "ping",
+  }).promise;
+
+  expect(result).toEqual({ ok: true, exitCode: 3, stdout: "ping", stderr: "err\n" });
+});
+
+test("runScannerWorkerProcessAsync decodes multi-byte output split across chunks", async () => {
+  const text = "ログイン🌟".repeat(50_000);
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "cat"],
+    stdin: text,
+  }).promise;
+
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.stdout).toBe(text);
+  }
+});
+
+test("runScannerWorkerProcessAsync reports a start failure when the command does not exist", async () => {
+  const result = await runScannerWorkerProcessAsync({
+    command: ["docbridge-nonexistent-worker-command"],
+    stdin: "",
+  }).promise;
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("start");
+  }
+});
+
+test("runScannerWorkerProcessAsync reports an execution failure when the worker is killed by a signal", async () => {
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "kill -KILL $$"],
+    stdin: "",
+  }).promise;
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+    expect(String(result.error)).toContain("SIGKILL");
+  }
+});
+
+test("runScannerWorkerProcessAsync stops a worker that outlives its timeout", async () => {
+  const started = Date.now();
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "exec sleep 5"],
+    stdin: "",
+    timeoutMs: 100,
+  }).promise;
+
+  expect(Date.now() - started).toBeLessThan(4_000);
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+    expect(String(result.error)).toContain("timed out after 100 ms");
+  }
+});
+
+test("runScannerWorkerProcessAsync reports stdout above the cap as an execution failure", async () => {
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  }).promise;
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+    expect(String(result.error)).toContain("more than 1000 bytes");
+  }
+});
+
+test("runScannerWorkerProcessAsync reports stderr above the cap as an execution failure", async () => {
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a >&2"],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  }).promise;
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+  }
+});
+
+test("runScannerWorkerProcessAsync survives a worker that exits without reading its input", async () => {
+  const result = await runScannerWorkerProcessAsync({
+    command: ["sh", "-c", "exit 0"],
+    stdin: "x".repeat(4 * 1024 * 1024),
+  }).promise;
+
+  expect(result).toEqual({ ok: true, exitCode: 0, stdout: "", stderr: "" });
+});
+
+test("runScannerWorkerProcessAsync removes the variables named in stripEnv and sets the clang cache", async () => {
+  process.env.DOCBRIDGE_TEST_INJECTED = "injected";
+  try {
+    const result = await runScannerWorkerProcessAsync({
+      command: [
+        "sh",
+        "-c",
+        'printf "%s|%s" "${DOCBRIDGE_TEST_INJECTED-unset}" "$CLANG_MODULE_CACHE_PATH"',
+      ],
+      stdin: "",
+      stripEnv: ["DOCBRIDGE_TEST_INJECTED"],
+    }).promise;
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.stdout).toBe(`unset|${clangModuleCachePath()}`);
+    }
+  } finally {
+    delete process.env.DOCBRIDGE_TEST_INJECTED;
+  }
+});
+
+test("cancelling an asynchronous worker run kills the worker and rejects with an AbortError", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-cancel-"));
+  try {
+    const pidFile = join(dir, "pid");
+    const task = runScannerWorkerProcessAsync({
+      command: [
+        "sh",
+        "-c",
+        `echo $$ > '${pidFile}.tmp' && mv '${pidFile}.tmp' '${pidFile}' && exec sleep 30`,
+      ],
+      stdin: "",
+    });
+    await eventually(() => existsSync(pidFile));
+    const pid = Number(readFileSync(pidFile, "utf8").trim());
+    expect(isAlive(pid)).toBe(true);
+
+    task.cancel();
+
+    const error = await task.promise.catch((reason: unknown) => reason);
+    expect(isAbortError(error)).toBe(true);
+    await eventually(() => !isAlive(pid));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("invokeScannerWorkerAsync interprets the worker response like the synchronous path", async () => {
+  const inputs: Array<{ stripEnv?: readonly string[]; timeoutMs?: number }> = [];
+  const result = await invokeScannerWorkerAsync(
+    {
+      schemaVersion: 1,
+      requestId: "req-async",
+      language: "go",
+      projectRoot: "/project",
+      files: [{ filePath: "a.go", content: "package a\n" }],
+      options: {},
+    },
+    ["go-worker"],
+    (input) => {
+      inputs.push(input);
+      return {
+        promise: Promise.resolve({
+          ok: true,
+          exitCode: 0,
+          stdout: JSON.stringify({
+            schemaVersion: 1,
+            requestId: "req-async",
+            language: "go",
+            files: [
+              {
+                filePath: "a.go",
+                symbols: [],
+                undocumentedSymbols: [],
+                links: [],
+                diagnostics: [],
+              },
+            ],
+          }),
+          stderr: "",
+        }),
+        cancel: () => undefined,
+      };
+    },
+    ["GOFLAGS"],
+  ).promise;
+
+  expect(result).toEqual({
+    ok: true,
+    codeFiles: [
+      {
+        language: "go",
+        filePath: "a.go",
+        symbols: [],
+        undocumentedSymbols: [],
+        links: [],
+        diagnostics: [],
+      },
+    ],
+    stderr: "",
+  });
+  expect(inputs.map((input) => [input.stripEnv, input.timeoutMs])).toEqual([[["GOFLAGS"], 31_000]]);
+});
+
+test("invokeScannerWorkerAsync reports an execution failure as scanner failed", async () => {
+  const result = await invokeScannerWorkerAsync(
+    {
+      schemaVersion: 1,
+      requestId: "req-async-crash",
+      language: "go",
+      projectRoot: "/project",
+      files: [{ filePath: "a.go", content: "" }],
+      options: {},
+    },
+    ["go-worker"],
+    () => ({
+      promise: Promise.resolve({
+        ok: false,
+        kind: "execution",
+        error: new Error("worker timed out after 31000 ms"),
+        stderr: "",
+      }),
+      cancel: () => undefined,
+    }),
+  ).promise;
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.diagnostic.code).toBe("code_scanner_failed");
+    expect(result.diagnostic.message).toBe(
+      "Go scanner worker failed: worker timed out after 31000 ms",
+    );
+  }
+});
+
+test("cancelling invokeScannerWorkerAsync cancels the process run", () => {
+  let cancelled = false;
+  const task = invokeScannerWorkerAsync(
+    {
+      schemaVersion: 1,
+      requestId: "req-async-cancel",
+      language: "go",
+      projectRoot: "/project",
+      files: [{ filePath: "a.go", content: "" }],
+      options: {},
+    },
+    ["go-worker"],
+    () => ({
+      promise: deferred<ScannerWorkerProcessResult>().promise,
+      cancel: () => {
+        cancelled = true;
+      },
+    }),
+  );
+
+  task.cancel();
+
+  expect(cancelled).toBe(true);
 });

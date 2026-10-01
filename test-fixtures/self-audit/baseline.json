@@ -378,6 +378,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/adapter.ts#PreparedCodeAdapter",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/config/config.ts#checkPatternSuffix",
       "class": "sibling_export"
     },
@@ -444,6 +449,36 @@
     {
       "code": "undocumented_symbol",
       "target": "src/shared/error.ts#reasonOf",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#Cancelable",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#abortError",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#cancelableSequence",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#deferred",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#isAbortError",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#settledCancelable",
       "class": "internal_helper"
     },
     {
@@ -714,6 +749,21 @@
     {
       "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRun",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRunAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorkerAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcessAsync",
       "class": "internal_helper"
     },
     {

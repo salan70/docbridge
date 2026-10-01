@@ -6,7 +6,9 @@ import { join } from "node:path";
 import { collectCodeFiles, type CodeInclude } from "../../config/code-language";
 import type { DocBridgeDiagnostic } from "../../model/types";
 import { check } from "../../query/check";
+import { deferred } from "../../shared/cancelable";
 import { readManagedFile } from "../../shared/glob";
+import type { CodeLanguageAdapter } from "./adapter";
 import { createScannerWorkerAdapter, scanCodeFiles } from "./dispatch";
 import type { ScannerWorkerProcessResult } from "./worker/scanner-worker";
 
@@ -329,4 +331,159 @@ test("check suppresses link diagnostics for every file of a failed worker reques
       ]);
     },
   );
+});
+
+/** The asynchronous form of {@link echoingWorker}. */
+function echoingWorkerAsync(requests: RecordedRequest[]) {
+  const run = echoingWorker(requests);
+  return (input: { stdin: string }) => ({
+    promise: Promise.resolve(run(input)),
+    cancel: () => undefined,
+  });
+}
+
+function asyncScan(adapter: CodeLanguageAdapter) {
+  const scanFilesAsync = adapter.scanFilesAsync;
+  if (scanFilesAsync === undefined) {
+    throw new Error(`${adapter.language} adapter has no asynchronous scan`);
+  }
+  return scanFilesAsync;
+}
+
+function prepareOf(adapter: CodeLanguageAdapter) {
+  const prepare = adapter.prepare;
+  if (prepare === undefined) {
+    throw new Error(`${adapter.language} adapter has no prepare`);
+  }
+  return prepare;
+}
+
+test("a worker adapter scans a batch asynchronously in one request", async () => {
+  const requests: RecordedRequest[] = [];
+  const goAdapter = createScannerWorkerAdapter("go", () => ["go-worker"], {
+    runAsync: echoingWorkerAsync(requests),
+  });
+
+  const scans = await asyncScan(goAdapter)(
+    [
+      { filePath: "a.go", content: "package a\n" },
+      { filePath: "b.go", content: "package a\n" },
+    ],
+    {},
+    { projectRoot: "/project" },
+  ).promise;
+
+  expect(requestedPaths(requests)).toEqual([["a.go", "b.go"]]);
+  expect(scans.map((scan) => scan.filePath)).toEqual(["a.go", "b.go"]);
+});
+
+test("an asynchronous worker failure reports the diagnostic for every file in the request", async () => {
+  const goAdapter = createScannerWorkerAdapter("go", () => ["go-worker"], {
+    runAsync: () => ({
+      promise: Promise.resolve<ScannerWorkerProcessResult>({
+        ok: true,
+        exitCode: 2,
+        stdout: "",
+        stderr: "",
+      }),
+      cancel: () => undefined,
+    }),
+  });
+
+  const scans = await asyncScan(goAdapter)(
+    [
+      { filePath: "a.go", content: "" },
+      { filePath: "c.go", content: "" },
+    ],
+    {},
+    { projectRoot: "/project" },
+  ).promise;
+
+  expect(scans.map((scan) => scan.diagnostics)).toEqual([
+    [exitFailure("a.go")],
+    [exitFailure("c.go")],
+  ]);
+});
+
+test("cancelling an asynchronous worker batch cancels the worker run", () => {
+  let cancelled = false;
+  const goAdapter = createScannerWorkerAdapter("go", () => ["go-worker"], {
+    runAsync: () => ({
+      promise: deferred<ScannerWorkerProcessResult>().promise,
+      cancel: () => {
+        cancelled = true;
+      },
+    }),
+  });
+
+  asyncScan(goAdapter)(
+    [{ filePath: "a.go", content: "" }],
+    {},
+    { projectRoot: "/project" },
+  ).cancel();
+
+  expect(cancelled).toBe(true);
+});
+
+test("prepare resolves the worker command once and binds the adapter to it", async () => {
+  let resolutions = 0;
+  const requests: RecordedRequest[] = [];
+  const goAdapter = createScannerWorkerAdapter(
+    "go",
+    () => {
+      resolutions += 1;
+      return { ok: true, command: ["/opt/go-worker", "--strict"] };
+    },
+    { run: echoingWorker(requests), runAsync: echoingWorkerAsync(requests) },
+  );
+
+  const prepared = prepareOf(goAdapter)({ projectRoot: "/project" });
+  prepared.adapter.scanFiles([{ filePath: "a.go", content: "" }], {}, { projectRoot: "/project" });
+  await asyncScan(prepared.adapter)(
+    [{ filePath: "b.go", content: "" }],
+    {},
+    {
+      projectRoot: "/project",
+    },
+  ).promise;
+
+  expect(prepared.argv).toEqual(["/opt/go-worker", "--strict"]);
+  expect(resolutions).toBe(1);
+  expect(requestedPaths(requests)).toEqual([["a.go"], ["b.go"]]);
+});
+
+test("prepare carries a command resolution failure to every file without starting a worker", async () => {
+  const requests: RecordedRequest[] = [];
+  const unavailable: DocBridgeDiagnostic = {
+    severity: "error",
+    code: "code_scanner_unavailable",
+    language: "go",
+    target: "go",
+    message: "Go scanner worker is unavailable: missing",
+  };
+  const goAdapter = createScannerWorkerAdapter(
+    "go",
+    () => ({ ok: false, diagnostic: unavailable }),
+    {
+      run: echoingWorker(requests),
+      runAsync: echoingWorkerAsync(requests),
+    },
+  );
+
+  const prepared = prepareOf(goAdapter)({ projectRoot: "/project" });
+  const scans = await asyncScan(prepared.adapter)(
+    [
+      { filePath: "a.go", content: "" },
+      { filePath: "b.go", content: "" },
+    ],
+    {},
+    { projectRoot: "/project" },
+  ).promise;
+
+  expect(prepared.argv).toEqual([]);
+  expect(requests).toEqual([]);
+  expect(scans.map((scan) => scan.diagnostics.map((diagnostic) => diagnostic.target))).toEqual([
+    ["a.go"],
+    ["b.go"],
+  ]);
 });

@@ -1,5 +1,6 @@
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage } from "../../model/types";
+import type { Cancelable } from "../../shared/cancelable";
 
 /** Per-language scan options sourced from the configured code include entry. */
 export type CodeScanOptions = {
@@ -41,4 +42,24 @@ export type CodeLanguageAdapter = {
     options: CodeScanOptions,
     context: CodeScanContext,
   ): CodeScanResult[];
+  /**
+   * The cancellable form of `scanFiles` for the Language Server. Adapters that
+   * scan in process omit it, and callers fall back to `scanFiles`.
+   */
+  scanFilesAsync?(
+    files: readonly CodeScanFile[],
+    options: CodeScanOptions,
+    context: CodeScanContext,
+  ): Cancelable<CodeScanResult[]>;
+  /**
+   * Resolve what the adapter runs for one scan: the resolved worker argv and
+   * an adapter bound to that resolution, failure included. Adapters that scan
+   * in process omit it and count as argv `[]`.
+   */
+  prepare?(context: CodeScanContext): PreparedCodeAdapter;
+};
+
+export type PreparedCodeAdapter = {
+  argv: readonly string[];
+  adapter: CodeLanguageAdapter;
 };

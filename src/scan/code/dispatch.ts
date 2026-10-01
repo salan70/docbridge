@@ -1,11 +1,13 @@
 import type { CodeFileRead, CodeInclude, CollectedCodeFile } from "../../config/code-language";
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../model/types";
+import { settledCancelable, type Cancelable } from "../../shared/cancelable";
 import type {
   CodeLanguageAdapter,
   CodeScanContext,
   CodeScanFile,
   CodeScanOptions,
+  PreparedCodeAdapter,
 } from "./adapter";
 import { typeScriptAdapter } from "./typescript";
 import {
@@ -14,8 +16,10 @@ import {
 } from "./worker/scanner-executable";
 import {
   invokeScannerWorker,
+  invokeScannerWorkerAsync,
   type ScannerWorkerRequest,
   type ScannerWorkerRun,
+  type ScannerWorkerRunAsync,
 } from "./worker/scanner-worker";
 
 /**
@@ -31,6 +35,7 @@ type ScannerWorkerCommandFactory = (
 type ScannerWorkerAdapterOptions = {
   requestId?: () => string;
   run?: ScannerWorkerRun;
+  runAsync?: ScannerWorkerRunAsync;
 };
 
 /** A resolved worker command in the one shape every batch call consumes. */
@@ -38,30 +43,50 @@ type WorkerCommand =
   | { ok: true; command: string[]; stripEnv: readonly string[] }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
+/** A worker-backed adapter: every optional member is present. */
+type WorkerAdapter = CodeLanguageAdapter &
+  Required<Pick<CodeLanguageAdapter, "scanFilesAsync" | "prepare">>;
+
+/**
+ * Create the adapter for a worker-backed language. `command` resolves the
+ * worker for a project root; each scan resolves it once, through `prepare` or
+ * at the start of a batch, and sends the whole batch in one request.
+ */
 export function createScannerWorkerAdapter(
   language: CodeLanguage,
   command: ScannerWorkerCommandFactory,
   adapterOptions: ScannerWorkerAdapterOptions = {},
 ): CodeLanguageAdapter {
-  const scanBatch = (
-    resolved: WorkerCommand,
-    files: readonly CodeScanFile[],
-    options: CodeScanOptions,
-    context: CodeScanContext,
-  ): CodeScanResult[] => {
-    if (!resolved.ok) {
-      return failedBatch(language, files, resolved.diagnostic);
-    }
-    const result = invokeScannerWorker(
-      workerRequest(language, files, options, context, adapterOptions),
-      resolved.command,
-      adapterOptions.run,
-      resolved.stripEnv,
-    );
-    return result.ok ? result.codeFiles : failedBatch(language, files, result.diagnostic);
+  const prepare = (context: CodeScanContext): PreparedCodeAdapter => {
+    const resolved = resolveWorkerCommand(command, context);
+    return {
+      argv: resolved.ok ? resolved.command : [],
+      adapter: boundWorkerAdapter(language, resolved, adapterOptions),
+    };
   };
+  const bound = (context: CodeScanContext): WorkerAdapter =>
+    boundWorkerAdapter(language, resolveWorkerCommand(command, context), adapterOptions);
+  return {
+    language,
+    scanFile: (filePath, content, options, context) =>
+      bound(context).scanFile(filePath, content, options, context),
+    scanFiles: (files, options, context) =>
+      files.length === 0 ? [] : bound(context).scanFiles(files, options, context),
+    scanFilesAsync: (files, options, context) =>
+      files.length === 0
+        ? settledCancelable([])
+        : bound(context).scanFilesAsync(files, options, context),
+    prepare,
+  };
+}
 
-  const adapter: CodeLanguageAdapter = {
+/** A worker adapter whose command is already resolved, failure included. */
+function boundWorkerAdapter(
+  language: CodeLanguage,
+  resolved: WorkerCommand,
+  adapterOptions: ScannerWorkerAdapterOptions,
+): WorkerAdapter {
+  const adapter: WorkerAdapter = {
     language,
     scanFile(filePath, content, options, context) {
       const [scan] = adapter.scanFiles([{ filePath, content }], options, context);
@@ -71,8 +96,38 @@ export function createScannerWorkerAdapter(
       if (files.length === 0) {
         return [];
       }
-      return scanBatch(resolveWorkerCommand(command, context), files, options, context);
+      if (!resolved.ok) {
+        return failedBatch(language, files, resolved.diagnostic);
+      }
+      const result = invokeScannerWorker(
+        workerRequest(language, files, options, context, adapterOptions),
+        resolved.command,
+        adapterOptions.run,
+        resolved.stripEnv,
+      );
+      return result.ok ? result.codeFiles : failedBatch(language, files, result.diagnostic);
     },
+    scanFilesAsync(files, options, context): Cancelable<CodeScanResult[]> {
+      if (files.length === 0) {
+        return settledCancelable([]);
+      }
+      if (!resolved.ok) {
+        return settledCancelable(failedBatch(language, files, resolved.diagnostic));
+      }
+      const task = invokeScannerWorkerAsync(
+        workerRequest(language, files, options, context, adapterOptions),
+        resolved.command,
+        adapterOptions.runAsync,
+        resolved.stripEnv,
+      );
+      return {
+        promise: task.promise.then((result) =>
+          result.ok ? result.codeFiles : failedBatch(language, files, result.diagnostic),
+        ),
+        cancel: () => task.cancel(),
+      };
+    },
+    prepare: () => ({ argv: resolved.ok ? resolved.command : [], adapter }),
   };
   return adapter;
 }
