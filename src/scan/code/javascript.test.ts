@@ -166,3 +166,31 @@ test("two annotated declarations of one JavaScript endpoint are duplicate_code_s
     { code: "duplicate_code_symbol", language: "javascript", target: "src/a.mjs#A.value" },
   ]);
 });
+
+const REPEATED_AND_INVALID_LINKS = [
+  "/**",
+  " * @doc docs/a.md#login",
+  " * @doc docs/a.md#login",
+  " * @doc not-a-target",
+  " */",
+  "export function login() {}",
+  "",
+].join("\n");
+
+test("duplicate_link and invalid_link_target from a JavaScript file carry language javascript", () => {
+  const result = scanTypeScript("src/a.js", REPEATED_AND_INVALID_LINKS);
+
+  expect(result.diagnostics.map(({ code, language }) => [code, language])).toEqual([
+    ["duplicate_link", "javascript"],
+    ["invalid_link_target", "javascript"],
+  ]);
+});
+
+test("duplicate_link and invalid_link_target from a TypeScript file still carry no language", () => {
+  const result = scanTypeScript("src/a.ts", REPEATED_AND_INVALID_LINKS);
+
+  expect(result.diagnostics.map(({ code, language }) => [code, language])).toEqual([
+    ["duplicate_link", undefined],
+    ["invalid_link_target", undefined],
+  ]);
+});

@@ -191,14 +191,14 @@ export function scanTypeScript(
       const parsed = parseLinkTarget(docTag.rawTarget, parseOptions);
 
       if (!parsed.ok) {
-        diagnostics.push(parsed.diagnostic);
+        diagnostics.push(linkDiagnostic(filePath, parsed.diagnostic));
         continue;
       }
 
       if (linkTargetsSeen.has(docTag.rawTarget)) {
-        diagnostics.push(
-          duplicateLinkDiagnostic(endpoint, docTag.rawTarget, docTag.location, docTag.targetRange),
-        );
+        const { rawTarget, location, targetRange } = docTag;
+        const duplicate = duplicateLinkDiagnostic(endpoint, rawTarget, location, targetRange);
+        diagnostics.push(linkDiagnostic(filePath, duplicate));
         continue;
       }
       linkTargetsSeen.add(docTag.rawTarget);
@@ -223,6 +223,20 @@ export function scanTypeScript(
     links,
     diagnostics,
   };
+}
+
+/**
+ * A link diagnostic (`duplicate_link`, `invalid_link_target`) as the scanner
+ * reports it for `filePath`: from a JavaScript file it names `javascript`, and
+ * from a TypeScript file it stays as built, without a language, as before
+ * JavaScript was registered.
+ */
+function linkDiagnostic(filePath: string, diagnostic: DocBridgeDiagnostic): DocBridgeDiagnostic {
+  if (scriptLanguage(filePath) !== "javascript") {
+    return diagnostic;
+  }
+  const { severity, code, ...rest } = diagnostic;
+  return { severity, code, language: "javascript", ...rest };
 }
 
 /** The parser's script kind follows the suffix, so JSX parses only where it is allowed. */

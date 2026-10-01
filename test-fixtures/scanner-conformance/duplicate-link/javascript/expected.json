@@ -72,6 +72,7 @@
     {
       "severity": "warning",
       "code": "duplicate_link",
+      "language": "javascript",
       "target": "docs/auth.md#login",
       "source": "input.js#login",
       "message": "Duplicate @doc link from input.js#login to docs/auth.md#login.",

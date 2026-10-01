@@ -6,7 +6,9 @@ import type { DocBridgeDiagnostic, Range, SourceLocation } from "../../model/typ
 /**
  * The diagnostics the in-process TypeScript scanner reports, kept apart from
  * the declaration walk in `./typescript`. The scanner reads TypeScript and
- * JavaScript, so every diagnostic names the language of its file.
+ * JavaScript, so every diagnostic names the language of its file; the
+ * scanner adds it to a JavaScript link diagnostic, and a TypeScript one keeps
+ * the shape it had before JavaScript was registered, without a language.
  */
 
 type ScriptLanguage = "typescript" | "javascript";
