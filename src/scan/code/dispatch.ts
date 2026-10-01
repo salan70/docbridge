@@ -2,7 +2,12 @@ import type { CodeFileRead, CodeInclude, CollectedCodeFile } from "../../config/
 import type { ScannerRuntimes } from "../../config/scanner-runtimes";
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../model/types";
-import { cancelableSequence, settledCancelable, type Cancelable } from "../../shared/cancelable";
+import {
+  cancelableSequence,
+  mapCancelable,
+  settledCancelable,
+  type Cancelable,
+} from "../../shared/cancelable";
 import type {
   CodeLanguageAdapter,
   CodeScanContext,
@@ -80,15 +85,10 @@ export function createScannerWorkerAdapter(
   const { commandAsync } = adapterOptions;
   const bound = (context: CodeScanContext): WorkerAdapter =>
     boundWorkerAdapter(language, workerCommand(command(context)), adapterOptions).adapter;
-  const prepare = (context: CodeScanContext): Cancelable<PreparedWorkerAdapter> => {
-    const task = commandAsync?.(context) ?? settledCancelable(command(context));
-    return {
-      promise: task.promise.then((value) =>
-        boundWorkerAdapter(language, workerCommand(value), adapterOptions),
-      ),
-      cancel: () => task.cancel(),
-    };
-  };
+  const prepare = (context: CodeScanContext): Cancelable<PreparedWorkerAdapter> =>
+    mapCancelable(commandAsync?.(context) ?? settledCancelable(command(context)), (value) =>
+      boundWorkerAdapter(language, workerCommand(value), adapterOptions),
+    );
   const scanBatchAsync: WorkerAdapter["scanFilesAsync"] = (files, options, context) => {
     if (files.length === 0) {
       return settledCancelable([]);
@@ -97,8 +97,8 @@ export function createScannerWorkerAdapter(
       return bound(context).scanFilesAsync(files, options, context);
     }
     return cancelableSequence(async (step) => {
-      const { adapter } = await step(prepare(context));
-      return step(adapter.scanFilesAsync(files, options, context));
+      const { adapter } = await step(() => prepare(context));
+      return step(() => adapter.scanFilesAsync(files, options, context));
     });
   };
   return {
@@ -154,12 +154,9 @@ function boundWorkerAdapter(
         adapterOptions.runAsync,
         resolved.stripEnv,
       );
-      return {
-        promise: task.promise.then((result) =>
-          result.ok ? result.codeFiles : failedBatch(language, files, result.diagnostic),
-        ),
-        cancel: () => task.cancel(),
-      };
+      return mapCancelable(task, (result) =>
+        result.ok ? result.codeFiles : failedBatch(language, files, result.diagnostic),
+      );
     },
     prepare: () => settledCancelable({ argv, runtime, adapter }),
   };
@@ -241,10 +238,11 @@ export function scanCodeFilesAsync(
     const cache = new Map<string, CodeScanResult>();
     for (const batch of plan.batches) {
       const base = options.adapters?.[batch.language] ?? builtInAdapters[batch.language];
+      // Each step starts only while the scan is not cancelled. An adapter
+      // without `prepare` scans in process and starts its batch at once.
+      const prepare = base.prepare?.bind(base);
       const { argv, runtime, adapter } =
-        base.prepare === undefined
-          ? { argv: [], adapter: base }
-          : await step(base.prepare(context));
+        prepare === undefined ? { argv: [], adapter: base } : await step(() => prepare(context));
       const keys = batch.files.map((file) =>
         codeScanCacheKey(batch.language, file.filePath, file.content, batch.options, argv, runtime),
       );
@@ -253,7 +251,7 @@ export function scanCodeFilesAsync(
       const scanned =
         missing.length === 0
           ? []
-          : await step(scanFilesAsync(adapter, missing, batch.options, context));
+          : await step(() => scanFilesAsync(adapter, missing, batch.options, context));
       let next = 0;
       const results = cached.map((hit) => hit ?? scanned[next++]);
       fillBatch(plan, batch, results);

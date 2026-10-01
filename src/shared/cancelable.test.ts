@@ -5,6 +5,8 @@ import {
   cancelableSequence,
   deferred,
   isAbortError,
+  mapCancelable,
+  settledCancelable,
   type Cancelable,
 } from "./cancelable";
 
@@ -80,6 +82,34 @@ describe(cancelableSequence, () => {
     expect(second.cancelled()).toBe(true);
   });
 
+  test("a step given as a function is never started once the sequence is cancelled", async () => {
+    const first = task<number>();
+    let started = false;
+    const sequence = cancelableSequence(async (step) => {
+      await step(first);
+      return step(() => {
+        started = true;
+        return task<number>();
+      });
+    });
+
+    const settled = sequence.promise.catch((reason: unknown) => reason);
+    // Cancel after the first step has finished but before the second starts.
+    first.resolve(1);
+    await first.promise;
+    sequence.cancel();
+
+    expect(isAbortError(await settled)).toBe(true);
+    await Promise.resolve();
+    expect(started).toBe(false);
+  });
+
+  test("a step given as a function runs the task it starts", async () => {
+    const sequence = cancelableSequence(async (step) => step(() => settledCancelable(2)));
+
+    expect(await sequence.promise).toBe(2);
+  });
+
   test("a sequence cancelled after its last step still rejects", async () => {
     const gate = deferred<void>();
     const sequence = cancelableSequence(async () => {
@@ -91,6 +121,48 @@ describe(cancelableSequence, () => {
     gate.resolve();
 
     expect(isAbortError(await sequence.promise.catch((reason: unknown) => reason))).toBe(true);
+  });
+});
+
+describe(mapCancelable, () => {
+  test("resolves with the mapped result", async () => {
+    const source = task<number>();
+    const mapped = mapCancelable(source, (value) => value * 2);
+
+    source.resolve(2);
+
+    expect(await mapped.promise).toBe(4);
+  });
+
+  test("cancelling cancels the task and rejects with an AbortError", async () => {
+    const source = task<number>();
+    const mapped = mapCancelable(source, (value) => value * 2);
+
+    mapped.cancel();
+
+    expect(source.cancelled()).toBe(true);
+    expect(isAbortError(await mapped.promise.catch((reason: unknown) => reason))).toBe(true);
+  });
+
+  test("cancelling rejects even when the task has finished, and never maps its result", async () => {
+    let mappings = 0;
+    const mapped = mapCancelable(settledCancelable(2), (value) => {
+      mappings += 1;
+      return value * 2;
+    });
+
+    mapped.cancel();
+
+    expect(isAbortError(await mapped.promise.catch((reason: unknown) => reason))).toBe(true);
+    expect(mappings).toBe(0);
+  });
+
+  test("a mapping that throws rejects with its error", async () => {
+    const mapped = mapCancelable(settledCancelable(2), () => {
+      throw new Error("boom");
+    });
+
+    expect(await mapped.promise.catch((reason: unknown) => String(reason))).toBe("Error: boom");
   });
 });
 

@@ -418,7 +418,7 @@ test("an asynchronous worker failure reports the diagnostic for every file in th
   ]);
 });
 
-test("cancelling an asynchronous worker batch cancels the worker run", () => {
+test("cancelling an asynchronous worker batch cancels the worker run and rejects", async () => {
   let cancelled = false;
   const goAdapter = createScannerWorkerAdapter("go", () => ["go-worker"], {
     runAsync: () => ({
@@ -428,14 +428,16 @@ test("cancelling an asynchronous worker batch cancels the worker run", () => {
       },
     }),
   });
-
-  asyncScan(goAdapter)(
+  const batch = asyncScan(goAdapter)(
     [{ filePath: "a.go", content: "" }],
     {},
     { projectRoot: "/project" },
-  ).cancel();
+  );
+
+  batch.cancel();
 
   expect(cancelled).toBe(true);
+  expect(isAbortError(await batch.promise.catch((reason: unknown) => reason))).toBe(true);
 });
 
 test("prepare resolves the worker command once and binds the adapter to it", async () => {
@@ -618,6 +620,45 @@ test("cancelling scanCodeFilesAsync cancels a worker command resolution and star
   expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
   expect(resolutionCancelled).toBe(true);
   expect(started).toEqual([]);
+});
+
+test("cancelling prepare rejects with an AbortError even when the resolution already finished", async () => {
+  const goAdapter = createScannerWorkerAdapter("go", () => ["fake"]);
+  const prepared = prepareOf(goAdapter)({ projectRoot: "/project" });
+
+  prepared.cancel();
+
+  expect(isAbortError(await prepared.promise.catch((reason: unknown) => reason))).toBe(true);
+});
+
+test("cancelling scanCodeFilesAsync right away starts no worker", async () => {
+  const events: string[] = [];
+  const goAdapter = createScannerWorkerAdapter("go", () => ["fake"], {
+    runAsync: () => {
+      events.push("worker started");
+      return {
+        promise: deferred<ScannerWorkerProcessResult>().promise,
+        cancel: () => {
+          events.push("worker cancelled");
+        },
+      };
+    },
+  });
+  const task = scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go"),
+    GO_AND_TYPESCRIPT,
+    contentsOf({ "a.go": "package a\n" }),
+    { adapters: { go: goAdapter } },
+  );
+
+  task.cancel();
+
+  expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 10);
+  });
+  expect(events).toEqual([]);
 });
 
 /** Poll `condition` until it holds; bounded so a broken contract fails instead of hanging. */

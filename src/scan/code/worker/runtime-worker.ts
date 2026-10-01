@@ -4,7 +4,12 @@ import { extname, isAbsolute, join, resolve } from "node:path";
 import { isCodeLanguage } from "../../../config/code-language";
 import type { RuntimeWorkerLanguage } from "../../../config/scanner-runtimes";
 import type { DocBridgeDiagnostic } from "../../../model/types";
-import { cancelableSequence, settledCancelable, type Cancelable } from "../../../shared/cancelable";
+import {
+  cancelableSequence,
+  mapCancelable,
+  settledCancelable,
+  type Cancelable,
+} from "../../../shared/cancelable";
 import { probeRuntime, probeRuntimeAsync, type RuntimeProbeOutcome } from "./runtime-probe";
 import {
   scannerRootsFromModuleUrl,
@@ -211,7 +216,8 @@ export function resolveRuntimeWorkerCommandAsync(
     const steps = resolutionSteps(language, options, env);
     let step = steps.next();
     while (step.done !== true) {
-      step = steps.next(await run(cachedProbeAsync(step.value, env, probeAsync)));
+      const request = step.value;
+      step = steps.next(await run(() => cachedProbeAsync(request, env, probeAsync)));
     }
     return step.value;
   });
@@ -404,7 +410,7 @@ function cachedProbe(
 
 /**
  * {@link cachedProbe} for the asynchronous resolution. Only a probe that
- * finished, with no cache clear since it started, is cached.
+ * finished uncancelled, with no cache clear since it started, is cached.
  */
 function cachedProbeAsync(
   { command, stripEnv }: ProbeRequest,
@@ -417,14 +423,10 @@ function cachedProbeAsync(
     return settledCancelable(cached);
   }
   const generation = probeCacheGeneration;
-  const task = probeAsync(command, stripEnv);
-  return {
-    promise: task.promise.then((outcome) => {
-      rememberProbe(key, generation, outcome);
-      return outcome;
-    }),
-    cancel: () => task.cancel(),
-  };
+  return mapCancelable(probeAsync(command, stripEnv), (outcome) => {
+    rememberProbe(key, generation, outcome);
+    return outcome;
+  });
 }
 
 function probeCacheKey(
