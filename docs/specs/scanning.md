@@ -466,7 +466,11 @@ Grouped declarations follow these rules:
   endpoint in source order, the same target twice across members is
   `duplicate_link`, and the group is documented when any member is.
 
-Annotations come from two sources, searched with `@doc\s+(\S+)`:
+Annotations come from two sources, searched with `@doc\s+(\S+)`, where
+whitespace is the ASCII set: space, tab, LF, CR, FF, and VT. Any other
+character, including a Unicode space such as U+00A0, neither separates `@doc`
+from its target nor ends a target, so `@doc` followed by U+00A0 is no
+annotation and a U+00A0 inside a target is part of that target:
 
 - The docstring: the first statement of the `def` or `class` body when it is a
   string expression whose value is a `str` constant, as CPython defines a
@@ -488,9 +492,10 @@ Annotations come from two sources, searched with `@doc\s+(\S+)`:
   and a comment block that leads nothing are never doc comments.
 
 A link's `location` and `targetRange` cover the target text. A target that
-does not parse as `file#fragment` (exactly one `#`, no empty part, no
+does not parse as `file#fragment` (exactly one `#`, no empty part, no ASCII
 whitespace, no backslash, no `./`, `../`, or absolute path, not the source
-file itself) is `invalid_link_target`.
+file itself) is `invalid_link_target`; a U+00A0 inside a target does not make
+it invalid.
 
 For each symbol, `location` and `nameRange` cover the name token.
 `declarationRange` starts at the leading comment block, else at the first

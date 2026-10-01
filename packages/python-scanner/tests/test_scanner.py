@@ -839,6 +839,36 @@ class LinkTargetsTest(unittest.TestCase):
             ],
         )
 
+    def test_only_ascii_whitespace_separates_a_target(self):
+        target = [("docs/a.md#f", span(1, 8, 1, 19))]
+        cases = [
+            ("space", "# @doc docs/a.md#f\ndef f(): ...\n", target),
+            ("tab", "# @doc\tdocs/a.md#f\ndef f(): ...\n", target),
+            ("form feed", "# @doc\fdocs/a.md#f\ndef f(): ...\n", target),
+            ("vertical tab", "# @doc\vdocs/a.md#f\ndef f(): ...\n", target),
+            ("no-break space after @doc", "# @doc\u00a0docs/a.md#f\ndef f(): ...\n", []),
+            ("ideographic space after @doc", "# @doc\u3000docs/a.md#f\ndef f(): ...\n", []),
+            ("information separator after @doc", "# @doc\x1cdocs/a.md#f\ndef f(): ...\n", []),
+            (
+                "no-break space inside a comment target is part of it",
+                "# @doc docs/a\u00a0b.md#f\ndef f(): ...\n",
+                [("docs/a\u00a0b.md#f", span(1, 8, 1, 21))],
+            ),
+            (
+                "no-break space inside a docstring target is part of it",
+                'def f():\n    """@doc docs/a.md#f\u00a0g"""\n',
+                [("docs/a.md#f\u00a0g", span(2, 13, 2, 26))],
+            ),
+        ]
+        for name, source, expected in cases:
+            with self.subTest(name):
+                result = scan(source)
+                self.assertEqual(
+                    [(link["target"], link["targetRange"]) for link in result["links"]],
+                    expected,
+                )
+                self.assertEqual(result["diagnostics"], [])
+
     def test_duplicate_target_on_one_declaration(self):
         result = scan("# @doc docs/a.md#f\n# @doc docs/a.md#f\ndef f(): ...\n")
         self.assertEqual(len(result["links"]), 1)

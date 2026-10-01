@@ -5,7 +5,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-DOC_TARGET_PATTERN = re.compile(r"@doc\s+(\S+)")
+# Whitespace means the ASCII set: space, tab, LF, CR, FF, and VT. A Unicode
+# space such as U+00A0 neither separates a target nor ends one.
+DOC_TARGET_PATTERN = re.compile(r"@doc\s+(\S+)", re.ASCII)
+WHITESPACE_PATTERN = re.compile(r"\s", re.ASCII)
 
 INVALID_LINK_TARGET_MESSAGE = (
     "Link target must be a project-root-relative file path and fragment in file#fragment form."
@@ -39,7 +42,7 @@ def find_doc_matches(text: str) -> list[DocMatch]:
 
 
 def _has_whitespace(value: str) -> bool:
-    return re.search(r"\s", value) is not None
+    return WHITESPACE_PATTERN.search(value) is not None
 
 
 def is_valid_link_target(target: str, source_file_path: str) -> bool:
