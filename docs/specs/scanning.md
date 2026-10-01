@@ -577,8 +577,12 @@ reopening attach to it in source order, and the same target repeated across
 reopenings is `duplicate_link` at the repeated annotation. Reopenings in other
 files stay separate endpoints. A method or constant declared twice in one
 container follows the shared duplicate rule: the first annotated declaration
-owns the endpoint and every later annotated one is `duplicate_code_symbol` at
-its name; unannotated repeats are reported once as undocumented.
+owns the endpoint, its location, and its links; the first repeated annotated
+declaration reports one `duplicate_code_symbol` at its name, and further
+annotated repeats are dropped without another diagnostic. Repeats contribute
+no links. An endpoint that any declaration documents is never also
+undocumented; when none does, it is reported once as undocumented, at its
+first declaration.
 
 The annotation source is the contiguous run of full-line `#` comments that
 ends on the line directly above the declaration, indented or not; a blank
@@ -586,10 +590,13 @@ line, a code line, or a trailing comment after code (`X = 1 # ...`) breaks the
 run, and `=begin`/`=end` blocks are never a source. Magic comments such as
 `# frozen_string_literal: true` need no special case because they carry no
 `@doc`. The run above `private def x` or `private_class_method def self.x`
-attaches to that method. `@doc\s+(\S+)` is matched over the text after `#`, a
-link's `location` and `targetRange` cover the target text, and an invalid
-target is `invalid_link_target` under the [link resolution](link-resolution.md)
-rules. Comments inside method bodies are ignored.
+attaches to that method. `@doc\s+(\S+)` is matched over the text after `#`,
+where `\s` is the ASCII whitespace set (space, tab, LF, CR, FF, and VT) and
+`\S` is any other character, so a no-break space (U+00A0) after `@doc` does
+not start a link. A link's `location` and `targetRange` cover the target
+text, and an invalid target is `invalid_link_target` under the
+[link resolution](link-resolution.md) rules. Comments inside method bodies
+are ignored.
 
 Visibility classes are `public`, `protected`, and `private`. Classes,
 modules, and constants are always `public`. A method's class is tracked
