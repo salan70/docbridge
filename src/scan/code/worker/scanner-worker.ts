@@ -44,7 +44,17 @@ type ScannerWorkerProcessInput = {
    * interpreter before the bundled entrypoint runs.
    */
   stripEnv?: readonly string[];
+  /** Milliseconds before the worker is killed; no limit when omitted. */
+  timeoutMs?: number;
+  /** Bytes each of stdout and stderr may carry; defaults to 1 GiB. */
+  maxOutputBytes?: number;
 };
+
+/**
+ * The default cap on each output stream. It must exceed Node's 1 MiB default
+ * because worker responses embed scanned file contents.
+ */
+const WORKER_OUTPUT_LIMIT_BYTES = 1024 * 1024 * 1024;
 
 export type ScannerWorkerProcessResult =
   | {
@@ -111,6 +121,7 @@ export function invokeScannerWorker(
     command,
     stdin: JSON.stringify(request),
     stripEnv,
+    timeoutMs: workerTimeoutMs(request.files.length),
   });
 
   if (!processResult.ok) {
@@ -195,31 +206,38 @@ export function workerProcessEnv(stripEnv: readonly string[] = []): Record<strin
   return env;
 }
 
+/** The time one worker invocation may take: 30 s plus 1 s per requested file. */
+function workerTimeoutMs(fileCount: number): number {
+  return 30_000 + 1_000 * fileCount;
+}
+
 /**
  * Default worker process runner. Spawns via `node:child_process` so the
- * bundled CLI runs under both Node.js and Bun. `maxBuffer` must exceed Node's
- * 1 MiB default because worker responses embed scanned file contents.
+ * bundled CLI runs under both Node.js and Bun.
  */
 export function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): ScannerWorkerProcessResult {
+  const maxOutputBytes = input.maxOutputBytes ?? WORKER_OUTPUT_LIMIT_BYTES;
   try {
     const [executable = "", ...args] = input.command;
     const result = spawnSync(executable, args, {
       env: workerProcessEnv(input.stripEnv),
       input: input.stdin,
       encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 1024,
+      maxBuffer: maxOutputBytes,
+      killSignal: "SIGKILL",
+      ...(input.timeoutMs === undefined ? {} : { timeout: input.timeoutMs }),
     });
     const stderr = result.stderr ?? "";
     if (result.error !== undefined) {
-      return { ok: false, kind: "start", error: result.error, stderr };
+      return syncSpawnFailure(result.error, input.timeoutMs, maxOutputBytes, stderr);
     }
     if (result.status === null) {
       return {
         ok: false,
         kind: "execution",
-        error: new Error(`worker terminated by signal ${result.signal ?? "unknown"}`),
+        error: signalError(result.signal),
         stderr,
       };
     }
@@ -232,6 +250,39 @@ export function runScannerWorkerProcess(
   } catch (error) {
     return { ok: false, kind: "start", error, stderr: "" };
   }
+}
+
+/**
+ * Classify a `spawnSync` error. Node and Bun both report a timeout as
+ * `ETIMEDOUT` and an output stream over `maxBuffer` as `ENOBUFS`; the worker
+ * ran in both cases. Any other error means it never started.
+ */
+function syncSpawnFailure(
+  error: Error,
+  timeoutMs: number | undefined,
+  maxOutputBytes: number,
+  stderr: string,
+): ScannerWorkerProcessResult {
+  const code = (error as { code?: unknown }).code;
+  if (code === "ETIMEDOUT") {
+    return { ok: false, kind: "execution", error: timeoutError(timeoutMs ?? 0), stderr };
+  }
+  if (code === "ENOBUFS") {
+    return { ok: false, kind: "execution", error: outputLimitError(maxOutputBytes), stderr };
+  }
+  return { ok: false, kind: "start", error, stderr };
+}
+
+function signalError(signal: string | null | undefined): Error {
+  return new Error(`worker terminated by signal ${signal ?? "unknown"}`);
+}
+
+function timeoutError(timeoutMs: number): Error {
+  return new Error(`worker timed out after ${timeoutMs} ms`);
+}
+
+function outputLimitError(maxOutputBytes: number): Error {
+  return new Error(`worker wrote more than ${maxOutputBytes} bytes to stdout or stderr`);
 }
 
 function validateWorkerResponse(value: unknown, request: ScannerWorkerRequest): string | undefined {

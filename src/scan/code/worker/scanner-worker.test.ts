@@ -146,6 +146,67 @@ test("runScannerWorkerProcess reports an execution failure when the worker is ki
   }
 });
 
+test("runScannerWorkerProcess stops a worker that outlives its timeout and reports an execution failure", () => {
+  const started = Date.now();
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", "sleep 5"],
+    stdin: "",
+    timeoutMs: 100,
+  });
+
+  expect(Date.now() - started).toBeLessThan(4_000);
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+    expect(String(result.error)).toContain("timed out after 100 ms");
+  }
+});
+
+test("runScannerWorkerProcess reports output above the cap as an execution failure", () => {
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
+    stdin: "",
+    maxOutputBytes: 1_000,
+  });
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+    expect(String(result.error)).toContain("more than 1000 bytes");
+  }
+});
+
+test("invokeScannerWorker gives the worker 30 seconds plus one second per requested file", () => {
+  const timeouts: Array<number | undefined> = [];
+  const run = (input: { timeoutMs?: number }): ScannerWorkerProcessResult => {
+    timeouts.push(input.timeoutMs);
+    return { ok: true, exitCode: 1, stdout: "", stderr: "" };
+  };
+  const base = {
+    schemaVersion: 1 as const,
+    requestId: "timeout",
+    language: "go" as const,
+    projectRoot: "/project",
+    options: {},
+  };
+
+  invokeScannerWorker({ ...base, files: [{ filePath: "a.go", content: "" }] }, ["worker"], run);
+  invokeScannerWorker(
+    {
+      ...base,
+      files: [
+        { filePath: "a.go", content: "" },
+        { filePath: "b.go", content: "" },
+        { filePath: "c.go", content: "" },
+      ],
+    },
+    ["worker"],
+    run,
+  );
+
+  expect(timeouts).toEqual([31_000, 33_000]);
+});
+
 test("invokeScannerWorker reports a worker that started and then failed as scanner failed", () => {
   const result = invokeScannerWorker(
     {
