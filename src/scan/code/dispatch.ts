@@ -1,4 +1,5 @@
 import type { CodeFileRead, CodeInclude, CollectedCodeFile } from "../../config/code-language";
+import type { ScannerRuntimes } from "../../config/scanner-runtimes";
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../model/types";
 import { cancelableSequence, settledCancelable, type Cancelable } from "../../shared/cancelable";
@@ -30,7 +31,7 @@ import {
 export type CodeAdapterOverrides = Partial<Record<CodeLanguage, CodeLanguageAdapter>>;
 
 type ScannerWorkerCommandFactory = (
-  projectRoot: string,
+  context: CodeScanContext,
 ) => string[] | ScannerWorkerCommandResolution;
 
 type ScannerWorkerAdapterOptions = {
@@ -50,7 +51,7 @@ type WorkerAdapter = CodeLanguageAdapter &
 
 /**
  * Create the adapter for a worker-backed language. `command` resolves the
- * worker for a project root; each scan resolves it once, through `prepare` or
+ * worker for a scan context; each scan resolves it once, through `prepare` or
  * at the start of a batch, and sends the whole batch in one request.
  */
 export function createScannerWorkerAdapter(
@@ -147,6 +148,8 @@ type ScanCodeFilesOptions = {
   /** Receives the resolved content for callers that cache it. */
   onContent?: (relPath: string, content: string) => void;
   adapters?: CodeAdapterOverrides;
+  /** The configuration's `scanners` object, passed to every adapter. */
+  scanners?: ScannerRuntimes;
 };
 
 /**
@@ -165,11 +168,18 @@ export function scanCodeFiles(
   options: ScanCodeFilesOptions = {},
 ): ScanCodeFilesResult {
   const plan = planCodeScan(files, codeInclude, read, options.onContent);
+  const context = scanContext(projectRoot, options);
   for (const batch of plan.batches) {
     const adapter = options.adapters?.[batch.language] ?? builtInAdapters[batch.language];
-    fillBatch(plan, batch, adapter.scanFiles(batch.files, batch.options, { projectRoot }));
+    fillBatch(plan, batch, adapter.scanFiles(batch.files, batch.options, context));
   }
   return assemblePlan(plan);
+}
+
+function scanContext(projectRoot: string, options: ScanCodeFilesOptions): CodeScanContext {
+  return options.scanners === undefined
+    ? { projectRoot }
+    : { projectRoot, scanners: options.scanners };
 }
 
 type ScanCodeFilesAsyncOptions = ScanCodeFilesOptions & {
@@ -198,7 +208,7 @@ export function scanCodeFilesAsync(
   options: ScanCodeFilesAsyncOptions = {},
 ): Cancelable<ScanCodeFilesAsyncResult> {
   const plan = planCodeScan(files, codeInclude, read, options.onContent);
-  const context: CodeScanContext = { projectRoot };
+  const context = scanContext(projectRoot, options);
   return cancelableSequence(async (step) => {
     const cache = new Map<string, CodeScanResult>();
     for (const batch of plan.batches) {
@@ -380,7 +390,7 @@ function resolveWorkerCommand(
   command: ScannerWorkerCommandFactory,
   context: CodeScanContext,
 ): WorkerCommand {
-  const value = command(context.projectRoot);
+  const value = command(context);
   if (Array.isArray(value)) {
     return { ok: true, command: value, stripEnv: [], runtime: [] };
   }

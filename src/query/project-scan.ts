@@ -188,11 +188,13 @@ function codeScanOptions(
   options: ScanProjectBaseOptions,
 ): Parameters<typeof scanCodeFiles>[4] {
   const { contentByFile } = inputs;
+  const { scanners } = inputs.config;
   return {
     ...(contentByFile === undefined
       ? {}
       : { onContent: (relPath, content) => contentByFile.set(relPath, content) }),
     ...(options.adapters === undefined ? {} : { adapters: options.adapters }),
+    ...(scanners === undefined ? {} : { scanners }),
   };
 }
 

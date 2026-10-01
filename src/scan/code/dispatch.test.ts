@@ -457,6 +457,33 @@ test("prepare resolves the worker command once and binds the adapter to it", asy
   expect(requestedPaths(requests)).toEqual([["a.go"], ["b.go"]]);
 });
 
+test("the worker command factory receives the scan context on the sync and async paths", async () => {
+  const requests: RecordedRequest[] = [];
+  const seen: unknown[] = [];
+  const scanners = { ruby: { command: ["/opt/ruby/bin/ruby"] } };
+  const adapters = {
+    go: createScannerWorkerAdapter(
+      "go",
+      (context) => {
+        seen.push(context);
+        return ["go-worker"];
+      },
+      { run: echoingWorker(requests), runAsync: echoingWorkerAsync(requests) },
+    ),
+  };
+  const include: CodeInclude = { go: { patterns: ["**/*.go"] } };
+  const read = contentsOf({ "a.go": "package a\n" });
+
+  scanCodeFiles("/project", goFiles("a.go"), include, read, { adapters, scanners });
+  await scanCodeFilesAsync("/project", goFiles("a.go"), include, read, { adapters, scanners })
+    .promise;
+
+  expect(seen).toEqual([
+    { projectRoot: "/project", scanners },
+    { projectRoot: "/project", scanners },
+  ]);
+});
+
 test("prepare carries a command resolution failure to every file without starting a worker", async () => {
   const requests: RecordedRequest[] = [];
   const unavailable: DocBridgeDiagnostic = {

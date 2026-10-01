@@ -253,3 +253,39 @@ test("scanProjectAsync reports a configuration change before it scans", async ()
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("both scan forms hand the configured scanners to every adapter", async () => {
+  const scanners = { python: { command: ["tools/python3", "-X", "utf8"] } };
+  const root = makeProject({
+    ...LINKED_PROJECT,
+    "docbridge.config.json": JSON.stringify({
+      include: {
+        code: { typescript: { patterns: ["src/**/*.ts"] } },
+        docs: ["docs/**/*.md"],
+      },
+      scanners,
+    }),
+  });
+  const contexts: unknown[] = [];
+  const adapters = {
+    typescript: {
+      ...typeScriptAdapter,
+      scanFiles: (...args: Parameters<CodeLanguageAdapter["scanFiles"]>) => {
+        contexts.push(args[2]);
+        return typeScriptAdapter.scanFiles(...args);
+      },
+    },
+  };
+
+  try {
+    scanProject({ projectRoot: root, adapters });
+    await scanProjectAsync({ projectRoot: root, adapters, cache: emptyCodeScanCache() }).promise;
+
+    expect(contexts).toEqual([
+      { projectRoot: root, scanners },
+      { projectRoot: root, scanners },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

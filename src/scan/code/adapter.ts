@@ -1,3 +1,4 @@
+import type { ScannerRuntimes } from "../../config/scanner-runtimes";
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage } from "../../model/types";
 import type { Cancelable } from "../../shared/cancelable";
@@ -10,6 +11,8 @@ export type CodeScanOptions = {
 /** Per-scan context shared by all language adapters. */
 export type CodeScanContext = {
   projectRoot: string;
+  /** The configuration's `scanners` object, when it sets one. */
+  scanners?: ScannerRuntimes;
 };
 
 /** One file's path and resolved content, as an adapter receives it. */

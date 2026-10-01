@@ -148,7 +148,7 @@ describe("Project runtime probes", () => {
     // A runtime-backed resolution standing in for a registered runtime language.
     const adapter = createScannerWorkerAdapter(
       "go",
-      (projectRoot) =>
+      ({ projectRoot }) =>
         resolveRuntimeWorkerCommand("python", {
           projectRoot,
           sourceRoot: pkg,
@@ -208,7 +208,7 @@ describe("Project scan cache", () => {
     // A runtime-backed resolution standing in for a registered runtime language.
     const adapter = createScannerWorkerAdapter(
       "go",
-      (projectRoot) =>
+      ({ projectRoot }) =>
         resolveRuntimeWorkerCommand("python", {
           projectRoot,
           sourceRoot: pkg,
