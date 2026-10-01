@@ -25,7 +25,7 @@ Normative behavior is reflected in these specs as the slices land:
 - [ ] Slice A (#172): Phase 0 harness, frozen fixtures, and the Rust port of
       the resolver and graph
 - [ ] Slice B (#172): comparison tasks, report, and decision record
-- [ ] Slice C (#173): language specifications, provisional worker schema,
+- [x] Slice C (#173): language specifications, provisional worker schema,
       pending fixtures, and the Python, Ruby, and Java workers (unregistered)
 - [ ] Slice D (#173): core infrastructure T1–T3 and the JavaScript adapter, in
       the core the decision record names
