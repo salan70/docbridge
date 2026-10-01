@@ -268,12 +268,22 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#EXCLUDED_SUFFIXES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#isCodeLanguage",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#KNOWN_CODE_LANGUAGES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#LANGUAGE_SUFFIXES",
       "class": "sibling_export"
     },
     {
@@ -343,12 +353,12 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#CONFIG_FILE_NAME",
+      "target": "src/config/config.ts#checkPatternSuffix",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#LANGUAGE_SUFFIX",
+      "target": "src/config/config.ts#CONFIG_FILE_NAME",
       "class": "sibling_export"
     },
     {

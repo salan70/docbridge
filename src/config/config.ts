@@ -5,8 +5,10 @@ import type { CodeLanguage, DocBridgeDiagnostic } from "../model/types";
 import { validateGlobPattern } from "../shared/glob";
 import {
   codeFileOwners,
+  EXCLUDED_SUFFIXES,
   isCodeLanguage,
   KNOWN_CODE_LANGUAGES,
+  LANGUAGE_SUFFIXES,
   type CodeInclude,
   type CodeIncludeEntry,
 } from "./code-language";
@@ -40,14 +42,6 @@ const EMPTY_CONFIG: DocBridgeConfig = {
 const KNOWN_TOP_LEVEL_KEYS = new Set(["$schema", "include"]);
 const KNOWN_INCLUDE_KEYS = new Set(["code", "docs"]);
 const KNOWN_CODE_ENTRY_KEYS = new Set(["patterns", "visibility"]);
-
-export const LANGUAGE_SUFFIX: Readonly<Record<CodeLanguage, string>> = {
-  typescript: ".ts",
-  swift: ".swift",
-  dart: ".dart",
-  rust: ".rs",
-  go: ".go",
-};
 
 export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[]>> = {
   typescript: ["public", "protected", "private"],
@@ -183,7 +177,7 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
   }
 
   const code = validateCodeInclude(include.code, diagnostics);
-  validatePatternArray(include.docs, "docs", ".md", false, diagnostics);
+  validatePatternArray(include.docs, "docs", [".md"], [], diagnostics);
 
   const ok = diagnostics.length === 0;
   const config: DocBridgeConfig = ok
@@ -287,8 +281,8 @@ function validateCodeEntry(
   validatePatternArray(
     value.patterns,
     `code.${language}.patterns`,
-    LANGUAGE_SUFFIX[language],
-    language === "typescript",
+    LANGUAGE_SUFFIXES[language],
+    EXCLUDED_SUFFIXES[language],
     diagnostics,
   );
 
@@ -350,8 +344,8 @@ function validateVisibilityOptions(
 function validatePatternArray(
   value: unknown,
   field: string,
-  requiredSuffix: string,
-  excludeDeclarationFiles: boolean,
+  suffixes: readonly string[],
+  excludedSuffixes: readonly string[],
   diagnostics: DocBridgeDiagnostic[],
 ): void {
   const target = `include.${field}`;
@@ -398,23 +392,32 @@ function validatePatternArray(
       continue;
     }
 
-    const suffixError = checkSuffix(pattern, requiredSuffix, excludeDeclarationFiles);
+    const suffixError = checkPatternSuffix(pattern, suffixes, excludedSuffixes);
     if (suffixError !== undefined) {
       diagnostics.push(configDiagnostic("config_invalid_value", pattern, suffixError));
     }
   }
 }
 
-function checkSuffix(
+/**
+ * Check that `pattern` ends with one of `suffixes` and with none of
+ * `excludedSuffixes`, returning the violation message or `undefined`. Every
+ * excluded suffix in use names a TypeScript declaration file kind.
+ */
+export function checkPatternSuffix(
   pattern: string,
-  requiredSuffix: string,
-  excludeDeclarationFiles: boolean,
+  suffixes: readonly string[],
+  excludedSuffixes: readonly string[],
 ): string | undefined {
-  if (!pattern.endsWith(requiredSuffix)) {
-    return `Pattern must end with \`${requiredSuffix}\`.`;
+  if (!suffixes.some((suffix) => pattern.endsWith(suffix))) {
+    const listed = suffixes.map((suffix) => `\`${suffix}\``).join(", ");
+    return suffixes.length === 1
+      ? `Pattern must end with ${listed}.`
+      : `Pattern must end with one of ${listed}.`;
   }
-  if (excludeDeclarationFiles && pattern.endsWith(".d.ts")) {
-    return "Pattern must not target `.d.ts` declaration files.";
+  const excluded = excludedSuffixes.find((suffix) => pattern.endsWith(suffix));
+  if (excluded !== undefined) {
+    return `Pattern must not target \`${excluded}\` declaration files.`;
   }
   return undefined;
 }

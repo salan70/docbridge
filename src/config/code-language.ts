@@ -39,6 +39,31 @@ export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
 }
 
+/**
+ * The file suffixes each language claims. A code pattern must end with one of
+ * its language's suffixes. Suffix sets never overlap across languages.
+ */
+export const LANGUAGE_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>> = {
+  typescript: [".ts"],
+  swift: [".swift"],
+  dart: [".dart"],
+  rust: [".rs"],
+  go: [".go"],
+};
+
+/**
+ * The suffixes a language never claims although they end with one of its
+ * {@link LANGUAGE_SUFFIXES}. A pattern must not end with one, and a matched
+ * file that ends with one is not a managed code file.
+ */
+export const EXCLUDED_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>> = {
+  typescript: [".d.ts"],
+  swift: [],
+  dart: [],
+  rust: [],
+  go: [],
+};
+
 export type CollectedCodeFile = {
   language: CodeLanguage;
   relPath: string;
