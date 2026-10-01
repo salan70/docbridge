@@ -803,6 +803,54 @@ test("cancelling resolveRuntimeWorkerCommandAsync cancels the probe in flight an
   });
 });
 
+test("an asynchronous probe that finishes after the cache is cleared does not refill it", async () => {
+  await withPackageAsync([PYTHON_ENTRY], async (root) => {
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "linux" as const,
+    };
+    const pending = deferred<RuntimeProbeOutcome>();
+    const task = resolveRuntimeWorkerCommandAsync("python", {
+      ...options,
+      probeAsync: () => ({ promise: pending.promise, cancel: () => undefined }),
+    });
+
+    clearRuntimeProbeCache();
+    pending.resolve({ kind: "ok", runtime: "cpython", version: "3.10.0" });
+    await task.promise;
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+    const result = resolveRuntimeWorkerCommand("python", { ...options, probe });
+
+    expect(calls).toHaveLength(1);
+    expect(result).toMatchObject({ ok: true, runtime: ["cpython", "3.12.4", "python3"] });
+  });
+});
+
+test("a synchronous probe during which the cache is cleared does not refill it", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "linux" as const,
+    };
+    resolveRuntimeWorkerCommand("python", {
+      ...options,
+      probe: () => {
+        clearRuntimeProbeCache();
+        return { kind: "ok", runtime: "cpython", version: "3.10.0" };
+      },
+    });
+
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+    resolveRuntimeWorkerCommand("python", { ...options, probe });
+
+    expect(calls).toHaveLength(1);
+  });
+});
+
 /** {@link withPackage} for an asynchronous body. */
 async function withPackageAsync(files: string[], run: (root: string) => Promise<void>) {
   const root = mkdtempSync(join(tmpdir(), "docbridge-runtime-worker-"));

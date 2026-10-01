@@ -133,11 +133,27 @@ type DiagnosticCode = "code_scanner_unavailable" | "code_scanner_failed";
 const probeCache = new Map<string, RuntimeProbeOutcome>();
 
 /**
- * Forget every cached probe result. A configuration change calls this so a
- * runtime installed or reconfigured since the last scan is probed again.
+ * Counts cache clears. A probe records the generation it started in, and its
+ * result is cached only while that generation is still current, so a probe
+ * that outlives a clear cannot bring back what the clear dropped.
+ */
+let probeCacheGeneration = 0;
+
+/**
+ * Forget every cached probe result, including those of probes still running.
+ * A configuration change calls this so a runtime installed or reconfigured
+ * since the last scan is probed again.
  */
 export function clearRuntimeProbeCache(): void {
   probeCache.clear();
+  probeCacheGeneration += 1;
+}
+
+/** Cache `outcome` unless the cache was cleared since its probe started in `generation`. */
+function rememberProbe(key: string, generation: number, outcome: RuntimeProbeOutcome): void {
+  if (generation === probeCacheGeneration) {
+    probeCache.set(key, outcome);
+  }
 }
 
 /**
@@ -380,12 +396,16 @@ function cachedProbe(
   if (cached !== undefined) {
     return cached;
   }
+  const generation = probeCacheGeneration;
   const outcome = probe(command, stripEnv);
-  probeCache.set(key, outcome);
+  rememberProbe(key, generation, outcome);
   return outcome;
 }
 
-/** {@link cachedProbe} for the asynchronous resolution; only a probe that finished is cached. */
+/**
+ * {@link cachedProbe} for the asynchronous resolution. Only a probe that
+ * finished, with no cache clear since it started, is cached.
+ */
 function cachedProbeAsync(
   { command, stripEnv }: ProbeRequest,
   env: Readonly<Record<string, string | undefined>>,
@@ -396,10 +416,11 @@ function cachedProbeAsync(
   if (cached !== undefined) {
     return settledCancelable(cached);
   }
+  const generation = probeCacheGeneration;
   const task = probeAsync(command, stripEnv);
   return {
     promise: task.promise.then((outcome) => {
-      probeCache.set(key, outcome);
+      rememberProbe(key, generation, outcome);
       return outcome;
     }),
     cancel: () => task.cancel(),

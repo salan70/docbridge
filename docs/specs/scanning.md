@@ -206,7 +206,8 @@ group, and cancelling the scan kills the probe at once, so the server keeps
 answering while a slow runtime starts. Its result is cached for the rest of
 the CLI process or language server session, keyed by the full command and the
 values of `PATH` and every `DOCBRIDGE_*` variable; a configuration change
-clears the cache. A cancelled probe caches nothing.
+clears the cache. A cancelled probe caches nothing, and neither does a probe
+that was still running when the cache was cleared.
 
 A missing bundled entrypoint, a runtime that cannot be started, and a probe
 that answers `ok: false`, reports another runtime, or reports a version below
