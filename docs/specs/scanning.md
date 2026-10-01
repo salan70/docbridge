@@ -376,8 +376,10 @@ the original content, so `//line` directives do not move it.
 ## JavaScript Scanning
 
 JavaScript scanning is pending registration: the `javascript` language ID is
-not accepted by configuration yet. The contract below is normative once the
-adapter lands.
+not accepted by configuration yet, and the adapter lands with registration. The
+contract below is already fixed. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 JavaScript scanning reuses the TypeScript scanner in process. The `javascript`
 language claims `.js`, `.jsx`, `.mjs`, and `.cjs` files, and the `typescript`
@@ -405,10 +407,13 @@ Context and hover fences follow the suffix: `js`, `jsx`, `ts`, and `tsx`.
 
 ## Python Scanning
 
-Python scanning is pending registration: the `python` language ID is not
-accepted by configuration yet. The worker under `packages/python-scanner`
-implements the contract below; registration adds the suffix set and the
-configuration and diagnostic paragraphs.
+Python scanning is pending registration: the `python` language ID is
+not accepted by configuration yet. The worker under `packages/python-scanner`
+implements the contract below, and its conformance cases live under
+`test-fixtures/pending-languages/python/` until registration moves them into
+the corpus. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 Python scanning extracts `@doc` annotations from docstrings and from the
 comment block that leads a declaration, using the standard library's `ast` and
@@ -557,10 +562,13 @@ versions for the same input. `tokenize` runs only after `ast.parse` succeeds.
 
 ## Ruby Scanning
 
-Ruby scanning is pending registration: the `ruby` language ID is not accepted
-by configuration yet. The worker under `packages/ruby-scanner` implements the
-contract below; its fixtures live under `test-fixtures/pending-languages/ruby/`
-until registration moves them into the conformance corpus.
+Ruby scanning is pending registration: the `ruby` language ID is
+not accepted by configuration yet. The worker under `packages/ruby-scanner`
+implements the contract below, and its conformance cases live under
+`test-fixtures/pending-languages/ruby/` until registration moves them into
+the corpus. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 The worker is a Ruby script, not a compiled binary. It runs on the project's
 CRuby, 3.3 or later, and parses with Prism, the parser gem bundled with CRuby
@@ -694,10 +702,13 @@ offset, and the recovered tree is discarded. Prism's messages differ between
 
 ## Java Scanning
 
-Java scanning is pending registration: the `java` language ID is not accepted
-by configuration yet. The worker under `packages/java-scanner` already
-implements the contract below; the configuration, annotation, and diagnostic
-paragraphs join when the language is registered.
+Java scanning is pending registration: the `java` language ID is
+not accepted by configuration yet. The worker under `packages/java-scanner`
+implements the contract below, and its conformance cases live under
+`test-fixtures/pending-languages/java/` until registration moves them into
+the corpus. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 Java scanning extracts `@doc` annotations from the Javadoc comment
 (`/** ... */`) that documents a declaration. The worker is a JAR built from
