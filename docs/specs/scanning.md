@@ -459,9 +459,9 @@ Python canonical IDs are dot-qualified names: `login`, `Client.login`, and
 
 Some definitions of one name form a group, which counts as a single
 declaration of the endpoint. The definitions of an endpoint are read in source
-order, and each one either joins the group directly before it, when that group
-is still open and accepts it, or starts the endpoint's next declaration. A
-group is one of:
+order; each one joins the endpoint's latest declaration when that declaration
+is an open group that accepts it, and otherwise starts the endpoint's next
+declaration. A group is one of:
 
 - A property chain. A function decorated with `property` or
   `cached_property` opens it, and every later function of the same name
@@ -474,24 +474,26 @@ group is one of:
   it as the implementation and closes it. Without an implementation the group
   is the stubs alone.
 
-Any other definition of the name closes the open group without joining it:
+`property`, `cached_property`, and `overload` are recognized by the last
+segment of a `Name` or `Attribute` decorator (`functools.cached_property`,
+`typing.overload`), and an accessor by an `Attribute` decorator on a plain
+`Name` (`value.setter`). A `Call` decorator such as `@property()` never
+groups.
+
+Every other definition of the name starts the endpoint's next declaration:
 an ordinary function, a class, an accessor decorated with another name
-(`@other.setter`), a second `property` getter, or a definition after the
-implementation. That definition starts the endpoint's next declaration, which
-may open a group of its own, and is a repeat of the endpoint under the
+(`@other.setter`), a second `property` getter, and any definition after an
+overload group's implementation. It closes the open group without joining
+it, may open a group of its own, and is a repeat of the endpoint under the
 same-name rule above. An `overload` stub followed by two implementations is
 thus a group of the stub and the first implementation, then a repeat.
 
-- `property`, `cached_property`, and `overload` are recognized by the last
-  segment of a `Name` or `Attribute` decorator (`functools.cached_property`,
-  `typing.overload`), and an accessor by an `Attribute` decorator on a plain
-  `Name` (`value.setter`). A `Call` decorator such as `@property()` never
-  groups.
-- A group's `location`, `nameRange`, `declarationRange`, and `signatureRange`
-  are the first member's. Annotations from every member attach to the group
-  endpoint in source order, the same target twice across members is
-  `duplicate_link`, and the group is documented when any member is. When a
-  group is a repeat, the duplicate is reported at its first annotated member.
+A group's `location`, `nameRange`, `declarationRange`, and `signatureRange`
+are the first member's. Annotations from every member attach to the group
+endpoint in source order, the same target twice across members is
+`duplicate_link`, and the group is documented when any member is. When a
+group is the first annotated repeat, its `duplicate_code_symbol` is reported
+at its first annotated member.
 
 Annotations come from two sources, searched with `@doc\s+(\S+)`, where
 whitespace is the ASCII set: space, tab, LF, CR, FF, and VT. Any other
