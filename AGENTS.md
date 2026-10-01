@@ -11,17 +11,17 @@ into `CLAUDE.md`; `just check-ai-assets` rejects a copy.
 
 DocBridge is a TypeScript CLI that creates bidirectional links between code and
 Markdown documentation. It scans TypeScript, JavaScript, Swift, Dart, Rust, Go,
-Python, and Ruby code. It parses `@doc` annotations in doc comments and `@code`
-annotations in Markdown HTML comments, reads links declared in an optional
-`docbridge.links.json` manifest, and reports diagnostics through
+Python, Ruby, and Java code. It parses `@doc` annotations in doc comments and
+`@code` annotations in Markdown HTML comments, reads links declared in an
+optional `docbridge.links.json` manifest, and reports diagnostics through
 `docbridge check`.
 
 Repository layout:
 
 - `src/` — the CLI, the TypeScript and Markdown scanners, the resolver, and the
   Language Server.
-- `packages/` — the Swift, Dart, Rust, Go, Python, and Ruby scanner workers,
-  and the Java worker that is pending registration.
+- `packages/` — the Swift, Dart, Rust, Go, Python, Ruby, and Java scanner
+  workers.
 - `editors/vscode/` — the VS Code-compatible extension.
 - `docs/` — user guides (`docs/user/`, Japanese under `docs/ja/`),
   specifications (`docs/specs/`), integration recipes (`docs/integrations/`),
@@ -39,8 +39,8 @@ differ by intended audience:
 - `examples/` holds human-facing showcases meant to be read or copied: one per
   language (`examples/typescript`, `examples/javascript`, `examples/swift`,
   `examples/dart`, `examples/rust`, `examples/go`, `examples/python`,
-  `examples/ruby`). These may also serve as integration test inputs; that
-  reuse is intentional, not a reason to move them.
+  `examples/ruby`, `examples/java`). These may also serve as integration test
+  inputs; that reuse is intentional, not a reason to move them.
 - `test-fixtures/` holds projects that exist solely to drive automated tests.
   Per-diagnostic fixtures live under `test-fixtures/diagnostics/`.
 
