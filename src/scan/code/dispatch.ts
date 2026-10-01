@@ -11,7 +11,7 @@ import type {
   PreparedCodeAdapter,
 } from "./adapter";
 import { codeScanCacheKey, isReusableScan } from "./scan-cache";
-import { typeScriptAdapter } from "./typescript";
+import { javaScriptAdapter, typeScriptAdapter } from "./typescript";
 import {
   resolveScannerWorkerCommand,
   type ScannerWorkerCommandResolution,
@@ -256,6 +256,7 @@ function scanFilesAsync(
  */
 const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
   typescript: typeScriptAdapter,
+  javascript: javaScriptAdapter,
   swift: createScannerWorkerAdapter("swift", () => resolveScannerWorkerCommand("swift")),
   dart: createScannerWorkerAdapter("dart", () => resolveScannerWorkerCommand("dart")),
   rust: createScannerWorkerAdapter("rust", () => resolveScannerWorkerCommand("rust")),

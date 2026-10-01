@@ -1,0 +1,72 @@
+{
+  "language": "javascript",
+  "filePath": "input.js",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "javascript",
+      "filePath": "input.js",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.js#login",
+      "location": {
+        "filePath": "input.js",
+        "line": 5,
+        "column": 17
+      },
+      "nameRange": {
+        "start": {
+          "line": 5,
+          "column": 17
+        },
+        "end": {
+          "line": 5,
+          "column": 22
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 41
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 25
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.js#login",
+      "target": "docs/ログイン😀.md#login",
+      "location": {
+        "filePath": "input.js",
+        "line": 3,
+        "column": 9
+      },
+      "targetRange": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 29
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

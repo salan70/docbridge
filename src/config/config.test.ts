@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -150,6 +150,74 @@ test.each([".d.mts", ".d.cts"])(
     expect(validateConfigSchema(raw)).toBe(false);
   },
 );
+
+test("resolveConfig and the schema accept a javascript entry with the TypeScript visibility values", () => {
+  const raw = {
+    include: {
+      code: {
+        javascript: {
+          patterns: ["src/**/*.js", "src/**/*.jsx", "src/**/*.mjs", "src/**/*.cjs"],
+          visibility: ["public", "protected", "private"],
+        },
+      },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  const result = resolveConfig(JSON.stringify(raw));
+
+  expect(result.diagnostics).toEqual([]);
+  expect(result.config.include.code.javascript).toEqual(raw.include.code.javascript);
+  expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+});
+
+test.each([
+  [
+    { patterns: ["src/**/*.ts"] },
+    "src/**/*.ts",
+    "Pattern must end with one of `.js`, `.jsx`, `.mjs`, `.cjs`.",
+  ],
+  [
+    { patterns: ["src/**/*.js"], visibility: ["exported"] },
+    "include.code.javascript.visibility",
+    "Unsupported javascript visibility: exported. Supported values: public, protected, private.",
+  ],
+])("resolveConfig and the schema reject the javascript entry %j", (entry, target, message) => {
+  const raw = { include: { code: { javascript: entry }, docs: ["docs/**/*.md"] } };
+
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+    { severity: "error", code: "config_invalid_value", target, message },
+  ]);
+  expect(validateConfigSchema(raw)).toBe(false);
+});
+
+test("loadConfig accepts typescript and javascript patterns over one directory", () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
+  try {
+    writeFileSync(
+      join(root, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: {
+            typescript: { patterns: ["src/**/*.ts"] },
+            javascript: { patterns: ["src/**/*.js"] },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+    );
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src/a.ts"), "export const a = 1;\n");
+    writeFileSync(join(root, "src/b.js"), "export const b = 1;\n");
+
+    const result = loadConfig(root);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.config.include.code.javascript).toEqual({ patterns: ["src/**/*.js"] });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("resolveConfig names the suffix a docs pattern must end with", () => {
   const result = resolveConfig(

@@ -7,7 +7,7 @@ export type LinkTarget = {
  * Fixed lowercase identifiers for the code languages DocBridge understands. The
  * set is closed; configuration rejects any other value.
  */
-export type CodeLanguage = "typescript" | "swift" | "dart" | "rust" | "go";
+export type CodeLanguage = "typescript" | "swift" | "dart" | "rust" | "go" | "javascript";
 
 type DiagnosticSeverity = "error" | "warning";
 

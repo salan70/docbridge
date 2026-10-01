@@ -22,7 +22,8 @@
             "swift": { "$ref": "#/$defs/swiftEntry" },
             "dart": { "$ref": "#/$defs/dartEntry" },
             "rust": { "$ref": "#/$defs/rustEntry" },
-            "go": { "$ref": "#/$defs/goEntry" }
+            "go": { "$ref": "#/$defs/goEntry" },
+            "javascript": { "$ref": "#/$defs/javascriptEntry" }
           }
         },
         "docs": {
@@ -167,6 +168,28 @@
           "items": {
             "type": "string",
             "enum": ["exported", "unexported"]
+          }
+        }
+      }
+    },
+    "javascriptEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.(js|jsx|mjs|cjs)$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "protected", "private"]
           }
         }
       }

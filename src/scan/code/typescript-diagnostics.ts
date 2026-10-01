@@ -1,13 +1,34 @@
 import ts from "typescript";
 
+import { LANGUAGE_SUFFIXES } from "../../config/code-language";
 import type { DocBridgeDiagnostic, Range, SourceLocation } from "../../model/types";
 
 /**
  * The diagnostics the in-process TypeScript scanner reports, kept apart from
- * the declaration walk in `./typescript`.
+ * the declaration walk in `./typescript`. The scanner reads TypeScript and
+ * JavaScript, so every diagnostic names the language of its file.
  */
 
-const LANGUAGE = "typescript" as const;
+type ScriptLanguage = "typescript" | "javascript";
+
+/** A file is JavaScript when it ends with a `javascript` suffix, else TypeScript. */
+export function scriptLanguage(filePath: string): ScriptLanguage {
+  return LANGUAGE_SUFFIXES.javascript.some((suffix) => filePath.endsWith(suffix))
+    ? "javascript"
+    : "typescript";
+}
+
+const LABEL: Readonly<Record<ScriptLanguage, string>> = {
+  typescript: "TypeScript",
+  javascript: "JavaScript",
+};
+
+const SUPPORTED_DECLARATIONS: Readonly<Record<ScriptLanguage, string>> = {
+  typescript:
+    "Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class, plus the identifier-named members of a class, interface, or object type alias.",
+  javascript:
+    "Supported declarations are top-level ESM-exported function, class, single-declarator const, let, or var, and named default function or class, plus the identifier-named members of a class. CommonJS assignments are not declarations.",
+};
 
 export function parseErrorDiagnostic(
   filePath: string,
@@ -21,17 +42,18 @@ export function parseErrorDiagnostic(
     location.column = character + 1;
   }
 
+  const language = scriptLanguage(filePath);
   const detail =
     diagnostic === undefined
-      ? "TypeScript file has a syntactic parse error."
+      ? `${LABEL[language]} file has a syntactic parse error.`
       : ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
 
   return {
     severity: "error",
     code: "code_parse_error",
-    language: LANGUAGE,
+    language,
     target: filePath,
-    message: `TypeScript parse error: ${detail}`,
+    message: `${LABEL[language]} parse error: ${detail}`,
     location,
   };
 }
@@ -40,13 +62,13 @@ export function unsupportedDeclarationDiagnostic(
   filePath: string,
   location: SourceLocation,
 ): DocBridgeDiagnostic {
+  const language = scriptLanguage(filePath);
   return {
     severity: "warning",
     code: "unsupported_declaration",
-    language: LANGUAGE,
+    language,
     target: filePath,
-    message:
-      "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class, plus the identifier-named members of a class, interface, or object type alias.",
+    message: `@doc is attached to an unsupported declaration. ${SUPPORTED_DECLARATIONS[language]}`,
     location,
   };
 }
@@ -59,7 +81,7 @@ export function duplicateCodeSymbolDiagnostic(
   const diagnostic: DocBridgeDiagnostic = {
     severity: "error",
     code: "duplicate_code_symbol",
-    language: LANGUAGE,
+    language: scriptLanguage(location.filePath),
     target: endpoint,
     message: `Multiple @doc-annotated declarations expose the same code endpoint ${endpoint}.`,
     location,

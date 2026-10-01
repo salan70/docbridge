@@ -124,6 +124,35 @@ test("discoverCodeScope proposes every TypeScript suffix that has non-test sourc
   }
 });
 
+test("discoverCodeScope proposes JavaScript source roots apart from TypeScript", () => {
+  const project = makeProject({
+    "src/app.ts": "export const app = 1;\n",
+    "src/legacy.js": "export const legacy = 1;\n",
+    "src/view.jsx": "export const View = () => null;\n",
+    "src/view.test.jsx": "test();\n",
+    "src/__tests__/helper.js": "test();\n",
+    "packages/cli/src/main.mjs": "export const main = 1;\n",
+    "lib/config.cjs": "module.exports = {};\n",
+    "lib/config.spec.cjs": "test();\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const javascript = discovery.languages.find((entry) => entry.language === "javascript");
+    expect(javascript?.patterns).toEqual([
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "lib/**/*.cjs",
+      "packages/*/src/**/*.mjs",
+    ]);
+    expect(javascript?.fileCount).toBe(4);
+    expect(discovery.languages.find((entry) => entry.language === "typescript")?.patterns).toEqual([
+      "src/**/*.ts",
+    ]);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("discoverCodeScope keeps only the Go layout patterns that match non-test files", () => {
   const project = makeProject({
     "main.go": "package main\n",

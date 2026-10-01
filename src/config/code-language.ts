@@ -33,6 +33,7 @@ export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = [
   "dart",
   "rust",
   "go",
+  "javascript",
 ];
 
 export function isCodeLanguage(value: string): value is CodeLanguage {
@@ -49,6 +50,7 @@ export const LANGUAGE_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>
   dart: [".dart"],
   rust: [".rs"],
   go: [".go"],
+  javascript: [".js", ".jsx", ".mjs", ".cjs"],
 };
 
 /**
@@ -62,15 +64,20 @@ export const EXCLUDED_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>
   dart: [],
   rust: [],
   go: [],
+  javascript: [],
 };
 
 /**
  * The Markdown code-fence language for a declaration in `filePath`: the
- * language ID, except that TypeScript follows the file suffix (`ts`, `tsx`).
+ * language ID, except that TypeScript and JavaScript follow the file suffix
+ * (`ts`, `tsx`, `js`, `jsx`).
  */
 export function codeFenceLanguage(language: CodeLanguage, filePath: string): string {
   if (language === "typescript") {
     return filePath.endsWith(".tsx") ? "tsx" : "ts";
+  }
+  if (language === "javascript") {
+    return filePath.endsWith(".jsx") ? "jsx" : "js";
   }
   return language;
 }

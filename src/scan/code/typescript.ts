@@ -14,20 +14,25 @@ import {
   duplicateCodeSymbolDiagnostic,
   duplicateLinkDiagnostic,
   parseErrorDiagnostic,
+  scriptLanguage,
   unsupportedDeclarationDiagnostic,
 } from "./typescript-diagnostics";
 
-const LANGUAGE = "typescript" as const;
-
 /** The in-process TypeScript code language adapter. */
 export const typeScriptAdapter: CodeLanguageAdapter = {
-  language: LANGUAGE,
+  language: "typescript",
   scanFile(filePath: string, content: string, options: CodeScanOptions) {
     return scanTypeScript(filePath, content, options);
   },
   scanFiles(files, options: CodeScanOptions) {
     return files.map(({ filePath, content }) => scanTypeScript(filePath, content, options));
   },
+};
+
+/** The JavaScript adapter: the TypeScript scanner, which labels a file by its suffix. */
+export const javaScriptAdapter: CodeLanguageAdapter = {
+  ...typeScriptAdapter,
+  language: "javascript",
 };
 
 /**
@@ -81,7 +86,7 @@ export function scanTypeScript(
   if (parseDiagnostics.length > 0) {
     const first = parseDiagnostics[0];
     return {
-      language: LANGUAGE,
+      language: scriptLanguage(filePath),
       filePath,
       symbols: [],
       undocumentedSymbols: [],
@@ -210,7 +215,7 @@ export function scanTypeScript(
   }
 
   return {
-    language: LANGUAGE,
+    language: scriptLanguage(filePath),
     filePath,
     symbols,
     undocumentedSymbols,
@@ -221,6 +226,9 @@ export function scanTypeScript(
 
 /** The parser's script kind follows the suffix, so JSX parses only where it is allowed. */
 function scriptKindOf(filePath: string): ts.ScriptKind {
+  if (scriptLanguage(filePath) === "javascript") {
+    return filePath.endsWith(".jsx") ? ts.ScriptKind.JSX : ts.ScriptKind.JS;
+  }
   return filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
 }
 
@@ -709,7 +717,7 @@ function makeCodeSymbol(
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
-    language: LANGUAGE,
+    language: scriptLanguage(filePath),
     filePath,
     symbolName: declaration.symbolName,
     canonicalId: declaration.canonicalId,

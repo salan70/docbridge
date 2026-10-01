@@ -91,6 +91,24 @@ test("formatContextResult fences a TypeScript declaration by its file suffix", (
   expect(fences).toEqual(["```tsx", "```ts"]);
 });
 
+test("formatContextResult fences a JavaScript declaration by its file suffix", () => {
+  const result = {
+    contexts: [
+      codeBlock("src/login.jsx", "javascript"),
+      codeBlock("src/login.cjs", "javascript"),
+      codeBlock("src/login.js", "javascript"),
+    ],
+    summary: { inputFiles: 1, contexts: 3 },
+    diagnostics: [],
+  };
+
+  const fences = formatContextResult(result)
+    .split("\n")
+    .filter((line) => line.startsWith("```") && line.length > 3);
+
+  expect(fences).toEqual(["```jsx", "```js", "```js"]);
+});
+
 test("formatContextResult lengthens the code fence beyond backtick runs in the content", () => {
   const result = {
     contexts: [

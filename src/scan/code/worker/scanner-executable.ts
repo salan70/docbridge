@@ -5,8 +5,8 @@ import type { CodeLanguage, DocBridgeDiagnostic } from "../../../model/types";
 import { reasonOf } from "../../../shared/error";
 import { resolvePackageRoot } from "../../../shared/package-root";
 
-/** Every language whose scanner runs as a separate worker executable. */
-type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript">;
+/** Every language whose scanner runs as a native worker executable. */
+type ScannerWorkerLanguage = Exclude<CodeLanguage, "typescript" | "javascript">;
 
 const SUPPORTED_SCANNER_PLATFORM_KEYS = ["darwin-arm64", "linux-x64"] as const;
 const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> = {

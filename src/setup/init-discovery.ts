@@ -85,10 +85,12 @@ const EXCLUDED_DIR_SEGMENTS = new Set([
 
 const IGNORED_WALK_SEGMENTS = new Set(["node_modules", ".git", "dist", "build"]);
 
-// The conventional source roots of a TypeScript project, once per suffix.
+// The conventional source roots of a TypeScript or JavaScript project, once per suffix.
 const SCRIPT_SOURCE_ROOTS = ["src", "lib", "packages/*/src", "apps/*/src"] as const;
 
 const TYPESCRIPT_PATTERNS = scriptPatterns("typescript");
+
+const JAVASCRIPT_PATTERNS = scriptPatterns("javascript");
 
 const SWIFT_PATTERNS = ["Sources/**/*.swift", "*/Sources/**/*.swift"] as const;
 
@@ -105,6 +107,7 @@ const LANGUAGE_PATTERNS: Record<CodeLanguage, readonly string[]> = {
   dart: DART_PATTERNS,
   rust: RUST_PATTERNS,
   go: GO_PATTERNS,
+  javascript: JAVASCRIPT_PATTERNS,
 };
 
 /**
@@ -356,9 +359,9 @@ function isExcludedCodeFile(filePath: string, language: CodeLanguage): boolean {
     return true;
   }
 
-  if (language === "typescript") {
+  if (language === "typescript" || language === "javascript") {
     if (
-      /\.(?:test|spec)\.[cm]?tsx?$/u.test(lower) ||
+      /\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(lower) ||
       segments.includes("__tests__") ||
       segments.includes("tests") ||
       segments.includes("test")

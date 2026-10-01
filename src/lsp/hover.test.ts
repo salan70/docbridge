@@ -64,6 +64,21 @@ describe(hover, () => {
     );
   });
 
+  test.each([
+    ["src/auth/login.jsx", "jsx"],
+    ["src/auth/login.mjs", "js"],
+  ])("doc to code fences the %s signature as %s", (codeFile, fence) => {
+    const code =
+      "/** @doc docs/auth.md#login-spec */\nexport function Login() {\n  return null;\n}\n";
+    const doc = `<!-- @code ${codeFile}#Login -->\n## Login Spec\n`;
+
+    const result = hover(stateOf(code, doc, scanTypeScript(codeFile, code)), DOC_FILE, HEADING);
+
+    expect(result?.value).toBe(
+      `**${codeFile}#Login**\n\n\`\`\`${fence}\nexport function Login()\n\`\`\``,
+    );
+  });
+
   test("concatenates one-to-many sections with a divider", () => {
     const code =
       "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";

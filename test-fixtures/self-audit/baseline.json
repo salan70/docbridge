@@ -923,6 +923,16 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript.ts#javaScriptAdapter",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript-diagnostics.ts#scriptLanguage",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/typescript-diagnostics.ts#duplicateCodeSymbolDiagnostic",
       "class": "internal_helper"
     },

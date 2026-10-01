@@ -1,0 +1,116 @@
+{
+  "language": "javascript",
+  "filePath": "input.js",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "javascript",
+      "filePath": "input.js",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.js#login",
+      "location": {
+        "filePath": "input.js",
+        "line": 2,
+        "column": 17
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 17
+        },
+        "end": {
+          "line": 2,
+          "column": 22
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 27
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 25
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "javascript",
+      "filePath": "input.js",
+      "symbolName": "logout",
+      "canonicalId": "logout",
+      "endpoint": "input.js#logout",
+      "location": {
+        "filePath": "input.js",
+        "line": 4,
+        "column": 17
+      },
+      "nameRange": {
+        "start": {
+          "line": 4,
+          "column": 17
+        },
+        "end": {
+          "line": 4,
+          "column": 23
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 28
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "input.js#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.js",
+        "line": 1,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 28
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}
