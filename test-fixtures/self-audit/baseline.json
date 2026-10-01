@@ -368,6 +368,16 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/adapter.ts#CodeScanContext",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/adapter.ts#CodeScanFile",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/config/config.ts#checkPatternSuffix",
       "class": "sibling_export"
     },

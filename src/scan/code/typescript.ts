@@ -19,6 +19,9 @@ export const typeScriptAdapter: CodeLanguageAdapter = {
   scanFile(filePath: string, content: string, options: CodeScanOptions) {
     return scanTypeScript(filePath, content, options);
   },
+  scanFiles(files, options: CodeScanOptions) {
+    return files.map(({ filePath, content }) => scanTypeScript(filePath, content, options));
+  },
 };
 
 /**

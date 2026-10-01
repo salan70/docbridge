@@ -37,9 +37,10 @@ Reinstall the package first. If the platform is not supported, run DocBridge
 in a supported environment or build the scanner from the repository.
 
 `code_scanner_failed` diagnostics contain the worker failure rather than
-converting it into a broken link. Check that the source parses with the
-project's own toolchain, then reproduce with the smallest configured file
-set.
+converting it into a broken link. One worker run scans every file of its
+language, so a failed run reports the same message on each of those files.
+Check that the source parses with the project's own toolchain, then reproduce
+with the smallest configured file set.
 
 `code_parse_error` means a TypeScript, Swift, Dart, Rust, or Go source file has a
 syntax error. The diagnostic points at the first error the language's parser

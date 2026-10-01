@@ -28,8 +28,9 @@ Swift、Dart、Rust、Go は package に同梱された scanner worker を使い
 実行するか、repository から scanner を build します。
 
 `code_scanner_failed` は worker の実行失敗で、壊れたリンクに変換せずに失敗内容を
-含みます。project 自身の toolchain で source を解析できるか確認し、設定対象を最小の
-file set に絞って再現します。
+含みます。worker は 1 回の実行でその言語の全ファイルを scan するため、失敗した実行は
+それらの各ファイルに同じメッセージを報告します。project 自身の toolchain で source を
+解析できるか確認し、設定対象を最小の file set に絞って再現します。
 
 `code_parse_error` は TypeScript、Swift、Dart、Rust、Go の source file の構文エラーです。
 診断は、その言語の parser が最初に見つけたエラーの位置を指し、parser のメッセージを含みます。

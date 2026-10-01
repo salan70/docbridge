@@ -64,14 +64,33 @@ does not affect stdout JSON parsing. The complete protocol is defined by
 and actual TypeScript, Swift, Dart, Rust, and Go scan results are checked against
 it.
 
+A scan invokes each worker-backed language once. The request carries every
+readable managed file of that language in collection order. A file that cannot
+be read is reported as `file_read_error` and left out of the request, and a
+language without a readable file starts no worker. The scan result keeps
+collection order across languages, with each read failure at its file's
+position. The request is not capped: every managed file's content is already in
+memory before scanning, and the request adds one serialized copy of that
+language's files while the worker runs.
+
+Each invocation may run for 30 seconds plus 1 second per requested file; a
+worker still running then is killed. Stdout and stderr may each carry up to
+1 GiB; a worker that writes more is killed.
+
 If a configured worker cannot be started, DocBridge emits
-`code_scanner_unavailable`. If the worker starts but exits unsuccessfully,
-returns invalid JSON, or returns a response whose schema version, request ID, or
+`code_scanner_unavailable`. If the worker starts but exits unsuccessfully, is
+killed by a signal, outlives its time limit, exceeds its output limit, returns
+invalid JSON, or returns a response whose schema version, request ID, or
 language does not match the request, DocBridge emits `code_scanner_failed`.
 Responses with missing, mistyped, or unexpected nested fields also emit
 `code_scanner_failed` rather than being consumed as incomplete scan data.
 Worker responses must contain exactly the requested file paths in request order;
 missing files, unexpected files, or reordered files are `code_scanner_failed`.
+
+A failure that leaves a request without a usable response applies to every file
+in the request. Each file gets an empty scan result and its own copy of the
+diagnostic, targeted at that file, so link diagnostics that depend on any of
+those files are suppressed as for a file that failed alone.
 
 The bundled Swift worker is a SwiftPM package under `packages/swift-scanner`.
 It uses SwiftSyntax/SwiftParser and communicates through the worker protocol.
