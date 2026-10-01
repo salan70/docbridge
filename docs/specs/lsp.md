@@ -212,7 +212,9 @@ the linked code endpoint plus the declaration's signature, fenced in the
 declaration's language; TypeScript and JavaScript fences follow the file suffix
 (`ts`, `tsx`, `js`, or `jsx`). The signature is the scanner's signature range
 without the leading doc comment, which is a `#` comment block in Python and
-Ruby. It can span several lines and keeps attributes and
+Ruby and a Javadoc comment in Java. Line and block comments between the doc
+comment and the declaration are dropped too; block comments nest only in
+Swift, Dart, and Rust. It can span several lines and keeps attributes and
 decorators. When the scanner reports no signature range, only the endpoint is
 shown.
 
@@ -281,6 +283,7 @@ The VS Code-compatible extension is a thin LSP client. It starts the bundled
 - `javascriptreact`
 - `python`
 - `ruby`
+- `java`
 - `markdown`
 
 The extension does not duplicate DocBridge include-pattern filtering. It only

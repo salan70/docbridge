@@ -55,7 +55,7 @@ language. Shorthand pattern arrays such as `"swift": ["Sources/**/*.swift"]` are
 not supported; the old array form `"code": ["src/**/*.ts"]` is invalid.
 
 Supported language IDs are `typescript`, `swift`, `dart`, `rust`, `go`,
-`javascript`, `python`, and `ruby`. Any other key is an error. `include.code` must configure at least one language; an empty
+`javascript`, `python`, `ruby`, and `java`. Any other key is an error. `include.code` must configure at least one language; an empty
 object is an error.
 
 ```json
@@ -72,7 +72,8 @@ object is an error.
       "go": { "patterns": ["cmd/**/*.go", "internal/**/*.go"] },
       "javascript": { "patterns": ["web/**/*.js", "web/**/*.jsx"] },
       "python": { "patterns": ["app/**/*.py"], "visibility": ["public"] },
-      "ruby": { "patterns": ["lib/**/*.rb"] }
+      "ruby": { "patterns": ["lib/**/*.rb"] },
+      "java": { "patterns": ["src/main/java/**/*.java"] }
     },
     "docs": ["docs/**/*.md"]
   }
@@ -92,6 +93,7 @@ with one of the language's suffixes and with none of its excluded suffixes:
 | `javascript` | `.js`, `.jsx`, `.mjs`, `.cjs` |                             |
 | `python`     | `.py`                         |                             |
 | `ruby`       | `.rb`                         |                             |
+| `java`       | `.java`                       |                             |
 
 A matched file that ends with an excluded suffix is not a managed code file.
 An optional `visibility` array narrows the audited public surface; allowed
@@ -110,27 +112,22 @@ JavaScript member classifies as `public`. Python accepts `public` and
 `private`; omitting `visibility` scans `public` only, and a name is `private`
 when it or an enclosing class name starts with `_` and is not a `__dunder__`
 name. Ruby accepts `public`, `protected`, and `private`; omitting `visibility`
-scans `public` only, and classes, modules, and constants are always `public`
-(see [Python Scanning](scanning.md#python-scanning) and
-[Ruby Scanning](scanning.md#ruby-scanning)).
+scans `public` only, and classes, modules, and constants are always `public`.
+Java accepts `public`, `protected`, `package`, and `private`; omitting
+`visibility` scans `public` only, interface members without an access modifier
+and enum constants are `public`, and a declaration is never more visible than
+an enclosing type (see [Python Scanning](scanning.md#python-scanning),
+[Ruby Scanning](scanning.md#ruby-scanning), and
+[Java Scanning](scanning.md#java-scanning)).
 
 TypeScript `visibility` applies only to type members. Top-level declarations are
 scoped by `export` and are unaffected by it. A member excluded by visibility is
 not an endpoint, and a `@doc` on one is `unsupported_declaration`.
 
-JavaScript is scanned in process by the TypeScript scanner. Python and Ruby
-are scanned by runtime-backed workers that need the language runtime on the
-machine running DocBridge; [Scanner Runtimes](#scanner-runtimes) chooses it.
-
-Java is pending registration. Its contract is fixed below and in
-[Scanning](scanning.md#java-scanning), and `java` becomes a valid
-`include.code` key when it is registered. Until then `include.code.java` is an
-unknown code language and reports `config_invalid_value`, like any other
-unsupported key.
-
-| Language ID | Pattern suffixes | Visibility values                           | Default      |
-| ----------- | ---------------- | ------------------------------------------- | ------------ |
-| `java`      | `.java`          | `public`, `protected`, `package`, `private` | `["public"]` |
+JavaScript is scanned in process by the TypeScript scanner. Python, Ruby, and
+Java are scanned by runtime-backed workers that need the language runtime on
+the machine running DocBridge; [Scanner Runtimes](#scanner-runtimes) chooses
+it.
 
 If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong
@@ -142,9 +139,8 @@ to exactly one language.
 ## Scanner Runtimes
 
 The optional top-level `scanners` object chooses the runtime that starts a
-runtime-backed scanner worker. Its `python` and `ruby` entries take effect for
-the configured Python and Ruby files; the `java` entry is validated now and
-takes effect once Java is registered.
+runtime-backed scanner worker for the configured Python, Ruby, and Java
+files.
 
 ```json
 {
