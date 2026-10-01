@@ -1,5 +1,5 @@
+import { codeFenceLanguage } from "../../config/code-language";
 import { pluralize } from "../../model/diagnostics";
-import type { CodeLanguage } from "../../model/types";
 import type { ContextBlock, ContextResult, ContextSummary } from "../../query/context";
 
 /**
@@ -28,23 +28,11 @@ export function renderContextBlock(block: ContextBlock): string {
     return `${header}\n\n${block.content}`;
   }
   const fence = codeFence(block.content);
-  return `${header}\n\n${fence}${fenceLanguage(block.language)}\n${block.content}\n${fence}`;
+  return `${header}\n\n${fence}${fenceLanguage(block)}\n${block.content}\n${fence}`;
 }
 
-function fenceLanguage(language: CodeLanguage | undefined): string {
-  if (language === "swift") {
-    return "swift";
-  }
-  if (language === "dart") {
-    return "dart";
-  }
-  if (language === "rust") {
-    return "rust";
-  }
-  if (language === "go") {
-    return "go";
-  }
-  return "ts";
+function fenceLanguage(block: ContextBlock): string {
+  return block.language === undefined ? "ts" : codeFenceLanguage(block.language, block.filePath);
 }
 
 /** A backtick fence one longer than the longest backtick run in the content. */

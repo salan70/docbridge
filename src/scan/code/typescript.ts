@@ -10,15 +10,29 @@ import type {
   DocBridgeDiagnostic,
 } from "../../model/types";
 import type { CodeLanguageAdapter, CodeScanOptions } from "./adapter";
-
-const LANGUAGE = "typescript" as const;
+import {
+  duplicateCodeSymbolDiagnostic,
+  duplicateLinkDiagnostic,
+  parseErrorDiagnostic,
+  scriptLanguage,
+  unsupportedDeclarationDiagnostic,
+} from "./typescript-diagnostics";
 
 /** The in-process TypeScript code language adapter. */
 export const typeScriptAdapter: CodeLanguageAdapter = {
-  language: LANGUAGE,
+  language: "typescript",
   scanFile(filePath: string, content: string, options: CodeScanOptions) {
     return scanTypeScript(filePath, content, options);
   },
+  scanFiles(files, options: CodeScanOptions) {
+    return files.map(({ filePath, content }) => scanTypeScript(filePath, content, options));
+  },
+};
+
+/** The JavaScript adapter: the TypeScript scanner, which labels a file by its suffix. */
+export const javaScriptAdapter: CodeLanguageAdapter = {
+  ...typeScriptAdapter,
+  language: "javascript",
 };
 
 /**
@@ -53,6 +67,7 @@ type SupportedDeclaration = {
 /**
  * @doc docs/specs/scanning.md#typescript-scanning
  * @doc docs/specs/scanning.md#typescript-members
+ * @doc docs/specs/scanning.md#javascript-scanning
  */
 export function scanTypeScript(
   filePath: string,
@@ -65,14 +80,14 @@ export function scanTypeScript(
     content,
     ts.ScriptTarget.Latest,
     /* setParentNodes */ true,
-    ts.ScriptKind.TS,
+    scriptKindOf(filePath),
   );
 
-  const parseDiagnostics = getParseDiagnostics(sourceFile);
-  if (parseDiagnostics.length > 0) {
-    const first = parseDiagnostics[0];
+  const syntaxErrors = syntaxDiagnostics(sourceFile);
+  if (syntaxErrors.length > 0) {
+    const first = syntaxErrors[0];
     return {
-      language: LANGUAGE,
+      language: scriptLanguage(filePath),
       filePath,
       symbols: [],
       undocumentedSymbols: [],
@@ -176,14 +191,14 @@ export function scanTypeScript(
       const parsed = parseLinkTarget(docTag.rawTarget, parseOptions);
 
       if (!parsed.ok) {
-        diagnostics.push(parsed.diagnostic);
+        diagnostics.push(linkDiagnostic(filePath, parsed.diagnostic));
         continue;
       }
 
       if (linkTargetsSeen.has(docTag.rawTarget)) {
-        diagnostics.push(
-          duplicateLinkDiagnostic(endpoint, docTag.rawTarget, docTag.location, docTag.targetRange),
-        );
+        const { rawTarget, location, targetRange } = docTag;
+        const duplicate = duplicateLinkDiagnostic(endpoint, rawTarget, location, targetRange);
+        diagnostics.push(linkDiagnostic(filePath, duplicate));
         continue;
       }
       linkTargetsSeen.add(docTag.rawTarget);
@@ -201,13 +216,49 @@ export function scanTypeScript(
   }
 
   return {
-    language: LANGUAGE,
+    language: scriptLanguage(filePath),
     filePath,
     symbols,
     undocumentedSymbols,
     links,
     diagnostics,
   };
+}
+
+/**
+ * A link diagnostic (`duplicate_link`, `invalid_link_target`) as the scanner
+ * reports it for `filePath`: from a JavaScript file it names `javascript`, and
+ * from a TypeScript file it stays as built, without a language, as before
+ * JavaScript was registered.
+ */
+function linkDiagnostic(filePath: string, diagnostic: DocBridgeDiagnostic): DocBridgeDiagnostic {
+  if (scriptLanguage(filePath) !== "javascript") {
+    return diagnostic;
+  }
+  const { severity, code, ...rest } = diagnostic;
+  return { severity, code, language: "javascript", ...rest };
+}
+
+/** The parser's script kind follows the suffix, so JSX parses only where it is allowed. */
+function scriptKindOf(filePath: string): ts.ScriptKind {
+  if (scriptLanguage(filePath) === "javascript") {
+    return filePath.endsWith(".jsx") ? ts.ScriptKind.JSX : ts.ScriptKind.JS;
+  }
+  return filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+}
+
+/**
+ * The syntax errors that make a file unscannable, in the order to report them.
+ * A parser error comes first. A JavaScript file the parser accepts can still
+ * use syntax that only TypeScript allows, such as `interface` or a type
+ * annotation; the compiler rejects that as a JavaScript grammar error.
+ */
+function syntaxDiagnostics(sourceFile: ts.SourceFile): readonly ts.Diagnostic[] {
+  const parseDiagnostics = getParseDiagnostics(sourceFile);
+  if (parseDiagnostics.length > 0 || scriptLanguage(sourceFile.fileName) !== "javascript") {
+    return parseDiagnostics;
+  }
+  return javaScriptGrammarDiagnostics(sourceFile);
 }
 
 function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
@@ -217,6 +268,33 @@ function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
     parseDiagnostics?: ts.DiagnosticWithLocation[];
   };
   return withDiagnostics.parseDiagnostics ?? [];
+}
+
+/**
+ * The compiler's syntactic diagnostics for a JavaScript file, which add its
+ * JavaScript-only grammar checks to the parser's. A program over this one
+ * already parsed file, without the standard library or module resolution,
+ * reads nothing from disk and runs no type checking.
+ */
+function javaScriptGrammarDiagnostics(sourceFile: ts.SourceFile): readonly ts.Diagnostic[] {
+  const { fileName } = sourceFile;
+  const host: ts.CompilerHost = {
+    getSourceFile: (name) => (name === fileName ? sourceFile : undefined),
+    fileExists: (name) => name === fileName,
+    readFile: () => undefined,
+    writeFile: () => undefined,
+    getDefaultLibFileName: () => "lib.d.ts",
+    getCurrentDirectory: () => "/",
+    getCanonicalFileName: (name) => name,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => "\n",
+  };
+  const program = ts.createProgram({
+    rootNames: [fileName],
+    options: { allowJs: true, noLib: true, noResolve: true, types: [] },
+    host,
+  });
+  return program.getSyntacticDiagnostics(sourceFile);
 }
 
 function collectDocTags(filePath: string, sourceFile: ts.SourceFile, statement: ts.Node): DocTag[] {
@@ -695,7 +773,7 @@ function makeCodeSymbol(
 ): CodeSymbolEndpoint {
   const symbol: CodeSymbolEndpoint = {
     kind: "code",
-    language: LANGUAGE,
+    language: scriptLanguage(filePath),
     filePath,
     symbolName: declaration.symbolName,
     canonicalId: declaration.canonicalId,
@@ -733,85 +811,4 @@ function firstToken(text: string): string | undefined {
     return undefined;
   }
   return trimmed.split(/\s+/)[0];
-}
-
-function parseErrorDiagnostic(
-  filePath: string,
-  sourceFile: ts.SourceFile,
-  diagnostic: ts.Diagnostic | undefined,
-): DocBridgeDiagnostic {
-  const location: SourceLocation = { filePath, line: 1, column: 1 };
-  if (diagnostic !== undefined && diagnostic.start !== undefined && diagnostic.file !== undefined) {
-    const { line, character } = sourceFile.getLineAndCharacterOfPosition(diagnostic.start);
-    location.line = line + 1;
-    location.column = character + 1;
-  }
-
-  const detail =
-    diagnostic === undefined
-      ? "TypeScript file has a syntactic parse error."
-      : ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-
-  return {
-    severity: "error",
-    code: "code_parse_error",
-    language: LANGUAGE,
-    target: filePath,
-    message: `TypeScript parse error: ${detail}`,
-    location,
-  };
-}
-
-function unsupportedDeclarationDiagnostic(
-  filePath: string,
-  location: SourceLocation,
-): DocBridgeDiagnostic {
-  return {
-    severity: "warning",
-    code: "unsupported_declaration",
-    language: LANGUAGE,
-    target: filePath,
-    message:
-      "@doc is attached to an unsupported declaration. Supported declarations are top-level exported function, class, interface, type, single-declarator const, enum, and named default function or class, plus the identifier-named members of a class, interface, or object type alias.",
-    location,
-  };
-}
-
-function duplicateCodeSymbolDiagnostic(
-  endpoint: string,
-  location: SourceLocation,
-  range: Range | undefined,
-): DocBridgeDiagnostic {
-  const diagnostic: DocBridgeDiagnostic = {
-    severity: "error",
-    code: "duplicate_code_symbol",
-    language: LANGUAGE,
-    target: endpoint,
-    message: `Multiple @doc-annotated declarations expose the same code endpoint ${endpoint}.`,
-    location,
-  };
-  if (range !== undefined) {
-    diagnostic.range = range;
-  }
-  return diagnostic;
-}
-
-function duplicateLinkDiagnostic(
-  source: string,
-  target: string,
-  location: SourceLocation,
-  range: Range | undefined,
-): DocBridgeDiagnostic {
-  const diagnostic: DocBridgeDiagnostic = {
-    severity: "warning",
-    code: "duplicate_link",
-    target,
-    source,
-    message: `Duplicate @doc link from ${source} to ${target}.`,
-    location,
-  };
-  if (range !== undefined) {
-    diagnostic.range = range;
-  }
-  return diagnostic;
 }

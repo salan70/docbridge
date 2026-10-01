@@ -1,0 +1,110 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "req-1",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "A.java",
+        "content": "class A {}\n"
+      },
+      {
+        "filePath": "B.java",
+        "content": "class B {\n"
+      },
+      {
+        "filePath": "C.java",
+        "content": ""
+      }
+    ],
+    "options": {
+      "visibility": ["package"]
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "req-1",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "A.java",
+        "symbols": [],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "A.java",
+            "symbolName": "A",
+            "canonicalId": "A",
+            "endpoint": "A.java#A",
+            "location": {
+              "filePath": "A.java",
+              "line": 1,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 7
+              },
+              "end": {
+                "line": 1,
+                "column": 8
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 11
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 8
+              }
+            }
+          }
+        ],
+        "links": [],
+        "diagnostics": []
+      },
+      {
+        "filePath": "B.java",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "code_parse_error",
+            "target": "B.java",
+            "language": "java",
+            "message": "Java parse error: reached end of file while parsing.",
+            "location": {
+              "filePath": "B.java",
+              "line": 1,
+              "column": 10
+            }
+          }
+        ]
+      },
+      {
+        "filePath": "C.java",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": []
+      }
+    ]
+  }
+}

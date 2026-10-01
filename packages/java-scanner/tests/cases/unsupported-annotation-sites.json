@@ -1,0 +1,378 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "unsupported-annotation-sites",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "/** @doc d.md#pkg */\npackage p;\n/** @doc d.md#imp */\nimport java.util.List;\n/** @doc d.md#imp2 */\nimport static java.util.Map.*;\npublic class U {\n  /** @doc d.md#static */\n  static { }\n  /** @doc d.md#init */\n  { }\n  /** @doc d.md#multi */\n  public int a, b;\n  /** @doc d.md#bad */\n  public void m() {\n    /** @doc d.md#local */\n    class Local { }\n    Runnable r = () -> { };\n    Object o = new Object() { /** @doc d.md#anon */ public void z() { } };\n  }\n}\n/** @doc d.md#dangling */\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "unsupported-annotation-sites",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "m",
+            "canonicalId": "U.m()",
+            "endpoint": "Input.java#U.m()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 15,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 15,
+                "column": 15
+              },
+              "end": {
+                "line": 15,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 14,
+                "column": 3
+              },
+              "end": {
+                "line": 20,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 14,
+                "column": 3
+              },
+              "end": {
+                "line": 15,
+                "column": 18
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "U",
+            "canonicalId": "U",
+            "endpoint": "Input.java#U",
+            "location": {
+              "filePath": "Input.java",
+              "line": 7,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 7,
+                "column": 14
+              },
+              "end": {
+                "line": 7,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 21,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 7,
+                "column": 15
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "a",
+            "canonicalId": "U.a",
+            "endpoint": "Input.java#U.a",
+            "location": {
+              "filePath": "Input.java",
+              "line": 13,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 13,
+                "column": 14
+              },
+              "end": {
+                "line": 13,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 13,
+                "column": 16
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 13,
+                "column": 16
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "b",
+            "canonicalId": "U.b",
+            "endpoint": "Input.java#U.b",
+            "location": {
+              "filePath": "Input.java",
+              "line": 13,
+              "column": 17
+            },
+            "nameRange": {
+              "start": {
+                "line": 13,
+                "column": 17
+              },
+              "end": {
+                "line": 13,
+                "column": 18
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 13,
+                "column": 19
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 13,
+                "column": 19
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#U.m()",
+            "target": "d.md#bad",
+            "location": {
+              "filePath": "Input.java",
+              "line": 14,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 14,
+                "column": 12
+              },
+              "end": {
+                "line": 14,
+                "column": 20
+              }
+            }
+          }
+        ],
+        "diagnostics": [
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 9
+            },
+            "range": {
+              "start": {
+                "line": 2,
+                "column": 9
+              },
+              "end": {
+                "line": 2,
+                "column": 10
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 4,
+              "column": 8
+            },
+            "range": {
+              "start": {
+                "line": 4,
+                "column": 8
+              },
+              "end": {
+                "line": 4,
+                "column": 22
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 6,
+              "column": 15
+            },
+            "range": {
+              "start": {
+                "line": 6,
+                "column": 15
+              },
+              "end": {
+                "line": 6,
+                "column": 30
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 9,
+              "column": 3
+            },
+            "range": {
+              "start": {
+                "line": 9,
+                "column": 3
+              },
+              "end": {
+                "line": 9,
+                "column": 9
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 11,
+              "column": 3
+            },
+            "range": {
+              "start": {
+                "line": 11,
+                "column": 3
+              },
+              "end": {
+                "line": 11,
+                "column": 4
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 13,
+              "column": 14
+            },
+            "range": {
+              "start": {
+                "line": 13,
+                "column": 14
+              },
+              "end": {
+                "line": 13,
+                "column": 15
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 22,
+              "column": 1
+            },
+            "range": {
+              "start": {
+                "line": 22,
+                "column": 1
+              },
+              "end": {
+                "line": 22,
+                "column": 26
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

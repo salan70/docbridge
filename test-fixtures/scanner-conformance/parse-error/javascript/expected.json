@@ -1,0 +1,21 @@
+{
+  "language": "javascript",
+  "filePath": "input.js",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "language": "javascript",
+      "target": "input.js",
+      "message": "JavaScript parse error: Declaration or statement expected.",
+      "location": {
+        "filePath": "input.js",
+        "line": 3,
+        "column": 12
+      }
+    }
+  ]
+}

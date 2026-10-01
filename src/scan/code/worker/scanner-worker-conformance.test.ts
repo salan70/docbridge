@@ -7,7 +7,8 @@ import Ajv2020 from "ajv/dist/2020";
 import commonOutputSchema from "../../../../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../../../../schemas/scanner-worker.schema.json";
 import { scanTypeScript } from "../typescript";
-import type { ScannerWorkerRequest } from "./scanner-worker";
+import { resolveRuntimeWorkerCommand } from "./runtime-worker";
+import { runScannerWorkerProcess, type ScannerWorkerRequest } from "./scanner-worker";
 
 const repoRoot = resolve(import.meta.dir, "..", "..", "..", "..");
 const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -44,6 +45,40 @@ test("TypeScript scan results conform to the shared response schema", () => {
 
   expect(validateResponse(response), JSON.stringify(validateResponse.errors)).toBe(true);
 });
+
+for (const fixture of [
+  { language: "python" as const, filePath: "src/auth.py", content: "class Auth:\n    pass\n" },
+  { language: "ruby" as const, filePath: "lib/auth.rb", content: "class Auth; end\n" },
+]) {
+  test(`${fixture.language} runtime worker conforms to the shared request and response schema`, () => {
+    const request: ScannerWorkerRequest = {
+      schemaVersion: 1,
+      requestId: `conformance-${fixture.language}`,
+      language: fixture.language,
+      projectRoot: repoRoot,
+      files: [{ filePath: fixture.filePath, content: fixture.content }],
+      options: {},
+    };
+    const resolution = resolveRuntimeWorkerCommand(fixture.language, { projectRoot: repoRoot });
+    if (!resolution.ok) {
+      throw new Error(resolution.diagnostic.message);
+    }
+
+    expect(validateRequest(request), JSON.stringify(validateRequest.errors)).toBe(true);
+
+    const result = runScannerWorkerProcess({
+      command: resolution.command,
+      stripEnv: resolution.stripEnv,
+      stdin: JSON.stringify(request),
+    });
+    if (!result.ok) {
+      throw new Error(`cannot start ${resolution.command[0]}: ${String(result.error)}`);
+    }
+    expect(result.exitCode, result.stderr).toBe(0);
+    const response: unknown = JSON.parse(result.stdout);
+    expect(validateResponse(response), JSON.stringify(validateResponse.errors)).toBe(true);
+  });
+}
 
 for (const fixture of [
   {

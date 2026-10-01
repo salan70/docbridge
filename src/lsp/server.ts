@@ -1,11 +1,13 @@
 import { fileURLToPath } from "node:url";
 
+import { reasonOf } from "../shared/error";
 import { diagnosticsForFile } from "./diagnostics";
 import { hover } from "./hover";
 import { definition, references, type Locator } from "./navigation";
 import { relativePathToUri, uriToRelativePath } from "./paths";
 import { fromLspPosition, toLspRange } from "./position";
-import { Project } from "./project";
+import { Project, type ProjectState } from "./project";
+import { RescanScheduler, type Timers } from "./scheduler";
 import { encodeMessage, MessageReader } from "./transport";
 
 /** Sends an outgoing JSON-RPC message to the client. */
@@ -14,10 +16,19 @@ export type SendFn = (message: unknown) => void;
 type ServerOptions = {
   /** Build the project model for a resolved root (overridable for tests). */
   makeProject?: (root: string) => Project;
-  /** Debounce window, in ms, for re-resolving after a document change. */
+  /** Debounce window, in ms, for rescanning after a document change. */
   debounceMs?: number;
   /** Called on `exit`; defaults to terminating the process. */
   onExit?: (code: number) => void;
+  /** Timers for the rescan debounce; defaults to the global timers. */
+  timers?: Timers;
+  /** Called when a scan fails unexpectedly; defaults to a line on stderr. */
+  onScanError?: (error: unknown) => void;
+};
+
+const GLOBAL_TIMERS: Timers = {
+  setTimeout: (callback, ms) => setTimeout(callback, ms),
+  clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
 type JsonRpcMessage = {
@@ -37,20 +48,22 @@ const CAPABILITIES = {
 /**
  * The DocBridge Language Server: JSON-RPC lifecycle plus the four link-graph
  * features over a whole-project model. Transport-agnostic; `send` delivers
- * outgoing messages and `handle` consumes incoming ones.
+ * outgoing messages and `handle` consumes incoming ones. Scans run in the
+ * background, so `handle` never waits for one.
  *
  * @doc docs/specs/lsp.md#lifecycle
  */
 export class Server {
   private project: Project | null = null;
+  private scheduler: RescanScheduler | null = null;
   private readonly openFiles = new Set<string>();
-  private dirty = true;
-  private timer: ReturnType<typeof setTimeout> | null = null;
   private shuttingDown = false;
 
   private readonly makeProject: (root: string) => Project;
   private readonly debounceMs: number;
   private readonly onExit: (code: number) => void;
+  private readonly timers: Timers;
+  private readonly onScanError: (error: unknown) => void;
 
   constructor(
     private readonly send: SendFn,
@@ -59,6 +72,10 @@ export class Server {
     this.makeProject = options.makeProject ?? ((root) => new Project(root));
     this.debounceMs = options.debounceMs ?? 50;
     this.onExit = options.onExit ?? ((code) => process.exit(code));
+    this.timers = options.timers ?? GLOBAL_TIMERS;
+    this.onScanError =
+      options.onScanError ??
+      ((error) => process.stderr.write(`docbridge lsp: scan failed: ${reasonOf(error)}\n`));
   }
 
   /** Dispatch one parsed incoming JSON-RPC message. */
@@ -66,27 +83,35 @@ export class Server {
     switch (message.method) {
       case "initialize":
         this.respond(message.id, { capabilities: CAPABILITIES });
-        this.project = this.makeProject(resolveRoot(message.params));
+        this.start(this.makeProject(resolveRoot(message.params)));
         break;
       case "initialized":
-        this.flush();
+        this.scheduler?.request("now");
         break;
       case "shutdown":
         this.shuttingDown = true;
-        this.clearTimer();
+        this.scheduler?.stop();
         this.respond(message.id, null);
         break;
       case "exit":
+        this.scheduler?.stop();
         this.onExit(this.shuttingDown ? 0 : 1);
         break;
+      // After `shutdown`, document notifications change nothing and publish nothing.
       case "textDocument/didOpen":
-        this.onDidOpen(message.params);
+        if (!this.shuttingDown) {
+          this.onDidOpen(message.params);
+        }
         break;
       case "textDocument/didChange":
-        this.onDidChange(message.params);
+        if (!this.shuttingDown) {
+          this.onDidChange(message.params);
+        }
         break;
       case "textDocument/didClose":
-        this.onDidClose(message.params);
+        if (!this.shuttingDown) {
+          this.onDidClose(message.params);
+        }
         break;
       case "textDocument/hover":
         this.respond(message.id, this.onHover(message.params));
@@ -105,6 +130,17 @@ export class Server {
     }
   }
 
+  private start(project: Project): void {
+    this.project = project;
+    this.scheduler = new RescanScheduler({
+      scan: () => project.resolveAsync(),
+      onState: (state) => this.publishOpenFiles(state),
+      onError: this.onScanError,
+      debounceMs: this.debounceMs,
+      timers: this.timers,
+    });
+  }
+
   private onDidOpen(params: unknown): void {
     const doc = textDocument(params);
     const rel = this.relPath(doc?.uri);
@@ -114,8 +150,7 @@ export class Server {
     }
     this.openFiles.add(rel);
     this.project.setOverlay(rel, text);
-    this.dirty = true;
-    this.flush();
+    this.scheduler?.request("now");
   }
 
   private onDidChange(params: unknown): void {
@@ -127,7 +162,7 @@ export class Server {
       return;
     }
     this.project.setOverlay(rel, text);
-    this.scheduleFlush();
+    this.scheduler?.request("debounced");
   }
 
   private onDidClose(params: unknown): void {
@@ -138,10 +173,9 @@ export class Server {
     }
     this.openFiles.delete(rel);
     this.project.clearOverlay(rel);
-    this.dirty = true;
     // Clear diagnostics for the closed document, then refresh the rest.
     this.publish(rel, []);
-    this.flush();
+    this.scheduler?.request("now");
   }
 
   private onHover(params: unknown): unknown {
@@ -180,8 +214,12 @@ export class Server {
     );
   }
 
+  /**
+   * Resolve a position request against the last accepted state. It never
+   * waits for a scan in progress.
+   */
   private locate(params: unknown): {
-    state: ReturnType<Project["resolve"]>;
+    state: ProjectState;
     rel: string;
     root: string;
     position: ReturnType<typeof fromLspPosition>;
@@ -201,8 +239,6 @@ export class Server {
     ) {
       return null;
     }
-    // Ensure the state reflects the latest buffered edits before answering.
-    this.flush();
     return {
       state: this.project.state,
       rel,
@@ -211,31 +247,17 @@ export class Server {
     };
   }
 
-  private scheduleFlush(): void {
-    this.dirty = true;
-    this.clearTimer();
-    this.timer = setTimeout(() => {
-      this.timer = null;
-      this.flush();
-    }, this.debounceMs);
-  }
-
-  /** Re-resolve if needed and publish diagnostics for every open document. */
-  private flush(): void {
-    this.clearTimer();
-    if (this.project === null || !this.dirty) {
-      return;
-    }
-    this.dirty = false;
-    const state = this.project.resolve();
+  /** Publish diagnostics from an accepted state for every open document. */
+  private publishOpenFiles(state: ProjectState): void {
     for (const rel of this.openFiles) {
       const content = state.contentByFile.get(rel) ?? "";
       this.publish(rel, diagnosticsForFile(state.diagnostics, rel, content));
     }
   }
 
+  /** Send diagnostics for one document; nothing is published once `shutdown` has begun. */
   private publish(rel: string, diagnostics: unknown[]): void {
-    if (this.project === null) {
+    if (this.project === null || this.shuttingDown) {
       return;
     }
     this.send({
@@ -257,13 +279,6 @@ export class Server {
       return;
     }
     this.send({ jsonrpc: "2.0", id, result });
-  }
-
-  private clearTimer(): void {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
   }
 }
 

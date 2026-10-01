@@ -1,0 +1,180 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "nested-constructor",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public class Outer {\n  public class Inner {\n    /** @doc d.md#ctor */\n    public Inner(int x) {}\n  }\n}\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "nested-constructor",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Inner",
+            "canonicalId": "Outer.Inner.Inner(int)",
+            "endpoint": "Input.java#Outer.Inner.Inner(int)",
+            "location": {
+              "filePath": "Input.java",
+              "line": 4,
+              "column": 12
+            },
+            "nameRange": {
+              "start": {
+                "line": 4,
+                "column": 12
+              },
+              "end": {
+                "line": 4,
+                "column": 17
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 3,
+                "column": 5
+              },
+              "end": {
+                "line": 4,
+                "column": 27
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 3,
+                "column": 5
+              },
+              "end": {
+                "line": 4,
+                "column": 24
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Outer",
+            "canonicalId": "Outer",
+            "endpoint": "Input.java#Outer",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 14
+              },
+              "end": {
+                "line": 1,
+                "column": 19
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 6,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 19
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Inner",
+            "canonicalId": "Outer.Inner",
+            "endpoint": "Input.java#Outer.Inner",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 16
+            },
+            "nameRange": {
+              "start": {
+                "line": 2,
+                "column": 16
+              },
+              "end": {
+                "line": 2,
+                "column": 21
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 2,
+                "column": 21
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#Outer.Inner.Inner(int)",
+            "target": "d.md#ctor",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 14
+            },
+            "targetRange": {
+              "start": {
+                "line": 3,
+                "column": 14
+              },
+              "end": {
+                "line": 3,
+                "column": 23
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

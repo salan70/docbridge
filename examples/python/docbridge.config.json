@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "python": {
+        "patterns": ["src/**/*.py"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

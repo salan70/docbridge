@@ -4,7 +4,8 @@
 [![English README](https://img.shields.io/badge/README-English-blue)](../../README.md)
 
 DocBridge は、Markdown ドキュメントと、その内容を実装するコードを双方向に
-結び付けます。TypeScript、Swift、Dart、Rust、Go の対応宣言に書く `@doc` と、
+結び付けます。TypeScript、JavaScript、Swift、Dart、Rust、Go、Python、Ruby の対応宣言に
+書く `@doc` と、
 Markdown 見出しに書く `@code` を検証し、人間とコーディングエージェントが変更前に
 正しいカウンターパートへ到達できるようにします。
 
@@ -14,7 +15,8 @@ Markdown 見出しに書く `@code` を検証し、人間とコーディング�
 - Markdown と対応言語のソースコードを含むプロジェクト
 
 `darwin-arm64` と `linux-x64` 向けの Swift、Dart、Rust、Go scanner はパッケージに
-同梱されています。言語ごとの拡張子、visibility の既定値、scanner は
+同梱されています。Python と Ruby のプロジェクトには、platform を問わず CPython 3.10
+以降または CRuby 3.3 以降がマシンに必要です。言語ごとの拡張子、visibility の既定値、scanner は
 [設定の言語一覧](user/configuration.md#言語) を参照してください。
 
 ## インストール

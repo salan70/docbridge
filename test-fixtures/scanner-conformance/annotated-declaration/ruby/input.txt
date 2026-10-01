@@ -1,0 +1,4 @@
+# @doc docs/auth.md#login
+def login; end
+
+def logout; end

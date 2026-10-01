@@ -27,12 +27,25 @@ Swift、Dart、Rust、Go は package に同梱された scanner worker を使い
 まず package を再インストールします。platform が非対応なら、対応環境で DocBridge を
 実行するか、repository から scanner を build します。
 
-`code_scanner_failed` は worker の実行失敗で、壊れたリンクに変換せずに失敗内容を
-含みます。project 自身の toolchain で source を解析できるか確認し、設定対象を最小の
-file set に絞って再現します。
+Python と Ruby は、マシンにインストールされた interpreter で動きます。この場合の
+`code_scanner_unavailable` は、必要な interpreter、最低 version、候補ごとに見つかった
+状態（`PATH` に interpreter がない、CPython 3.10 や CRuby 3.3 より古い、Ruby 同梱の
+Prism を読み込めない）を示します。対応 version を `PATH` に入れるか、設定の
+`scanners.python.command` / `scanners.ruby.command`、または環境変数
+`DOCBRIDGE_PYTHON_RUNTIME` / `DOCBRIDGE_RUBY_RUNTIME` で指定します。
+[設定](configuration.md#scanner-の実行環境) を参照してください。message がこれらの指定を
+名指ししている場合、DocBridge はその interpreter だけを試しています。別の interpreter を
+入れるのではなく、指定を直すか削除します。
 
-`code_parse_error` は TypeScript、Swift、Dart、Rust、Go の source file の構文エラーです。
-診断は、その言語の parser が最初に見つけたエラーの位置を指し、parser のメッセージを含みます。
+`code_scanner_failed` は worker の実行失敗で、壊れたリンクに変換せずに失敗内容を
+含みます。worker は 1 回の実行でその言語の全ファイルを scan するため、失敗した実行は
+それらの各ファイルに同じメッセージを報告します。project 自身の toolchain で source を
+解析できるか確認し、設定対象を最小の file set に絞って再現します。
+
+`code_parse_error` は TypeScript、JavaScript、Swift、Dart、Rust、Go、Python、Ruby の
+source file の構文エラーです。診断は、その言語の parser が最初に見つけたエラーの位置を
+指し、parser のメッセージを含みます。Python と Ruby のメッセージはインストールされた
+interpreter に従います。
 そのファイルからはリンクも symbol も抽出されないため、先に構文を直してから関係する
 リンクの診断を確認します。`code_scanner_failed` と違い、worker 自体は正常に動作して
 おり、source が解析できなかったことを示します。

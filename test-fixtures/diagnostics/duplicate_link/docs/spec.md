@@ -3,4 +3,7 @@
 <!-- @code lib/example.dart#example -->
 <!-- @code src/example.rs#example -->
 <!-- @code internal/example.go#Example -->
+<!-- @code src/example.js#example -->
+<!-- @code src/example.py#example -->
+<!-- @code lib/example.rb#example -->
 # Example Section

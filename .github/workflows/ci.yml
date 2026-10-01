@@ -173,6 +173,69 @@ jobs:
           cd packages/go-scanner
           go test ./...
 
+      # --- Python worker: setup, format, lint, and tests ---
+      # The worker's runtime floor is CPython 3.10. setup-python provides that
+      # interpreter for a floor run of the unittest suite; the nix shell's
+      # CPython (the latest release) covers the same suite through `just`.
+      - name: Install CPython 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Test the Python scanner on CPython 3.10
+        run: python3 -m unittest discover -s packages/python-scanner/tests
+
+      - name: just format-check-python
+        run: nix develop -c just format-check-python
+
+      - name: just lint-python
+        run: nix develop -c just lint-python
+
+      - name: just test-python-scanner
+        run: nix develop -c just test-python-scanner
+      # --- end Python worker ---
+
+      # --- Ruby worker: setup and tests ---
+      # The Nix shell covers CRuby 3.4 (Prism 1.x) through `just test` and
+      # `just test-ruby-scanner`; this step covers the 3.3 floor, whose bundled
+      # Prism 0.19 has a different node API. The suite runs the pending
+      # fixtures through the executable, so no Bun is needed here. The step
+      # runs outside Nix so the setup-ruby toolchain is the `ruby` on PATH.
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Test the Ruby scanner on Ruby 3.3
+        run: |
+          cd packages/ruby-scanner
+          ruby --version
+          ruby -w -Ilib -Itest test/run.rb
+
+      - name: Test the Ruby scanner
+        run: nix develop -c just test-ruby-scanner
+      # --- end Ruby worker ---
+
+      # --- Java worker: setup, build, lint, and tests ---
+      # The JDK pinned by .java-version is installed outside Nix like the Dart
+      # and Go toolchains; the recipes need only javac, jar, and java.
+      - name: Set up the JDK for the Java scanner
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version-file: .java-version
+
+      - name: Build the Java scanner
+        run: nix develop -c just build-java-scanner
+
+      - name: Lint the Java scanner
+        run: nix develop -c just lint-java
+
+      - name: Test the Java scanner
+        run: nix develop -c just test-java-scanner
+      # --- end Java worker ---
+
       - name: just test
         run: nix develop -c just test
 
@@ -190,9 +253,74 @@ jobs:
         run: nix develop -c just verify-dist
 
       - name: Pack and smoke-test npm package
+        id: pack
         run: |
           tarball="$(npm pack)"
+          echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
           nix develop -c just pack-smoke "$tarball"
+
+      # The release packs on Linux too, so Windows users install exactly this
+      # kind of tarball; pack-smoke-windows installs this one.
+      - name: Upload the npm tarball for the Windows smoke
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-tarball
+          path: ${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+
+  # Installs the tarball test-dist packed into a path with spaces and runs the
+  # runtime-backed workers from it, read-only and writable, plus a missing
+  # runtime. Native scanner binaries are not shipped for Windows, so only the
+  # Python, Ruby, and Java workers are smoked. Informational until it has
+  # passed once: it is deliberately left out of the required `ci` aggregate
+  # below; add it to `ci.needs` after its first green run.
+  pack-smoke-windows:
+    name: pack-smoke-windows
+    needs: test-dist
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download the npm tarball
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-tarball
+          path: tarball
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install CPython 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Set up the JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version-file: .java-version
+
+      # The smoke script resolves workers through the core's own module, which
+      # needs the locked dev dependencies.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Smoke-test the runtime-backed workers from the packed package
+        shell: bash
+        run: bun run scripts/smoke-packed-package.ts tarball/docbridge-*.tgz --runtime-workers-only
 
   # Preserve the branch-protection check name while the expensive work runs in
   # parallel. This job succeeds only when both required workloads succeed.

@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "javascript": {
+        "patterns": ["src/**/*.js", "src/**/*.jsx"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}

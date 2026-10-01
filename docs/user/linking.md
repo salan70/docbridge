@@ -88,11 +88,29 @@ pub fn login(email: &str, password: &str) {}
 func Login(email, password string) error { return nil }
 ```
 
+```js
+/** @doc docs/auth.md#login-flow */
+export function login(email, password) {}
+```
+
+```python
+def login(email: str, password: str) -> None:
+    """Start the login flow.
+
+    @doc docs/auth.md#login-flow
+    """
+```
+
+```ruby
+# @doc docs/auth.md#login-flow
+def login(email, password); end
+```
+
 Paths are relative to the configured root. An annotation on an unsupported
-declaration, or on a TypeScript member excluded by visibility, produces
-`unsupported_declaration`; the same declaration without an annotation is
-ignored. Swift, Dart, Rust, and Go ignore an annotation on a declaration
-excluded by visibility without a diagnostic. To link such a declaration, add
+declaration, or on a TypeScript, JavaScript, Python, or Ruby declaration
+excluded by visibility, produces `unsupported_declaration`; the same
+declaration without an annotation is ignored. Swift, Dart, Rust, and Go ignore
+an annotation on a declaration excluded by visibility without a diagnostic. To link such a declaration, add
 its tier to `visibility` where the language accepts one; Dart accepts only
 `public`, so a private Dart declaration cannot be linked.
 
@@ -152,6 +170,44 @@ it cannot name one endpoint. Struct fields, embedded fields, the `package`
 clause, imports, `init`, and `_` are not endpoints. The scanner is syntactic:
 `_test.go` files and `//go:build`-constrained files are scanned whenever the
 patterns match them.
+
+### JavaScript declarations
+
+JavaScript follows the TypeScript rules for the forms an ES module can
+express: exported functions, classes, and single-declarator variables, named
+default exports, and the members of exported classes, with the same JSDoc
+comments and IDs such as `AuthService.login`. Every member is `public`;
+`#private` members are not endpoints. CommonJS assignments such as
+`module.exports = ...` and `exports.name = ...` are not endpoints, so an
+`@doc` on one is `unsupported_declaration`. JSX parses in every JavaScript
+file. TypeScript-only syntax, such as an `interface`, a `type` alias, or a type
+annotation, is a syntax error in a JavaScript file and is reported as
+`code_parse_error`; JSDoc types stay valid.
+
+### Python declarations
+
+Supported forms are module-level functions and classes, and the methods and
+nested classes of a class, including those under `if`, `try`, and `with`
+blocks; nothing inside a function body is an endpoint. Put `@doc` in the
+docstring or in the `#` comment block directly above the declaration or its
+first decorator. IDs are dot-qualified, such as `AuthService.login`. A
+property's getter, setter, and deleter share one endpoint, as do `@overload`
+stubs and their implementation. A name that starts with `_`, other than a
+`__dunder__` name, is `private`, and so is every member of a private class.
+Module docstrings, assignments, and nested functions are not endpoints.
+
+### Ruby declarations
+
+Supported forms are classes, modules, constants, instance methods, singleton
+methods (`def self.x` and `def x` inside `class << self`), and top-level
+methods. Put `@doc` in the `#` comment block directly above the declaration.
+IDs use `::` between constants and `.` before a method name, such as
+`Auth::Service`, `Auth::MAX_ATTEMPTS`, `Auth::Service.login`, and
+`Auth::Service.self.build` for a singleton method. A class reopened in the same
+file is one endpoint. Bare `private`, `protected`, and `public` calls,
+`private def x`, and `private_class_method` set method visibility; classes,
+modules, and constants are always `public`. `attr_reader` and its siblings,
+`alias`, and `define_method` are not endpoints.
 
 <!-- @code src/scan/markdown/markdown.ts#scanMarkdown -->
 

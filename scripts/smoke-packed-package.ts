@@ -10,12 +10,17 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import {
   supportedScannerExecutableNames,
   supportedScannerPlatformKeys,
 } from "../src/scan/code/worker/scanner-executable";
+import {
+  assertMissingRuntimeUnavailable,
+  smokeRuntimeWorkers,
+  withReadOnlyTree,
+} from "./runtime-worker-smoke";
 
 // The packaged CLI must work for both npm/Node and Bun consumers.
 const cliRuntimes = ["node", "bun"] as const;
@@ -44,24 +49,58 @@ export type CommandResult = {
 
 type SmokeOptions = {
   scannerFixtures: boolean;
+  /** Smoke only the runtime-backed workers, as on Windows where no native scanner ships. */
+  runtimeWorkersOnly: boolean;
 };
 
 export function smokePackedPackage(
   tarball: string,
-  options: SmokeOptions = { scannerFixtures: true },
+  options: SmokeOptions = { scannerFixtures: true, runtimeWorkersOnly: false },
 ): void {
   const tarballPath = resolve(tarball);
   const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-pack-smoke-"));
 
   try {
-    installAndSmoke(tarballPath, tempRoot, options);
-    if (options.scannerFixtures) {
-      smokeExecutableBitRepair(tarballPath, tempRoot);
+    if (!options.runtimeWorkersOnly) {
+      installAndSmoke(tarballPath, tempRoot, options);
+      if (options.scannerFixtures) {
+        smokeExecutableBitRepair(tarballPath, tempRoot);
+      }
     }
+    smokeRuntimeWorkerInstall(tarballPath, tempRoot);
     console.log(`Smoke-tested ${basename(tarballPath)} in ${tempRoot}`);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
+}
+
+/**
+ * Install into a path with spaces and run each runtime-backed worker from the
+ * installed package, first read-only and then writable, then confirm that a
+ * configured runtime that does not exist is reported instead of replaced.
+ */
+function smokeRuntimeWorkerInstall(tarballPath: string, tempRoot: string): void {
+  const installRoot = join(tempRoot, "runtime workers install");
+  mkdirSync(installRoot, { recursive: true });
+  writeFileSync(
+    join(installRoot, "package.json"),
+    JSON.stringify({ private: true, dependencies: {} }, null, 2),
+  );
+  run([...npmCommand(), "install", tarballPath], installRoot);
+  const packageRoot = join(installRoot, "node_modules", "docbridge");
+  const target = { distRoot: join(packageRoot, "dist"), projectRoot: installRoot };
+  // Read-only first, before a writable run can leave Python bytecode behind.
+  withReadOnlyTree(packageRoot, () => smokeRuntimeWorkers(target));
+  smokeRuntimeWorkers(target);
+  assertMissingRuntimeUnavailable({
+    ...target,
+    missingRuntime: join(installRoot, "missing runtime", "python3"),
+  });
+}
+
+/** npm is a batch file on Windows, which only a shell can start. */
+function npmCommand(): string[] {
+  return process.platform === "win32" ? ["cmd.exe", "/d", "/c", "npm"] : ["npm"];
 }
 
 /**
@@ -217,6 +256,9 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
       "dart-fixture",
       "rust-fixture",
       "go-fixture",
+      "javascript-fixture",
+      "python-fixture",
+      "ruby-fixture",
     ] as const) {
       run(
         [
@@ -287,6 +329,50 @@ function writeScannerFixtures(root: string): void {
   writeFileSync(
     join(root, "go-fixture/docs/auth.md"),
     "<!-- @code internal/auth/service.go#AuthService -->\n## Auth Service\n",
+  );
+
+  writeAuthServiceFixture(
+    root,
+    "javascript",
+    "src/auth.jsx",
+    "/** @doc docs/auth.md#auth-service */\nexport const AuthService = () => <form />;\n",
+  );
+  writeAuthServiceFixture(
+    root,
+    "python",
+    "src/auth.py",
+    'class AuthService:\n    """@doc docs/auth.md#auth-service"""\n',
+  );
+  writeAuthServiceFixture(
+    root,
+    "ruby",
+    "lib/auth.rb",
+    "# @doc docs/auth.md#auth-service\nclass AuthService; end\n",
+  );
+}
+
+/**
+ * The `<language>-fixture` project: `content` declares `AuthService` in
+ * `relPath` and links it to `docs/auth.md`, which links back. The Python and
+ * Ruby fixtures run on the runtimes the smoke host provides.
+ */
+function writeAuthServiceFixture(
+  root: string,
+  language: string,
+  relPath: string,
+  content: string,
+): void {
+  const fixtureName = `${language}-fixture`;
+  mkdirSync(join(root, fixtureName, dirname(relPath)), { recursive: true });
+  mkdirSync(join(root, fixtureName, "docs"), { recursive: true });
+  const suffix = relPath.slice(relPath.lastIndexOf("."));
+  writeFixtureConfig(root, fixtureName, {
+    [language]: { patterns: [`${dirname(relPath)}/**/*${suffix}`] },
+  });
+  writeFileSync(join(root, fixtureName, relPath), content);
+  writeFileSync(
+    join(root, fixtureName, "docs/auth.md"),
+    `<!-- @code ${relPath}#AuthService -->\n## Auth Service\n`,
   );
 }
 
@@ -423,12 +509,16 @@ function fail(message: string): never {
 function parseArgs(args: string[]): { tarball: string; options: SmokeOptions } {
   const tarball = args[0];
   if (tarball === undefined) {
-    fail("Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures]");
+    fail(
+      "Usage: bun run scripts/smoke-packed-package.ts <tarball> [--skip-scanner-fixtures] [--runtime-workers-only]",
+    );
   }
-  const options: SmokeOptions = { scannerFixtures: true };
+  const options: SmokeOptions = { scannerFixtures: true, runtimeWorkersOnly: false };
   for (const arg of args.slice(1)) {
     if (arg === "--skip-scanner-fixtures") {
       options.scannerFixtures = false;
+    } else if (arg === "--runtime-workers-only") {
+      options.runtimeWorkersOnly = true;
     } else {
       fail(`Unknown argument: ${arg}`);
     }

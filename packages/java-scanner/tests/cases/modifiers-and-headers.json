@@ -1,0 +1,242 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "modifiers-and-headers",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public sealed interface Shape permits Circle {}\nnon-sealed class Circle implements Shape {}\npublic abstract class Base<T extends Comparable<T>> /* c */ {\n  /** @doc d.md#run */\n  public abstract <R> R run(T t) throws Exception, Error;\n  /** @doc d.md#go */\n  public static synchronized void go() // trailing\n  {\n  }\n}\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "modifiers-and-headers",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "run",
+            "canonicalId": "Base.run(T)",
+            "endpoint": "Input.java#Base.run(T)",
+            "location": {
+              "filePath": "Input.java",
+              "line": 5,
+              "column": 25
+            },
+            "nameRange": {
+              "start": {
+                "line": 5,
+                "column": 25
+              },
+              "end": {
+                "line": 5,
+                "column": 28
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 58
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 58
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "go",
+            "canonicalId": "Base.go()",
+            "endpoint": "Input.java#Base.go()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 7,
+              "column": 35
+            },
+            "nameRange": {
+              "start": {
+                "line": 7,
+                "column": 35
+              },
+              "end": {
+                "line": 7,
+                "column": 37
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 9,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 7,
+                "column": 39
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Shape",
+            "canonicalId": "Shape",
+            "endpoint": "Input.java#Shape",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 25
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 25
+              },
+              "end": {
+                "line": 1,
+                "column": 30
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 48
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 45
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Base",
+            "canonicalId": "Base",
+            "endpoint": "Input.java#Base",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 23
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 23
+              },
+              "end": {
+                "line": 3,
+                "column": 27
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 3,
+                "column": 1
+              },
+              "end": {
+                "line": 10,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 3,
+                "column": 1
+              },
+              "end": {
+                "line": 3,
+                "column": 52
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#Base.run(T)",
+            "target": "d.md#run",
+            "location": {
+              "filePath": "Input.java",
+              "line": 4,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 4,
+                "column": 12
+              },
+              "end": {
+                "line": 4,
+                "column": 20
+              }
+            }
+          },
+          {
+            "source": "Input.java#Base.go()",
+            "target": "d.md#go",
+            "location": {
+              "filePath": "Input.java",
+              "line": 6,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 6,
+                "column": 12
+              },
+              "end": {
+                "line": 6,
+                "column": 19
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

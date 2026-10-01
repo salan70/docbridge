@@ -1,0 +1,42 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "parse-error",
+    "language": "python",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "src/broken.py",
+        "content": "# @doc docs/broken.md#login\ndef login(:\n    pass\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "parse-error",
+    "language": "python",
+    "files": [
+      {
+        "filePath": "src/broken.py",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "code_parse_error",
+            "target": "src/broken.py",
+            "language": "python",
+            "message": "Python parse error: invalid syntax.",
+            "location": {
+              "filePath": "src/broken.py",
+              "line": 2,
+              "column": 11
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

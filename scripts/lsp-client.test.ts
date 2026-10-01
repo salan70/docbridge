@@ -53,6 +53,8 @@ test("hover on a linked symbol reaches the Markdown section it documents", async
     "typescript",
     "/**\n * @doc docs/auth.md#auth-service\n */\nexport function authService() {}\n",
   );
+  // The server scans in the background; the first publish marks a finished scan.
+  await session.waitForPublish(uri);
 
   const hover = await session.request<{ contents?: { value?: string } } | null>(
     "textDocument/hover",
@@ -100,6 +102,29 @@ describe("a server that never answers", () => {
     );
   });
 
+  test("fails a publish wait once the process is gone", async () => {
+    const dead = startLspSession(["bun", "-e", "process.exit(0)"], repoRoot);
+    await dead.initialize(repoRoot).catch(() => {});
+
+    await expect(dead.waitForPublish("file:///nowhere.ts")).rejects.toThrow(
+      "Language server exited with code 0",
+    );
+  });
+
+  test("fails a publish wait that outlasts its timeout", async () => {
+    const mute = startLspSession(["bun", "-e", "process.stdin.resume()"], repoRoot, {
+      requestTimeoutMs: 150,
+    });
+
+    try {
+      await expect(mute.waitForPublish("file:///quiet.ts", 100)).rejects.toThrow(
+        "Language server published no diagnostics for file:///quiet.ts within 100ms.",
+      );
+    } finally {
+      await mute.stop();
+    }
+  });
+
   test("stopping a server that already exited is not itself a failure", async () => {
     const dead = startLspSession(["bun", "-e", "process.exit(0)"], repoRoot);
     await dead.initialize(repoRoot).catch(() => {});
@@ -117,4 +142,11 @@ test("a broken @doc target publishes a diagnostic on the document that carries i
   );
 
   await expect(session.waitForDiagnostics(uri)).resolves.not.toHaveLength(0);
+});
+
+test("a publish wait resolves with the empty diagnostics of a clean document", async () => {
+  const uri = documentUri(join(projectRoot, "src/clean.ts"));
+  session.openDocument(uri, "typescript", "export function clean() {}\n");
+
+  await expect(session.waitForPublish(uri)).resolves.toEqual([]);
 });

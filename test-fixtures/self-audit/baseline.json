@@ -243,6 +243,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#codeFenceLanguage",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#codeFileOwners",
       "class": "sibling_export"
     },
@@ -258,12 +263,17 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#collectCodeFiles",
+      "target": "src/config/code-language.ts#CollectedCodeFile",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#CollectedCodeFile",
+      "target": "src/config/code-language.ts#EXCLUDED_SUFFIXES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#hasExcludedSuffix",
       "class": "sibling_export"
     },
     {
@@ -274,6 +284,26 @@
     {
       "code": "undocumented_symbol",
       "target": "src/config/code-language.ts#KNOWN_CODE_LANGUAGES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/code-language.ts#LANGUAGE_SUFFIXES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/scanner-runtimes.ts#RUNTIME_WORKER_LANGUAGES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/scanner-runtimes.ts#RuntimeWorkerLanguage",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/scanner-runtimes.ts#validateScannerRuntimes",
       "class": "sibling_export"
     },
     {
@@ -338,17 +368,62 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/dispatch.ts#scanCodeFilesAsync",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#CodeScanCache",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#codeScanCacheKey",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#emptyCodeScanCache",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#isReusableScan",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/project-scan.ts#scanProjectAsync",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/adapter.ts#CodeScanOptions",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#CONFIG_FILE_NAME",
+      "target": "src/scan/code/adapter.ts#CodeScanContext",
       "class": "sibling_export"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#LANGUAGE_SUFFIX",
+      "target": "src/scan/code/adapter.ts#CodeScanFile",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/adapter.ts#PreparedCodeAdapter",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/config.ts#checkPatternSuffix",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/config.ts#CONFIG_FILE_NAME",
       "class": "sibling_export"
     },
     {
@@ -409,6 +484,41 @@
     {
       "code": "undocumented_symbol",
       "target": "src/shared/error.ts#reasonOf",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#Cancelable",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#abortError",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#cancelableSequence",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#deferred",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#isAbortError",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#mapCancelable",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/shared/cancelable.ts#settledCancelable",
       "class": "internal_helper"
     },
     {
@@ -578,6 +688,56 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntime",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntimeAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeOutcome",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawn",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawnResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#spawnRuntimeProbe",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#clearRuntimeProbeCache",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommandAsync",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#RuntimeWorkerCommandResolution",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#runtimeWorkerEntrypoints",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-executable.ts#scannerExecutableName",
       "class": "sibling_export"
     },
@@ -633,12 +793,37 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#workerProcessEnv",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRequest",
       "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRun",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRunAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorkerAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcessAsync",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#syncWorkerProcessResult",
       "class": "internal_helper"
     },
     {
@@ -753,6 +938,36 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript.ts#javaScriptAdapter",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript-diagnostics.ts#scriptLanguage",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript-diagnostics.ts#duplicateCodeSymbolDiagnostic",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript-diagnostics.ts#duplicateLinkDiagnostic",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript-diagnostics.ts#parseErrorDiagnostic",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/typescript-diagnostics.ts#unsupportedDeclarationDiagnostic",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/lsp/diagnostics.ts#diagnosticsForFile",
       "class": "sibling_export"
     },
@@ -769,6 +984,16 @@
     {
       "code": "undocumented_symbol",
       "target": "src/lsp/fixtures.ts#stateOf",
+      "class": "test_support"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/lsp/fixtures.ts#HeldBatch",
+      "class": "test_support"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/lsp/fixtures.ts#heldTypeScript",
       "class": "test_support"
     },
     {
@@ -820,6 +1045,11 @@
       "code": "undocumented_symbol",
       "target": "src/lsp/server.ts#SendFn",
       "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/lsp/scheduler.ts#Timers",
+      "class": "internal_helper"
     },
     {
       "code": "undocumented_symbol",
@@ -1194,6 +1424,21 @@
     {
       "code": "unlinked_doc_section",
       "target": "docs/specs/scanning.md#go-scanning",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
+      "target": "docs/specs/scanning.md#java-scanning",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
+      "target": "docs/specs/scanning.md#python-scanning",
+      "class": "structural_doc"
+    },
+    {
+      "code": "unlinked_doc_section",
+      "target": "docs/specs/scanning.md#ruby-scanning",
       "class": "structural_doc"
     },
     {

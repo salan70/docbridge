@@ -138,7 +138,7 @@ test("run docs list emits valid JSON for every packaged document", () => {
       {
         name: "getting-started",
         description:
-          "Set up DocBridge in an existing TypeScript, Swift, Dart, Rust, or Go project.",
+          "Set up DocBridge in an existing TypeScript, JavaScript, Swift, Dart, Rust, Go, Python, or Ruby project.",
       },
       {
         name: "linking",

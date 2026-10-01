@@ -1,0 +1,2 @@
+# CPython bytecode caches written when the worker tests run.
+__pycache__/

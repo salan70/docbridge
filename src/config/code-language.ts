@@ -33,10 +33,64 @@ export const KNOWN_CODE_LANGUAGES: readonly CodeLanguage[] = [
   "dart",
   "rust",
   "go",
+  "javascript",
+  "python",
+  "ruby",
 ];
 
 export function isCodeLanguage(value: string): value is CodeLanguage {
   return (KNOWN_CODE_LANGUAGES as readonly string[]).includes(value);
+}
+
+/**
+ * The file suffixes each language claims. A code pattern must end with one of
+ * its language's suffixes. Suffix sets never overlap across languages.
+ */
+export const LANGUAGE_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>> = {
+  typescript: [".ts", ".tsx", ".mts", ".cts"],
+  swift: [".swift"],
+  dart: [".dart"],
+  rust: [".rs"],
+  go: [".go"],
+  javascript: [".js", ".jsx", ".mjs", ".cjs"],
+  python: [".py"],
+  ruby: [".rb"],
+};
+
+/**
+ * The suffixes a language never claims although they end with one of its
+ * {@link LANGUAGE_SUFFIXES}. A pattern must not end with one, and a matched
+ * file that ends with one is not a managed code file.
+ */
+export const EXCLUDED_SUFFIXES: Readonly<Record<CodeLanguage, readonly string[]>> = {
+  typescript: [".d.ts", ".d.mts", ".d.cts"],
+  swift: [],
+  dart: [],
+  rust: [],
+  go: [],
+  javascript: [],
+  python: [],
+  ruby: [],
+};
+
+/**
+ * The Markdown code-fence language for a declaration in `filePath`: the
+ * language ID, except that TypeScript and JavaScript follow the file suffix
+ * (`ts`, `tsx`, `js`, `jsx`).
+ */
+export function codeFenceLanguage(language: CodeLanguage, filePath: string): string {
+  if (language === "typescript") {
+    return filePath.endsWith(".tsx") ? "tsx" : "ts";
+  }
+  if (language === "javascript") {
+    return filePath.endsWith(".jsx") ? "jsx" : "js";
+  }
+  return language;
+}
+
+/** Whether `relPath` ends with one of `language`'s {@link EXCLUDED_SUFFIXES}. */
+export function hasExcludedSuffix(language: CodeLanguage, relPath: string): boolean {
+  return EXCLUDED_SUFFIXES[language].some((suffix) => relPath.endsWith(suffix));
 }
 
 export type CollectedCodeFile = {
@@ -51,8 +105,12 @@ export type CodeFileRead =
 
 /**
  * Collect every managed code file across configured languages, each tagged with
- * its owning language. Results are unique and sorted by path. Files claimed by
- * more than one language are rejected at config load (see {@link codeFileOwners}).
+ * its owning language. Results are unique and sorted by path. A matched file
+ * that ends with one of its language's {@link EXCLUDED_SUFFIXES} is dropped.
+ * Files claimed by more than one language are rejected at config load (see
+ * {@link codeFileOwners}).
+ *
+ * @doc docs/user/configuration.md#excluded-files
  */
 export function collectCodeFiles(
   projectRoot: string,
@@ -65,7 +123,7 @@ export function collectCodeFiles(
     if (entry === undefined) {
       continue;
     }
-    for (const relPath of collectFiles(projectRoot, entry.patterns)) {
+    for (const relPath of collectLanguageFiles(projectRoot, language, entry.patterns)) {
       if (seen.has(relPath)) {
         // Defensive: overlap is rejected at config load, so a repeat here would
         // only occur from concurrent edits. Keep the first owning language.
@@ -93,7 +151,7 @@ export function codeFileOwners(
     if (entry === undefined) {
       continue;
     }
-    for (const relPath of collectFiles(projectRoot, entry.patterns)) {
+    for (const relPath of collectLanguageFiles(projectRoot, language, entry.patterns)) {
       const existing = owners.get(relPath);
       if (existing === undefined) {
         owners.set(relPath, [language]);
@@ -103,4 +161,15 @@ export function codeFileOwners(
     }
   }
   return owners;
+}
+
+/** Collect the files `patterns` match, minus those `language` excludes by suffix. */
+function collectLanguageFiles(
+  projectRoot: string,
+  language: CodeLanguage,
+  patterns: string[],
+): string[] {
+  return collectFiles(projectRoot, patterns).filter(
+    (relPath) => !hasExcludedSuffix(language, relPath),
+  );
 }

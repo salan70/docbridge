@@ -174,3 +174,12 @@ test("the Go example project passes check and audit", () => {
     "internal/auth/service.go#NewAuthService",
   ]);
 });
+
+test("the Language Server scans the Go example asynchronously with the same result", async () => {
+  const project = new Project(EXAMPLE_ROOT);
+
+  const state = await project.resolveAsync().promise;
+
+  expect(state.contentByFile.has("internal/auth/service.go")).toBe(true);
+  expect(state).toEqual(new Project(EXAMPLE_ROOT).resolve());
+});

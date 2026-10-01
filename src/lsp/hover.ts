@@ -1,3 +1,4 @@
+import { codeFenceLanguage } from "../config/code-language";
 import { counterpartsOf, type GraphEndpoint } from "../link/graph";
 import { endpointRange } from "../model/endpoint";
 import type { CodeLanguage, Position, Range } from "../model/types";
@@ -82,23 +83,18 @@ function renderCodeSignatures(state: ProjectState, counterparts: GraphEndpoint[]
           ).trimEnd();
     const fenced =
       signature.length > 0
-        ? `\n\n\`\`\`${FENCE_LANGUAGE[symbol.language]}\n${signature}\n\`\`\``
+        ? `\n\n\`\`\`${codeFenceLanguage(symbol.language, symbol.filePath)}\n${signature}\n\`\`\``
         : "";
     blocks.push(`**${symbol.endpoint}**${fenced}`);
   }
   return blocks.length > 0 ? blocks.join(DIVIDER) : null;
 }
 
-const FENCE_LANGUAGE: Readonly<Record<CodeLanguage, string>> = {
-  typescript: "ts",
-  swift: "swift",
-  dart: "dart",
-  rust: "rust",
-  go: "go",
-};
-
 /** Languages whose block comments nest, so an inner block comment opens a new level. */
 const NESTED_BLOCK_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["swift", "dart", "rust"]);
+
+/** Languages whose comments start with `#` and run to the end of the line. */
+const HASH_LINE_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["python", "ruby"]);
 
 /**
  * Drop the whitespace and comments before a declaration, such as the doc
@@ -106,15 +102,16 @@ const NESTED_BLOCK_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["swift", "dart
  * comments inside the declaration stay.
  */
 function withoutLeadingComments(text: string, language: CodeLanguage): string {
+  const lineComment = HASH_LINE_COMMENTS.has(language) ? "#" : "//";
   let index = 0;
   for (;;) {
     while (index < text.length && /\s/.test(text[index] ?? "")) {
       index += 1;
     }
-    if (text.startsWith("//", index)) {
+    if (text.startsWith(lineComment, index)) {
       const newline = text.indexOf("\n", index);
       index = newline === -1 ? text.length : newline + 1;
-    } else if (text.startsWith("/*", index)) {
+    } else if (lineComment === "//" && text.startsWith("/*", index)) {
       index = blockCommentEnd(text, index, NESTED_BLOCK_COMMENTS.has(language));
     } else {
       return text.slice(index);

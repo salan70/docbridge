@@ -1,0 +1,423 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "language": "ruby",
+    "projectRoot": "/tmp/project",
+    "requestId": "case-visibility",
+    "files": [
+      {
+        "filePath": "lib/auth/service.rb",
+        "content": "module Auth\n  # @doc docs/auth.md#service\n  class Service\n    # @doc docs/auth.md#login\n    def login(email); end\n\n    private\n\n    # @doc docs/auth.md#hash\n    def hash(value); end\n\n    # @doc docs/auth.md#build\n    def self.build; end\n    private_class_method :build\n  end\nend\n"
+      },
+      {
+        "filePath": "lib/auth/version.rb",
+        "content": "module Auth\n  VERSION = \"1.0\"\nend\n"
+      }
+    ],
+    "options": {
+      "visibility": ["public", "private"]
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "case-visibility",
+    "language": "ruby",
+    "files": [
+      {
+        "filePath": "lib/auth/service.rb",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/service.rb",
+            "symbolName": "Service",
+            "canonicalId": "Auth::Service",
+            "endpoint": "lib/auth/service.rb#Auth::Service",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 3,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 9
+              },
+              "end": {
+                "line": 3,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 15,
+                "column": 6
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 15,
+                "column": 6
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/service.rb",
+            "symbolName": "login",
+            "canonicalId": "Auth::Service.login",
+            "endpoint": "lib/auth/service.rb#Auth::Service.login",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 5,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 5,
+                "column": 9
+              },
+              "end": {
+                "line": 5,
+                "column": 14
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 4,
+                "column": 5
+              },
+              "end": {
+                "line": 5,
+                "column": 26
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 4,
+                "column": 5
+              },
+              "end": {
+                "line": 5,
+                "column": 21
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/service.rb",
+            "symbolName": "hash",
+            "canonicalId": "Auth::Service.hash",
+            "endpoint": "lib/auth/service.rb#Auth::Service.hash",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 10,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 10,
+                "column": 9
+              },
+              "end": {
+                "line": 10,
+                "column": 13
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 9,
+                "column": 5
+              },
+              "end": {
+                "line": 10,
+                "column": 25
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 9,
+                "column": 5
+              },
+              "end": {
+                "line": 10,
+                "column": 20
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/service.rb",
+            "symbolName": "build",
+            "canonicalId": "Auth::Service.self.build",
+            "endpoint": "lib/auth/service.rb#Auth::Service.self.build",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 13,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 13,
+                "column": 14
+              },
+              "end": {
+                "line": 13,
+                "column": 19
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 12,
+                "column": 5
+              },
+              "end": {
+                "line": 13,
+                "column": 24
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 12,
+                "column": 5
+              },
+              "end": {
+                "line": 13,
+                "column": 19
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/service.rb",
+            "symbolName": "Auth",
+            "canonicalId": "Auth",
+            "endpoint": "lib/auth/service.rb#Auth",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 1,
+              "column": 8
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "line": 1,
+                "column": 12
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 16,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 16,
+                "column": 4
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "lib/auth/service.rb#Auth::Service",
+            "target": "docs/auth.md#service",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 2,
+              "column": 10
+            },
+            "targetRange": {
+              "start": {
+                "line": 2,
+                "column": 10
+              },
+              "end": {
+                "line": 2,
+                "column": 30
+              }
+            }
+          },
+          {
+            "source": "lib/auth/service.rb#Auth::Service.login",
+            "target": "docs/auth.md#login",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 4,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 4,
+                "column": 12
+              },
+              "end": {
+                "line": 4,
+                "column": 30
+              }
+            }
+          },
+          {
+            "source": "lib/auth/service.rb#Auth::Service.hash",
+            "target": "docs/auth.md#hash",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 9,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 9,
+                "column": 12
+              },
+              "end": {
+                "line": 9,
+                "column": 29
+              }
+            }
+          },
+          {
+            "source": "lib/auth/service.rb#Auth::Service.self.build",
+            "target": "docs/auth.md#build",
+            "location": {
+              "filePath": "lib/auth/service.rb",
+              "line": 12,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 12,
+                "column": 12
+              },
+              "end": {
+                "line": 12,
+                "column": 30
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      },
+      {
+        "filePath": "lib/auth/version.rb",
+        "symbols": [],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/version.rb",
+            "symbolName": "Auth",
+            "canonicalId": "Auth",
+            "endpoint": "lib/auth/version.rb#Auth",
+            "location": {
+              "filePath": "lib/auth/version.rb",
+              "line": 1,
+              "column": 8
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "line": 1,
+                "column": 12
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 3,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 3,
+                "column": 4
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/auth/version.rb",
+            "symbolName": "VERSION",
+            "canonicalId": "Auth::VERSION",
+            "endpoint": "lib/auth/version.rb#Auth::VERSION",
+            "location": {
+              "filePath": "lib/auth/version.rb",
+              "line": 2,
+              "column": 3
+            },
+            "nameRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 2,
+                "column": 10
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 2,
+                "column": 18
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 2,
+                "column": 18
+              }
+            }
+          }
+        ],
+        "links": [],
+        "diagnostics": []
+      }
+    ]
+  }
+}

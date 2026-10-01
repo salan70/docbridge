@@ -9,7 +9,7 @@ import type {
 
 /**
  * Language-neutral result of scanning a single code file. Every code language
- * adapter, in-process (TypeScript) or worker-backed (Swift, Dart), produces this
+ * adapter, in-process (TypeScript and JavaScript) or worker-backed, produces this
  * shape so the resolver, graph, context, and LSP stay language-aware but not
  * language-specific.
  *

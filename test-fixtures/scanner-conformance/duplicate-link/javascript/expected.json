@@ -1,0 +1,96 @@
+{
+  "language": "javascript",
+  "filePath": "input.js",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "javascript",
+      "filePath": "input.js",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.js#login",
+      "location": {
+        "filePath": "input.js",
+        "line": 5,
+        "column": 17
+      },
+      "nameRange": {
+        "start": {
+          "line": 5,
+          "column": 17
+        },
+        "end": {
+          "line": 5,
+          "column": 22
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 27
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 25
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.js#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.js",
+        "line": 2,
+        "column": 9
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 9
+        },
+        "end": {
+          "line": 2,
+          "column": 27
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "language": "javascript",
+      "target": "docs/auth.md#login",
+      "source": "input.js#login",
+      "message": "Duplicate @doc link from input.js#login to docs/auth.md#login.",
+      "location": {
+        "filePath": "input.js",
+        "line": 3,
+        "column": 9
+      },
+      "range": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 3,
+          "column": 27
+        }
+      }
+    }
+  ]
+}

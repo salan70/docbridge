@@ -1,0 +1,10 @@
+# frozen_string_literal: true
+
+# DocBridge Ruby scanner worker entrypoint. The core always starts it as
+# `ruby --disable=gems,did_you_mean,error_highlight -W0 <this file>`, so it
+# adds its own lib/ to the load path instead of relying on RubyGems.
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+
+require "docbridge_ruby_scanner/cli"
+
+exit(DocbridgeRubyScanner::CLI.run(ARGV, $stdin, $stdout, $stderr))

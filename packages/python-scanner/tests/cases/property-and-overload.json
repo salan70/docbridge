@@ -1,0 +1,218 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "property-and-overload",
+    "language": "python",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "src/model.py",
+        "content": "from typing import overload\n\n\nclass Model:\n    @property\n    def value(self):\n        \"\"\"@doc docs/model.md#value\"\"\"\n        return self._value\n\n    @value.setter\n    def value(self, new):\n        \"\"\"@doc docs/model.md#value-setter\"\"\"\n        self._value = new\n\n    @overload\n    def get(self, key: int) -> int: ...\n    @overload\n    def get(self, key: str) -> str: ...\n    # @doc docs/model.md#get\n    def get(self, key):\n        return key\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "property-and-overload",
+    "language": "python",
+    "files": [
+      {
+        "filePath": "src/model.py",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/model.py",
+            "symbolName": "value",
+            "canonicalId": "Model.value",
+            "endpoint": "src/model.py#Model.value",
+            "location": {
+              "filePath": "src/model.py",
+              "line": 6,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 6,
+                "column": 9
+              },
+              "end": {
+                "line": 6,
+                "column": 14
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 5,
+                "column": 5
+              },
+              "end": {
+                "line": 8,
+                "column": 27
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 5,
+                "column": 5
+              },
+              "end": {
+                "line": 6,
+                "column": 21
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/model.py",
+            "symbolName": "get",
+            "canonicalId": "Model.get",
+            "endpoint": "src/model.py#Model.get",
+            "location": {
+              "filePath": "src/model.py",
+              "line": 16,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 16,
+                "column": 9
+              },
+              "end": {
+                "line": 16,
+                "column": 12
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 15,
+                "column": 5
+              },
+              "end": {
+                "line": 16,
+                "column": 40
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 15,
+                "column": 5
+              },
+              "end": {
+                "line": 16,
+                "column": 36
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/model.py",
+            "symbolName": "Model",
+            "canonicalId": "Model",
+            "endpoint": "src/model.py#Model",
+            "location": {
+              "filePath": "src/model.py",
+              "line": 4,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 4,
+                "column": 7
+              },
+              "end": {
+                "line": 4,
+                "column": 12
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 4,
+                "column": 1
+              },
+              "end": {
+                "line": 21,
+                "column": 19
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 4,
+                "column": 1
+              },
+              "end": {
+                "line": 4,
+                "column": 13
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "src/model.py#Model.value",
+            "target": "docs/model.md#value",
+            "location": {
+              "filePath": "src/model.py",
+              "line": 7,
+              "column": 17
+            },
+            "targetRange": {
+              "start": {
+                "line": 7,
+                "column": 17
+              },
+              "end": {
+                "line": 7,
+                "column": 36
+              }
+            }
+          },
+          {
+            "source": "src/model.py#Model.value",
+            "target": "docs/model.md#value-setter",
+            "location": {
+              "filePath": "src/model.py",
+              "line": 12,
+              "column": 17
+            },
+            "targetRange": {
+              "start": {
+                "line": 12,
+                "column": 17
+              },
+              "end": {
+                "line": 12,
+                "column": 43
+              }
+            }
+          },
+          {
+            "source": "src/model.py#Model.get",
+            "target": "docs/model.md#get",
+            "location": {
+              "filePath": "src/model.py",
+              "line": 19,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 19,
+                "column": 12
+              },
+              "end": {
+                "line": 19,
+                "column": 29
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}
