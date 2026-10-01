@@ -1,0 +1,349 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "record-components-and-compact-constructor",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public record Point(int x, @Deprecated int y) {\n  /** @doc d.md#compact */\n  public Point {\n  }\n  /** @doc d.md#one */\n  public Point(int x) { this(x, 0); }\n  /** @doc d.md#x */\n  public int x() { return x; }\n}\n"
+      }
+    ],
+    "options": {
+      "visibility": ["public", "private"]
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "record-components-and-compact-constructor",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Point",
+            "canonicalId": "Point.Point(int,int)",
+            "endpoint": "Input.java#Point.Point(int,int)",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 10
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 10
+              },
+              "end": {
+                "line": 3,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 4,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 15
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Point",
+            "canonicalId": "Point.Point(int)",
+            "endpoint": "Input.java#Point.Point(int)",
+            "location": {
+              "filePath": "Input.java",
+              "line": 6,
+              "column": 10
+            },
+            "nameRange": {
+              "start": {
+                "line": 6,
+                "column": 10
+              },
+              "end": {
+                "line": 6,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 38
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 22
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "x",
+            "canonicalId": "Point.x()",
+            "endpoint": "Input.java#Point.x()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 8,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 8,
+                "column": 14
+              },
+              "end": {
+                "line": 8,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 7,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 31
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 7,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 17
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Point",
+            "canonicalId": "Point",
+            "endpoint": "Input.java#Point",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 15
+              },
+              "end": {
+                "line": 1,
+                "column": 20
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 9,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 46
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "x",
+            "canonicalId": "Point.x",
+            "endpoint": "Input.java#Point.x",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 25
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 25
+              },
+              "end": {
+                "line": 1,
+                "column": 26
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 21
+              },
+              "end": {
+                "line": 1,
+                "column": 26
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 21
+              },
+              "end": {
+                "line": 1,
+                "column": 26
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "y",
+            "canonicalId": "Point.y",
+            "endpoint": "Input.java#Point.y",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 44
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 44
+              },
+              "end": {
+                "line": 1,
+                "column": 45
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 28
+              },
+              "end": {
+                "line": 1,
+                "column": 45
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 28
+              },
+              "end": {
+                "line": 1,
+                "column": 45
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#Point.Point(int,int)",
+            "target": "d.md#compact",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 2,
+                "column": 12
+              },
+              "end": {
+                "line": 2,
+                "column": 24
+              }
+            }
+          },
+          {
+            "source": "Input.java#Point.Point(int)",
+            "target": "d.md#one",
+            "location": {
+              "filePath": "Input.java",
+              "line": 5,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 5,
+                "column": 12
+              },
+              "end": {
+                "line": 5,
+                "column": 20
+              }
+            }
+          },
+          {
+            "source": "Input.java#Point.x()",
+            "target": "d.md#x",
+            "location": {
+              "filePath": "Input.java",
+              "line": 7,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 7,
+                "column": 12
+              },
+              "end": {
+                "line": 7,
+                "column": 18
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

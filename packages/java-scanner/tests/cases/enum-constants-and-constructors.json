@@ -1,0 +1,368 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "enum-constants-and-constructors",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public enum Color {\n  /** @doc d.md#red */\n  RED,\n  /** @doc d.md#green */\n  @Deprecated GREEN(1) { },\n  BLUE;\n  /** @doc d.md#ctor */\n  Color() {}\n  /** @doc d.md#ctor1 */\n  private Color(int x) {}\n}\n"
+      }
+    ],
+    "options": {
+      "visibility": ["public", "private"]
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "enum-constants-and-constructors",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "RED",
+            "canonicalId": "Color.RED",
+            "endpoint": "Input.java#Color.RED",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 3
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 6
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 6
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 6
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "GREEN",
+            "canonicalId": "Color.GREEN",
+            "endpoint": "Input.java#Color.GREEN",
+            "location": {
+              "filePath": "Input.java",
+              "line": 5,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 5,
+                "column": 15
+              },
+              "end": {
+                "line": 5,
+                "column": 20
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 27
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 27
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Color",
+            "canonicalId": "Color.Color()",
+            "endpoint": "Input.java#Color.Color()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 8,
+              "column": 3
+            },
+            "nameRange": {
+              "start": {
+                "line": 8,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 8
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 7,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 13
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 7,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 10
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Color",
+            "canonicalId": "Color.Color(int)",
+            "endpoint": "Input.java#Color.Color(int)",
+            "location": {
+              "filePath": "Input.java",
+              "line": 10,
+              "column": 11
+            },
+            "nameRange": {
+              "start": {
+                "line": 10,
+                "column": 11
+              },
+              "end": {
+                "line": 10,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 9,
+                "column": 3
+              },
+              "end": {
+                "line": 10,
+                "column": 26
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 9,
+                "column": 3
+              },
+              "end": {
+                "line": 10,
+                "column": 23
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "Color",
+            "canonicalId": "Color",
+            "endpoint": "Input.java#Color",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 13
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 13
+              },
+              "end": {
+                "line": 1,
+                "column": 18
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 11,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 18
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "BLUE",
+            "canonicalId": "Color.BLUE",
+            "endpoint": "Input.java#Color.BLUE",
+            "location": {
+              "filePath": "Input.java",
+              "line": 6,
+              "column": 3
+            },
+            "nameRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 7
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 7
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 7
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#Color.RED",
+            "target": "d.md#red",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 2,
+                "column": 12
+              },
+              "end": {
+                "line": 2,
+                "column": 20
+              }
+            }
+          },
+          {
+            "source": "Input.java#Color.GREEN",
+            "target": "d.md#green",
+            "location": {
+              "filePath": "Input.java",
+              "line": 4,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 4,
+                "column": 12
+              },
+              "end": {
+                "line": 4,
+                "column": 22
+              }
+            }
+          },
+          {
+            "source": "Input.java#Color.Color()",
+            "target": "d.md#ctor",
+            "location": {
+              "filePath": "Input.java",
+              "line": 7,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 7,
+                "column": 12
+              },
+              "end": {
+                "line": 7,
+                "column": 21
+              }
+            }
+          },
+          {
+            "source": "Input.java#Color.Color(int)",
+            "target": "d.md#ctor1",
+            "location": {
+              "filePath": "Input.java",
+              "line": 9,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 9,
+                "column": 12
+              },
+              "end": {
+                "line": 9,
+                "column": 22
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

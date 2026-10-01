@@ -224,6 +224,26 @@ test-ruby-scanner:
 
 # --- Java worker (packages/java-scanner) ---
 # Recipes for the runtime-backed Java worker live between these markers.
+# The JDK is the only toolchain: javac and jar, no Maven or Gradle. Main.java is
+# compiled for Java 8 so `--probe` can answer `ok: false` on a JVM older than
+# the 17 floor instead of failing to load; every other class targets 17.
+
+build-java-scanner:
+    rm -rf packages/java-scanner/build/classes
+    find packages/java-scanner/src -name '*.java' ! -name Main.java | xargs javac --release 17 -encoding UTF-8 -d packages/java-scanner/build/classes
+    javac --release 8 -encoding UTF-8 -cp packages/java-scanner/build/classes -d packages/java-scanner/build/classes packages/java-scanner/src/dev/docbridge/javascanner/Main.java
+    jar --create --file packages/java-scanner/build/docbridge-java-scanner.jar --main-class dev.docbridge.javascanner.Main -C packages/java-scanner/build/classes .
+
+# Build, compile the main-based test runner against the worker classes, and run it over tests/cases.
+test-java-scanner: build-java-scanner
+    rm -rf packages/java-scanner/build/test-classes
+    find packages/java-scanner/tests/src -name '*.java' | xargs javac --release 17 -encoding UTF-8 -cp packages/java-scanner/build/classes -d packages/java-scanner/build/test-classes
+    java -cp packages/java-scanner/build/classes:packages/java-scanner/build/test-classes dev.docbridge.javascanner.tests.TestMain packages/java-scanner/tests/cases
+
+# javac is the linter: every lint category enabled, warnings are errors, output discarded.
+lint-java:
+    rm -rf packages/java-scanner/build/lint
+    find packages/java-scanner/src packages/java-scanner/tests/src -name '*.java' | xargs javac --release 17 -encoding UTF-8 -Xlint:all -Werror -d packages/java-scanner/build/lint
 # --- end Java worker ---
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is

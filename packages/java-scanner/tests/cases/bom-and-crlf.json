@@ -1,0 +1,137 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "bom-and-crlf",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "﻿public class C {\r\n  /** @doc d.md#m */\r\n  public void m() {}\r\n}\r\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "bom-and-crlf",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "m",
+            "canonicalId": "C.m()",
+            "endpoint": "Input.java#C.m()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 15
+              },
+              "end": {
+                "line": 3,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 18
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "C",
+            "canonicalId": "C",
+            "endpoint": "Input.java#C",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 15
+              },
+              "end": {
+                "line": 1,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 2
+              },
+              "end": {
+                "line": 4,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 2
+              },
+              "end": {
+                "line": 1,
+                "column": 16
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#C.m()",
+            "target": "d.md#m",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 2,
+                "column": 12
+              },
+              "end": {
+                "line": 2,
+                "column": 18
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

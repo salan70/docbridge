@@ -1,0 +1,533 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "javadoc-forms",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public class J {\n  /** @doc d.md#tight*/\n  public void tight() {}\n  /**\n   * @doc\n   * d.md#cont\n   */\n  public void cont() {}\n  // @doc d.md#line\n  public void line() {}\n  /* @doc d.md#block */\n  public void block() {}\n  /** @doc d.md#first */\n  // note\n  /* note */\n  public void gap() {}\n  /** @doc d.md#old */\n  /** @doc d.md#new */\n  public void last() {}\n  /** @doc d.md#multi @doc d.md#multi2 */\n  public void multi() {}\n  /** @docs d.md#nope @doc */\n  public void none() {}\n}\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "javadoc-forms",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "tight",
+            "canonicalId": "J.tight()",
+            "endpoint": "Input.java#J.tight()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 15
+              },
+              "end": {
+                "line": 3,
+                "column": 20
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 25
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 22
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "cont",
+            "canonicalId": "J.cont()",
+            "endpoint": "Input.java#J.cont()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 8,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 8,
+                "column": 15
+              },
+              "end": {
+                "line": 8,
+                "column": 19
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 24
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 8,
+                "column": 21
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "gap",
+            "canonicalId": "J.gap()",
+            "endpoint": "Input.java#J.gap()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 16,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 16,
+                "column": 15
+              },
+              "end": {
+                "line": 16,
+                "column": 18
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 13,
+                "column": 3
+              },
+              "end": {
+                "line": 16,
+                "column": 23
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 13,
+                "column": 3
+              },
+              "end": {
+                "line": 16,
+                "column": 20
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "last",
+            "canonicalId": "J.last()",
+            "endpoint": "Input.java#J.last()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 19,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 19,
+                "column": 15
+              },
+              "end": {
+                "line": 19,
+                "column": 19
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 18,
+                "column": 3
+              },
+              "end": {
+                "line": 19,
+                "column": 24
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 18,
+                "column": 3
+              },
+              "end": {
+                "line": 19,
+                "column": 21
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "multi",
+            "canonicalId": "J.multi()",
+            "endpoint": "Input.java#J.multi()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 21,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 21,
+                "column": 15
+              },
+              "end": {
+                "line": 21,
+                "column": 20
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 20,
+                "column": 3
+              },
+              "end": {
+                "line": 21,
+                "column": 25
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 20,
+                "column": 3
+              },
+              "end": {
+                "line": 21,
+                "column": 22
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "J",
+            "canonicalId": "J",
+            "endpoint": "Input.java#J",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 14
+              },
+              "end": {
+                "line": 1,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 24,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 15
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "line",
+            "canonicalId": "J.line()",
+            "endpoint": "Input.java#J.line()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 10,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 10,
+                "column": 15
+              },
+              "end": {
+                "line": 10,
+                "column": 19
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "line": 10,
+                "column": 24
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "line": 10,
+                "column": 21
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "block",
+            "canonicalId": "J.block()",
+            "endpoint": "Input.java#J.block()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 12,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 12,
+                "column": 15
+              },
+              "end": {
+                "line": 12,
+                "column": 20
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 12,
+                "column": 25
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 12,
+                "column": 22
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "none",
+            "canonicalId": "J.none()",
+            "endpoint": "Input.java#J.none()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 23,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 23,
+                "column": 15
+              },
+              "end": {
+                "line": 23,
+                "column": 19
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 22,
+                "column": 3
+              },
+              "end": {
+                "line": 23,
+                "column": 24
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 22,
+                "column": 3
+              },
+              "end": {
+                "line": 23,
+                "column": 21
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "Input.java#J.tight()",
+            "target": "d.md#tight",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 2,
+                "column": 12
+              },
+              "end": {
+                "line": 2,
+                "column": 22
+              }
+            }
+          },
+          {
+            "source": "Input.java#J.cont()",
+            "target": "d.md#cont",
+            "location": {
+              "filePath": "Input.java",
+              "line": 6,
+              "column": 6
+            },
+            "targetRange": {
+              "start": {
+                "line": 6,
+                "column": 6
+              },
+              "end": {
+                "line": 6,
+                "column": 15
+              }
+            }
+          },
+          {
+            "source": "Input.java#J.gap()",
+            "target": "d.md#first",
+            "location": {
+              "filePath": "Input.java",
+              "line": 13,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 13,
+                "column": 12
+              },
+              "end": {
+                "line": 13,
+                "column": 22
+              }
+            }
+          },
+          {
+            "source": "Input.java#J.last()",
+            "target": "d.md#new",
+            "location": {
+              "filePath": "Input.java",
+              "line": 18,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 18,
+                "column": 12
+              },
+              "end": {
+                "line": 18,
+                "column": 20
+              }
+            }
+          },
+          {
+            "source": "Input.java#J.multi()",
+            "target": "d.md#multi",
+            "location": {
+              "filePath": "Input.java",
+              "line": 20,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 20,
+                "column": 12
+              },
+              "end": {
+                "line": 20,
+                "column": 22
+              }
+            }
+          },
+          {
+            "source": "Input.java#J.multi()",
+            "target": "d.md#multi2",
+            "location": {
+              "filePath": "Input.java",
+              "line": 20,
+              "column": 28
+            },
+            "targetRange": {
+              "start": {
+                "line": 20,
+                "column": 28
+              },
+              "end": {
+                "line": 20,
+                "column": 39
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}
