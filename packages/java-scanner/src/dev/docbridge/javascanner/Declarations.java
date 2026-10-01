@@ -1,5 +1,8 @@
 package dev.docbridge.javascanner;
 
+import com.sun.source.tree.AnnotatedTypeTree;
+import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
@@ -60,11 +63,13 @@ public final class Declarations {
   private final List<Declaration> declarations = new ArrayList<>();
   private final Set<Integer> consumedJavadocs = new HashSet<>();
   private final List<BlockTree> initializers = new ArrayList<>();
+  private final NameLocator names;
 
   private Declarations(Parsing.Parsed parsed, DocComments comments) {
     this.parsed = parsed;
     this.comments = comments;
     this.content = comments.content();
+    this.names = new NameLocator(comments);
   }
 
   public static List<Declaration> collect(Parsing.Parsed parsed, DocComments comments) {
@@ -92,8 +97,9 @@ public final class Declarations {
     int treeStart = parsed.start(type);
     int rank = Math.max(enclosingRank, ownRank(type.getModifiers(), implicitlyPublic));
     int modifiersEnd = end(type.getModifiers());
-    int nameStart = findIdentifier(modifiersEnd >= 0 ? modifiersEnd : treeStart, name, null);
-    int headerEnd = nameStart + name.length();
+    NameLocator.Span nameSpan =
+        names.locate(modifiersEnd >= 0 ? modifiersEnd : treeStart, name, null, List.of(), treeStart);
+    int headerEnd = Math.max(nameSpan.end(), modifiersEnd);
     for (Tree tree : type.getTypeParameters()) {
       headerEnd = Math.max(headerEnd, parsed.end(tree));
     }
@@ -122,7 +128,7 @@ public final class Declarations {
     }
     int sigEnd = brace < 0 ? parsed.end(type) : comments.significantEndBefore(brace, false);
     String id = qualifier + name;
-    add(path, name, id, rank, nameStart, headerEndOfName(nameStart, name), treeStart, parsed.end(type), sigEnd);
+    add(path, name, id, rank, nameSpan, treeStart, parsed.end(type), sigEnd);
 
     List<? extends Tree> members = type.getMembers();
     for (int i = 0; i < members.size(); i++) {
@@ -135,7 +141,7 @@ public final class Declarations {
         int groupEnd = i + 1;
         while (groupEnd < members.size()
             && members.get(groupEnd) instanceof VariableTree next
-            && next.getType() == variable.getType()) {
+            && elementType(next.getType()) == elementType(variable.getType())) {
           groupEnd++;
         }
         visitFieldGroup(path, members.subList(i, groupEnd), id, rank, interfaceLike);
@@ -164,24 +170,19 @@ public final class Declarations {
     for (Tree tree : method.getTypeParameters()) {
       scanFrom = Math.max(scanFrom, parsed.end(tree));
     }
-    if (method.getReturnType() != null) {
-      scanFrom = Math.max(scanFrom, parsed.end(method.getReturnType()));
-    }
-    int nameStart = findIdentifier(scanFrom, name, "({");
-    if (nameStart < 0) {
-      // `int legacy()[]` puts the return type's end after the name.
-      nameStart = findIdentifier(modifiersEnd >= 0 ? modifiersEnd : treeStart, name, "({");
-    }
+    List<NameLocator.Span> skipped =
+        method.getReturnType() == null ? List.of() : typeSpans(method.getReturnType());
+    NameLocator.Span nameSpan = names.locate(scanFrom, name, "({", skipped, treeStart);
     int treeEnd = parsed.end(method);
     int sigEnd =
         method.getBody() == null ? treeEnd : comments.significantEndBefore(parsed.start(method.getBody()), false);
     String id = ownerId + "." + name + Signatures.parameterList(method);
-    add(path, name, id, rank, nameStart, headerEndOfName(nameStart, name), treeStart, treeEnd, sigEnd);
+    add(path, name, id, rank, nameSpan, treeStart, treeEnd, sigEnd);
   }
 
   /**
-   * Fields declared together ({@code int a, b;}) share one type tree and one
-   * Javadoc. Every name is a symbol, but an annotation on the group is
+   * Fields declared together ({@code int a, b;}) share one element type tree
+   * and one Javadoc. Every name is a symbol, but an annotation on the group is
    * unsupported at the first name because it cannot say which name it
    * documents, as the Go worker reports a multi-name spec.
    */
@@ -202,14 +203,16 @@ public final class Declarations {
       VariableTree variable = (VariableTree) tree;
       String name = variable.getName().toString();
       int rank = Math.max(ownerRank, ownRank(variable.getModifiers(), interfaceLike || isEnumConstant(variable)));
+      int treeStart = parsed.start(variable);
       int scanFrom = previousEnd;
       if (scanFrom < 0) {
-        int typeEnd = variable.getType() == null ? -1 : parsed.end(variable.getType());
         int modifiersEnd = end(variable.getModifiers());
-        scanFrom = typeEnd >= 0 ? typeEnd : modifiersEnd >= 0 ? modifiersEnd : parsed.start(variable);
+        scanFrom = modifiersEnd >= 0 ? modifiersEnd : treeStart;
       }
-      int nameStart = findIdentifier(scanFrom, name, null);
-      int nameEnd = headerEndOfName(nameStart, name);
+      List<NameLocator.Span> skipped = variable.getType() == null ? List.of() : typeSpans(variable.getType());
+      NameLocator.Span nameSpan = names.locate(scanFrom, name, null, skipped, treeStart);
+      int nameStart = nameSpan.start();
+      int nameEnd = nameSpan.end();
       int treeEnd = parsed.end(variable);
       previousEnd = treeEnd;
       if (multiple && !targets.isEmpty() && tree == first) {
@@ -233,6 +236,56 @@ public final class Declarations {
     }
   }
 
+  /**
+   * The type that a declaration's array dimensions and type annotations wrap.
+   * javac gives each name of {@code int a[], b;} its own array type tree but
+   * one shared element type tree.
+   */
+  private static Tree elementType(Tree type) {
+    Tree current = type;
+    while (true) {
+      if (current instanceof ArrayTypeTree array) {
+        current = array.getType();
+      } else if (current instanceof AnnotatedTypeTree annotated) {
+        current = annotated.getUnderlyingType();
+      } else {
+        return current;
+      }
+    }
+  }
+
+  /**
+   * The spans of a type's element type and type annotations: the trees in a
+   * declaration header that can spell the declared name, as {@code Foo Foo;}
+   * does. The array dimensions are left out, because javac's array type tree
+   * also covers dimensions written after the name, as in {@code int xs[]},
+   * {@code int[] ys[]}, and {@code int legacy()[]}.
+   */
+  private List<NameLocator.Span> typeSpans(Tree type) {
+    List<NameLocator.Span> spans = new ArrayList<>();
+    Tree current = type;
+    while (current instanceof ArrayTypeTree || current instanceof AnnotatedTypeTree) {
+      if (current instanceof AnnotatedTypeTree annotated) {
+        for (AnnotationTree annotation : annotated.getAnnotations()) {
+          addSpan(spans, annotation);
+        }
+        current = annotated.getUnderlyingType();
+      } else {
+        current = ((ArrayTypeTree) current).getType();
+      }
+    }
+    addSpan(spans, current);
+    return spans;
+  }
+
+  private void addSpan(List<NameLocator.Span> spans, Tree tree) {
+    int start = parsed.start(tree);
+    int end = parsed.end(tree);
+    if (start >= 0 && end > start) {
+      spans.add(new NameLocator.Span(start, end));
+    }
+  }
+
   /** javac gives an enum constant's synthetic type tree no end position, which is its only syntactic tell. */
   private boolean isEnumConstant(VariableTree variable) {
     return variable.getType() != null && parsed.end(variable.getType()) < 0;
@@ -243,8 +296,7 @@ public final class Declarations {
       String name,
       String id,
       int rank,
-      int nameStart,
-      int nameEnd,
+      NameLocator.Span nameSpan,
       int treeStart,
       int treeEnd,
       int sigEnd) {
@@ -257,7 +309,8 @@ public final class Declarations {
       declStart = javadoc.start();
     }
     declarations.add(
-        new Declaration(name, id, rank, false, nameStart, nameEnd, declStart, treeEnd, declStart, sigEnd, targets, declStart));
+        new Declaration(
+            name, id, rank, false, nameSpan.start(), nameSpan.end(), declStart, treeEnd, declStart, sigEnd, targets, declStart));
   }
 
   private static int ownRank(ModifiersTree modifiers, boolean implicitlyPublic) {
@@ -279,54 +332,6 @@ public final class Declarations {
     int start = parsed.start(modifiers);
     int end = parsed.end(modifiers);
     return start >= 0 && end > start ? end : -1;
-  }
-
-  /**
-   * Finds the identifier {@code name} at or after {@code from}, stepping over
-   * whitespace, comments, keywords, annotations without arguments, and
-   * punctuation such as {@code >}, {@code )}, {@code ,}, {@code @}, and the
-   * hyphen of {@code non-sealed}. With {@code followedBy}, the identifier must
-   * be followed (after whitespace and comments) by one of those characters.
-   * Stops at the first character that opens a body, parameter list, or
-   * initializer, returning {@code -1}.
-   */
-  private int findIdentifier(int from, String name, String followedBy) {
-    int position = from;
-    while (position < content.length()) {
-      position = comments.significantStartAfter(position);
-      if (position >= content.length()) {
-        return -1;
-      }
-      char c = content.charAt(position);
-      if (Character.isJavaIdentifierStart(c)) {
-        int end = position + 1;
-        while (end < content.length() && Character.isJavaIdentifierPart(content.charAt(end))) {
-          end++;
-        }
-        if (content.substring(position, end).equals(name)) {
-          if (followedBy == null) {
-            return position;
-          }
-          int next = comments.significantStartAfter(end);
-          if (next < content.length() && followedBy.indexOf(content.charAt(next)) >= 0) {
-            return position;
-          }
-        }
-        position = end;
-      } else if (c == '(' || c == '{' || c == ';' || c == '=') {
-        return -1;
-      } else {
-        position++;
-      }
-    }
-    return -1;
-  }
-
-  private static int headerEndOfName(int nameStart, String name) {
-    if (nameStart < 0) {
-      throw new IllegalStateException("name '" + name + "' not found in source");
-    }
-    return nameStart + name.length();
   }
 
   /**

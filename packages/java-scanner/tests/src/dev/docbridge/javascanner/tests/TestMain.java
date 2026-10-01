@@ -3,9 +3,12 @@ package dev.docbridge.javascanner.tests;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import dev.docbridge.javascanner.DocComments;
 import dev.docbridge.javascanner.Json;
+import dev.docbridge.javascanner.NameLocator;
 import dev.docbridge.javascanner.Parsing;
 import dev.docbridge.javascanner.Positions;
+import dev.docbridge.javascanner.Scanner;
 import dev.docbridge.javascanner.Signatures;
 import dev.docbridge.javascanner.Worker;
 import java.io.IOException;
@@ -22,8 +25,9 @@ import java.util.stream.Stream;
  * worker takes no third-party dependency. It runs every JSON case under the
  * directory given as the first argument ({@code {"request": ..., "response":
  * ...}}) through the in-process scanner, plus unit checks of position
- * conversion, signature printing, and the JSON codec, and exits 1 on any
- * failure.
+ * conversion, signature printing, name location, and the JSON codec, and
+ * scans compared through a one-line summary per symbol, link, and diagnostic,
+ * and exits 1 on any failure.
  */
 public final class TestMain {
   private static int passed;
@@ -40,6 +44,9 @@ public final class TestMain {
     checkPositions();
     checkSignatures();
     checkJson();
+    checkCStyleArrayNames();
+    checkUnicodeNames();
+    checkNameFallback();
     System.out.println(passed + " passed, " + failures.size() + " failed");
     if (!failures.isEmpty()) {
       System.exit(1);
@@ -141,6 +148,158 @@ public final class TestMain {
     } catch (IllegalArgumentException expected) {
       passed++;
     }
+  }
+
+  private static void checkCStyleArrayNames() {
+    // Dimensions written after a name belong to javac's type tree, so the
+    // type tree ends after the name it surrounds.
+    checkScan(
+        "names: c-style array dimensions",
+        "public class A {\n"
+            + "  public int xs[];\n"
+            + "  public int[] ys[];\n"
+            + "  public int legacy()[] { return null; }\n"
+            + "  public int @T [] g @U [];\n"
+            + "  public Foo Foo;\n"
+            + "  public Foo Foo()[] { return null; }\n"
+            + "}\n",
+        ALL,
+        List.of(
+            "undocumented A|A|1:14-1:15",
+            "undocumented xs|A.xs|2:14-2:16",
+            "undocumented ys|A.ys|3:16-3:18",
+            "undocumented legacy|A.legacy()|4:14-4:20",
+            "undocumented g|A.g|5:20-5:21",
+            "undocumented Foo|A.Foo|6:14-6:17",
+            "undocumented Foo|A.Foo()|7:14-7:17"));
+    // `int a[], b;` gives each name its own type tree around one shared
+    // element type; the statement is still one group with one Javadoc.
+    checkScan(
+        "names: c-style array dimensions in a field group",
+        "public class G {\n"
+            + "  /** @doc d.md#a */\n"
+            + "  public int a[], b;\n"
+            + "  /** @doc d.md#c */\n"
+            + "  public int c, d[];\n"
+            + "}\n",
+        ALL,
+        List.of(
+            "undocumented G|G|1:14-1:15",
+            "undocumented a|G.a|3:14-3:15",
+            "undocumented b|G.b|3:19-3:20",
+            "undocumented c|G.c|5:14-5:15",
+            "undocumented d|G.d|5:17-5:18",
+            "diagnostic unsupported_declaration|Input.java|3:14-3:15",
+            "diagnostic unsupported_declaration|Input.java|5:14-5:15"));
+    checkScan(
+        "names: c-style array field outside the visibility filter",
+        "public class H {\n  private int xs[];\n}\n",
+        null,
+        List.of("undocumented H|H|1:14-1:15"));
+  }
+
+  private static void checkUnicodeNames() {
+    checkScan(
+        "names: supplementary code points",
+        "public class \uD801\uDC00 {\n  /** @doc d.md#a */\n  public void \uD801\uDC01() {}\n}\n",
+        ALL,
+        List.of(
+            "symbol \uD801\uDC01|\uD801\uDC00.\uD801\uDC01()|3:15-3:17",
+            "undocumented \uD801\uDC00|\uD801\uDC00|1:14-1:16",
+            "link Input.java#\uD801\uDC00.\uD801\uDC01()|d.md#a"));
+    // The ID uses javac's decoded name; the ranges cover the raw spelling.
+    // javac drops identifier-ignorable characters such as U+200B from a name.
+    checkScan(
+        "names: unicode escapes",
+        "public class \\u0046oo {\n"
+            + "  /** @doc d.md#a */\n"
+            + "  public void \\u006d(\\u0046oo f, \\u0046oo... more) {}\n"
+            + "  public \\u0046oo() {}\n"
+            + "  public int \\uD801\\uDC00;\n"
+            + "  public int b\\u200Bar;\n"
+            + "}\n",
+        ALL,
+        List.of(
+            "symbol m|Foo.m(Foo,Foo[])|3:15-3:21",
+            "undocumented Foo|Foo|1:14-1:22",
+            "undocumented Foo|Foo.Foo()|4:10-4:18",
+            "undocumented \uD801\uDC00|Foo.\uD801\uDC00|5:14-5:26",
+            "undocumented bar|Foo.bar|6:14-6:23",
+            "link Input.java#Foo.m(Foo,Foo[])|d.md#a"));
+  }
+
+  private static void checkNameFallback() {
+    String content = "class A {}\n";
+    NameLocator locator = new NameLocator(new DocComments(content));
+    check("names: located name", new NameLocator.Span(6, 7), locator.locate(0, "A", null, List.of(), 0));
+    check(
+        "names: unlocatable name falls back to an empty span",
+        new NameLocator.Span(3, 3),
+        locator.locate(0, "Missing", null, List.of(), 3));
+    // javac reads `/\u002A ( \u002A/` as a comment, but the comment lexer
+    // reads raw source, so the name search stops at the `(`: the symbol stays,
+    // located at the declaration start, and the scan continues.
+    checkScan(
+        "names: unlocatable name keeps the symbol",
+        "public class /\\u002A ( \\u002A/ Foo {\n  public int x;\n}\n",
+        ALL,
+        List.of("undocumented Foo|Foo|1:1-1:1", "undocumented x|Foo.x|2:14-2:15"));
+  }
+
+  private static final List<String> ALL = List.of("public", "protected", "package", "private");
+
+  /**
+   * Scans {@code content} as {@code Input.java} and compares a one-line
+   * summary per symbol, link, and diagnostic: names, IDs, targets, and the
+   * name or diagnostic range.
+   */
+  private static void checkScan(String name, String content, List<String> visibility, List<String> expected) {
+    Map<String, Object> file;
+    try {
+      file = Scanner.scanFile("Input.java", content, visibility);
+    } catch (RuntimeException error) {
+      fail(name, "scanner threw " + error);
+      return;
+    }
+    List<String> actual = new ArrayList<>();
+    for (Object symbol : (List<?>) file.get("symbols")) {
+      actual.add("symbol " + symbolSummary((Map<?, ?>) symbol));
+    }
+    for (Object symbol : (List<?>) file.get("undocumentedSymbols")) {
+      actual.add("undocumented " + symbolSummary((Map<?, ?>) symbol));
+    }
+    for (Object item : (List<?>) file.get("links")) {
+      Map<?, ?> link = (Map<?, ?>) item;
+      actual.add("link " + link.get("source") + "|" + link.get("target"));
+    }
+    for (Object item : (List<?>) file.get("diagnostics")) {
+      Map<?, ?> diagnostic = (Map<?, ?>) item;
+      actual.add(
+          "diagnostic "
+              + diagnostic.get("code")
+              + "|"
+              + diagnostic.get("target")
+              + "|"
+              + rangeSummary((Map<?, ?>) diagnostic.get("range")));
+    }
+    check(name, expected, actual);
+  }
+
+  private static String symbolSummary(Map<?, ?> symbol) {
+    return symbol.get("symbolName")
+        + "|"
+        + symbol.get("canonicalId")
+        + "|"
+        + rangeSummary((Map<?, ?>) symbol.get("nameRange"));
+  }
+
+  private static String rangeSummary(Map<?, ?> range) {
+    if (range == null) {
+      return "-";
+    }
+    Map<?, ?> start = (Map<?, ?>) range.get("start");
+    Map<?, ?> end = (Map<?, ?>) range.get("end");
+    return start.get("line") + ":" + start.get("column") + "-" + end.get("line") + ":" + end.get("column");
   }
 
   private static void check(String name, Object expected, Object actual) {
