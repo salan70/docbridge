@@ -106,8 +106,13 @@ def login(email: str, password: str) -> None:
 def login(email, password); end
 ```
 
+```java
+/** @doc docs/auth.md#login-flow */
+public void login(String email, char[] password) {}
+```
+
 Paths are relative to the configured root. An annotation on an unsupported
-declaration, or on a TypeScript, JavaScript, Python, or Ruby declaration
+declaration, or on a TypeScript, JavaScript, Python, Ruby, or Java declaration
 excluded by visibility, produces `unsupported_declaration`; the same
 declaration without an annotation is ignored. Swift, Dart, Rust, and Go ignore
 an annotation on a declaration excluded by visibility without a diagnostic. To link such a declaration, add
@@ -208,6 +213,28 @@ file is one endpoint. Bare `private`, `protected`, and `public` calls,
 `private def x`, and `private_class_method` set method visibility; classes,
 modules, and constants are always `public`. `attr_reader` and its siblings,
 `alias`, and `define_method` are not endpoints.
+
+### Java declarations
+
+Supported forms are top-level and nested classes, interfaces, enums, records,
+and annotation types; methods and constructors; and fields and enum
+constants. Put `@doc` in the declaration's Javadoc comment (`/** */`); `//`
+and `/* */` comments are ignored. IDs are dot-qualified without the package,
+and methods and constructors add their parameter types: `AuthService`,
+`AuthService.MAX_ATTEMPTS`, `AuthService.login(String,char[])`, and
+`AuthService.AuthService(Authenticator)` for a constructor. Parameter types
+are written as in the source, without type arguments or annotations, and
+varargs become arrays (`String...` is `String[]`). Visibility defaults to
+`public`. Interface members without a modifier and enum constants are
+`public`, and a member is never more visible than its enclosing types. Local
+and anonymous classes, lambdas, and initializer blocks are not endpoints. An
+`@doc` above a field statement that declares several names (`int a, b;`) is
+`unsupported_declaration` because it cannot name one endpoint; link those
+fields from `docbridge.links.json` instead.
+
+`javadoc` reports `@doc` as an unknown tag when doclint runs with
+`-Xdoclint`. Register the tag with `-tag doc:a:"DocBridge:"` so the check
+accepts it.
 
 <!-- @code src/scan/markdown/markdown.ts#scanMarkdown -->
 

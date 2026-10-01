@@ -93,8 +93,13 @@ def login(email: str, password: str) -> None:
 def login(email, password); end
 ```
 
+```java
+/** @doc docs/auth.md#login-flow */
+public void login(String email, char[] password) {}
+```
+
 対応形式と visibility は [設定](configuration.md) で選びます。対応していない宣言や、
-visibility で対象外になった TypeScript / JavaScript / Python / Ruby の宣言に `@doc` を
+visibility で対象外になった TypeScript / JavaScript / Python / Ruby / Java の宣言に `@doc` を
 書くと `unsupported_declaration` です。Swift、Dart、Rust、Go では、visibility で対象外に
 なった宣言の `@doc` は診断なしで無視されます。リンクするには、言語が受け付ける範囲で
 その可視性を `visibility` に加えます。Dart は `public` しか受け付けないため、private な
@@ -182,6 +187,24 @@ class、module、定数、instance method、singleton method（`def self.x` と
 endpoint です。method の可視性は引数なしの `private`、`protected`、`public` 呼び出し、
 `private def x`、`private_class_method` で決まり、class、module、定数は常に `public`
 です。`attr_reader` などや `alias`、`define_method` は endpoint ではありません。
+
+### Java の宣言
+
+top-level と入れ子の class、interface、enum、record、annotation type、method と
+constructor、field と enum 定数を扱います。`@doc` は宣言の Javadoc comment
+（`/** */`）に書きます。`//` と `/* */` の comment は無視されます。ID は package を
+含めず `.` で修飾し、method と constructor には引数の型を付けます。`AuthService`、
+`AuthService.MAX_ATTEMPTS`、`AuthService.login(String,char[])`、constructor の
+`AuthService.AuthService(Authenticator)` の形式です。引数の型は source に書いた
+とおりで、型引数と annotation は除き、可変長引数は配列（`String...` は `String[]`）に
+なります。既定は `public` です。修飾子のない interface の member と enum 定数は
+`public` で、member が外側の型より見えるようになることはありません。local class、
+匿名 class、lambda、initializer block は endpoint ではありません。複数の名前を宣言する
+field 文（`int a, b;`）の上の `@doc` は 1 つの endpoint を指せないため
+`unsupported_declaration` です。その field は `docbridge.links.json` からリンクします。
+
+`-Xdoclint` 付きで `javadoc` を実行すると、`@doc` は未知の tag として報告されます。
+`-tag doc:a:"DocBridge:"` で tag を登録すると、この検査を通ります。
 
 ## ドキュメントからコードへ
 
