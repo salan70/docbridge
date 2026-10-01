@@ -196,6 +196,25 @@ jobs:
       # --- end Python worker ---
 
       # --- Ruby worker: setup and tests ---
+      # The Nix shell covers CRuby 3.4 (Prism 1.x) through `just test` and
+      # `just test-ruby-scanner`; this step covers the 3.3 floor, whose bundled
+      # Prism 0.19 has a different node API. The suite runs the pending
+      # fixtures through the executable, so no Bun is needed here. The step
+      # runs outside Nix so the setup-ruby toolchain is the `ruby` on PATH.
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Test the Ruby scanner on Ruby 3.3
+        run: |
+          cd packages/ruby-scanner
+          ruby --version
+          ruby -w -Ilib -Itest test/run.rb
+
+      - name: Test the Ruby scanner
+        run: nix develop -c just test-ruby-scanner
       # --- end Ruby worker ---
 
       # --- Java worker: setup, build, lint, and tests ---

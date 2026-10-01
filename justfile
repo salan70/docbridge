@@ -213,7 +213,13 @@ lint-python:
 # --- end Python worker ---
 
 # --- Ruby worker (packages/ruby-scanner) ---
-# Recipes for the runtime-backed Ruby worker live between these markers.
+# Run the Ruby worker's minitest suite, which also drives the pending fixtures
+# through the executable with the loader flags the core uses. The runtime
+# ships everything it needs (Prism and minitest are bundled), so there is no
+# install step; no formatter or linter recipe exists because RuboCop would be a
+# third-party dependency.
+test-ruby-scanner:
+    cd packages/ruby-scanner && ruby -w -Ilib -Itest test/run.rb
 # --- end Ruby worker ---
 
 # --- Java worker (packages/java-scanner) ---
