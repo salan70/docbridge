@@ -1,0 +1,8 @@
+package auth;
+
+public class Auth {
+  /** @doc docs/auth.md#login */
+  public void login() {}
+
+  public void logout() {}
+}

@@ -1,0 +1,16 @@
+{
+  "filePath": "Input.java",
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "target": "Input.java",
+      "language": "java",
+      "message": "Java parse error: illegal start of expression.",
+      "location": { "filePath": "Input.java", "line": 6, "column": 12 }
+    }
+  ]
+}
