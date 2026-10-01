@@ -152,7 +152,7 @@ Diagnostics record a single point per element. For the server, the scanners
 also record ranges:
 
 - `nameRange` — the declaration name identifier in code (for example, the
-  `login` identifier in TypeScript, Swift, Dart, Rust, or Go).
+  `login` identifier in any supported language).
 - `headingTextRange` — the heading text in Markdown, excluding leading `#` and
   surrounding whitespace.
 - `targetRange` — the target string of an annotation (the `file#fragment` text in
@@ -208,8 +208,10 @@ returns the linked Markdown **section** inline:
 
 When the position hits a heading that links to a code symbol, the server returns
 the linked code endpoint plus the declaration's signature, fenced in the
-declaration's language. The signature is the scanner's signature range without
-the leading doc comment. It can span several lines and keeps attributes and
+declaration's language; TypeScript and JavaScript fences follow the file suffix
+(`ts`, `tsx`, `js`, or `jsx`). The signature is the scanner's signature range
+without the leading doc comment, which is a `#` comment block in Python and
+Ruby. It can span several lines and keeps attributes and
 decorators. When the scanner reports no signature range, only the endpoint is
 shown.
 
@@ -274,6 +276,10 @@ The VS Code-compatible extension is a thin LSP client. It starts the bundled
 - `dart`
 - `rust`
 - `go`
+- `javascript`
+- `javascriptreact`
+- `python`
+- `ruby`
 - `markdown`
 
 The extension does not duplicate DocBridge include-pattern filtering. It only

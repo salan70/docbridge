@@ -19,10 +19,11 @@ DocBridge ignores these paths even when they match an include glob:
 
 DocBridge does not read `.gitignore`.
 
-Code files belong to a configured language: TypeScript `.ts` files (declaration
-files ending in `.d.ts` are excluded), Swift `.swift` files, Dart `.dart`
-files, Rust `.rs` files, and Go `.go` files. Each code file is scanned by its
-language adapter.
+Code files belong to a configured language: TypeScript `.ts`, `.tsx`, `.mts`,
+and `.cts` files (declaration files ending in `.d.ts`, `.d.mts`, or `.d.cts` are
+excluded), Swift `.swift` files, Dart `.dart` files, Rust `.rs` files, Go `.go`
+files, JavaScript `.js`, `.jsx`, `.mjs`, and `.cjs` files, Python `.py` files,
+and Ruby `.rb` files. Each code file is scanned by its language adapter.
 
 Markdown files are `.md` files.
 
@@ -42,8 +43,8 @@ that depend on that file are suppressed.
 ## Code Scanning
 
 Code scanning is language-aware but not language-specific. Every code language
-adapter, in-process (TypeScript) or worker-backed (Swift, Dart, Rust, Go), produces the
-same language-neutral result: the supported symbols, the undocumented symbols
+adapter, in-process (TypeScript and JavaScript) or worker-backed (Swift, Dart,
+Rust, Go, Python, and Ruby), produces the same language-neutral result: the supported symbols, the undocumented symbols
 used by audit mode, the `@doc` links, and any scanner diagnostics. The resolver,
 graph, context command, and LSP consume this shared shape so a new language can
 be added without changing them.
@@ -61,8 +62,8 @@ language, the absolute project root, the file path/content pairs to scan, and
 language options such as visibility. Stderr is treated as debug/error text and
 does not affect stdout JSON parsing. The complete protocol is defined by
 [schemas/scanner-worker.schema.json](../../schemas/scanner-worker.schema.json),
-and actual TypeScript, Swift, Dart, Rust, and Go scan results are checked against
-it.
+and actual TypeScript, Swift, Dart, Rust, Go, Python, and Ruby scan results are
+checked against it.
 
 A scan invokes each worker-backed language once. The request carries every
 readable managed file of that language in collection order. A file that cannot
@@ -150,8 +151,10 @@ instead of letting Go download one.
 
 The initial npm package supports scanner binaries for `darwin-arm64` and
 `linux-x64`, where the platform key is `${process.platform}-${process.arch}`.
-TypeScript and Markdown checks do not require scanner binaries. If a configured
-Swift, Dart, Rust, or Go project runs on any other platform, or the expected binary
+TypeScript, JavaScript, and Markdown checks do not require scanner binaries, and
+Python and Ruby need a language runtime instead, as described below. If a
+configured Swift, Dart, Rust, or Go project runs on any other platform, or the
+expected binary
 is not present for a supported platform, DocBridge emits
 `code_scanner_unavailable` with the missing platform key and the supported keys.
 
@@ -172,9 +175,8 @@ filesystem itself refuses execution, which is what a `noexec` mount does;
 DocBridge emits `code_scanner_unavailable` naming the binary's directory and
 that cause.
 
-Runtime-backed workers are pending registration: the Python, Ruby, and Java
-workers below are resolved and run as described here once their languages are
-registered. Each is a script or JAR that runs on a language runtime found on
+Python and Ruby are scanned by runtime-backed workers, and the Java worker is
+resolved and run the same way once Java is registered. Each is a script or JAR that runs on a language runtime found on
 the machine instead of a bundled binary, so it is not platform-gated and runs
 wherever its runtime runs, Windows included. Its entrypoint is under
 `packages/` in a source checkout (the Java JAR needs `just build-java-scanner`
@@ -244,7 +246,9 @@ heading is never annotated: a `@code` comment before one becomes
 ## TypeScript Scanning
 
 TypeScript scanning extracts exported declarations, their type members, and
-`@doc` annotations using the TypeScript Compiler API.
+`@doc` annotations using the TypeScript Compiler API. It reads `.ts`, `.tsx`,
+`.mts`, and `.cts` files, with the parser's script kind taken from the suffix,
+so JSX parses in `.tsx` files only.
 
 For each supported declaration the scanner records, alongside the name range
 used for navigation, a `declarationRange` covering the whole declaration
@@ -446,24 +450,19 @@ the original content, so `//line` directives do not move it.
 
 ## JavaScript Scanning
 
-JavaScript scanning is pending registration: the `javascript` language ID is
-not accepted by configuration yet, and the adapter lands with registration. The
-contract below is already fixed. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
-
 JavaScript scanning reuses the TypeScript scanner in process. The `javascript`
 language claims `.js`, `.jsx`, `.mjs`, and `.cjs` files, and the `typescript`
 language additionally claims `.tsx`, `.mts`, and `.cts` files while excluding
 `.d.ts`, `.d.mts`, and `.d.cts` declaration files. The parser's script kind
 follows the suffix (`JS`, `JSX`, `TS`, `TSX`), so JSX in a declaration parses
-without configuration.
+without configuration. As in the TypeScript compiler, every JavaScript suffix
+accepts JSX, not only `.jsx`.
 
 Supported JavaScript declarations are the ESM `export` forms the TypeScript
 scanner supports and the members of exported classes, with the same JSDoc
 attachment, canonical IDs, ranges, duplicate handling, and diagnostics as
-[TypeScript Scanning](#typescript-scanning). Scan results report
-`language: "javascript"`.
+[TypeScript Scanning](#typescript-scanning). Scan results and diagnostics
+report `language: "javascript"`, and diagnostic messages name JavaScript.
 
 CommonJS assignments (`module.exports = ...`, `exports.name = ...`), script
 globals, and JSDoc `@typedef` declarations are not endpoints; an `@doc` on
@@ -477,14 +476,6 @@ names are unsupported as in TypeScript.
 Context and hover fences follow the suffix: `js`, `jsx`, `ts`, and `tsx`.
 
 ## Python Scanning
-
-Python scanning is pending registration: the `python` language ID is
-not accepted by configuration yet. The worker under `packages/python-scanner`
-implements the contract below, and its conformance cases live under
-`test-fixtures/pending-languages/python/` until registration moves them into
-the corpus. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 Python scanning extracts `@doc` annotations from docstrings and from the
 comment block that leads a declaration, using the standard library's `ast` and
@@ -635,14 +626,6 @@ The message wording follows the installed CPython, which may differ between
 versions for the same input. `tokenize` runs only after `ast.parse` succeeds.
 
 ## Ruby Scanning
-
-Ruby scanning is pending registration: the `ruby` language ID is
-not accepted by configuration yet. The worker under `packages/ruby-scanner`
-implements the contract below, and its conformance cases live under
-`test-fixtures/pending-languages/ruby/` until registration moves them into
-the corpus. The pending configuration, annotation, and diagnostic contracts are in
-[Configuration](configuration.md#code-languages),
-[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
 
 The worker is a Ruby script, not a compiled binary. It runs on the project's
 CRuby, 3.3 or later, and parses with Prism, the parser gem bundled with CRuby
