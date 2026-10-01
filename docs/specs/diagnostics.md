@@ -9,7 +9,7 @@ type DocBridgeDiagnostic = {
   severity: "error" | "warning";
   code: DiagnosticCode;
   target: string;
-  language?: "typescript" | "swift" | "dart" | "rust" | "go";
+  language?: "typescript" | "swift" | "dart" | "rust" | "go" | "javascript" | "python" | "ruby";
   source?: string;
   message: string;
   location?: {
@@ -24,8 +24,8 @@ type DocBridgeDiagnostic = {
 };
 ```
 
-`language` gains `javascript`, `python`, `ruby`, and `java` when those
-languages are registered; the worker protocol schema already accepts them.
+`language` gains `java` when Java is registered; the worker protocol schema
+already accepts it.
 
 `location.filePath`, `source`, and `target` use project-root-relative paths.
 
