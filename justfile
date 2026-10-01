@@ -54,7 +54,7 @@ format:
     gofmt -w packages/go-scanner examples/go
     just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
-    ruff format packages/python-scanner
+    ruff format packages/python-scanner examples/python
 
 # Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
 [private]
@@ -208,14 +208,14 @@ test-python-scanner:
     python3 -m unittest discover -s packages/python-scanner/tests
 
 format-check-python:
-    ruff format --check packages/python-scanner
+    ruff format --check packages/python-scanner examples/python
 
 lint-python:
-    ruff check packages/python-scanner
+    ruff check packages/python-scanner examples/python
 # --- end Python worker ---
 
 # --- Ruby worker (packages/ruby-scanner) ---
-# Run the Ruby worker's minitest suite, which also drives the pending fixtures
+# Run the Ruby worker's minitest suite, which also drives the conformance cases
 # through the executable with the loader flags the core uses. The runtime
 # ships everything it needs (Prism and minitest are bundled), so there is no
 # install step; no formatter or linter recipe exists because RuboCop would be a
