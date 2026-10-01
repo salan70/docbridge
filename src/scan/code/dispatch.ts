@@ -12,6 +12,7 @@ import type {
 } from "./adapter";
 import { codeScanCacheKey, isReusableScan } from "./scan-cache";
 import { javaScriptAdapter, typeScriptAdapter } from "./typescript";
+import { resolveRuntimeWorkerCommand } from "./worker/runtime-worker";
 import {
   resolveScannerWorkerCommand,
   type ScannerWorkerCommandResolution,
@@ -256,12 +257,28 @@ function scanFilesAsync(
  */
 const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
   typescript: typeScriptAdapter,
-  javascript: javaScriptAdapter,
   swift: createScannerWorkerAdapter("swift", () => resolveScannerWorkerCommand("swift")),
   dart: createScannerWorkerAdapter("dart", () => resolveScannerWorkerCommand("dart")),
   rust: createScannerWorkerAdapter("rust", () => resolveScannerWorkerCommand("rust")),
   go: createScannerWorkerAdapter("go", () => resolveScannerWorkerCommand("go")),
+  javascript: javaScriptAdapter,
+  python: runtimeWorkerAdapter("python"),
+  ruby: runtimeWorkerAdapter("ruby"),
 };
+
+/**
+ * The adapter of a runtime-backed language: each scan resolves the runtime
+ * from the configured `scanners` entry, the environment, or the candidates.
+ */
+function runtimeWorkerAdapter(language: "python" | "ruby"): CodeLanguageAdapter {
+  return createScannerWorkerAdapter(language, ({ projectRoot, scanners }) => {
+    const command = scanners?.[language]?.command;
+    return resolveRuntimeWorkerCommand(
+      language,
+      command === undefined ? { projectRoot } : { projectRoot, command },
+    );
+  });
+}
 
 /** One collected file's place in the output: a read failure or a scan result. */
 type CodeScanSlot =

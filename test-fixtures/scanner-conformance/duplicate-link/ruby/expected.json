@@ -1,15 +1,15 @@
 {
-  "filePath": "input.py",
+  "filePath": "input.rb",
   "symbols": [
     {
       "kind": "code",
-      "language": "python",
-      "filePath": "input.py",
+      "language": "ruby",
+      "filePath": "input.rb",
       "symbolName": "login",
       "canonicalId": "login",
-      "endpoint": "input.py#login",
+      "endpoint": "input.rb#login",
       "location": {
-        "filePath": "input.py",
+        "filePath": "input.rb",
         "line": 3,
         "column": 5
       },
@@ -29,8 +29,8 @@
           "column": 1
         },
         "end": {
-          "line": 4,
-          "column": 9
+          "line": 3,
+          "column": 15
         }
       },
       "signatureRange": {
@@ -40,7 +40,7 @@
         },
         "end": {
           "line": 3,
-          "column": 13
+          "column": 10
         }
       }
     }
@@ -48,10 +48,10 @@
   "undocumentedSymbols": [],
   "links": [
     {
-      "source": "input.py#login",
+      "source": "input.rb#login",
       "target": "docs/auth.md#login",
       "location": {
-        "filePath": "input.py",
+        "filePath": "input.rb",
         "line": 1,
         "column": 8
       },
@@ -72,11 +72,11 @@
       "severity": "warning",
       "code": "duplicate_link",
       "target": "docs/auth.md#login",
-      "language": "python",
-      "source": "input.py#login",
-      "message": "Duplicate @doc link from input.py#login to docs/auth.md#login.",
+      "language": "ruby",
+      "source": "input.rb#login",
+      "message": "Duplicate @doc link from input.rb#login to docs/auth.md#login.",
       "location": {
-        "filePath": "input.py",
+        "filePath": "input.rb",
         "line": 2,
         "column": 8
       },
@@ -91,5 +91,6 @@
         }
       }
     }
-  ]
+  ],
+  "language": "ruby"
 }

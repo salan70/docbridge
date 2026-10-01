@@ -30,7 +30,7 @@
         },
         "end": {
           "line": 4,
-          "column": 16
+          "column": 9
         }
       },
       "signatureRange": {
@@ -40,7 +40,7 @@
         },
         "end": {
           "line": 3,
-          "column": 20
+          "column": 13
         }
       }
     }
@@ -49,23 +49,48 @@
   "links": [
     {
       "source": "input.py#login",
-      "target": "docs/ログイン😀.md#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.py",
+        "line": 1,
+        "column": 8
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "line": 1,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/auth.md#login",
+      "language": "python",
+      "source": "input.py#login",
+      "message": "Duplicate @doc link from input.py#login to docs/auth.md#login.",
       "location": {
         "filePath": "input.py",
         "line": 2,
         "column": 8
       },
-      "targetRange": {
+      "range": {
         "start": {
           "line": 2,
           "column": 8
         },
         "end": {
           "line": 2,
-          "column": 28
+          "column": 26
         }
       }
     }
   ],
-  "diagnostics": []
+  "language": "python"
 }

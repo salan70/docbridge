@@ -23,7 +23,9 @@
             "dart": { "$ref": "#/$defs/dartEntry" },
             "rust": { "$ref": "#/$defs/rustEntry" },
             "go": { "$ref": "#/$defs/goEntry" },
-            "javascript": { "$ref": "#/$defs/javascriptEntry" }
+            "javascript": { "$ref": "#/$defs/javascriptEntry" },
+            "python": { "$ref": "#/$defs/pythonEntry" },
+            "ruby": { "$ref": "#/$defs/rubyEntry" }
           }
         },
         "docs": {
@@ -183,6 +185,50 @@
           "items": {
             "type": "string",
             "pattern": "\\.(js|jsx|mjs|cjs)$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "protected", "private"]
+          }
+        }
+      }
+    },
+    "pythonEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.py$"
+          }
+        },
+        "visibility": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "private"]
+          }
+        }
+      }
+    },
+    "rubyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "\\.rb$"
           }
         },
         "visibility": {

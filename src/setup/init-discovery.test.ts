@@ -153,6 +153,49 @@ test("discoverCodeScope proposes JavaScript source roots apart from TypeScript",
   }
 });
 
+test("discoverCodeScope proposes src and each top-level Python package", () => {
+  const project = makeProject({
+    "src/app/__init__.py": "",
+    "src/app/main.py": "def main(): pass\n",
+    "src/app/tests/test_main.py": "def test_main(): pass\n",
+    "billing/__init__.py": "",
+    "billing/invoice.py": "class Invoice: pass\n",
+    "scripts/release.py": "print()\n",
+    "tests/__init__.py": "",
+    "tests/test_invoice.py": "def test_invoice(): pass\n",
+    "venv/__init__.py": "",
+    "venv/lib/site.py": "x = 1\n",
+    "build/__init__.py": "",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const python = discovery.languages.find((entry) => entry.language === "python");
+    expect(python?.patterns).toEqual(["src/**/*.py", "billing/**/*.py"]);
+    expect(python?.fileCount).toBe(4);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test("discoverCodeScope proposes lib and app for Ruby without tests or vendored gems", () => {
+  const project = makeProject({
+    "lib/auth.rb": "module Auth; end\n",
+    "lib/auth/vendor/gem.rb": "module Gem; end\n",
+    "app/models/user.rb": "class User; end\n",
+    "app/spec/user_spec.rb": "describe User\n",
+    "spec/auth_spec.rb": "describe Auth\n",
+    "test/auth_test.rb": "class AuthTest; end\n",
+  });
+  try {
+    const discovery = discoverCodeScope(project);
+    const ruby = discovery.languages.find((entry) => entry.language === "ruby");
+    expect(ruby?.patterns).toEqual(["lib/**/*.rb", "app/**/*.rb"]);
+    expect(ruby?.fileCount).toBe(2);
+  } finally {
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
 test("discoverCodeScope keeps only the Go layout patterns that match non-test files", () => {
   const project = makeProject({
     "main.go": "package main\n",

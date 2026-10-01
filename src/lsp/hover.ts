@@ -93,21 +93,25 @@ function renderCodeSignatures(state: ProjectState, counterparts: GraphEndpoint[]
 /** Languages whose block comments nest, so an inner block comment opens a new level. */
 const NESTED_BLOCK_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["swift", "dart", "rust"]);
 
+/** Languages whose comments start with `#` and run to the end of the line. */
+const HASH_LINE_COMMENTS: ReadonlySet<CodeLanguage> = new Set(["python", "ruby"]);
+
 /**
  * Drop the whitespace and comments before a declaration, such as the doc
  * comment that `signatureRange` starts with. Attributes, decorators, and
  * comments inside the declaration stay.
  */
 function withoutLeadingComments(text: string, language: CodeLanguage): string {
+  const lineComment = HASH_LINE_COMMENTS.has(language) ? "#" : "//";
   let index = 0;
   for (;;) {
     while (index < text.length && /\s/.test(text[index] ?? "")) {
       index += 1;
     }
-    if (text.startsWith("//", index)) {
+    if (text.startsWith(lineComment, index)) {
       const newline = text.indexOf("\n", index);
       index = newline === -1 ? text.length : newline + 1;
-    } else if (text.startsWith("/*", index)) {
+    } else if (lineComment === "//" && text.startsWith("/*", index)) {
       index = blockCommentEnd(text, index, NESTED_BLOCK_COMMENTS.has(language));
     } else {
       return text.slice(index);

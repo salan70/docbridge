@@ -484,6 +484,31 @@ test("the worker command factory receives the scan context on the sync and async
   ]);
 });
 
+test.each(["python", "ruby"] as const)(
+  "the built-in %s adapter runs the configured runtime and reports it without fallback",
+  (language) => {
+    const relPath = language === "python" ? "src/a.py" : "lib/a.rb";
+    const runtime = `/nonexistent/docbridge/${language}`;
+
+    const result = scanCodeFiles(
+      "/project",
+      [{ language, relPath }],
+      { [language]: { patterns: ["**/*"] } },
+      () => ({ ok: true, content: "" }),
+      { scanners: { [language]: { command: [runtime] } } },
+    );
+
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "code_scanner_unavailable",
+        language,
+        target: relPath,
+        message: expect.stringContaining(`scanners.${language}.command (${runtime})`),
+      },
+    ]);
+  },
+);
+
 test("prepare carries a command resolution failure to every file without starting a worker", async () => {
   const requests: RecordedRequest[] = [];
   const unavailable: DocBridgeDiagnostic = {

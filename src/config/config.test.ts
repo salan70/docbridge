@@ -191,6 +191,49 @@ test.each([
   expect(validateConfigSchema(raw)).toBe(false);
 });
 
+test.each([
+  ["python", { patterns: ["src/**/*.py"], visibility: ["public", "private"] }],
+  [
+    "ruby",
+    { patterns: ["lib/**/*.rb", "app/**/*.rb"], visibility: ["public", "protected", "private"] },
+  ],
+])(
+  "resolveConfig and the schema accept a %s entry with its visibility values",
+  (language, entry) => {
+    const raw = { include: { code: { [language]: entry }, docs: ["docs/**/*.md"] } };
+
+    const result = resolveConfig(JSON.stringify(raw));
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.config.include.code).toEqual({ [language]: entry });
+    expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  },
+);
+
+test.each([
+  ["python", { patterns: ["src/**/*.rb"] }, "src/**/*.rb", "Pattern must end with `.py`."],
+  [
+    "python",
+    { patterns: ["src/**/*.py"], visibility: ["protected"] },
+    "include.code.python.visibility",
+    "Unsupported python visibility: protected. Supported values: public, private.",
+  ],
+  ["ruby", { patterns: ["lib/**/*.py"] }, "lib/**/*.py", "Pattern must end with `.rb`."],
+  [
+    "ruby",
+    { patterns: ["lib/**/*.rb"], visibility: ["package"] },
+    "include.code.ruby.visibility",
+    "Unsupported ruby visibility: package. Supported values: public, protected, private.",
+  ],
+])("resolveConfig and the schema reject the %s entry %j", (language, entry, target, message) => {
+  const raw = { include: { code: { [language]: entry }, docs: ["docs/**/*.md"] } };
+
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+    { severity: "error", code: "config_invalid_value", target, message },
+  ]);
+  expect(validateConfigSchema(raw)).toBe(false);
+});
+
 test("loadConfig accepts typescript and javascript patterns over one directory", () => {
   const root = mkdtempSync(join(tmpdir(), "docbridge-config-"));
   try {

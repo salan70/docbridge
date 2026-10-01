@@ -207,6 +207,24 @@ test("resolveRuntimeWorkerCommand reports a missing bundled worker without probi
   });
 });
 
+test("a Ruby resolution failure carries the ruby language", () => {
+  withPackage([RUBY_ENTRY], (root) => {
+    const { probe } = fakeProbe({ ruby: { kind: "ok", runtime: "cruby", version: "3.2.4" } });
+
+    const result = resolveRuntimeWorkerCommand("ruby", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: { code: "code_scanner_unavailable", language: "ruby", target: "ruby" },
+    });
+  });
+});
+
 test("resolveRuntimeWorkerCommand prefers the configured command over the variable and candidates", () => {
   withPackage([PYTHON_ENTRY], (root) => {
     const { calls, probe } = fakeProbe({
@@ -290,6 +308,7 @@ test("resolveRuntimeWorkerCommand reports a configured command that cannot start
       diagnostic: {
         severity: "error",
         code: "code_scanner_unavailable",
+        language: "python",
         target: "python",
         message:
           "Python scanner worker is unavailable: scanners.python.command (/opt/py/bin/python3) " +
@@ -476,6 +495,7 @@ test("resolveRuntimeWorkerCommand names the runtime, floor, and every candidate 
       diagnostic: {
         severity: "error",
         code: "code_scanner_unavailable",
+        language: "python",
         target: "python",
         message:
           "Python scanner worker is unavailable: no usable CPython 3.10 or later found: python3 " +

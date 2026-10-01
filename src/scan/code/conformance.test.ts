@@ -23,6 +23,8 @@ const SCANNED_PATH: Readonly<Record<CodeLanguage, string>> = {
   rust: "input.rs",
   go: "input.go",
   javascript: "input.js",
+  python: "input.py",
+  ruby: "input.rb",
 };
 
 const cases = readdirSync(CORPUS_ROOT, { withFileTypes: true })

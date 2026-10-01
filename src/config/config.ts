@@ -53,6 +53,8 @@ export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[
   rust: ["pub", "private"],
   go: ["exported", "unexported"],
   javascript: ["public", "protected", "private"],
+  python: ["public", "private"],
+  ruby: ["public", "protected", "private"],
 };
 
 /**

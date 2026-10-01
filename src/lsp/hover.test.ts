@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import type { CodeScanResult } from "../model/scan-result";
 import { scanTypeScript } from "../scan/code/typescript";
 import { CODE_FILE, DOC_FILE, stateOf } from "./fixtures";
 import { hover } from "./hover";
@@ -78,6 +79,62 @@ describe(hover, () => {
       `**${codeFile}#Login**\n\n\`\`\`${fence}\nexport function Login()\n\`\`\``,
     );
   });
+
+  test.each([
+    [
+      "python",
+      "src/auth.py",
+      "# Starts the login flow.\n# @doc docs/auth.md#login-spec\n@traced\ndef login(email):\n    pass\n",
+      { start: { line: 1, column: 1 }, end: { line: 4, column: 18 } },
+      "```python\n@traced\ndef login(email):\n```",
+    ],
+    [
+      "ruby",
+      "lib/auth.rb",
+      "# Starts the login flow.\n#\n# @doc docs/auth.md#login-spec\ndef login(email)\nend\n",
+      { start: { line: 1, column: 1 }, end: { line: 4, column: 17 } },
+      "```ruby\ndef login(email)\n```",
+    ],
+  ] as const)(
+    "doc to code drops a leading # comment block from a %s signature",
+    (language, filePath, code, signatureRange, fenced) => {
+      const doc = `<!-- @code ${filePath}#login -->\n## Login Spec\n`;
+      const nameLine = signatureRange.end.line;
+      const scan: CodeScanResult = {
+        language,
+        filePath,
+        symbols: [
+          {
+            kind: "code",
+            language,
+            filePath,
+            symbolName: "login",
+            canonicalId: "login",
+            endpoint: `${filePath}#login`,
+            location: { filePath, line: nameLine, column: 5 },
+            nameRange: {
+              start: { line: nameLine, column: 5 },
+              end: { line: nameLine, column: 10 },
+            },
+            signatureRange,
+          },
+        ],
+        undocumentedSymbols: [],
+        links: [
+          {
+            source: `${filePath}#login`,
+            target: "docs/auth.md#login-spec",
+            location: { filePath, line: nameLine - 1, column: 8 },
+          },
+        ],
+        diagnostics: [],
+      };
+
+      const result = hover(stateOf(code, doc, scan), DOC_FILE, HEADING);
+
+      expect(result?.value).toBe(`**${filePath}#login**\n\n${fenced}`);
+    },
+  );
 
   test("concatenates one-to-many sections with a divider", () => {
     const code =

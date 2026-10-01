@@ -111,5 +111,6 @@
       }
     }
   ],
-  "diagnostics": []
+  "diagnostics": [],
+  "language": "python"
 }

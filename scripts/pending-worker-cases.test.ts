@@ -7,7 +7,6 @@ import Ajv2020 from "ajv/dist/2020";
 
 import commonOutputSchema from "../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../schemas/scanner-worker.schema.json";
-import type { RuntimeWorkerLanguage } from "../src/config/scanner-runtimes";
 import { resolveRuntimeWorkerCommand } from "../src/scan/code/worker/runtime-worker";
 
 /**
@@ -26,11 +25,10 @@ import { resolveRuntimeWorkerCommand } from "../src/scan/code/worker/runtime-wor
 const repoRoot = resolve(import.meta.dir, "..");
 const PENDING_ROOT = join(repoRoot, "test-fixtures", "pending-languages");
 
-type PendingLanguage = RuntimeWorkerLanguage;
+/** The runtime-backed languages whose language ID is not registered yet. */
+type PendingLanguage = "java";
 
 const SCANNED_PATH: Readonly<Record<PendingLanguage, string>> = {
-  python: "input.py",
-  ruby: "input.rb",
   java: "Input.java",
 };
 
@@ -87,8 +85,6 @@ function workerEnv(
 
 /** A variable that can inject code or options into a runtime before the worker starts. */
 const HOSTILE_ENV: Readonly<Record<PendingLanguage, Record<string, string>>> = {
-  python: { PYTHONPATH: "/nonexistent-docbridge-path", PYTHONSTARTUP: "/nonexistent-startup.py" },
-  ruby: { RUBYOPT: "-rdocbridge_injected_library", RUBYLIB: "/nonexistent-docbridge-lib" },
   java: { JAVA_TOOL_OPTIONS: "-Xdocbridge-bogus-option", _JAVA_OPTIONS: "-Xdocbridge-bogus" },
 };
 
