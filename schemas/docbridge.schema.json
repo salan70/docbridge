@@ -34,9 +34,33 @@
           }
         }
       }
+    },
+    "scanners": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "python": { "$ref": "#/$defs/scannerRuntime" },
+        "ruby": { "$ref": "#/$defs/scannerRuntime" },
+        "java": { "$ref": "#/$defs/scannerRuntime" }
+      }
     }
   },
   "$defs": {
+    "scannerRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "typescriptEntry": {
       "type": "object",
       "additionalProperties": false,

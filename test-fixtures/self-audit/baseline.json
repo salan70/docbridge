@@ -288,6 +288,21 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/config/scanner-runtimes.ts#RUNTIME_WORKER_LANGUAGES",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/scanner-runtimes.ts#RuntimeWorkerLanguage",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/config/scanner-runtimes.ts#validateScannerRuntimes",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/query/context.ts#ContextResult",
       "class": "sibling_export"
     },

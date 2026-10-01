@@ -53,7 +53,10 @@ test("published config schema mirrors every CLI language contract", () => {
   expect(Object.keys(codeProperties).toSorted()).toEqual([...KNOWN_CODE_LANGUAGES].toSorted());
   for (const language of KNOWN_CODE_LANGUAGES) {
     const reference = codeProperties[language].$ref;
-    const definitionName = reference.slice("#/$defs/".length) as keyof typeof configSchema.$defs;
+    const definitionName = reference.slice("#/$defs/".length) as Exclude<
+      keyof typeof configSchema.$defs,
+      "scannerRuntime"
+    >;
     const definition = configSchema.$defs[definitionName];
 
     expect(definition.properties.visibility.items.enum).toEqual([...LANGUAGE_VISIBILITY[language]]);

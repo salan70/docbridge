@@ -12,6 +12,7 @@ import {
   type CodeInclude,
   type CodeIncludeEntry,
 } from "./code-language";
+import { validateScannerRuntimes, type ScannerRuntimes } from "./scanner-runtimes";
 
 /**
  * Parsed `docbridge.config.json`. `include.code` and `include.docs` are
@@ -24,6 +25,8 @@ export type DocBridgeConfig = {
     code: CodeInclude;
     docs: string[];
   };
+  /** Present only when the configuration sets `scanners`. */
+  scanners?: ScannerRuntimes;
 };
 
 type LoadConfigResult = {
@@ -39,7 +42,7 @@ const EMPTY_CONFIG: DocBridgeConfig = {
   include: { code: {}, docs: [] },
 };
 
-const KNOWN_TOP_LEVEL_KEYS = new Set(["$schema", "include"]);
+const KNOWN_TOP_LEVEL_KEYS = new Set(["$schema", "include", "scanners"]);
 const KNOWN_INCLUDE_KEYS = new Set(["code", "docs"]);
 const KNOWN_CODE_ENTRY_KEYS = new Set(["patterns", "visibility"]);
 
@@ -152,6 +155,9 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
     );
   }
 
+  const scanners =
+    "scanners" in parsed ? validateScannerRuntimes(parsed.scanners, diagnostics) : undefined;
+
   const include = parsed.include;
   if (!isPlainObject(include)) {
     diagnostics.push(
@@ -181,7 +187,10 @@ export function resolveConfig(rawText: string | undefined): LoadConfigResult {
 
   const ok = diagnostics.length === 0;
   const config: DocBridgeConfig = ok
-    ? { include: { code, docs: include.docs as string[] } }
+    ? {
+        include: { code, docs: include.docs as string[] },
+        ...(scanners === undefined ? {} : { scanners }),
+      }
     : EMPTY_CONFIG;
 
   return { config, diagnostics, ok };

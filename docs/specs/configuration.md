@@ -24,7 +24,7 @@ The configuration file is required. When it is absent, cannot be read, or is not
 
 `$schema` is optional. When present, it must be a string. DocBridge does not fetch or validate the schema URL.
 
-The parsed value must be a JSON object; otherwise DocBridge reports `config_invalid_value`. Unknown keys at the top level (except `$schema`), under `include`, and inside a language entry under `include.code` report `config_unknown_key`. A known key with a rejected value reports `config_invalid_value`.
+The parsed value must be a JSON object; otherwise DocBridge reports `config_invalid_value`. Top-level keys other than `$schema`, `include`, and `scanners`, and unknown keys under `include`, inside a language entry under `include.code`, and under `scanners` report `config_unknown_key`. A known key with a rejected value reports `config_invalid_value`.
 
 Configuration defines scope only; it cannot declare a link. A project that
 declares links without annotations uses the separate
@@ -119,6 +119,58 @@ runtime on the machine running DocBridge.
 If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong
 to exactly one language.
+
+<!-- @code src/config/scanner-runtimes.ts#ScannerRuntimes -->
+
+## Scanner Runtimes
+
+The optional top-level `scanners` object chooses the runtime that starts a
+runtime-backed scanner worker. It is validated now, but takes effect only for
+the pending languages Python, Ruby, and Java once each is registered.
+
+```json
+{
+  "scanners": {
+    "python": { "command": ["py", "-3.12"] },
+    "java": { "command": ["tools/jdk/bin/java"] }
+  }
+}
+```
+
+The only keys are `python`, `ruby`, and `java`; any other key, and any key
+other than `command` inside an entry, reports `config_unknown_key`. `command`
+is required and must be a non-empty array of non-empty strings; anything else
+reports `config_invalid_value`.
+
+`command` is an argv array, never a shell string: the first element is the
+runtime executable and the rest are its own arguments. DocBridge appends the
+worker's fixed runtime flags and bundled entrypoint, listed in
+[Code Scanning](scanning.md#code-scanning). A first element that contains a
+path separator and is not absolute resolves against the project root; a bare
+name such as `python3.12` is looked up on `PATH`. DocBridge starts the command
+without a shell, so on Windows the executable must be a program, not a batch
+file.
+
+DocBridge picks a language's runtime in this order:
+
+1. `scanners.<language>.command`.
+2. The environment variable `DOCBRIDGE_PYTHON_RUNTIME`,
+   `DOCBRIDGE_RUBY_RUNTIME`, or `DOCBRIDGE_JAVA_RUNTIME`, holding one
+   executable path that resolves like the first element of `command`. An
+   empty value counts as unset.
+3. The documented candidates: `python3`, then `python` for Python (`py -3`,
+   then `python` on Windows); `ruby` for Ruby; `java` for Java.
+
+Every runtime must pass the worker's probe before DocBridge uses it. The
+configured command and the environment variable are explicit overrides: the
+one that applies is the only runtime tried, and when it is missing or fails
+its probe the scan reports the failure naming that override, with no fallback.
+Only the documented candidates fall through to the next one.
+
+A configured command or environment variable runs with the permissions of the
+user running DocBridge, in the CLI and in the language server. Review
+`scanners` in a repository you do not trust before running DocBridge there, as
+you would any other command the repository asks you to run.
 
 <!-- @code src/config/config.ts#loadConfig -->
 
