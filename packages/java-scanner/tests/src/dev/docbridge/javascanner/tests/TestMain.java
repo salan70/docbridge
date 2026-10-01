@@ -49,6 +49,7 @@ public final class TestMain {
     checkNameFallback();
     checkDocWhitespace();
     checkDuplicateCardinality();
+    checkDocumentedEndpointsNeverUndocumented();
     System.out.println(passed + " passed, " + failures.size() + " failed");
     if (!failures.isEmpty()) {
       System.exit(1);
@@ -287,6 +288,62 @@ public final class TestMain {
             "undocumented D|D|1:14-1:15",
             "link Input.java#D.m(int)|d.md#a",
             "diagnostic duplicate_code_symbol|Input.java#D.m(int)|5:15-5:16"));
+  }
+
+  private static void checkDocumentedEndpointsNeverUndocumented() {
+    // An endpoint that any kept declaration documents is never also listed
+    // as undocumented, whichever declaration comes first.
+    checkScan(
+        "undocumented: unannotated overload before the annotated one",
+        "public class U {\n"
+            + "  public void m(int x) {}\n"
+            + "  /** @doc d.md#a */\n"
+            + "  public void m(int y) {}\n"
+            + "}\n",
+        ALL,
+        List.of("symbol m|U.m(int)|4:15-4:16", "undocumented U|U|1:14-1:15", "link Input.java#U.m(int)|d.md#a"));
+    checkScan(
+        "undocumented: unannotated overload after the annotated one",
+        "public class V {\n"
+            + "  /** @doc d.md#a */\n"
+            + "  public void m(int x) {}\n"
+            + "  public void m(int y) {}\n"
+            + "}\n",
+        ALL,
+        List.of("symbol m|V.m(int)|3:15-3:16", "undocumented V|V|1:14-1:15", "link Input.java#V.m(int)|d.md#a"));
+    // A field and a member type of the same name share an endpoint.
+    checkScan(
+        "undocumented: field group and member type sharing an endpoint",
+        "public class T {\n"
+            + "  public int Inner, other;\n"
+            + "  /** @doc d.md#a */\n"
+            + "  public static class Inner {}\n"
+            + "  /** @doc d.md#b */\n"
+            + "  public int Nested;\n"
+            + "  public static class Nested {}\n"
+            + "}\n",
+        ALL,
+        List.of(
+            "symbol Inner|T.Inner|4:23-4:28",
+            "symbol Nested|T.Nested|6:14-6:20",
+            "undocumented T|T|1:14-1:15",
+            "undocumented other|T.other|2:21-2:26",
+            "link Input.java#T.Inner|d.md#a",
+            "link Input.java#T.Nested|d.md#b"));
+    // An annotated declaration outside the visibility filter documents
+    // nothing; its annotation is unsupported_declaration instead.
+    checkScan(
+        "undocumented: hidden annotated overload documents nothing",
+        "public class P {\n"
+            + "  /** @doc d.md#a */\n"
+            + "  private void m(int x) {}\n"
+            + "  public void m(int y) {}\n"
+            + "}\n",
+        null,
+        List.of(
+            "undocumented P|P|1:14-1:15",
+            "undocumented m|P.m(int)|4:15-4:16",
+            "diagnostic unsupported_declaration|Input.java|3:16-3:17"));
   }
 
   private static final List<String> ALL = List.of("public", "protected", "package", "private");

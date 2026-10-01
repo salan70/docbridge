@@ -9,8 +9,10 @@ import java.util.Set;
 
 /**
  * Scans one file into the worker protocol's {@code responseFile} object:
- * symbols, undocumented symbols, links, and diagnostics in the same shape and
- * with the same rules as the Go worker, so the core consumes both identically.
+ * symbols, undocumented symbols, links, and diagnostics in the same shape as
+ * the Go worker, so the core consumes both identically. The rules match Go's
+ * except that an endpoint a kept declaration documents is never also listed as
+ * undocumented.
  */
 public final class Scanner {
   public static final String LANGUAGE = "java";
@@ -62,9 +64,16 @@ public final class Scanner {
     Set<String> seenEndpoints = new HashSet<>();
     Set<String> duplicateEndpoints = new HashSet<>();
     Set<String> undocumentedEndpoints = new HashSet<>();
+    // An endpoint that any kept declaration documents is never also
+    // undocumented, whichever declaration comes first in the file.
+    Set<String> documentedEndpoints = new HashSet<>();
     for (Declarations.Declaration declaration : declarations) {
-      boolean hidden = !declaration.unsupported() && !visible.contains(declaration.visibility());
-      if (declaration.unsupported() || hidden) {
+      if (kept(declaration, visible) && !declaration.targets().isEmpty()) {
+        documentedEndpoints.add(filePath + "#" + declaration.canonicalId());
+      }
+    }
+    for (Declarations.Declaration declaration : declarations) {
+      if (!kept(declaration, visible)) {
         if (!declaration.targets().isEmpty()) {
           Map<String, Object> diagnostic =
               diagnostic(
@@ -83,7 +92,7 @@ public final class Scanner {
       Map<String, Object> symbol = symbol(declaration);
       String endpoint = filePath + "#" + declaration.canonicalId();
       if (declaration.targets().isEmpty()) {
-        if (undocumentedEndpoints.add(endpoint)) {
+        if (!documentedEndpoints.contains(endpoint) && undocumentedEndpoints.add(endpoint)) {
           undocumentedSymbols.add(symbol);
         }
         continue;
@@ -139,6 +148,11 @@ public final class Scanner {
         links.add(link);
       }
     }
+  }
+
+  /** A supported declaration inside the configured visibility classes; only these become symbols. */
+  private static boolean kept(Declarations.Declaration declaration, Set<String> visible) {
+    return !declaration.unsupported() && visible.contains(declaration.visibility());
   }
 
   private Map<String, Object> symbol(Declarations.Declaration declaration) {
