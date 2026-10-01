@@ -1,7 +1,7 @@
 import type { CodeFileRead, CodeInclude, CollectedCodeFile } from "../../config/code-language";
 import type { CodeScanResult } from "../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../model/types";
-import { settledCancelable, type Cancelable } from "../../shared/cancelable";
+import { cancelableSequence, settledCancelable, type Cancelable } from "../../shared/cancelable";
 import type {
   CodeLanguageAdapter,
   CodeScanContext,
@@ -9,6 +9,7 @@ import type {
   CodeScanOptions,
   PreparedCodeAdapter,
 } from "./adapter";
+import { codeScanCacheKey, isReusableScan } from "./scan-cache";
 import { typeScriptAdapter } from "./typescript";
 import {
   resolveScannerWorkerCommand,
@@ -166,6 +167,73 @@ export function scanCodeFiles(
   return assemblePlan(plan);
 }
 
+type ScanCodeFilesAsyncOptions = ScanCodeFilesOptions & {
+  /** Reusable results of an earlier scan, keyed by `codeScanCacheKey`. */
+  cache?: ReadonlyMap<string, CodeScanResult>;
+};
+
+type ScanCodeFilesAsyncResult = ScanCodeFilesResult & {
+  /** This scan's reusable results, for the next scan's `cache` once this one is accepted. */
+  cache: Map<string, CodeScanResult>;
+};
+
+/**
+ * The cancellable counterpart of {@link scanCodeFiles} for the Language Server.
+ * It reads every file before the first adapter call. A file whose cache key
+ * has a reusable result is not scanned again; the remaining files of each
+ * language go to its adapter in one call, one language at a time, through
+ * `scanFilesAsync` when the adapter has it. Cancelling cancels the running
+ * call and rejects with an `AbortError`.
+ */
+export function scanCodeFilesAsync(
+  projectRoot: string,
+  files: CollectedCodeFile[],
+  codeInclude: CodeInclude,
+  read: (relPath: string) => CodeFileRead,
+  options: ScanCodeFilesAsyncOptions = {},
+): Cancelable<ScanCodeFilesAsyncResult> {
+  const plan = planCodeScan(files, codeInclude, read, options.onContent);
+  const context: CodeScanContext = { projectRoot };
+  return cancelableSequence(async (step) => {
+    const cache = new Map<string, CodeScanResult>();
+    for (const batch of plan.batches) {
+      const base = options.adapters?.[batch.language] ?? builtInAdapters[batch.language];
+      const { argv, adapter } = base.prepare?.(context) ?? { argv: [], adapter: base };
+      const keys = batch.files.map((file) =>
+        codeScanCacheKey(batch.language, file.filePath, file.content, batch.options, argv),
+      );
+      const cached = keys.map((key) => options.cache?.get(key));
+      const missing = batch.files.filter((_, index) => cached[index] === undefined);
+      const scanned =
+        missing.length === 0
+          ? []
+          : await step(scanFilesAsync(adapter, missing, batch.options, context));
+      let next = 0;
+      const results = cached.map((hit) => hit ?? scanned[next++]);
+      fillBatch(plan, batch, results);
+      results.forEach((scan, index) => {
+        const key = keys[index];
+        if (scan !== undefined && key !== undefined && isReusableScan(scan)) {
+          cache.set(key, scan);
+        }
+      });
+    }
+    return { ...assemblePlan(plan), cache };
+  });
+}
+
+function scanFilesAsync(
+  adapter: CodeLanguageAdapter,
+  files: readonly CodeScanFile[],
+  options: CodeScanOptions,
+  context: CodeScanContext,
+): Cancelable<CodeScanResult[]> {
+  return (
+    adapter.scanFilesAsync?.(files, options, context) ??
+    settledCancelable(adapter.scanFiles(files, options, context))
+  );
+}
+
 /**
  * The adapter bound to each supported language. Importing this module is what
  * makes concrete parsers and worker execution available, so callers that only
@@ -228,7 +296,7 @@ function planCodeScan(
 function fillBatch(
   plan: CodeScanPlan,
   batch: LanguageBatch,
-  results: readonly CodeScanResult[],
+  results: readonly (CodeScanResult | undefined)[],
 ): void {
   batch.slots.forEach((slotIndex, resultIndex) => {
     const slot = plan.slots[slotIndex];

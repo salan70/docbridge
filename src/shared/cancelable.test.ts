@@ -46,6 +46,22 @@ describe(cancelableSequence, () => {
     expect(isAbortError(error)).toBe(true);
   });
 
+  test("cancelling rejects at once even when the running step ignores it", async () => {
+    let cancelRequested = false;
+    const stubborn: Cancelable<number> = {
+      promise: deferred<number>().promise,
+      cancel: () => {
+        cancelRequested = true;
+      },
+    };
+    const sequence = cancelableSequence(async (step) => step(stubborn));
+
+    sequence.cancel();
+
+    expect(isAbortError(await sequence.promise.catch((reason: unknown) => reason))).toBe(true);
+    expect(cancelRequested).toBe(true);
+  });
+
   test("cancelling between steps cancels the next step", async () => {
     const first = task<number>();
     const second = task<number>();

@@ -1,10 +1,14 @@
 import { expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { definition } from "../lsp/navigation";
 import { Project } from "../lsp/project";
+import type { CodeLanguageAdapter } from "../scan/code/adapter";
+import { emptyCodeScanCache } from "../scan/code/scan-cache";
+import { typeScriptAdapter } from "../scan/code/typescript";
 import { makeProject } from "../test-support";
-import { scanProject } from "./project-scan";
+import { scanProject, scanProjectAsync } from "./project-scan";
 
 test("scanProject omits graph and content artifacts by default", () => {
   const root = makeProject({
@@ -91,6 +95,112 @@ test("LSP navigation follows a manifest link in both directions", () => {
         range: { start: { line: 1, column: 17 }, end: { line: 1, column: 22 } },
       },
     ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+const LINKED_PROJECT = {
+  "docbridge.config.json": JSON.stringify({
+    include: {
+      code: { typescript: { patterns: ["src/**/*.ts"] } },
+      docs: ["docs/**/*.md"],
+    },
+  }),
+  "docbridge.links.json": JSON.stringify({
+    links: [{ code: "src/billing.ts#charge", doc: "docs/billing.md#charge" }],
+  }),
+  "src/login.ts": "/** @doc docs/auth.md#login-spec */\nexport function login() {}\n",
+  "src/billing.ts": "export function charge() {}\n",
+  "docs/auth.md":
+    "<!-- @code src/login.ts#login -->\n## Login Spec\n\n<!-- @code src/login.ts#gone -->\n## Gone\n",
+  "docs/billing.md": "## Charge\n",
+};
+
+/** The TypeScript adapter, recording the paths of every batch it scans. */
+function recordingTypeScript(batches: string[][]): CodeLanguageAdapter {
+  return {
+    ...typeScriptAdapter,
+    scanFiles(files, options, context) {
+      batches.push(files.map((file) => file.filePath));
+      return typeScriptAdapter.scanFiles(files, options, context);
+    },
+  };
+}
+
+test("scanProjectAsync produces the scan scanProject produces", async () => {
+  const root = makeProject(LINKED_PROJECT);
+
+  try {
+    const expected = scanProject({ projectRoot: root, buildGraph: true, keepContent: true });
+    const actual = await scanProjectAsync({ projectRoot: root, cache: emptyCodeScanCache() })
+      .promise;
+
+    expect(expected.ok).toBe(true);
+    expect(actual.ok).toBe(true);
+    if (!expected.ok || !actual.ok) {
+      return;
+    }
+    expect(actual.scan).toEqual(expected.scan);
+    const billing = actual.scan.codeFiles.find((file) => file.filePath === "src/billing.ts");
+    expect(billing?.links.map((link) => link.target)).toEqual(["docs/billing.md#charge"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("scanProjectAsync reuses cached results until the configuration changes", async () => {
+  const root = makeProject(LINKED_PROJECT);
+  const batches: string[][] = [];
+  const adapters = { typescript: recordingTypeScript(batches) };
+
+  try {
+    const first = await scanProjectAsync({
+      projectRoot: root,
+      adapters,
+      cache: emptyCodeScanCache(),
+    }).promise;
+    if (!first.ok) {
+      throw new Error("expected the first scan to succeed");
+    }
+    const second = await scanProjectAsync({ projectRoot: root, adapters, cache: first.cache })
+      .promise;
+    if (!second.ok) {
+      throw new Error("expected the second scan to succeed");
+    }
+    writeFileSync(
+      join(root, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: { typescript: { patterns: ["src/**/*.ts"] } },
+          docs: ["docs/**/*.md", "README.md"],
+        },
+      }),
+    );
+    await scanProjectAsync({ projectRoot: root, adapters, cache: second.cache }).promise;
+
+    expect(batches).toEqual([
+      ["src/billing.ts", "src/login.ts"],
+      ["src/billing.ts", "src/login.ts"],
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("scanProjectAsync stops when the manifest is invalid", async () => {
+  const root = makeProject({ ...LINKED_PROJECT, "docbridge.links.json": '{ "links": [], }' });
+
+  try {
+    const outcome = await scanProjectAsync({ projectRoot: root, cache: emptyCodeScanCache() })
+      .promise;
+
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.diagnostics.map((diagnostic) => diagnostic.target)).toEqual([
+        "docbridge.links.json",
+      ]);
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

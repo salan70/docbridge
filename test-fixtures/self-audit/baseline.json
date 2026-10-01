@@ -363,6 +363,36 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/dispatch.ts#scanCodeFilesAsync",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#CodeScanCache",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#codeScanCacheKey",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#emptyCodeScanCache",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/scan-cache.ts#isReusableScan",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/query/project-scan.ts#scanProjectAsync",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/adapter.ts#CodeScanOptions",
       "class": "sibling_export"
     },
@@ -894,6 +924,16 @@
     {
       "code": "undocumented_symbol",
       "target": "src/lsp/fixtures.ts#stateOf",
+      "class": "test_support"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/lsp/fixtures.ts#HeldBatch",
+      "class": "test_support"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/lsp/fixtures.ts#heldTypeScript",
       "class": "test_support"
     },
     {

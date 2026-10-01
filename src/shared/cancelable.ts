@@ -48,12 +48,14 @@ export function isAbortError(error: unknown): boolean {
 type Step = <U>(task: Cancelable<U>) => Promise<U>;
 
 /**
- * Run `body` as one cancellable operation. The body starts each cancellable
- * step through `step`. Cancelling cancels the running step, cancels any step
- * started later at once, and rejects even when the body has finished its last
- * step but not yet returned.
+ * Run `body` as one cancellable operation. The body starts at once and starts
+ * each cancellable step through `step`. Cancelling rejects the operation at
+ * once, without waiting for the running step to wind down; it also cancels
+ * the running step and any step the body starts later, and the body's own
+ * result is then ignored.
  */
 export function cancelableSequence<T>(body: (step: Step) => Promise<T>): Cancelable<T> {
+  const outcome = deferred<T>();
   let cancelled = false;
   let running: Cancelable<unknown> | undefined;
 
@@ -74,21 +76,18 @@ export function cancelableSequence<T>(body: (step: Step) => Promise<T>): Cancela
     }
   };
 
-  const promise = (async () => {
-    const result = await body(step);
-    if (cancelled) {
-      throw abortError();
-    }
-    return result;
-  })();
+  // A settled deferred ignores later settlements, so after cancellation the
+  // body's result or failure is dropped.
+  (async () => body(step))().then(outcome.resolve, outcome.reject);
 
   return {
-    promise,
+    promise: outcome.promise,
     cancel() {
       if (cancelled) {
         return;
       }
       cancelled = true;
+      outcome.reject(abortError());
       running?.cancel();
     },
   };

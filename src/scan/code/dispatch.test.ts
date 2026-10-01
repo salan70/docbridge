@@ -3,13 +3,18 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { collectCodeFiles, type CodeInclude } from "../../config/code-language";
+import {
+  collectCodeFiles,
+  type CodeFileRead,
+  type CodeInclude,
+  type CollectedCodeFile,
+} from "../../config/code-language";
 import type { DocBridgeDiagnostic } from "../../model/types";
 import { check } from "../../query/check";
-import { deferred } from "../../shared/cancelable";
+import { deferred, isAbortError, settledCancelable } from "../../shared/cancelable";
 import { readManagedFile } from "../../shared/glob";
 import type { CodeLanguageAdapter } from "./adapter";
-import { createScannerWorkerAdapter, scanCodeFiles } from "./dispatch";
+import { createScannerWorkerAdapter, scanCodeFiles, scanCodeFilesAsync } from "./dispatch";
 import type { ScannerWorkerProcessResult } from "./worker/scanner-worker";
 
 function withProject(files: Record<string, string>, run: (root: string) => void): void {
@@ -334,8 +339,8 @@ test("check suppresses link diagnostics for every file of a failed worker reques
 });
 
 /** The asynchronous form of {@link echoingWorker}. */
-function echoingWorkerAsync(requests: RecordedRequest[]) {
-  const run = echoingWorker(requests);
+function echoingWorkerAsync(requests: RecordedRequest[], parseErrors: Record<string, string> = {}) {
+  const run = echoingWorker(requests, parseErrors);
   return (input: { stdin: string }) => ({
     promise: Promise.resolve(run(input)),
     cancel: () => undefined,
@@ -486,4 +491,220 @@ test("prepare carries a command resolution failure to every file without startin
     ["a.go"],
     ["b.go"],
   ]);
+});
+
+function goFiles(...relPaths: string[]): CollectedCodeFile[] {
+  return relPaths.map((relPath) => ({ language: "go", relPath }));
+}
+
+function contentsOf(contents: Record<string, string>) {
+  return (relPath: string): CodeFileRead => {
+    const content = contents[relPath];
+    return content === undefined
+      ? {
+          ok: false,
+          diagnostic: {
+            severity: "error",
+            code: "file_read_error",
+            target: relPath,
+            message: "gone",
+          },
+        }
+      : { ok: true, content };
+  };
+}
+
+test("scanCodeFilesAsync rescans only files whose content changed since the cached scan", async () => {
+  const requests: RecordedRequest[] = [];
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: echoingWorkerAsync(requests),
+    }),
+  };
+  const first = await scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go", "b.go"),
+    GO_AND_TYPESCRIPT,
+    contentsOf({ "a.go": "package a\n", "b.go": "package a\n" }),
+    { adapters },
+  ).promise;
+
+  const second = await scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go", "b.go"),
+    GO_AND_TYPESCRIPT,
+    contentsOf({ "a.go": "package a\n", "b.go": "package a // edited\n" }),
+    { adapters, cache: first.cache },
+  ).promise;
+
+  expect(requestedPaths(requests)).toEqual([["a.go", "b.go"], ["b.go"]]);
+  expect(second.codeFiles.map((file) => file.filePath)).toEqual(["a.go", "b.go"]);
+  expect(second.codeFiles[0]).toBe(first.codeFiles[0]);
+});
+
+test("scanCodeFilesAsync rescans every file when the resolved worker command changes", async () => {
+  const requests: RecordedRequest[] = [];
+  let version = 1;
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => [`/opt/go-worker-${version}`], {
+      runAsync: echoingWorkerAsync(requests),
+    }),
+  };
+  const read = contentsOf({ "a.go": "package a\n" });
+  const first = await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters,
+  }).promise;
+
+  version = 2;
+  await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters,
+    cache: first.cache,
+  }).promise;
+
+  expect(requestedPaths(requests)).toEqual([["a.go"], ["a.go"]]);
+});
+
+test("scanCodeFilesAsync rescans every file when the configured visibility changes", async () => {
+  const requests: RecordedRequest[] = [];
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: echoingWorkerAsync(requests),
+    }),
+  };
+  const read = contentsOf({ "a.go": "package a\n" });
+  const first = await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters,
+  }).promise;
+
+  await scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go"),
+    { go: { patterns: ["**/*.go"], visibility: ["exported", "unexported"] } },
+    read,
+    { adapters, cache: first.cache },
+  ).promise;
+
+  expect(requestedPaths(requests)).toEqual([["a.go"], ["a.go"]]);
+});
+
+test("scanCodeFilesAsync reuses a parse error but rescans after a scanner failure", async () => {
+  const requests: RecordedRequest[] = [];
+  const read = contentsOf({ "a.go": "package\n" });
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: echoingWorkerAsync(requests, { "a.go": "syntax error" }),
+    }),
+  };
+  let launches = 0;
+  const failing = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: () => {
+        launches += 1;
+        return settledCancelable<ScannerWorkerProcessResult>({
+          ok: true,
+          exitCode: 2,
+          stdout: "",
+          stderr: "",
+        });
+      },
+    }),
+  };
+
+  const parsed = await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters,
+  }).promise;
+  await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters,
+    cache: parsed.cache,
+  }).promise;
+  const failed = await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters: failing,
+  }).promise;
+  await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters: failing,
+    cache: failed.cache,
+  }).promise;
+
+  expect(requestedPaths(requests)).toEqual([["a.go"]]);
+  expect(parsed.cache.size).toBe(1);
+  expect(failed.cache.size).toBe(0);
+  expect(launches).toBe(2);
+});
+
+test("scanCodeFilesAsync keeps only the files of this scan in the returned cache", async () => {
+  const requests: RecordedRequest[] = [];
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: echoingWorkerAsync(requests),
+    }),
+  };
+  const read = contentsOf({ "a.go": "package a\n", "b.go": "package a\n" });
+  const first = await scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go", "b.go"),
+    GO_AND_TYPESCRIPT,
+    read,
+    { adapters },
+  ).promise;
+
+  const second = await scanCodeFilesAsync("/project", goFiles("a.go"), GO_AND_TYPESCRIPT, read, {
+    adapters,
+    cache: first.cache,
+  }).promise;
+
+  expect(first.cache.size).toBe(2);
+  expect(second.cache.size).toBe(1);
+});
+
+test("scanCodeFilesAsync reads every file before the first worker starts", () => {
+  const events: string[] = [];
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: () => {
+        events.push("worker");
+        return { promise: deferred<ScannerWorkerProcessResult>().promise, cancel: () => undefined };
+      },
+    }),
+  };
+
+  const task = scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go", "b.go"),
+    GO_AND_TYPESCRIPT,
+    (relPath) => {
+      events.push(`read ${relPath}`);
+      return { ok: true, content: "package a\n" };
+    },
+    { adapters },
+  );
+  task.promise.catch(() => undefined);
+  task.cancel();
+
+  expect(events.slice(0, 2)).toEqual(["read a.go", "read b.go"]);
+});
+
+test("cancelling scanCodeFilesAsync cancels the running worker batch and rejects", async () => {
+  let cancelled = false;
+  const adapters = {
+    go: createScannerWorkerAdapter("go", () => ["go-worker"], {
+      runAsync: () => ({
+        promise: deferred<ScannerWorkerProcessResult>().promise,
+        cancel: () => {
+          cancelled = true;
+        },
+      }),
+    }),
+  };
+  const task = scanCodeFilesAsync(
+    "/project",
+    goFiles("a.go"),
+    GO_AND_TYPESCRIPT,
+    contentsOf({ "a.go": "package a\n" }),
+    { adapters },
+  );
+
+  task.cancel();
+
+  expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
+  expect(cancelled).toBe(true);
 });
