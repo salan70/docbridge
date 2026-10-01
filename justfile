@@ -54,6 +54,7 @@ format:
     gofmt -w packages/go-scanner examples/go
     just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix
+    ruff format packages/python-scanner
 
 # Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
 [private]
@@ -61,7 +62,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-shell format-check-nix
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-python format-check-shell format-check-nix
 
 format-check-ox:
     bun run oxfmt --check .
@@ -86,7 +87,7 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-python lint-java lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
@@ -118,7 +119,7 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test
+verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test test-python-scanner test-ruby-scanner test-java-scanner
 
 check:
     bun run src/cli/index.ts check
@@ -165,12 +166,14 @@ test:
 test-swift-scanner:
     swift test --package-path packages/swift-scanner
 
-# Build the debug Swift/Rust workers and compiled Dart and Go workers required by `just test`.
+# Build the debug Swift/Rust workers, the compiled Dart and Go workers, and the Java
+# worker JAR required by `just test`; the Python and Ruby workers run from source.
 build-test-scanners:
     swift build --package-path packages/swift-scanner
     just build-dart-scanner
     just build-rust-scanner-debug
     just build-go-scanner
+    just build-java-scanner
 
 build-swift-scanner:
     swift build --package-path packages/swift-scanner -c release
@@ -196,6 +199,54 @@ test-go-scanner: check-go-toolchain
 # Go has no debug/release split; this single static binary serves tests and releases.
 build-go-scanner: check-go-toolchain
     cd packages/go-scanner && CGO_ENABLED=0 go build -trimpath -o bin/docbridge-go-scanner ./cmd/docbridge-go-scanner
+
+# --- Python worker (packages/python-scanner) ---
+# Recipes for the runtime-backed Python worker live between these markers.
+# The worker is stdlib-only and needs no build; `python3` comes from the dev
+# shell (CPython 3.13) and CI also runs the tests on the CPython 3.10 floor.
+test-python-scanner:
+    python3 -m unittest discover -s packages/python-scanner/tests
+
+format-check-python:
+    ruff format --check packages/python-scanner
+
+lint-python:
+    ruff check packages/python-scanner
+# --- end Python worker ---
+
+# --- Ruby worker (packages/ruby-scanner) ---
+# Run the Ruby worker's minitest suite, which also drives the pending fixtures
+# through the executable with the loader flags the core uses. The runtime
+# ships everything it needs (Prism and minitest are bundled), so there is no
+# install step; no formatter or linter recipe exists because RuboCop would be a
+# third-party dependency.
+test-ruby-scanner:
+    cd packages/ruby-scanner && ruby -w -Ilib -Itest test/run.rb
+# --- end Ruby worker ---
+
+# --- Java worker (packages/java-scanner) ---
+# Recipes for the runtime-backed Java worker live between these markers.
+# The JDK is the only toolchain: javac and jar, no Maven or Gradle. Main.java is
+# compiled for Java 8 so `--probe` can answer `ok: false` on a JVM older than
+# the 17 floor instead of failing to load; every other class targets 17.
+
+build-java-scanner:
+    rm -rf packages/java-scanner/build/classes
+    find packages/java-scanner/src -name '*.java' ! -name Main.java | xargs javac --release 17 -encoding UTF-8 -d packages/java-scanner/build/classes
+    javac --release 8 -encoding UTF-8 -cp packages/java-scanner/build/classes -d packages/java-scanner/build/classes packages/java-scanner/src/dev/docbridge/javascanner/Main.java
+    jar --create --file packages/java-scanner/build/docbridge-java-scanner.jar --main-class dev.docbridge.javascanner.Main -C packages/java-scanner/build/classes .
+
+# Build, compile the main-based test runner against the worker classes, and run it over tests/cases.
+test-java-scanner: build-java-scanner
+    rm -rf packages/java-scanner/build/test-classes
+    find packages/java-scanner/tests/src -name '*.java' | xargs javac --release 17 -encoding UTF-8 -cp packages/java-scanner/build/classes -d packages/java-scanner/build/test-classes
+    java -cp packages/java-scanner/build/classes:packages/java-scanner/build/test-classes dev.docbridge.javascanner.tests.TestMain packages/java-scanner/tests/cases
+
+# javac is the linter: every lint category enabled, warnings are errors, output discarded.
+lint-java:
+    rm -rf packages/java-scanner/build/lint
+    find packages/java-scanner/src packages/java-scanner/tests/src -name '*.java' | xargs javac --release 17 -encoding UTF-8 -Xlint:all -Werror -d packages/java-scanner/build/lint
+# --- end Java worker ---
 
 # Type-check the whole project with the TypeScript compiler (no emit). This is
 # the gate that catches type drift `bun build` silently ignores.

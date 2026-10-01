@@ -1,0 +1,4 @@
+# ログイン 😀
+# @doc docs/ログイン😀.md#login
+def login() -> str:
+    return "😀"

@@ -1,0 +1,108 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "multi-file-order",
+    "language": "python",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "b.py",
+        "content": "def b(): ...\n"
+      },
+      {
+        "filePath": "a.py",
+        "content": "def a(: ...\n"
+      },
+      {
+        "filePath": "c.py",
+        "content": ""
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "multi-file-order",
+    "language": "python",
+    "files": [
+      {
+        "filePath": "b.py",
+        "symbols": [],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "b.py",
+            "symbolName": "b",
+            "canonicalId": "b",
+            "endpoint": "b.py#b",
+            "location": {
+              "filePath": "b.py",
+              "line": 1,
+              "column": 5
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 5
+              },
+              "end": {
+                "line": 1,
+                "column": 6
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 13
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 9
+              }
+            }
+          }
+        ],
+        "links": [],
+        "diagnostics": []
+      },
+      {
+        "filePath": "a.py",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "code_parse_error",
+            "target": "a.py",
+            "language": "python",
+            "message": "Python parse error: invalid syntax.",
+            "location": {
+              "filePath": "a.py",
+              "line": 1,
+              "column": 7
+            }
+          }
+        ]
+      },
+      {
+        "filePath": "c.py",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": []
+      }
+    ]
+  }
+}

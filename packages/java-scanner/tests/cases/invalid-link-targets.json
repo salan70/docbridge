@@ -1,0 +1,471 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "invalid-link-targets",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public class I {\n  /** @doc nohash */\n  public void a() {}\n  /** @doc /abs.md#x */\n  public void b() {}\n  /** @doc Input.java#I */\n  public void c() {}\n  /** @doc ../up.md#x */\n  public void d() {}\n  /** @doc d.md# */\n  public void e() {}\n  /** @doc docs/a.md#one#two */\n  public void f() {}\n}\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "invalid-link-targets",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "a",
+            "canonicalId": "I.a()",
+            "endpoint": "Input.java#I.a()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 3,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 3,
+                "column": 15
+              },
+              "end": {
+                "line": 3,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 2,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 18
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "b",
+            "canonicalId": "I.b()",
+            "endpoint": "Input.java#I.b()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 5,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 5,
+                "column": 15
+              },
+              "end": {
+                "line": 5,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "line": 5,
+                "column": 18
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "c",
+            "canonicalId": "I.c()",
+            "endpoint": "Input.java#I.c()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 7,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 7,
+                "column": 15
+              },
+              "end": {
+                "line": 7,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 7,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "line": 7,
+                "column": 18
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "d",
+            "canonicalId": "I.d()",
+            "endpoint": "Input.java#I.d()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 9,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 9,
+                "column": 15
+              },
+              "end": {
+                "line": 9,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 8,
+                "column": 3
+              },
+              "end": {
+                "line": 9,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 8,
+                "column": 3
+              },
+              "end": {
+                "line": 9,
+                "column": 18
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "e",
+            "canonicalId": "I.e()",
+            "endpoint": "Input.java#I.e()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 11,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 11,
+                "column": 15
+              },
+              "end": {
+                "line": 11,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "line": 11,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "line": 11,
+                "column": 18
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "f",
+            "canonicalId": "I.f()",
+            "endpoint": "Input.java#I.f()",
+            "location": {
+              "filePath": "Input.java",
+              "line": 13,
+              "column": 15
+            },
+            "nameRange": {
+              "start": {
+                "line": 13,
+                "column": 15
+              },
+              "end": {
+                "line": 13,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 13,
+                "column": 21
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "line": 13,
+                "column": 18
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "java",
+            "filePath": "Input.java",
+            "symbolName": "I",
+            "canonicalId": "I",
+            "endpoint": "Input.java#I",
+            "location": {
+              "filePath": "Input.java",
+              "line": 1,
+              "column": 14
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 14
+              },
+              "end": {
+                "line": 1,
+                "column": 15
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 14,
+                "column": 2
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 1,
+                "column": 15
+              }
+            }
+          }
+        ],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "nohash",
+            "language": "java",
+            "source": "Input.java#I.a()",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 2,
+                "column": 12
+              },
+              "end": {
+                "line": 2,
+                "column": 18
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "/abs.md#x",
+            "language": "java",
+            "source": "Input.java#I.b()",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 4,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 4,
+                "column": 12
+              },
+              "end": {
+                "line": 4,
+                "column": 21
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "Input.java#I",
+            "language": "java",
+            "source": "Input.java#I.c()",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 6,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 6,
+                "column": 12
+              },
+              "end": {
+                "line": 6,
+                "column": 24
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "../up.md#x",
+            "language": "java",
+            "source": "Input.java#I.d()",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 8,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 8,
+                "column": 12
+              },
+              "end": {
+                "line": 8,
+                "column": 22
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "d.md#",
+            "language": "java",
+            "source": "Input.java#I.e()",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 10,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 10,
+                "column": 12
+              },
+              "end": {
+                "line": 10,
+                "column": 17
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "docs/a.md#one#two",
+            "language": "java",
+            "source": "Input.java#I.f()",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 12,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 12,
+                "column": 12
+              },
+              "end": {
+                "line": 12,
+                "column": 29
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

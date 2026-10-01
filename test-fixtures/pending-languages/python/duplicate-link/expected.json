@@ -1,0 +1,95 @@
+{
+  "filePath": "input.py",
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "python",
+      "filePath": "input.py",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "input.py#login",
+      "location": {
+        "filePath": "input.py",
+        "line": 3,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 5
+        },
+        "end": {
+          "line": 3,
+          "column": 10
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 9
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 3,
+          "column": 13
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "input.py#login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "input.py",
+        "line": 1,
+        "column": 8
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "line": 1,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/auth.md#login",
+      "language": "python",
+      "source": "input.py#login",
+      "message": "Duplicate @doc link from input.py#login to docs/auth.md#login.",
+      "location": {
+        "filePath": "input.py",
+        "line": 2,
+        "column": 8
+      },
+      "range": {
+        "start": {
+          "line": 2,
+          "column": 8
+        },
+        "end": {
+          "line": 2,
+          "column": 26
+        }
+      }
+    }
+  ]
+}

@@ -24,6 +24,9 @@ type DocBridgeDiagnostic = {
 };
 ```
 
+`language` gains `javascript`, `python`, `ruby`, and `java` when those
+languages are registered; the worker protocol schema already accepts them.
+
 `location.filePath`, `source`, and `target` use project-root-relative paths.
 
 `line` and `column` are 1-based.
@@ -61,6 +64,12 @@ Error diagnostic codes:
   [Scanning](scanning.md#code-scanning).
 - `code_scanner_failed` — no fixture; worker protocol failures are covered by
   unit tests instead of a checked-in project fixture.
+  For the runtime-backed workers that are pending registration (Python, Ruby,
+  and Java), a missing runtime, a runtime below the documented floor, or a
+  runtime without the required capability will report
+  `code_scanner_unavailable` naming the runtime, the floor, and what was found.
+  A probe or scan that crashes, times out, or returns malformed output will
+  report `code_scanner_failed`.
 - `file_read_error` — no fixture; I/O failures are not deterministically
   reproducible from checked-in files, so unit tests cover this code instead.
 

@@ -1,0 +1,225 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "visibility-private",
+    "language": "python",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "src/internal.py",
+        "content": "# @doc docs/internal.md#helper\ndef _helper(): ...\n\n\nclass _Registry:\n    def register(self): ...\n\n    def __len__(self): ...\n"
+      }
+    ],
+    "options": {
+      "visibility": ["public", "private"]
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "visibility-private",
+    "language": "python",
+    "files": [
+      {
+        "filePath": "src/internal.py",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/internal.py",
+            "symbolName": "_helper",
+            "canonicalId": "_helper",
+            "endpoint": "src/internal.py#_helper",
+            "location": {
+              "filePath": "src/internal.py",
+              "line": 2,
+              "column": 5
+            },
+            "nameRange": {
+              "start": {
+                "line": 2,
+                "column": 5
+              },
+              "end": {
+                "line": 2,
+                "column": 12
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 2,
+                "column": 19
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 2,
+                "column": 15
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/internal.py",
+            "symbolName": "_Registry",
+            "canonicalId": "_Registry",
+            "endpoint": "src/internal.py#_Registry",
+            "location": {
+              "filePath": "src/internal.py",
+              "line": 5,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 5,
+                "column": 7
+              },
+              "end": {
+                "line": 5,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 5,
+                "column": 1
+              },
+              "end": {
+                "line": 8,
+                "column": 27
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 5,
+                "column": 1
+              },
+              "end": {
+                "line": 5,
+                "column": 17
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/internal.py",
+            "symbolName": "register",
+            "canonicalId": "_Registry.register",
+            "endpoint": "src/internal.py#_Registry.register",
+            "location": {
+              "filePath": "src/internal.py",
+              "line": 6,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 6,
+                "column": 9
+              },
+              "end": {
+                "line": 6,
+                "column": 17
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 6,
+                "column": 5
+              },
+              "end": {
+                "line": 6,
+                "column": 28
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 6,
+                "column": 5
+              },
+              "end": {
+                "line": 6,
+                "column": 24
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "python",
+            "filePath": "src/internal.py",
+            "symbolName": "__len__",
+            "canonicalId": "_Registry.__len__",
+            "endpoint": "src/internal.py#_Registry.__len__",
+            "location": {
+              "filePath": "src/internal.py",
+              "line": 8,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 8,
+                "column": 9
+              },
+              "end": {
+                "line": 8,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 8,
+                "column": 5
+              },
+              "end": {
+                "line": 8,
+                "column": 27
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 8,
+                "column": 5
+              },
+              "end": {
+                "line": 8,
+                "column": 23
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "source": "src/internal.py#_helper",
+            "target": "docs/internal.md#helper",
+            "location": {
+              "filePath": "src/internal.py",
+              "line": 1,
+              "column": 8
+            },
+            "targetRange": {
+              "start": {
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "line": 1,
+                "column": 31
+              }
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

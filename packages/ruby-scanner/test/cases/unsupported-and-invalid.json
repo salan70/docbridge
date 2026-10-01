@@ -1,0 +1,222 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "language": "ruby",
+    "projectRoot": "/tmp/project",
+    "requestId": "case-unsupported",
+    "files": [
+      {
+        "filePath": "lib/thing.rb",
+        "content": "class Thing\n  # @doc docs/thing.md#name\n  attr_reader :name\n\n  # @doc docs/thing.md\n  def broken; end\n\n  # @doc docs/thing.md#dyn\n  self::LIMIT = 1\nend\n"
+      },
+      {
+        "filePath": "lib/empty.rb",
+        "content": ""
+      },
+      {
+        "filePath": "lib/bad.rb",
+        "content": "class Thing\nend\n😀 = { 1\n"
+      }
+    ],
+    "options": {
+      "visibility": ["public"]
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "case-unsupported",
+    "language": "ruby",
+    "files": [
+      {
+        "filePath": "lib/thing.rb",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/thing.rb",
+            "symbolName": "broken",
+            "canonicalId": "Thing.broken",
+            "endpoint": "lib/thing.rb#Thing.broken",
+            "location": {
+              "filePath": "lib/thing.rb",
+              "line": 6,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 6,
+                "column": 7
+              },
+              "end": {
+                "line": 6,
+                "column": 13
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 18
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "line": 6,
+                "column": 13
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "lib/thing.rb",
+            "symbolName": "Thing",
+            "canonicalId": "Thing",
+            "endpoint": "lib/thing.rb#Thing",
+            "location": {
+              "filePath": "lib/thing.rb",
+              "line": 1,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 1,
+                "column": 7
+              },
+              "end": {
+                "line": 1,
+                "column": 12
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 10,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 10,
+                "column": 4
+              }
+            }
+          }
+        ],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "lib/thing.rb",
+            "language": "ruby",
+            "message": "Ruby declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "lib/thing.rb",
+              "line": 3,
+              "column": 3
+            },
+            "range": {
+              "start": {
+                "line": 3,
+                "column": 3
+              },
+              "end": {
+                "line": 3,
+                "column": 14
+              }
+            }
+          },
+          {
+            "severity": "error",
+            "code": "invalid_link_target",
+            "target": "docs/thing.md",
+            "language": "ruby",
+            "source": "lib/thing.rb#Thing.broken",
+            "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+            "location": {
+              "filePath": "lib/thing.rb",
+              "line": 5,
+              "column": 10
+            },
+            "range": {
+              "start": {
+                "line": 5,
+                "column": 10
+              },
+              "end": {
+                "line": 5,
+                "column": 23
+              }
+            }
+          },
+          {
+            "severity": "warning",
+            "code": "unsupported_declaration",
+            "target": "lib/thing.rb",
+            "language": "ruby",
+            "message": "Ruby declaration annotated with @doc is not supported.",
+            "location": {
+              "filePath": "lib/thing.rb",
+              "line": 9,
+              "column": 9
+            },
+            "range": {
+              "start": {
+                "line": 9,
+                "column": 9
+              },
+              "end": {
+                "line": 9,
+                "column": 14
+              }
+            }
+          }
+        ]
+      },
+      {
+        "filePath": "lib/empty.rb",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": []
+      },
+      {
+        "filePath": "lib/bad.rb",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "code_parse_error",
+            "target": "lib/bad.rb",
+            "language": "ruby",
+            "message": "Ruby parse error: expected a `=>` between the hash key and value.",
+            "location": {
+              "filePath": "lib/bad.rb",
+              "line": 3,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

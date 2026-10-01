@@ -47,6 +47,45 @@ Go uses the doc comment of a supported declaration, as `//` lines or a
 func Login(email, password string) error { return nil }
 ```
 
+JavaScript, Python, Ruby, and Java are pending registration; their annotation
+forms are fixed in [Scanning](scanning.md#javascript-scanning). JavaScript uses
+JSDoc `@doc` tags exactly as TypeScript does:
+
+```js
+/** @doc docs/specs/auth.md#login-flow */
+export function login(email, password) {}
+```
+
+Python uses the declaration's docstring, or the contiguous `#` comment block
+directly above its first decorator or keyword:
+
+```python
+def login(email: str, password: str) -> None:
+    """Start the login flow.
+
+    @doc docs/specs/auth.md#login-flow
+    """
+```
+
+Ruby uses the contiguous block of full-line `#` comments directly above the
+declaration:
+
+```ruby
+# @doc docs/specs/auth.md#login-flow
+def login(email, password); end
+```
+
+Java uses the Javadoc comment that javac associates with the declaration:
+
+```java
+/**
+ * Starts the login flow.
+ *
+ * @doc docs/specs/auth.md#login-flow
+ */
+public void login(String email, String password) {}
+```
+
 Markdown uses standalone HTML comments with `@code` attached to the next heading:
 
 ```md

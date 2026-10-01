@@ -44,6 +44,13 @@
             pkgs.dart
             pkgs.deadnix
             pkgs.go
+            # Runtime-backed scanner workers: the Java worker builds with the JDK;
+            # the Python and Ruby workers run on these interpreters; ruff formats
+            # and lints the Python worker.
+            pkgs.jdk17_headless
+            pkgs.python3
+            pkgs.ruby
+            pkgs.ruff
             # The related-gate CI recipe test executes the documented step,
             # which validates the gate's JSON report with jq.
             pkgs.jq

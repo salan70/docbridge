@@ -44,7 +44,17 @@
         "target": { "type": "string" },
         "language": {
           "type": "string",
-          "enum": ["typescript", "swift", "dart", "rust", "go"]
+          "enum": [
+            "typescript",
+            "swift",
+            "dart",
+            "rust",
+            "go",
+            "javascript",
+            "python",
+            "ruby",
+            "java"
+          ]
         },
         "source": { "type": "string" },
         "message": { "type": "string" },

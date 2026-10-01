@@ -372,3 +372,481 @@ keeps the first.
 A syntax error makes the file a `code_parse_error` with no symbols; the
 reported position is the error with the smallest byte offset, converted from
 the original content, so `//line` directives do not move it.
+
+## JavaScript Scanning
+
+JavaScript scanning is pending registration: the `javascript` language ID is
+not accepted by configuration yet, and the adapter lands with registration. The
+contract below is already fixed. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
+
+JavaScript scanning reuses the TypeScript scanner in process. The `javascript`
+language claims `.js`, `.jsx`, `.mjs`, and `.cjs` files, and the `typescript`
+language additionally claims `.tsx`, `.mts`, and `.cts` files while excluding
+`.d.ts`, `.d.mts`, and `.d.cts` declaration files. The parser's script kind
+follows the suffix (`JS`, `JSX`, `TS`, `TSX`), so JSX in a declaration parses
+without configuration.
+
+Supported JavaScript declarations are the ESM `export` forms the TypeScript
+scanner supports and the members of exported classes, with the same JSDoc
+attachment, canonical IDs, ranges, duplicate handling, and diagnostics as
+[TypeScript Scanning](#typescript-scanning). Scan results report
+`language: "javascript"`.
+
+CommonJS assignments (`module.exports = ...`, `exports.name = ...`), script
+globals, and JSDoc `@typedef` declarations are not endpoints; an `@doc` on
+`module.exports` is `unsupported_declaration`.
+
+The visibility contract is the TypeScript one: `public`, `protected`, and
+`private` are accepted and `["public", "protected"]` is the default. JavaScript
+members carry no modifier, so every member classifies as `public`; `#private`
+names are unsupported as in TypeScript.
+
+Context and hover fences follow the suffix: `js`, `jsx`, `ts`, and `tsx`.
+
+## Python Scanning
+
+Python scanning is pending registration: the `python` language ID is
+not accepted by configuration yet. The worker under `packages/python-scanner`
+implements the contract below, and its conformance cases live under
+`test-fixtures/pending-languages/python/` until registration moves them into
+the corpus. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
+
+Python scanning extracts `@doc` annotations from docstrings and from the
+comment block that leads a declaration, using the standard library's `ast` and
+`tokenize` modules. The worker is runtime-backed: the core runs
+`python3 -I -S packages/python-scanner/docbridge_python_scanner.py` on the
+CPython interpreter it discovers (floor CPython 3.10) and exchanges one
+request and one response through the worker protocol. The `--probe` mode
+prints one JSON line, `{ "ok": true, "runtime": "cpython", "version": "3.13.13" }`
+or `{ "ok": false, "reason": "..." }`, and exits 0 either way; a non-CPython
+interpreter or one below the floor is not ok. The worker is syntactic: it
+parses each file in isolation with `ast.parse(content, filename,
+type_comments=False)`, never imports or executes project code, and does not
+evaluate `__all__`, decorators, or conditions.
+
+By default only `public` declarations are included; `private` declarations are
+included when `include.code.python.visibility` contains `private`. A name is
+private when it starts with `_` and is not a `__dunder__` name; a declaration
+is private when its own name or any enclosing class name is private, so
+`_Registry.register` is private even though `register` is not.
+
+Supported Python declarations are:
+
+- module-level `def`, `async def`, and `class`
+- methods and nested classes in class bodies, recursively for classes
+
+The walk descends into `if`, `for`, `while`, `with`, `try`, and `match`
+statements at module and class level, including their `else`, `except`,
+`finally`, and `case` blocks, so a declaration under `if TYPE_CHECKING:` or
+`try:` is found. It never enters a function body: a nested function or class
+inside one is not a symbol, and an `@doc` there is neither a link nor a
+diagnostic. The same name declared twice in one container, as an `if`/`else`
+pair does, is one endpoint whose `location` and ranges are the first
+declaration's. Endpoints are tracked per file by canonical ID, so this holds
+for classes too: the second `class C` is a repeat of the endpoint `C`, and the
+members of both bodies merge into one set of member endpoints, so `f` defined
+in each body is the single endpoint `C.f` and the second definition is a
+repeat of it. The endpoint is documented when any of its declarations
+carries `@doc`, and its links come from the first annotated declaration. As
+in the Go, Ruby, and Java workers, when more than one declaration of the
+endpoint in a file is annotated, exactly one `duplicate_code_symbol` is
+reported for it, at the name of the first annotated repeat; further annotated
+repeats are dropped without a diagnostic, and no repeat contributes links or
+link diagnostics. Unannotated repeats are silently subsumed.
+
+Python canonical IDs are dot-qualified names: `login`, `Client.login`, and
+`Outer.Inner.login`. Members carry no `isMember`, so a public method without
+`@doc` is an `undocumented_symbol` in audit mode, as in Go.
+
+Some definitions of one name form a group, which counts as a single
+declaration of the endpoint. The definitions of an endpoint are read in source
+order; each one joins the endpoint's latest declaration when that declaration
+is an open group that accepts it, and otherwise starts the endpoint's next
+declaration. A group is one of:
+
+- A property chain. A function decorated with `property`,
+  `cached_property`, `@<name>.getter`, `@<name>.setter`, or `@<name>.deleter`,
+  where `<name>` is that function's own name, opens it, and every later
+  function of the same name decorated with one of those accessors joins it.
+  A property's getter, setter, and deleter are therefore one declaration of
+  `Container.<name>`, including when the chain starts at an accessor, as it
+  does for a property bound by assignment (`x = property(...)`) and then
+  extended with `@x.getter` and `@x.setter`.
+- An overload group. A function decorated with `overload` opens it, each
+  following function of that name decorated with `overload` joins it, and the
+  first following function of that name not decorated with `overload` joins
+  it as the implementation and closes it. Without an implementation the group
+  is the stubs alone.
+
+`property`, `cached_property`, and `overload` are recognized by the last
+segment of a `Name` or `Attribute` decorator (`functools.cached_property`,
+`typing.overload`), and an accessor by an `Attribute` decorator on a plain
+`Name` (`value.setter`). A `Call` decorator such as `@property()` never
+groups.
+
+Every other definition of the name starts the endpoint's next declaration:
+an ordinary function, a class, an accessor decorated with another name
+(`@other.setter`), a second `property` getter, and any definition after an
+overload group's implementation. It closes the open group without joining
+it, may open a group of its own, and is a repeat of the endpoint under the
+same-name rule above. An `overload` stub followed by two implementations is
+thus a group of the stub and the first implementation, then a repeat.
+
+A group's `location`, `nameRange`, `declarationRange`, and `signatureRange`
+are the first member's. Annotations from every member attach to the group
+endpoint in source order, the same target twice across members is
+`duplicate_link`, and the group is documented when any member is. When a
+group is the first annotated repeat, its `duplicate_code_symbol` is reported
+at its first annotated member.
+
+Annotations come from two sources, searched with `@doc\s+(\S+)`, where
+whitespace is the ASCII set: space, tab, LF, CR, FF, and VT. Any other
+character, including a Unicode space such as U+00A0, neither separates `@doc`
+from its target nor ends a target, so `@doc` followed by U+00A0 is no
+annotation and a U+00A0 inside a target is part of that target:
+
+- The docstring: the first statement of the `def` or `class` body when it is a
+  string expression whose value is a `str` constant, as CPython defines a
+  docstring. An f-string, a concatenation that contains one, and a bytes
+  literal are not docstrings. A docstring may be parenthesized or implicitly
+  concatenated from several literals; the body of each literal, with its
+  prefix (`r`, `u`, `R`, or `U`) and its single or triple quote delimiters
+  excluded, is searched on its own. A target therefore ends before a closing
+  `"""` or `)` and never continues into the next literal, and the brackets,
+  comments, and whitespace between literals are never searched. Positions
+  come from the source text, never from `ast.get_docstring()`, so escapes and
+  indentation do not move them.
+- The leading comment block: the contiguous run of comment-only lines that
+  ends on the line directly above the first decorator, or above the `def` /
+  `class` keyword when there is none, where every line's `#` starts at the
+  declaration's column. Each line is searched after its `#`. A blank line, a
+  code line, or a comment at another column ends the block. A comment between
+  decorators, a trailing comment on the header line, a comment inside a body,
+  and a comment block that leads nothing are never doc comments.
+
+A link's `location` and `targetRange` cover the target text. A target that
+does not parse as `file#fragment` (exactly one `#`, no empty part, no ASCII
+whitespace, no backslash, no `./`, `../`, or absolute path, not the source
+file itself) is `invalid_link_target`; a U+00A0 inside a target does not make
+it invalid.
+
+For each symbol, `location` and `nameRange` cover the name token.
+`declarationRange` starts at the leading comment block, else at the first
+decorator, else at the keyword, and ends at the end of the definition.
+`signatureRange` starts at the same position and ends directly after the `:`
+that closes the header, so a body, including a docstring, is excluded.
+
+The module docstring, assignments (including a `lambda` bound by one),
+annotated assignments, imports, and every other statement at module or class
+level are not symbols and are never `undocumented_symbol`. An `@doc` in the
+module docstring, or in the leading comment block of such a statement,
+reports one `unsupported_declaration` located at the statement's first token.
+A supported declaration excluded by visibility is `unsupported_declaration`
+at its name when annotated; for a group, each annotated member is reported at
+its own name.
+
+Positions follow the shared contract even though CPython reports three column
+systems: `ast` columns are UTF-8 byte offsets, `tokenize` columns are code
+point indexes, and `SyntaxError.offset` is 1-based in code points. Each is
+converted to a 1-based UTF-16 column through the line's source text. Lines
+split on `\n` only, so a CRLF file keeps its positions and no range includes a
+line ending. A UTF-8 BOM is removed before parsing, because CPython rejects it
+inside a `str`, and is counted as the first character of line 1.
+
+A syntax error makes the file a `code_parse_error` with no symbols; the
+diagnostic carries the `SyntaxError` message at its `lineno` and `offset`, or
+line 1, column 1 when the exception reports no position, as a null byte does.
+The message wording follows the installed CPython, which may differ between
+versions for the same input. `tokenize` runs only after `ast.parse` succeeds.
+
+## Ruby Scanning
+
+Ruby scanning is pending registration: the `ruby` language ID is
+not accepted by configuration yet. The worker under `packages/ruby-scanner`
+implements the contract below, and its conformance cases live under
+`test-fixtures/pending-languages/ruby/` until registration moves them into
+the corpus. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
+
+The worker is a Ruby script, not a compiled binary. It runs on the project's
+CRuby, 3.3 or later, and parses with Prism, the parser gem bundled with CRuby
+since 3.3. The core starts it as
+`ruby --disable=gems,did_you_mean,error_highlight -W0 <path to bin/docbridge-ruby-scanner>`
+with `RUBYOPT`, `RUBYLIB`, and `PRISM_FFI_BACKEND` removed from the child
+environment. With RubyGems disabled, `require "prism"` resolves only from the
+runtime's own library directories, where a default gem is installed, so user
+and site gem paths are never searched and project code is never loaded. The
+script adds its own `lib/` to the load path itself. Started with `--probe`, it
+prints one JSON line, `{"ok": true, "runtime": "cruby", "version": "3.4.9",
+"prism": "1.5.2"}` or `{"ok": false, "reason": "..."}` for another engine, a
+version below 3.3, or a Prism that does not load, and exits 0 either way.
+CRuby 3.3 bundles Prism 0.19 and 3.4 bundles 1.x; the node API differs between
+them, so every version-sensitive accessor is isolated in
+`lib/docbridge_ruby_scanner/compat.rb` and the suite runs on both.
+
+The scanner is syntactic: it parses each file in isolation with
+`Prism.parse(content, filepath:)` and never evaluates code, so `require`,
+`include`, metaprogramming, and Rails autoloading do not affect the result.
+
+Supported Ruby declarations are:
+
+- `class` and `module`, at the top level and nested in class or module
+  bodies
+- instance methods (`def name`), singleton methods (`def self.name`, and
+  `def name` inside `class << self`), and top-level methods
+- constant assignments (`NAME = ...` and `Path::NAME = ...`)
+
+Declarations are collected from the top level and from the direct statements
+of class, module, and `class << self` bodies, including a body with a
+`rescue` or `ensure` clause. Nothing inside a method body, a block
+(`included do ... end`, `Class.new do ... end`), or control flow (`if`,
+`unless`, `case`) is a declaration, so an `@doc` there is neither a link nor a
+diagnostic.
+
+Ruby canonical IDs use `::` between constants and `.` before a method name:
+`login` (top-level method), `Foo`, `Foo::Bar`, `Foo::Bar::VALUE`,
+`Foo::Bar.baz` (instance method), and `Foo::Bar.self.baz` (singleton method,
+whether written `def self.baz` or inside `class << self`). Operator and
+setter methods keep their Ruby name (`Foo.==`, `Foo.token=`). A top-level
+`def self.x` is `self.x`. The `symbolName` is the last segment.
+
+Qualification is lexical. `class Foo::Bar` inside `module A` is `A::Foo::Bar`
+and `Baz::PATH = 1` inside it is `A::Foo::Bar::Baz::PATH`, regardless of
+where Ruby would resolve `Foo` at run time. A leading `::` resets to the top
+level: `class ::Top` inside `module A` is `Top`. A constant path whose parent
+is not a constant (`self::X = 1`, `class obj.klass::Y`) is dynamic and
+unsupported.
+
+A class or module reopened in the same file is one container: its symbol and
+ranges come from the first declaration, the `@doc` annotations of every
+reopening attach to it in source order, and the same target repeated across
+reopenings is `duplicate_link` at the repeated annotation. Reopenings in other
+files stay separate endpoints. A method or constant declared twice in one
+container follows the shared duplicate rule: the first annotated declaration
+owns the endpoint, its location, and its links; the first repeated annotated
+declaration reports one `duplicate_code_symbol` at its name, and further
+annotated repeats are dropped without another diagnostic. Repeats contribute
+no links. An endpoint that any declaration documents is never also
+undocumented; when none does, it is reported once as undocumented, at its
+first declaration.
+
+The annotation source is the contiguous run of full-line `#` comments that
+ends on the line directly above the declaration, indented or not; a blank
+line, a code line, or a trailing comment after code (`X = 1 # ...`) breaks the
+run, and `=begin`/`=end` blocks are never a source. Magic comments such as
+`# frozen_string_literal: true` need no special case because they carry no
+`@doc`. The run above `private def x` or `private_class_method def self.x`
+attaches to that method. `@doc\s+(\S+)` is matched over the text after `#`,
+where `\s` is the ASCII whitespace set (space, tab, LF, CR, FF, and VT) and
+`\S` is any other character, so a no-break space (U+00A0) after `@doc` does
+not start a link. A link's `location` and `targetRange` cover the target
+text, and an invalid target is `invalid_link_target` under the
+[link resolution](link-resolution.md) rules. Comments inside method bodies
+are ignored.
+
+Visibility classes are `public`, `protected`, and `private`. Classes,
+modules, and constants are always `public`. A method's class is tracked
+lexically within one body:
+
+- A bare `private`, `protected`, or `public` call (no receiver, no
+  arguments) switches the default for later instance `def`s in the same body.
+  It never affects `def self.x`; inside `class << self` it applies to that
+  block's singleton methods. Each class, module, or `class << self` body,
+  including every reopening, starts at `public`.
+- `private def x` and `private :x, "y"` (and the `protected`/`public` forms)
+  apply to the named instance methods; the symbol or string form applies to
+  the methods of that name already declared in the container, including in an
+  earlier reopening in the same file.
+- `private_class_method :x` and `private_class_method def self.x` (and
+  `public_class_method`) apply to the named singleton methods.
+- A call with a receiver (`self.private`) or inside a method body is ignored.
+  `module_function` and `protected`/`private` applied through other means are
+  not tracked.
+
+`include.code.ruby.visibility` selects the classes to emit and defaults to
+`["public"]`; an empty list emits nothing. An `@doc` on a declaration
+excluded by the filter is `unsupported_declaration`, as in TypeScript.
+
+Ranges follow the shared contract. `location` and `nameRange` cover the
+constant or method name (`baz` in `def self.baz`). `declarationRange` starts
+at the first `#` of the attached comment block, else at the `class`, `module`,
+or `def` keyword (the constant for an assignment), and ends after `end`, the
+endless-method expression, or the assigned value. `signatureRange` starts
+where `declarationRange` starts and ends after the closing parenthesis, after
+the last parameter when there are no parentheses, or after the name when
+there are no parameters; for classes, modules, and constants it equals
+`declarationRange`. A member's ranges start at its own indentation.
+
+These are not symbols and report one `unsupported_declaration` when their
+comment block carries `@doc`, located at the name, or at the start when they
+have none: `attr_reader`, `attr_writer`, and `attr_accessor` (at the call
+name), `alias` (at the new name) and `alias_method`, `define_method`, a
+singleton method on a receiver other than `self` (`def obj.x`, and every
+method inside `class << obj`), a dynamic constant path, a `class << self`
+block itself, and a class, module, or constant declared inside
+`class << self`. Other constant forms (`X ||= 1`, `A, B = 1, 2`) and every
+other statement are ignored. Methods carry no `isMember`, so a public method
+without `@doc` is an `undocumented_symbol` in audit mode, as in Go.
+
+Byte offsets from Prism are converted to 1-based UTF-16 columns over the
+original content, so CRLF files, a UTF-8 byte order mark (which counts as one
+column on line 1, as in the other workers), and non-ASCII identifiers and
+comments keep their positions.
+
+A syntax error makes the file a `code_parse_error` with no symbols; the
+reported position and message come from the error with the smallest byte
+offset, and the recovered tree is discarded. Prism's messages differ between
+0.19 and 1.x, so the message wording depends on the installed runtime.
+
+## Java Scanning
+
+Java scanning is pending registration: the `java` language ID is
+not accepted by configuration yet. The worker under `packages/java-scanner`
+implements the contract below, and its conformance cases live under
+`test-fixtures/pending-languages/java/` until registration moves them into
+the corpus. The pending configuration, annotation, and diagnostic contracts are in
+[Configuration](configuration.md#code-languages),
+[Annotations](annotations.md), and [Diagnostics](diagnostics.md).
+
+Java scanning extracts `@doc` annotations from the Javadoc comment
+(`/** ... */`) that documents a declaration. The worker is a JAR built from
+`packages/java-scanner` with `javac --release 17` and `jar` alone, no Maven,
+Gradle, or third-party library, and it runs on the project's own JDK rather
+than on a bundled binary. It parses with the public `com.sun.source` tree API
+of the `jdk.compiler` module: `ToolProvider.getSystemJavaCompiler().getTask()`
+with the options `-proc:none -implicit:none -Xlint:none`, no classpath, a
+diagnostic listener, and an in-memory source per file, calling only `parse()`
+and never `analyze()`, so no project code is loaded, resolved, or executed and
+the internal `com.sun.tools.javac` packages are never touched. Each file is
+parsed independently. The scanner is syntactic: it does not resolve types or
+imports, so a parameter type is printed as written, not as the type it names.
+
+The core starts the worker as
+`java -Xshare:auto -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -jar packages/java-scanner/build/docbridge-java-scanner.jar`
+from a source checkout (run `just build-java-scanner` first) and removes
+`JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, and `_JAVA_OPTIONS` from the child
+environment so injected options cannot change the protocol output. The flags
+favor start-up time over peak speed, which suits a short-lived process.
+`--probe` prints one JSON line and exits 0 either way:
+`{ "ok": true, "runtime": "jdk", "version": "17.0.19" }` on a JDK 17 or newer
+with `jdk.compiler`, or `{ "ok": false, "reason": "..." }` when
+`ToolProvider.getSystemJavaCompiler()` returns null (a JRE) or the runtime is
+older than 17. The entry class alone is compiled for Java 8 so an old JVM can
+still load it and answer the probe instead of failing on the class version.
+
+By default only `public` declarations are included; `include.code.java.visibility`
+may add `protected`, `package`, and `private`. A declaration's class comes from
+its modifiers, with two implicit cases: members of an interface or annotation
+type without an access modifier are `public`, and so are enum constants, while
+an enum constructor is `private`. An endpoint's class is the least visible of
+its own and every enclosing type's, so a public method of a private nested
+class is `private`. An `@doc` on a declaration outside the configured classes is
+`unsupported_declaration`.
+
+Supported Java declarations are:
+
+- top-level and member types of every kind: `class`, `interface`, `enum`,
+  `record`, and `@interface`
+- methods and constructors, including a record's compact constructor
+- fields and enum constants; a record's components are its private final
+  fields
+
+Local classes, anonymous classes, lambdas, initializer blocks, and everything
+inside a method body are not walked, so an `@doc` there is neither a link nor
+a diagnostic, except that an annotated Javadoc directly before an initializer
+block is `unsupported_declaration` located at the block's `static` keyword or
+opening brace.
+
+Java canonical IDs use `.` qualification through every enclosing type and a
+parenthesized parameter-type list for methods and constructors: `Foo`,
+`Foo.Inner`, `Foo.MAX`, `Foo.bar(int,String)`, `Foo.Foo(int)`, and
+`Outer.Inner.m()`. A constructor is named after its type, so its symbol name is
+the type's simple name. Symbol names and IDs use the names javac decodes:
+Unicode escapes are resolved and identifier-ignorable characters such as
+U+200B are dropped, so `class \u0046oo` is `Foo` and a parameter of type
+`\u0046oo` prints as `Foo`. Parameter types are printed from the type tree alone:
+annotations are removed (`@A int` is `int`), type arguments are removed
+(`List<String>` is `List`, `Map.Entry<K, V>` is `Map.Entry`), qualified names
+and type variables are kept as written (`java.util.List`, `T`), each array
+dimension is `[]` whether written on the type or after the name, varargs are
+arrays (`String...` is `String[]`, `String[]...` is `String[][]`), and no
+whitespace or parameter names appear. A method's own type parameters do not
+appear, so `<U> Foo(List<U> u)` is `Foo.Foo(List)`. Overloads that print the
+same way, such as `m(List<String>)` and `m(List<Integer>)`, share one endpoint.
+As in Go, the first annotated declaration keeps the endpoint and its links, the
+next annotated one reports one `duplicate_code_symbol` per endpoint at its
+name, and further annotated repeats are dropped without another diagnostic.
+
+The annotation source is the Javadoc comment javac associates with the
+declaration: the last `/**` comment before the declaration's first token
+(its Javadoc, annotations, or modifiers), separated from it only by whitespace
+and non-Javadoc comments. Of two consecutive Javadoc comments only the second
+counts. `DocTrees.getDocComment` decides the association, but it returns the
+comment with its formatting stripped, so the text and its positions come from
+the original source. `@doc\s+(\S+)` is matched over the comment body, with
+`\s` the ASCII whitespace set (space, tab, LF, CR, FF, and VT) and `\S` its
+complement, so a no-break space after `@doc` yields no target. The body
+excludes the `/**` and `*/` delimiters, so a target directly followed by `*/`
+ends before it, and the asterisks that lead continuation lines count as
+whitespace, so a target on the line after `@doc` does not absorb its `*`. A
+link's `location` and `targetRange` cover the target text, and a target outside
+the [link resolution](link-resolution.md) grammar is `invalid_link_target`,
+including one with more than one `#`, such as `docs/a.md#one#two`. `//` and
+`/* ... */` comments are never annotation sources. Projects that run `javadoc`
+with `-Xdoclint` register the tag with `-tag doc:a:"DocBridge:"` so the
+unknown-tag check accepts it.
+
+Ranges follow the shared contract. A symbol's `location` and `nameRange` cover
+the name identifier as spelled in the source. It is found after the
+declaration's modifiers and type parameters by stepping over the element type
+and type annotations of the field or return type, so dimensions written after
+the name (`int xs[]`, `int[] ys[]`, `int legacy()[]`) do not hide it.
+Identifiers are matched by code point against javac's decoded names, and the
+ranges cover the raw spelling: `\u0046oo` is the symbol `Foo` with a
+`nameRange` 8 UTF-16 code units wide. A name that still cannot be located
+keeps its symbol, with `location` at the start javac reports for the
+declaration and an empty `nameRange` there, rather than failing the file.
+`declarationRange` starts at the Javadoc comment when the declaration has
+one, else at its first annotation or modifier (or its first token), and ends
+where javac ends the declaration: after the closing brace of a type or method
+body, after `;` for a method without a body or the last field of a statement,
+and after the initializer or the following `,` for an earlier field.
+`signatureRange` shares the start and ends before the body's opening brace for
+types and methods, after the last header token such as `)`, a `throws` type, or
+the closing `>` of a type parameter list; for a method without a body and for
+fields it equals `declarationRange`.
+
+Offsets from `Trees.getSourcePositions` index the content in UTF-16 code units,
+so columns need no conversion; lines and columns are computed from the
+content's own line starts, never from javac's `LineMap`, which expands tabs. A
+CRLF file keeps its `\r` inside the line, and a BOM is column 1 of line 1: javac
+rejects it, so the worker parses the content without it and shifts every offset
+back by one.
+
+An `@doc` in the Javadoc of a package declaration, an import, or an initializer
+block, or in a Javadoc dangling at the end of the file, reports one
+`unsupported_declaration` located at the package name, the imported name, the
+block's first token, or the comment itself. A field statement that declares
+several names (`int a, b;`, or `int a[], b;` with dimensions on one name)
+exposes every name as a symbol, but an `@doc` above it is
+`unsupported_declaration` at the first name because the annotation cannot say
+which name it documents, as in Go; declare the link in `docbridge.links.json`
+instead. Members carry no `isMember`, so a visible method or field without
+`@doc` is an `undocumented_symbol` in audit mode, as in Rust and Go. An
+endpoint that any included declaration documents is never also undocumented,
+whichever declaration comes first; an endpoint that none documents is reported
+once, at its first declaration. Included means supported and inside the
+configured visibility classes, so an annotated declaration that the filter
+excludes documents nothing.
+
+A diagnostic of kind `ERROR` from javac makes the file a `code_parse_error`
+with no symbols and javac's English message; the reported position is the
+error with the smallest start offset, or its preferred position when javac
+reports no start, converted from the original content. `javac` accepts newer
+syntax only as far as the installed JDK parses it, and preview features are
+not enabled.

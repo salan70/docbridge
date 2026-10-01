@@ -1,0 +1,42 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "parse-error-preferred-position",
+    "language": "java",
+    "projectRoot": "/project",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "content": "public class P {}\n)\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "parse-error-preferred-position",
+    "language": "java",
+    "files": [
+      {
+        "filePath": "Input.java",
+        "symbols": [],
+        "undocumentedSymbols": [],
+        "links": [],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "code_parse_error",
+            "target": "Input.java",
+            "language": "java",
+            "message": "Java parse error: class, interface, enum, or record expected.",
+            "location": {
+              "filePath": "Input.java",
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
