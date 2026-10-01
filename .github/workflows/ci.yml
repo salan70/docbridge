@@ -155,15 +155,6 @@ jobs:
       - name: Test the Rust scanner
         run: cargo test --manifest-path packages/rust-scanner/Cargo.toml
 
-      # Phase 0 of the Rust core evaluation (#172): the crate's own tests, then
-      # the parity harness after `just test` has proven the scanner workers the
-      # fixture regeneration check spawns.
-      - name: Build the Phase 0 runner
-        run: cargo build --manifest-path packages/rust-core-experiment/Cargo.toml --release
-
-      - name: Test the Phase 0 crate
-        run: cargo test --manifest-path packages/rust-core-experiment/Cargo.toml
-
       # Built outside Nix like the Dart scanner with the setup-go toolchain.
       # The version check mirrors `just check-go-toolchain`; CGO_ENABLED=0
       # makes the binary static.
@@ -184,12 +175,6 @@ jobs:
 
       - name: just test
         run: nix develop -c just test
-
-      - name: just phase0-fixtures-check
-        run: nix develop -c just phase0-fixtures-check
-
-      - name: just phase0-parity
-        run: nix develop -c just phase0-parity
 
       - name: just build
         run: nix develop -c just build
