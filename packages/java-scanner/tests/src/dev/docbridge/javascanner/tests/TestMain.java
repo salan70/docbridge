@@ -47,6 +47,8 @@ public final class TestMain {
     checkCStyleArrayNames();
     checkUnicodeNames();
     checkNameFallback();
+    checkDocWhitespace();
+    checkDuplicateCardinality();
     System.out.println(passed + " passed, " + failures.size() + " failed");
     if (!failures.isEmpty()) {
       System.exit(1);
@@ -244,6 +246,47 @@ public final class TestMain {
         "public class /\\u002A ( \\u002A/ Foo {\n  public int x;\n}\n",
         ALL,
         List.of("undocumented Foo|Foo|1:1-1:1", "undocumented x|Foo.x|2:14-2:15"));
+  }
+
+  private static void checkDocWhitespace() {
+    // `@doc\s+(\S+)` uses the ASCII whitespace set: space, tab, LF, CR, FF,
+    // and VT. A no-break space is neither a separator nor part of a target.
+    checkScan(
+        "doc: ascii whitespace only",
+        "public class W {\n"
+            + "  /** @doc\u00A0d.md#a */\n"
+            + "  public void nbsp() {}\n"
+            + "  /** @doc\u000Bd.md#b @doc\fd.md#c */\n"
+            + "  public void ascii() {}\n"
+            + "}\n",
+        ALL,
+        List.of(
+            "symbol ascii|W.ascii()|5:15-5:20",
+            "undocumented W|W|1:14-1:15",
+            "undocumented nbsp|W.nbsp()|3:15-3:19",
+            "link Input.java#W.ascii()|d.md#b",
+            "link Input.java#W.ascii()|d.md#c"));
+  }
+
+  private static void checkDuplicateCardinality() {
+    // The first declaration keeps the endpoint; one diagnostic per endpoint,
+    // at the first repeat, and later repeats are dropped silently.
+    checkScan(
+        "duplicates: one diagnostic per endpoint",
+        "public class D {\n"
+            + "  /** @doc d.md#a */\n"
+            + "  public void m(int x) {}\n"
+            + "  /** @doc d.md#b */\n"
+            + "  public void m(int y) {}\n"
+            + "  /** @doc d.md#c */\n"
+            + "  public void m(int z) {}\n"
+            + "}\n",
+        ALL,
+        List.of(
+            "symbol m|D.m(int)|3:15-3:16",
+            "undocumented D|D|1:14-1:15",
+            "link Input.java#D.m(int)|d.md#a",
+            "diagnostic duplicate_code_symbol|Input.java#D.m(int)|5:15-5:16"));
   }
 
   private static final List<String> ALL = List.of("public", "protected", "package", "private");

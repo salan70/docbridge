@@ -25,7 +25,12 @@ public final class DocComments {
   /** One {@code @doc} target with the {@code [start, end)} offsets of the target text. */
   public record Target(String target, int start, int end) {}
 
-  private static final Pattern DOC = Pattern.compile("@doc\\s+(\\S+)");
+  /**
+   * {@code @doc\s+(\S+)} over the ASCII whitespace set, spelled out so no
+   * flag can widen it: space, tab, LF, CR, FF, and VT. A no-break space is
+   * neither a separator nor whitespace inside a target.
+   */
+  private static final Pattern DOC = Pattern.compile("@doc[ \\t\\n\\r\\f\\x0B]+([^ \\t\\n\\r\\f\\x0B]+)");
   private static final Pattern LEADING_ASTERISKS = Pattern.compile("(?m)^[ \\t\\f]*(\\*+)");
 
   private final String content;
