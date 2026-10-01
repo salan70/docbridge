@@ -57,6 +57,12 @@ type ScannerWorkerProcessInput = {
  */
 const WORKER_OUTPUT_LIMIT_BYTES = 1024 * 1024 * 1024;
 
+/**
+ * How long a killed worker's output may stay open, held by a process the kill
+ * did not reach, before the asynchronous runner closes it and settles.
+ */
+const KILLED_WORKER_GRACE_MS = 500;
+
 export type ScannerWorkerProcessResult =
   | {
       ok: true;
@@ -296,7 +302,9 @@ export function runScannerWorkerProcess(
  * an argv array and no shell, counts each output stream's bytes against the
  * cap, and settles once, after the streams close. The timeout and an oversized
  * stream kill the worker with `SIGKILL` and report an execution failure;
- * cancelling kills it the same way and rejects with an `AbortError`.
+ * cancelling kills it the same way and rejects with an `AbortError`. A killed
+ * worker's output streams are closed after {@link KILLED_WORKER_GRACE_MS} even
+ * if a process the kill missed still holds them, so the run always settles.
  */
 export function runScannerWorkerProcessAsync(
   input: ScannerWorkerProcessInput,
@@ -304,19 +312,22 @@ export function runScannerWorkerProcessAsync(
   const run = deferred<ScannerWorkerProcessResult>();
   let settled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let grace: ReturnType<typeof setTimeout> | undefined;
   const settle = (complete: () => void): void => {
     if (settled) {
       return;
     }
     settled = true;
     clearTimeout(timer);
+    clearTimeout(grace);
     complete();
   };
 
+  const ownGroup = process.platform !== "win32";
   let child: ChildProcessWithoutNullStreams;
   try {
     const [executable = "", ...args] = input.command;
-    child = spawn(executable, args, { env: workerProcessEnv(input.stripEnv) });
+    child = spawn(executable, args, { env: workerProcessEnv(input.stripEnv), detached: ownGroup });
   } catch (error) {
     settle(() => run.resolve({ ok: false, kind: "start", error, stderr: "" }));
     return { promise: run.promise, cancel: () => undefined };
@@ -328,7 +339,11 @@ export function runScannerWorkerProcessAsync(
   let failure: Error | undefined;
   const kill = (reason: Error): void => {
     failure ??= reason;
-    child.kill("SIGKILL");
+    killWorker(child, ownGroup);
+    grace ??= setTimeout(() => {
+      closeStreams(child);
+      settle(() => run.resolve(closedProcessResult(null, null, failure, stdout, stderr)));
+    }, KILLED_WORKER_GRACE_MS);
   };
   let spawned = false;
 
@@ -367,11 +382,36 @@ export function runScannerWorkerProcessAsync(
     promise: run.promise,
     cancel() {
       settle(() => {
-        child.kill("SIGKILL");
+        killWorker(child, ownGroup);
+        closeStreams(child);
         run.reject(abortError());
       });
     },
   };
+}
+
+/**
+ * Kill a worker the asynchronous runner started. On POSIX the worker leads its
+ * own process group, so killing the group also kills the processes it started,
+ * such as the runtime behind a wrapper script. On Windows only the worker
+ * itself is killed; a process it started may outlive it.
+ */
+function killWorker(child: ChildProcessWithoutNullStreams, ownGroup: boolean): void {
+  if (ownGroup && child.pid !== undefined) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+      return;
+    } catch {
+      // The group is gone already; killing the worker directly is harmless.
+    }
+  }
+  child.kill("SIGKILL");
+}
+
+function closeStreams(child: ChildProcessWithoutNullStreams): void {
+  child.stdin.destroy();
+  child.stdout.destroy();
+  child.stderr.destroy();
 }
 
 /** One output stream collected as bytes and decoded once the stream closes. */

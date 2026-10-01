@@ -167,6 +167,18 @@ test("runScannerWorkerProcess stops a worker that outlives its timeout and repor
   }
 });
 
+test("runScannerWorkerProcess returns at the timeout even when a descendant holds the worker's output", () => {
+  const started = Date.now();
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", "sleep 2 & wait"],
+    stdin: "",
+    timeoutMs: 100,
+  });
+
+  expect(Date.now() - started).toBeLessThan(1_500);
+  expect(result).toMatchObject({ ok: false, kind: "execution" });
+});
+
 test("runScannerWorkerProcess reports output above the cap as an execution failure", () => {
   const result = runScannerWorkerProcess({
     command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
@@ -629,6 +641,47 @@ test("runScannerWorkerProcessAsync stops a worker that outlives its timeout", as
   }
 });
 
+test("runScannerWorkerProcessAsync kills a timed-out worker's descendants and settles at once", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-descendant-"));
+  try {
+    const pidFile = join(dir, "pid");
+    const started = Date.now();
+    const result = await runScannerWorkerProcessAsync({
+      command: ["sh", "-c", `sleep 2 & echo $! > '${pidFile}'; wait`],
+      stdin: "",
+      timeoutMs: 300,
+    }).promise;
+
+    expect(Date.now() - started).toBeLessThan(1_500);
+    expect(result).toMatchObject({ ok: false, kind: "execution" });
+    const descendant = Number(readFileSync(pidFile, "utf8").trim());
+    await eventually(() => !isAlive(descendant), 1_500);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("runScannerWorkerProcessAsync settles a killed worker whose escaped descendant holds its output", async () => {
+  // The descendant starts its own process group, so killing the worker's group
+  // misses it; it keeps stdout and stderr open for 3 s.
+  const escape =
+    "require('node:child_process').spawn('sleep', ['3'], " +
+    "{ detached: true, stdio: ['ignore', 'inherit', 'inherit'] }); setTimeout(() => {}, 30000);";
+  const started = Date.now();
+  const result = await runScannerWorkerProcessAsync({
+    command: [process.execPath, "-e", escape],
+    stdin: "",
+    timeoutMs: 300,
+  }).promise;
+
+  expect(Date.now() - started).toBeLessThan(2_000);
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("execution");
+    expect(String(result.error)).toContain("timed out after 300 ms");
+  }
+});
+
 test("runScannerWorkerProcessAsync reports stdout above the cap as an execution failure", async () => {
   const result = await runScannerWorkerProcessAsync({
     command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
@@ -708,6 +761,32 @@ test("cancelling an asynchronous worker run kills the worker and rejects with an
     const error = await task.promise.catch((reason: unknown) => reason);
     expect(isAbortError(error)).toBe(true);
     await eventually(() => !isAlive(pid));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("cancelling an asynchronous worker run kills the worker's descendants", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-cancel-descendant-"));
+  try {
+    const pidFile = join(dir, "pid");
+    const task = runScannerWorkerProcessAsync({
+      command: [
+        "sh",
+        "-c",
+        `sleep 30 & echo $! > '${pidFile}.tmp' && mv '${pidFile}.tmp' '${pidFile}'; wait`,
+      ],
+      stdin: "",
+    });
+    await eventually(() => existsSync(pidFile));
+    const descendant = Number(readFileSync(pidFile, "utf8").trim());
+    expect(isAlive(descendant)).toBe(true);
+
+    task.cancel();
+
+    const error = await task.promise.catch((reason: unknown) => reason);
+    expect(isAbortError(error)).toBe(true);
+    await eventually(() => !isAlive(descendant), 1_500);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

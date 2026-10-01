@@ -79,6 +79,15 @@ worker still running then is killed. Stdout and stderr may each carry up to
 The Language Server runs the same request in the background and kills the
 worker when the scan is cancelled; see [LSP](lsp.md#rescan-scheduling).
 
+A worker is killed with `SIGKILL`, which it cannot ignore. The Language Server
+starts each worker in its own process group on POSIX systems and kills the whole
+group, so processes the worker started, such as a runtime behind a wrapper
+script, die with it; on Windows it kills only the worker process. The CLI kills
+only the worker process on every platform, so a process the worker started may
+outlive it. Neither waits on such a process: the CLI returns at the time limit,
+and the Language Server settles at most half a second after the kill, even
+while such a process still holds the worker's output open.
+
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully, is
 killed by a signal, outlives its time limit, exceeds its output limit, returns
