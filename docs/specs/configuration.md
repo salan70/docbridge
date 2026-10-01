@@ -97,12 +97,24 @@ TypeScript `visibility` applies only to type members. Top-level declarations are
 scoped by `export` and are unaffected by it. A member excluded by visibility is
 not an endpoint, and a `@doc` on one is `unsupported_declaration`.
 
-Four more languages have scanner workers in the repository but are not yet
-accepted as `include.code` keys: `javascript`, `python`, `ruby`, and `java`.
-Their scanning contracts are already normative in
-[Scanning](scanning.md#javascript-scanning) and become configurable when the
-languages are registered; until then `include.code.python` and the others are
-`config_unknown_key` like any other unknown key.
+Four more languages are pending registration. Their contracts are fixed
+below and in [Scanning](scanning.md#javascript-scanning), and each becomes a
+valid `include.code` key when it is registered. Until then a key such as
+`include.code.python` is an unknown code language and reports
+`config_invalid_value`, like any other unsupported key.
+
+| Language ID  | Pattern suffixes              | Visibility values                           | Default                   |
+| ------------ | ----------------------------- | ------------------------------------------- | ------------------------- |
+| `javascript` | `.js`, `.jsx`, `.mjs`, `.cjs` | `public`, `protected`, `private`            | `["public", "protected"]` |
+| `python`     | `.py`                         | `public`, `private`                         | `["public"]`              |
+| `ruby`       | `.rb`                         | `public`, `protected`, `private`            | `["public"]`              |
+| `java`       | `.java`                       | `public`, `protected`, `package`, `private` | `["public"]`              |
+
+At the same registration, `typescript` also accepts `.tsx`, `.mts`, and `.cts`
+patterns, and excludes `.d.mts` and `.d.cts` files as it excludes `.d.ts`
+files. JavaScript is scanned in process by the TypeScript scanner; Python,
+Ruby, and Java are scanned by runtime-backed workers that need the language
+runtime on the machine running DocBridge.
 
 If the same code file matches the patterns of more than one configured language,
 configuration is invalid (`config_invalid_value`): every code file must belong
