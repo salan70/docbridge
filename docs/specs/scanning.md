@@ -518,7 +518,132 @@ versions for the same input. `tokenize` runs only after `ast.parse` succeeds.
 ## Ruby Scanning
 
 Ruby scanning is pending registration: the `ruby` language ID is not accepted
-by configuration yet. This section is filled in when the worker lands.
+by configuration yet. The worker under `packages/ruby-scanner` implements the
+contract below; its fixtures live under `test-fixtures/pending-languages/ruby/`
+until registration moves them into the conformance corpus.
+
+The worker is a Ruby script, not a compiled binary. It runs on the project's
+CRuby, 3.3 or later, and parses with Prism, the parser gem bundled with CRuby
+since 3.3. The core starts it as
+`ruby --disable=gems,did_you_mean,error_highlight -W0 <path to bin/docbridge-ruby-scanner>`
+with `RUBYOPT`, `RUBYLIB`, and `PRISM_FFI_BACKEND` removed from the child
+environment. With RubyGems disabled, `require "prism"` resolves only from the
+runtime's own library directories, where a default gem is installed, so user
+and site gem paths are never searched and project code is never loaded. The
+script adds its own `lib/` to the load path itself. Started with `--probe`, it
+prints one JSON line, `{"ok": true, "runtime": "cruby", "version": "3.4.9",
+"prism": "1.5.2"}` or `{"ok": false, "reason": "..."}` for another engine, a
+version below 3.3, or a Prism that does not load, and exits 0 either way.
+CRuby 3.3 bundles Prism 0.19 and 3.4 bundles 1.x; the node API differs between
+them, so every version-sensitive accessor is isolated in
+`lib/docbridge_ruby_scanner/compat.rb` and the suite runs on both.
+
+The scanner is syntactic: it parses each file in isolation with
+`Prism.parse(content, filepath:)` and never evaluates code, so `require`,
+`include`, metaprogramming, and Rails autoloading do not affect the result.
+
+Supported Ruby declarations are:
+
+- `class` and `module`, at the top level and nested in class or module
+  bodies
+- instance methods (`def name`), singleton methods (`def self.name`, and
+  `def name` inside `class << self`), and top-level methods
+- constant assignments (`NAME = ...` and `Path::NAME = ...`)
+
+Declarations are collected from the top level and from the direct statements
+of class, module, and `class << self` bodies, including a body with a
+`rescue` or `ensure` clause. Nothing inside a method body, a block
+(`included do ... end`, `Class.new do ... end`), or control flow (`if`,
+`unless`, `case`) is a declaration, so an `@doc` there is neither a link nor a
+diagnostic.
+
+Ruby canonical IDs use `::` between constants and `.` before a method name:
+`login` (top-level method), `Foo`, `Foo::Bar`, `Foo::Bar::VALUE`,
+`Foo::Bar.baz` (instance method), and `Foo::Bar.self.baz` (singleton method,
+whether written `def self.baz` or inside `class << self`). Operator and
+setter methods keep their Ruby name (`Foo.==`, `Foo.token=`). A top-level
+`def self.x` is `self.x`. The `symbolName` is the last segment.
+
+Qualification is lexical. `class Foo::Bar` inside `module A` is `A::Foo::Bar`
+and `Baz::PATH = 1` inside it is `A::Foo::Bar::Baz::PATH`, regardless of
+where Ruby would resolve `Foo` at run time. A leading `::` resets to the top
+level: `class ::Top` inside `module A` is `Top`. A constant path whose parent
+is not a constant (`self::X = 1`, `class obj.klass::Y`) is dynamic and
+unsupported.
+
+A class or module reopened in the same file is one container: its symbol and
+ranges come from the first declaration, the `@doc` annotations of every
+reopening attach to it in source order, and the same target repeated across
+reopenings is `duplicate_link` at the repeated annotation. Reopenings in other
+files stay separate endpoints. A method or constant declared twice in one
+container follows the shared duplicate rule: the first annotated declaration
+owns the endpoint and every later annotated one is `duplicate_code_symbol` at
+its name; unannotated repeats are reported once as undocumented.
+
+The annotation source is the contiguous run of full-line `#` comments that
+ends on the line directly above the declaration, indented or not; a blank
+line, a code line, or a trailing comment after code (`X = 1 # ...`) breaks the
+run, and `=begin`/`=end` blocks are never a source. Magic comments such as
+`# frozen_string_literal: true` need no special case because they carry no
+`@doc`. The run above `private def x` or `private_class_method def self.x`
+attaches to that method. `@doc\s+(\S+)` is matched over the text after `#`, a
+link's `location` and `targetRange` cover the target text, and an invalid
+target is `invalid_link_target` under the [link resolution](link-resolution.md)
+rules. Comments inside method bodies are ignored.
+
+Visibility classes are `public`, `protected`, and `private`. Classes,
+modules, and constants are always `public`. A method's class is tracked
+lexically within one body:
+
+- A bare `private`, `protected`, or `public` call (no receiver, no
+  arguments) switches the default for later instance `def`s in the same body.
+  It never affects `def self.x`; inside `class << self` it applies to that
+  block's singleton methods. Each class, module, or `class << self` body,
+  including every reopening, starts at `public`.
+- `private def x` and `private :x, "y"` (and the `protected`/`public` forms)
+  apply to the named instance methods; the symbol or string form applies to
+  the methods of that name already declared in the container, including in an
+  earlier reopening in the same file.
+- `private_class_method :x` and `private_class_method def self.x` (and
+  `public_class_method`) apply to the named singleton methods.
+- A call with a receiver (`self.private`) or inside a method body is ignored.
+  `module_function` and `protected`/`private` applied through other means are
+  not tracked.
+
+`include.code.ruby.visibility` selects the classes to emit and defaults to
+`["public"]`; an empty list emits nothing. An `@doc` on a declaration
+excluded by the filter is `unsupported_declaration`, as in TypeScript.
+
+Ranges follow the shared contract. `location` and `nameRange` cover the
+constant or method name (`baz` in `def self.baz`). `declarationRange` starts
+at the first `#` of the attached comment block, else at the `class`, `module`,
+or `def` keyword (the constant for an assignment), and ends after `end`, the
+endless-method expression, or the assigned value. `signatureRange` starts
+where `declarationRange` starts and ends after the closing parenthesis, after
+the last parameter when there are no parentheses, or after the name when
+there are no parameters; for classes, modules, and constants it equals
+`declarationRange`. A member's ranges start at its own indentation.
+
+These are not symbols and report one `unsupported_declaration` when their
+comment block carries `@doc`, located at the name, or at the start when they
+have none: `attr_reader`, `attr_writer`, and `attr_accessor` (at the call
+name), `alias` (at the new name) and `alias_method`, `define_method`, a
+singleton method on a receiver other than `self` (`def obj.x`, and every
+method inside `class << obj`), a dynamic constant path, a `class << self`
+block itself, and a class, module, or constant declared inside
+`class << self`. Other constant forms (`X ||= 1`, `A, B = 1, 2`) and every
+other statement are ignored. Methods carry no `isMember`, so a public method
+without `@doc` is an `undocumented_symbol` in audit mode, as in Go.
+
+Byte offsets from Prism are converted to 1-based UTF-16 columns over the
+original content, so CRLF files, a UTF-8 byte order mark (which counts as one
+column on line 1, as in the other workers), and non-ASCII identifiers and
+comments keep their positions.
+
+A syntax error makes the file a `code_parse_error` with no symbols; the
+reported position and message come from the error with the smallest byte
+offset, and the recovered tree is discarded. Prism's messages differ between
+0.19 and 1.x, so the message wording depends on the installed runtime.
 
 ## Java Scanning
 
