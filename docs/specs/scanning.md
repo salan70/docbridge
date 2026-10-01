@@ -69,9 +69,9 @@ readable managed file of that language in collection order. A file that cannot
 be read is reported as `file_read_error` and left out of the request, and a
 language without a readable file starts no worker. The scan result keeps
 collection order across languages, with each read failure at its file's
-position. The request is not capped: every managed file's content is already in
-memory before scanning, and the request adds one serialized copy of that
-language's files while the worker runs.
+position. The request is not capped. A scan holds the content of every readable
+managed code file in memory until its language's request completes, plus one
+serialized copy of the request while the worker runs.
 
 Each invocation may run for 30 seconds plus 1 second per requested file; a
 worker still running then is killed. Stdout and stderr may each carry up to
