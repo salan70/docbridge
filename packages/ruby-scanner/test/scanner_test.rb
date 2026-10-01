@@ -394,6 +394,34 @@ class DuplicateEndpointTest < Minitest::Test
     assert_equal({ filePath: FILE_PATH, line: 3, column: 7 }, file[:symbols][0][:location])
     assert_equal %w[docs/a.md#one], link_targets(file)
   end
+
+  def test_an_unannotated_definition_before_the_annotated_one_is_not_undocumented
+    file = scan(<<~RUBY)
+      class Foo
+        def m; end
+
+        # @doc docs/a.md#m
+        def m; end
+      end
+    RUBY
+    assert_equal [], codes(file)
+    assert_equal %w[Foo.m], symbol_ids(file)
+    assert_equal %w[Foo], undocumented_ids(file)
+  end
+
+  def test_an_unannotated_definition_after_the_annotated_one_is_not_undocumented
+    file = scan(<<~RUBY)
+      class Foo
+        # @doc docs/a.md#m
+        def m; end
+
+        def m; end
+      end
+    RUBY
+    assert_equal [], codes(file)
+    assert_equal %w[Foo.m], symbol_ids(file)
+    assert_equal %w[Foo], undocumented_ids(file)
+  end
 end
 
 class VisibilityTest < Minitest::Test

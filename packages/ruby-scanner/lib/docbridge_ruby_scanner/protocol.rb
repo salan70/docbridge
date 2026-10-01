@@ -65,14 +65,22 @@ module DocbridgeRubyScanner
     end
 
     def build(declarations)
+      # An endpoint that any emitted declaration documents is never also
+      # undocumented, whichever comes first in the file.
+      documented = declarations.select { |declaration| emitted?(declaration) && !declaration.targets.empty? }
+      @documented_ids = documented.to_h { |declaration| [declaration.canonical_id, true] }
       declarations.each { |declaration| add(declaration) }
       @response
     end
 
     private
 
+    def emitted?(declaration)
+      !declaration.unsupported && @visible.include?(declaration.visibility)
+    end
+
     def add(declaration)
-      if declaration.unsupported || !@visible.include?(declaration.visibility)
+      unless emitted?(declaration)
         unsupported(declaration) unless declaration.targets.empty?
         return
       end
@@ -80,8 +88,10 @@ module DocbridgeRubyScanner
       symbol = make_symbol(declaration)
       endpoint = symbol[:endpoint]
       if declaration.targets.empty?
-        @response[:undocumentedSymbols] << symbol unless @undocumented_endpoints[endpoint]
+        return if @documented_ids[declaration.canonical_id] || @undocumented_endpoints[endpoint]
+
         @undocumented_endpoints[endpoint] = true
+        @response[:undocumentedSymbols] << symbol
         return
       end
 
