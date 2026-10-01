@@ -184,8 +184,9 @@ documented candidates, in the order that
 [Scanner Runtimes](configuration.md#scanner-runtimes) defines. Before using a
 runtime, DocBridge runs the full command with `--probe` in the same stripped
 environment and reads the one JSON line the worker prints (see each language's
-section). The probe is limited to 10 seconds and 64 KiB of output. Its result
-is cached for the rest of the CLI process or language server session, keyed by
+section). The probe is limited to 10 seconds and 64 KiB of output; a probe
+still running after 10 seconds is killed with `SIGKILL`, which it cannot
+ignore. Its result is cached for the rest of the CLI process or language server session, keyed by
 the full command and the values of `PATH` and every `DOCBRIDGE_*` variable; a
 configuration change clears the cache.
 

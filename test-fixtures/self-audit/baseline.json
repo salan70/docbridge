@@ -698,6 +698,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#spawnRuntimeProbe",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/runtime-worker.ts#clearRuntimeProbeCache",
       "class": "sibling_export"
     },

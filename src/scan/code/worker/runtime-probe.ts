@@ -49,7 +49,7 @@ export type RuntimeProbeOutcome =
 export function probeRuntime(
   command: readonly string[],
   stripEnv: readonly string[],
-  spawn: RuntimeProbeSpawn = spawnProbe,
+  spawn: RuntimeProbeSpawn = spawnRuntimeProbe,
 ): RuntimeProbeOutcome {
   const [executable = "", ...args] = command;
   const result = spawn(executable, [...args, "--probe"], {
@@ -120,7 +120,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function spawnProbe(
+/**
+ * The default {@link RuntimeProbeSpawn}. It kills a probe that outlives the
+ * time limit with `SIGKILL`, which a runtime cannot ignore, so the limit holds.
+ */
+export function spawnRuntimeProbe(
   executable: string,
   args: string[],
   options: RuntimeProbeSpawnOptions,
@@ -129,6 +133,7 @@ function spawnProbe(
     const result = spawnSync(executable, args, {
       env: options.env,
       timeout: options.timeout,
+      killSignal: "SIGKILL",
       maxBuffer: options.maxBuffer,
       // An empty stdin keeps a runtime that ignores `--probe` from waiting on input.
       input: "",

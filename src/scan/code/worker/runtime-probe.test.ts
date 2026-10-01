@@ -1,10 +1,15 @@
 import { expect, test } from "bun:test";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   probeRuntime,
+  spawnRuntimeProbe,
   type RuntimeProbeSpawn,
   type RuntimeProbeSpawnResult,
 } from "./runtime-probe";
+import { workerProcessEnv } from "./scanner-worker";
 
 function exited(stdout: string, status = 0, stderr = ""): RuntimeProbeSpawnResult {
   return { status, signal: null, stdout, stderr };
@@ -147,4 +152,25 @@ test("probeRuntime reports a real missing executable as unstartable with the def
   const outcome = probeRuntime(["/nonexistent/docbridge-runtime"], []);
 
   expect(outcome.kind).toBe("unstartable");
+});
+
+test("spawnRuntimeProbe stops a runtime that ignores SIGTERM at the time limit", () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-probe-term-"));
+  try {
+    const runtime = join(dir, "stubborn-runtime");
+    writeFileSync(runtime, "#!/bin/sh\ntrap '' TERM\nsleep 3\n");
+    chmodSync(runtime, 0o755);
+
+    const started = Date.now();
+    const result = spawnRuntimeProbe(runtime, ["--probe"], {
+      env: workerProcessEnv(),
+      timeout: 200,
+      maxBuffer: 64 * 1024,
+    });
+
+    expect(Date.now() - started).toBeLessThan(1_500);
+    expect((result.error as { code?: unknown } | undefined)?.code).toBe("ETIMEDOUT");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
