@@ -49,13 +49,16 @@ test("runScannerWorkerProcess pipes stdin to the worker and captures stdout, std
   });
 });
 
-test("runScannerWorkerProcess reports ok: false when the command does not exist", () => {
+test("runScannerWorkerProcess reports a start failure when the command does not exist", () => {
   const result = runScannerWorkerProcess({
     command: ["docbridge-nonexistent-worker-command"],
     stdin: "",
   });
 
   expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.kind).toBe("start");
+  }
 });
 
 test("runScannerWorkerProcess captures worker output larger than one megabyte", () => {
@@ -130,7 +133,7 @@ test("invokeScannerWorker passes stripEnv to the process runner", () => {
   expect(received).toEqual(["RUBYOPT", "JAVA_TOOL_OPTIONS"]);
 });
 
-test("runScannerWorkerProcess reports ok: false when the worker is killed by a signal", () => {
+test("runScannerWorkerProcess reports an execution failure when the worker is killed by a signal", () => {
   const result = runScannerWorkerProcess({
     command: ["sh", "-c", "kill -KILL $$"],
     stdin: "",
@@ -138,8 +141,41 @@ test("runScannerWorkerProcess reports ok: false when the worker is killed by a s
 
   expect(result.ok).toBe(false);
   if (!result.ok) {
+    expect(result.kind).toBe("execution");
     expect(String(result.error)).toContain("SIGKILL");
   }
+});
+
+test("invokeScannerWorker reports a worker that started and then failed as scanner failed", () => {
+  const result = invokeScannerWorker(
+    {
+      schemaVersion: 1,
+      requestId: "req-crash",
+      language: "swift",
+      projectRoot: "/project",
+      files: [{ filePath: "Sources/Auth.swift", content: "" }],
+      options: {},
+    },
+    ["crashing-worker"],
+    (): ScannerWorkerProcessResult => ({
+      ok: false,
+      kind: "execution",
+      error: new Error("worker terminated by signal SIGKILL"),
+      stderr: "fatal\n",
+    }),
+  );
+
+  expect(result).toEqual({
+    ok: false,
+    diagnostic: {
+      severity: "error",
+      code: "code_scanner_failed",
+      language: "swift",
+      target: "swift",
+      message: "Swift scanner worker failed: worker terminated by signal SIGKILL",
+    },
+    stderr: "fatal\n",
+  });
 });
 
 test("invokeScannerWorker rejects responses with missing requested files", () => {

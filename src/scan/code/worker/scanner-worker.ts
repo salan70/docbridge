@@ -55,6 +55,11 @@ export type ScannerWorkerProcessResult =
     }
   | {
       ok: false;
+      /**
+       * Whether the worker never started (`start`, the default) or started and
+       * then failed (`execution`): a signal, a timeout, or oversized output.
+       */
+      kind?: "start" | "execution";
       error: unknown;
       stderr: string;
     };
@@ -111,7 +116,10 @@ export function invokeScannerWorker(
   if (!processResult.ok) {
     return {
       ok: false,
-      diagnostic: scannerUnavailableDiagnostic(request.language, processResult.error, command[0]),
+      diagnostic:
+        processResult.kind === "execution"
+          ? scannerFailedDiagnostic(request.language, reasonOf(processResult.error))
+          : scannerUnavailableDiagnostic(request.language, processResult.error, command[0]),
       stderr: processResult.stderr,
     };
   }
@@ -205,11 +213,12 @@ export function runScannerWorkerProcess(
     });
     const stderr = result.stderr ?? "";
     if (result.error !== undefined) {
-      return { ok: false, error: result.error, stderr };
+      return { ok: false, kind: "start", error: result.error, stderr };
     }
     if (result.status === null) {
       return {
         ok: false,
+        kind: "execution",
         error: new Error(`worker terminated by signal ${result.signal ?? "unknown"}`),
         stderr,
       };
@@ -221,7 +230,7 @@ export function runScannerWorkerProcess(
       stderr,
     };
   } catch (error) {
-    return { ok: false, error, stderr: "" };
+    return { ok: false, kind: "start", error, stderr: "" };
   }
 }
 
