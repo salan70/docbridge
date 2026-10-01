@@ -7,14 +7,17 @@ import Ajv2020 from "ajv/dist/2020";
 
 import commonOutputSchema from "../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../schemas/scanner-worker.schema.json";
+import type { RuntimeWorkerLanguage } from "../src/config/scanner-runtimes";
+import { resolveRuntimeWorkerCommand } from "../src/scan/code/worker/runtime-worker";
 
 /**
  * Drives the scanner-conformance cases of languages whose worker exists but
  * whose language ID is not registered yet (see
  * `test-fixtures/pending-languages/README.md`). Each worker is started with
- * its source-checkout command, exactly as the runtime-backed resolver will
- * start it once the language is registered, and its response is checked
- * against the worker protocol schema and the case's `expected.json`.
+ * the source-checkout command and stripped environment the runtime-backed
+ * resolution returns, exactly as the core will start it once the language is
+ * registered, and its response is checked against the worker protocol schema
+ * and the case's `expected.json`.
  *
  * A language directory that does not exist is skipped; a runtime that is
  * missing from `PATH` fails the case, as the Swift and Dart suites do.
@@ -23,7 +26,7 @@ import scannerWorkerSchema from "../schemas/scanner-worker.schema.json";
 const repoRoot = resolve(import.meta.dir, "..");
 const PENDING_ROOT = join(repoRoot, "test-fixtures", "pending-languages");
 
-type PendingLanguage = "python" | "ruby" | "java";
+type PendingLanguage = RuntimeWorkerLanguage;
 
 const SCANNED_PATH: Readonly<Record<PendingLanguage, string>> = {
   python: "input.py",
@@ -31,29 +34,16 @@ const SCANNED_PATH: Readonly<Record<PendingLanguage, string>> = {
   java: "Input.java",
 };
 
-/** Source-checkout commands; the last element is the bundled entrypoint. */
-const WORKER_COMMAND: Readonly<Record<PendingLanguage, readonly string[]>> = {
-  python: [
-    "python3",
-    "-I",
-    "-S",
-    join(repoRoot, "packages/python-scanner/docbridge_python_scanner.py"),
-  ],
-  ruby: [
-    "ruby",
-    "--disable=gems,did_you_mean,error_highlight",
-    "-W0",
-    join(repoRoot, "packages/ruby-scanner/bin/docbridge-ruby-scanner"),
-  ],
-  java: [
-    "java",
-    "-Xshare:auto",
-    "-XX:TieredStopAtLevel=1",
-    "-XX:+UseSerialGC",
-    "-jar",
-    join(repoRoot, "packages/java-scanner/build/docbridge-java-scanner.jar"),
-  ],
-};
+function workerCommand(language: PendingLanguage): {
+  command: string[];
+  stripEnv: readonly string[];
+} {
+  const resolution = resolveRuntimeWorkerCommand(language, { projectRoot: repoRoot });
+  if (!resolution.ok) {
+    throw new Error(resolution.diagnostic.message);
+  }
+  return resolution;
+}
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 ajv.addSchema(commonOutputSchema);
@@ -78,27 +68,17 @@ type ResponseFile = {
 };
 
 /**
- * Runtime variables removed from every worker's environment, as the plan's
- * runtime-backed worker contract requires: each can load code or options into
+ * The worker environment: the current one plus `extraEnv`, without the
+ * variables the resolution strips because each can load code or options into
  * the interpreter before the bundled entrypoint runs.
  */
-const STRIPPED_ENV: readonly string[] = [
-  "PYTHONPATH",
-  "PYTHONSTARTUP",
-  "PYTHONHOME",
-  "PYTHONSAFEPATH",
-  "RUBYOPT",
-  "RUBYLIB",
-  "PRISM_FFI_BACKEND",
-  "JAVA_TOOL_OPTIONS",
-  "JDK_JAVA_OPTIONS",
-  "_JAVA_OPTIONS",
-];
-
-function workerEnv(extraEnv: Record<string, string>): Record<string, string> {
+function workerEnv(
+  extraEnv: Record<string, string>,
+  stripEnv: readonly string[],
+): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [name, value] of Object.entries({ ...process.env, ...extraEnv })) {
-    if (value !== undefined && !STRIPPED_ENV.includes(name)) {
+    if (value !== undefined && !stripEnv.includes(name)) {
       env[name] = value;
     }
   }
@@ -118,7 +98,8 @@ function runWorker(
   content: string,
   extraEnv: Record<string, string> = {},
 ): unknown {
-  const [executable, ...args] = WORKER_COMMAND[language];
+  const { command, stripEnv } = workerCommand(language);
+  const [executable, ...args] = command;
   const request = {
     schemaVersion: 1,
     requestId: `pending-${language}`,
@@ -130,7 +111,7 @@ function runWorker(
   const result = spawnSync(executable as string, args, {
     input: JSON.stringify(request),
     encoding: "utf8",
-    env: workerEnv(extraEnv),
+    env: workerEnv(extraEnv, stripEnv),
     maxBuffer: 64 * 1024 * 1024,
   });
   expect(
