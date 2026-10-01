@@ -8,3 +8,6 @@ editors/vscode/.tmp/
 
 # Machine-specific editor settings (e.g. absolute bunPath); keep local.
 .vscode/settings.json
+
+# Worktrees the Claude Code Agent tool creates inside the checkout.
+.claude/worktrees/
