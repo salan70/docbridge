@@ -82,6 +82,10 @@ const activationEvents = [
   "onLanguage:dart",
   "onLanguage:rust",
   "onLanguage:go",
+  "onLanguage:javascript",
+  "onLanguage:javascriptreact",
+  "onLanguage:python",
+  "onLanguage:ruby",
   "onLanguage:markdown",
 ];
 

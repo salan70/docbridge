@@ -60,6 +60,10 @@ describe("buildReleaseManifest", () => {
       "onLanguage:dart",
       "onLanguage:rust",
       "onLanguage:go",
+      "onLanguage:javascript",
+      "onLanguage:javascriptreact",
+      "onLanguage:python",
+      "onLanguage:ruby",
       "onLanguage:markdown",
     ]);
     expect(manifest.repository).toEqual({
@@ -67,6 +71,20 @@ describe("buildReleaseManifest", () => {
       url: "https://github.com/salan70/docbridge.git",
     });
   });
+});
+
+test("the development manifest activates on every release activation event", async () => {
+  const developmentManifest = (await Bun.file(
+    resolve(import.meta.dir, "../editors/vscode/package.json"),
+  ).json()) as { activationEvents: string[] };
+  const releaseManifest = buildReleaseManifest(
+    { version: "1.2.3" },
+    { name: "docbridge", version: "1.2.3", publisher: "salan70" },
+  );
+
+  expect(developmentManifest.activationEvents.toSorted()).toEqual(
+    (releaseManifest.activationEvents ?? []).toSorted(),
+  );
 });
 
 describe("requiredScannerPlatformKeys", () => {
