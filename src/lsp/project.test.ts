@@ -1,9 +1,15 @@
-import { describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import { counterpartsOf } from "../link/graph";
-import { isAbortError } from "../shared/cancelable";
+import { createScannerWorkerAdapter } from "../scan/code/dispatch";
+import {
+  clearRuntimeProbeCache,
+  resolveRuntimeWorkerCommand,
+} from "../scan/code/worker/runtime-worker";
+import type { ScannerWorkerProcessResult } from "../scan/code/worker/scanner-worker";
+import { isAbortError, settledCancelable } from "../shared/cancelable";
 import { codes, makeProject } from "../test-support";
 import { heldTypeScript } from "./fixtures";
 import { Project } from "./project";
@@ -124,3 +130,59 @@ describe("Project.resolveAsync", () => {
     }
   });
 });
+
+describe("Project runtime probes", () => {
+  beforeEach(() => {
+    clearRuntimeProbeCache();
+  });
+
+  test("a configuration change probes a runtime-backed worker again", async () => {
+    const pkg = makeProject({ "packages/python-scanner/docbridge_python_scanner.py": "" });
+    const root = makeProject({
+      "docbridge.config.json": JSON.stringify({
+        include: { code: { go: { patterns: ["src/**/*.go"] } }, docs: ["docs/**/*.md"] },
+      }),
+      "src/a.go": "package a\n",
+    });
+    let probes = 0;
+    // A runtime-backed resolution standing in for a registered runtime language.
+    const adapter = createScannerWorkerAdapter(
+      "go",
+      (projectRoot) =>
+        resolveRuntimeWorkerCommand("python", {
+          projectRoot,
+          sourceRoot: pkg,
+          env: {},
+          platform: "linux",
+          probe: () => {
+            probes += 1;
+            return { kind: "ok", runtime: "cpython", version: "3.12.4" };
+          },
+        }),
+      { runAsync: () => settledCancelable(EXITED) },
+    );
+    const project = new Project(root, { adapters: { go: adapter } });
+
+    try {
+      await project.resolveAsync().promise;
+      await project.resolveAsync().promise;
+      writeFileSync(
+        join(root, "docbridge.config.json"),
+        JSON.stringify({
+          include: {
+            code: { go: { patterns: ["src/**/*.go"] } },
+            docs: ["docs/**/*.md", "README.md"],
+          },
+        }),
+      );
+      await project.resolveAsync().promise;
+
+      expect(probes).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(pkg, { recursive: true, force: true });
+    }
+  });
+});
+
+const EXITED: ScannerWorkerProcessResult = { ok: true, exitCode: 2, stdout: "", stderr: "" };

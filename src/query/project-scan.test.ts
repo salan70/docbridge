@@ -205,3 +205,51 @@ test("scanProjectAsync stops when the manifest is invalid", async () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("scanProjectAsync reports a configuration change before it scans", async () => {
+  const root = makeProject(LINKED_PROJECT);
+  const events: string[] = [];
+  const batches: string[][] = [];
+  const recording = recordingTypeScript(batches);
+  const adapters = {
+    typescript: {
+      ...recording,
+      scanFiles: (...args: Parameters<CodeLanguageAdapter["scanFiles"]>) => {
+        events.push("scan");
+        return recording.scanFiles(...args);
+      },
+    },
+  };
+  const onConfigurationChange = () => events.push("configuration changed");
+
+  try {
+    const first = await scanProjectAsync({
+      projectRoot: root,
+      adapters,
+      cache: emptyCodeScanCache(),
+      onConfigurationChange,
+    }).promise;
+    if (!first.ok) {
+      throw new Error("expected the first scan to succeed");
+    }
+    writeFileSync(
+      join(root, "docbridge.config.json"),
+      JSON.stringify({
+        include: {
+          code: { typescript: { patterns: ["src/**/*.ts"] } },
+          docs: ["docs/**/*.md", "README.md"],
+        },
+      }),
+    );
+    await scanProjectAsync({
+      projectRoot: root,
+      adapters,
+      cache: first.cache,
+      onConfigurationChange,
+    }).promise;
+
+    expect(events).toEqual(["scan", "configuration changed", "scan"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

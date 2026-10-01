@@ -13,6 +13,7 @@ import type { DocBridgeDiagnostic } from "../model/types";
 import { scanProject, scanProjectAsync } from "../query/project-scan";
 import type { CodeAdapterOverrides } from "../scan/code/dispatch";
 import { emptyCodeScanCache, type CodeScanCache } from "../scan/code/scan-cache";
+import { clearRuntimeProbeCache } from "../scan/code/worker/runtime-worker";
 import { abortError, type Cancelable } from "../shared/cancelable";
 import { collectFiles, matchGlob, readManagedFile } from "../shared/glob";
 import { comparePaths } from "../shared/path-order";
@@ -105,15 +106,19 @@ export class Project {
 
   /**
    * Re-scan and re-resolve the whole project without blocking. The scan reads
-   * the overlays and every file before its first worker starts. Its state and
-   * cache are committed only if it was not cancelled and no overlay changed
-   * meanwhile; otherwise the promise rejects with an `AbortError`.
+   * the overlays and every file before its first worker starts. A changed
+   * configuration drops the cached scan results and runtime probes. The
+   * scan's state and cache are committed only if it was not cancelled and no
+   * overlay changed meanwhile; otherwise the promise rejects with an
+   * `AbortError`.
    */
   resolveAsync(): Cancelable<ProjectState> {
     const revision = this.overlayRevision;
     const scan = scanProjectAsync({
       ...this.scanSources(new Map(this.overlay)),
       cache: this.cache,
+      // A changed configuration may name another runtime; probe them again.
+      onConfigurationChange: clearRuntimeProbeCache,
     });
     let cancelled = false;
     const promise = scan.promise.then((outcome) => {

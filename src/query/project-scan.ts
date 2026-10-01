@@ -93,6 +93,15 @@ export function scanProject(
   return { ok: true, scan: finishProjectScan(inputs, codeScan, docReads, options.buildGraph) };
 }
 
+type ScanProjectAsyncOptions = ScanProjectBaseOptions & {
+  cache: CodeScanCache;
+  /**
+   * Called before scanning when the configuration differs from the one
+   * `cache` was produced under, so session-wide caches can be dropped too.
+   */
+  onConfigurationChange?: () => void;
+};
+
 /**
  * The cancellable form of {@link scanProject} for the Language Server. It
  * reads the configuration, the manifest, and every managed file before the
@@ -101,7 +110,7 @@ export function scanProject(
  * running worker and rejects with an `AbortError`.
  */
 export function scanProjectAsync(
-  options: ScanProjectBaseOptions & { cache: CodeScanCache },
+  options: ScanProjectAsyncOptions,
 ): Cancelable<ScanProjectAsyncOutcome> {
   const loaded = loadProjectScan(options, true);
   if (!loaded.ok) {
@@ -109,6 +118,10 @@ export function scanProjectAsync(
   }
   const { inputs } = loaded;
   const fingerprint = JSON.stringify(inputs.config);
+  const sameConfiguration = options.cache.fingerprint === fingerprint;
+  if (!sameConfiguration && options.cache.fingerprint !== "") {
+    options.onConfigurationChange?.();
+  }
   const codeScan = scanCodeFilesAsync(
     options.projectRoot,
     inputs.codeFiles,
@@ -116,7 +129,7 @@ export function scanProjectAsync(
     inputs.readFile,
     {
       ...codeScanOptions(inputs, options),
-      ...(options.cache.fingerprint === fingerprint ? { cache: options.cache.entries } : {}),
+      ...(sameConfiguration ? { cache: options.cache.entries } : {}),
     },
   );
   const docReads = readDocFiles(inputs, options);
