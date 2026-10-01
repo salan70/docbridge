@@ -77,7 +77,47 @@ type ResponseFile = {
   diagnostics: unknown[];
 };
 
-function runWorker(language: PendingLanguage, filePath: string, content: string): unknown {
+/**
+ * Runtime variables removed from every worker's environment, as the plan's
+ * runtime-backed worker contract requires: each can load code or options into
+ * the interpreter before the bundled entrypoint runs.
+ */
+const STRIPPED_ENV: readonly string[] = [
+  "PYTHONPATH",
+  "PYTHONSTARTUP",
+  "PYTHONHOME",
+  "PYTHONSAFEPATH",
+  "RUBYOPT",
+  "RUBYLIB",
+  "PRISM_FFI_BACKEND",
+  "JAVA_TOOL_OPTIONS",
+  "JDK_JAVA_OPTIONS",
+  "_JAVA_OPTIONS",
+];
+
+function workerEnv(extraEnv: Record<string, string>): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries({ ...process.env, ...extraEnv })) {
+    if (value !== undefined && !STRIPPED_ENV.includes(name)) {
+      env[name] = value;
+    }
+  }
+  return env;
+}
+
+/** A variable that can inject code or options into a runtime before the worker starts. */
+const HOSTILE_ENV: Readonly<Record<PendingLanguage, Record<string, string>>> = {
+  python: { PYTHONPATH: "/nonexistent-docbridge-path", PYTHONSTARTUP: "/nonexistent-startup.py" },
+  ruby: { RUBYOPT: "-rdocbridge_injected_library", RUBYLIB: "/nonexistent-docbridge-lib" },
+  java: { JAVA_TOOL_OPTIONS: "-Xdocbridge-bogus-option", _JAVA_OPTIONS: "-Xdocbridge-bogus" },
+};
+
+function runWorker(
+  language: PendingLanguage,
+  filePath: string,
+  content: string,
+  extraEnv: Record<string, string> = {},
+): unknown {
   const [executable, ...args] = WORKER_COMMAND[language];
   const request = {
     schemaVersion: 1,
@@ -90,6 +130,7 @@ function runWorker(language: PendingLanguage, filePath: string, content: string)
   const result = spawnSync(executable as string, args, {
     input: JSON.stringify(request),
     encoding: "utf8",
+    env: workerEnv(extraEnv),
     maxBuffer: 64 * 1024 * 1024,
   });
   expect(
@@ -102,16 +143,24 @@ function runWorker(language: PendingLanguage, filePath: string, content: string)
 
 for (const language of Object.keys(SCANNED_PATH) as PendingLanguage[]) {
   const languageRoot = join(PENDING_ROOT, language);
-  if (!existsSync(languageRoot)) {
-    continue;
-  }
-  const cases = readdirSync(languageRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .toSorted();
+  const cases = existsSync(languageRoot)
+    ? readdirSync(languageRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .toSorted()
+    : [];
 
   describe(`pending ${language} worker`, () => {
+    test("ignores runtime variables that inject code or options", () => {
+      const response = runWorker(language, SCANNED_PATH[language], "", HOSTILE_ENV[language]) as {
+        files: unknown[];
+      };
+      expect(response.files).toHaveLength(1);
+    });
+
     test("has the four conformance cases", () => {
+      // A missing directory fails here instead of silently skipping the corpus.
+      expect(existsSync(languageRoot)).toBe(true);
       expect(cases).toEqual([
         "annotated-declaration",
         "duplicate-link",
