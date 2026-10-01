@@ -15,14 +15,15 @@ deviation between the specs and `src/link/` was found.
 
 ## Underspecified points the port had to decide
 
-### String order is ICU collation, not byte order
+### String order is ICU collation, not code-unit order
 
 `compareDiagnostics` (`src/model/diagnostics.ts`) and `compareEndpointOrder`
 (`src/model/endpoint.ts`) sort with `String.prototype.localeCompare()`, while
-`comparePaths` (`src/shared/path-order.ts`) is bytewise. `localeCompare` with
-no locale argument is the runtime's default ICU collation, so the order of
-`docbridge check` output and of `counterpartsOf` is locale-dependent in
-principle and differs from byte order in practice:
+`comparePaths` (`src/shared/path-order.ts`) uses `<` and `>`, which compare
+UTF-16 code units. `localeCompare` with no locale argument is the runtime's
+default ICU collation, so the order of `docbridge check` output and of
+`counterpartsOf` is locale-dependent in principle and differs from code-unit
+order in practice:
 
 - punctuation orders by collation weight, so `src/a_b.ts` sorts before
   `src/a-b.ts`, before `src/a.b.ts`, before `src/a/b.ts`, and every one of
@@ -32,11 +33,21 @@ principle and differs from byte order in practice:
   `docs/Api.md` and both before `docs/README.md`.
 
 [Sorting Diagnostics](../../docs/specs/diagnostics.md#sorting-diagnostics)
-names the keys but not the string order. The crate reproduces the observed
-ICU root order for printable ASCII in `src/collation.rs` and falls back to
-code point order for other characters, which no fixture exercises. A spec that
-pins the order (or a switch to `comparePaths`, which would reorder shipped
-output) is a decision for the core owners, not for this slice.
+names the keys but not the string order. The port's boundary is precise:
+
+- For printable ASCII, `src/collation.rs` reproduces the observed ICU root
+  order, so every path, anchor, code, and endpoint in the frozen fixtures
+  sorts identically in both arms.
+- For any other character the crate does not emulate ICU. It orders every
+  non-ASCII character after printable ASCII by code point, whereas
+  `localeCompare` interleaves them (`é` sorts before `z`). This is a
+  documented divergence, not a parity target; no fixture contains non-ASCII
+  text, and the parity harness would catch one that did.
+
+The recommended fix is a spec that pins a code-unit order for these sorts
+(the order `comparePaths` already uses), which both arms can implement
+exactly. That reorders shipped output and is a decision for the core owners,
+not for this slice.
 
 ### Navigation resolves against scanned symbols only
 
@@ -47,7 +58,12 @@ Markdown `@code` link to an unannotated symbol therefore produces
 in the file. [Navigation](../../docs/specs/lsp.md#navigation-and-resolvable-one-way-links)
 says a target is navigable when it "resolves to an existing file and anchor",
 which reads naturally for doc anchors but leaves the code side to the
-implementation. `heldout-09` and `heldout-10` freeze the current behavior.
+implementation. Manifest application is the exception that proves the rule:
+`applyLinkManifest` (`src/link/manifest-apply.ts`, `markDocumented`) moves a
+symbol from `undocumentedSymbols` into `symbols` when a manifest entry names
+it, so a manifest link to an unannotated symbol is navigable while a Markdown
+`@code` annotation to the same symbol is not. `heldout-09` and `heldout-10`
+freeze the current behavior.
 
 ### File-scoped scanner diagnostics require `language`
 
