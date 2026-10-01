@@ -299,6 +299,13 @@ verify-dist:
 pack-smoke *ARGS:
     bun run scripts/smoke-packed-package.ts {{ ARGS }}
 
+# Time the built Language Server on examples/java: cold (server start to the
+# first publishDiagnostics) and warm (an edit to the next publish), as p50 and
+# p95. `--runs N` sets the server starts (default 20) and `--edits N` the edits
+# per start (default 5). Building needs the JDK, and the scans need JDK 17+.
+lsp-latency *ARGS: build
+    bun run scripts/lsp-latency.ts {{ ARGS }}
+
 # Build a release VSIX under editors/vscode/.tmp/out. Requires every supported
 # platform's scanner binaries staged under dist/bin; the runtime-backed workers
 # are staged from this checkout.

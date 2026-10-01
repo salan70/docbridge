@@ -150,3 +150,33 @@ test("a publish wait resolves with the empty diagnostics of a clean document", a
 
   await expect(session.waitForPublish(uri)).resolves.toEqual([]);
 });
+
+test("a numbered publish wait returns each publish with the time it arrived", async () => {
+  const uri = documentUri(join(projectRoot, "src/edited.ts"));
+  session.openDocument(uri, "typescript", "export function edited() {}\n");
+  const opened = await session.waitForPublishNumber(uri, 1);
+  const published = session.publishCount(uri);
+
+  const sentAt = performance.now();
+  session.notify("textDocument/didChange", {
+    textDocument: { uri, version: 2 },
+    contentChanges: [{ text: "/** @doc docs/missing.md#gone */\nexport function edited() {}\n" }],
+  });
+  const edited = await session.waitForPublishNumber(uri, published + 1);
+
+  expect(opened.diagnostics).toEqual([]);
+  expect(opened.receivedAt).toBeLessThan(sentAt);
+  expect(edited.receivedAt).toBeGreaterThan(sentAt);
+  expect(edited.diagnostics).not.toHaveLength(0);
+});
+
+test("a numbered publish wait names how many publishes arrived before its timeout", async () => {
+  const uri = documentUri(join(projectRoot, "src/once.ts"));
+  session.openDocument(uri, "typescript", "export function once() {}\n");
+  await session.waitForPublishNumber(uri, 1);
+  const published = session.publishCount(uri);
+
+  await expect(session.waitForPublishNumber(uri, published + 5, 100)).rejects.toThrow(
+    `Language server published diagnostics for ${uri} only ${published} of ${published + 5} times within 100ms.`,
+  );
+});

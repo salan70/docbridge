@@ -5,6 +5,12 @@ import { pathToFileURL } from "node:url";
 
 type Diagnostic = Record<string, unknown>;
 
+/** One `publishDiagnostics` for a document, stamped with `performance.now()` on arrival. */
+export type Publish = {
+  diagnostics: Diagnostic[];
+  receivedAt: number;
+};
+
 type PendingRequest = {
   method: string;
   resolve: (result: unknown) => void;
@@ -44,6 +50,15 @@ export type LspSession = {
    * when nothing is published within `timeoutMs`.
    */
   waitForPublish(uri: string, timeoutMs?: number): Promise<Diagnostic[]>;
+  /** How many times the server has published diagnostics for a document so far. */
+  publishCount(uri: string): number;
+  /**
+   * The `count`th publish for a document, counted from 1. Its `receivedAt` is
+   * taken when the message arrives, so polling does not blur a latency
+   * measured from it. Fails when that publish has not arrived within
+   * `timeoutMs`.
+   */
+  waitForPublishNumber(uri: string, count: number, timeoutMs?: number): Promise<Publish>;
   stop(): Promise<void>;
 };
 
@@ -65,6 +80,7 @@ export function startLspSession(
   const child = spawn(executable, args, { cwd });
   const pending = new Map<number, PendingRequest>();
   const diagnostics = new Map<string, Diagnostic[]>();
+  const publishes = new Map<string, Publish[]>();
   const decodeMessages = createMessageDecoder();
   let capabilities: Record<string, unknown> = {};
   let nextId = 1;
@@ -96,6 +112,9 @@ export function startLspSession(
       } else if (message.method === "textDocument/publishDiagnostics") {
         const params = message.params as { uri: string; diagnostics: Diagnostic[] };
         diagnostics.set(params.uri, params.diagnostics);
+        const history = publishes.get(params.uri) ?? [];
+        history.push({ diagnostics: params.diagnostics, receivedAt: performance.now() });
+        publishes.set(params.uri, history);
       }
     }
   });
@@ -133,6 +152,32 @@ export function startLspSession(
       pending.set(id, { method, resolve: resolve as (result: unknown) => void, reject, timer });
       send({ id, method, params });
     });
+  }
+
+  async function waitForPublishNumber(
+    uri: string,
+    count: number,
+    timeoutMs = 5000,
+  ): Promise<Publish> {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      if (terminal !== undefined) {
+        throw terminal;
+      }
+      const history = publishes.get(uri) ?? [];
+      const publish = history[count - 1];
+      if (publish !== undefined) {
+        return publish;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(
+          history.length === 0
+            ? `Language server published no diagnostics for ${uri} within ${timeoutMs}ms.`
+            : `Language server published diagnostics for ${uri} only ${history.length} of ${count} times within ${timeoutMs}ms.`,
+        );
+      }
+      await sleep(25);
+    }
   }
 
   return {
@@ -176,23 +221,12 @@ export function startLspSession(
       }
     },
     async waitForPublish(uri: string, timeoutMs = 5000): Promise<Diagnostic[]> {
-      const deadline = Date.now() + timeoutMs;
-      for (;;) {
-        if (terminal !== undefined) {
-          throw terminal;
-        }
-        const published = diagnostics.get(uri);
-        if (published !== undefined) {
-          return published;
-        }
-        if (Date.now() >= deadline) {
-          throw new Error(
-            `Language server published no diagnostics for ${uri} within ${timeoutMs}ms.`,
-          );
-        }
-        await sleep(25);
-      }
+      return (await waitForPublishNumber(uri, 1, timeoutMs)).diagnostics;
     },
+    publishCount(uri: string): number {
+      return publishes.get(uri)?.length ?? 0;
+    },
+    waitForPublishNumber,
     /**
      * Best-effort cleanup. Callers run it from a `finally`, so it must never
      * replace the failure that is already on its way out; a server that has
