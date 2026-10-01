@@ -648,4 +648,124 @@ offset, and the recovered tree is discarded. Prism's messages differ between
 ## Java Scanning
 
 Java scanning is pending registration: the `java` language ID is not accepted
-by configuration yet. This section is filled in when the worker lands.
+by configuration yet. The worker under `packages/java-scanner` already
+implements the contract below; the configuration, annotation, and diagnostic
+paragraphs join when the language is registered.
+
+Java scanning extracts `@doc` annotations from the Javadoc comment
+(`/** ... */`) that documents a declaration. The worker is a JAR built from
+`packages/java-scanner` with `javac --release 17` and `jar` alone, no Maven,
+Gradle, or third-party library, and it runs on the project's own JDK rather
+than on a bundled binary. It parses with the public `com.sun.source` tree API
+of the `jdk.compiler` module: `ToolProvider.getSystemJavaCompiler().getTask()`
+with the options `-proc:none -implicit:none -Xlint:none`, no classpath, a
+diagnostic listener, and an in-memory source per file, calling only `parse()`
+and never `analyze()`, so no project code is loaded, resolved, or executed and
+the internal `com.sun.tools.javac` packages are never touched. Each file is
+parsed independently. The scanner is syntactic: it does not resolve types or
+imports, so a parameter type is printed as written, not as the type it names.
+
+The core starts the worker as
+`java -Xshare:auto -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -jar packages/java-scanner/build/docbridge-java-scanner.jar`
+from a source checkout (run `just build-java-scanner` first) and removes
+`JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, and `_JAVA_OPTIONS` from the child
+environment so injected options cannot change the protocol output. The flags
+favor start-up time over peak speed, which suits a short-lived process.
+`--probe` prints one JSON line and exits 0 either way:
+`{ "ok": true, "runtime": "jdk", "version": "17.0.19" }` on a JDK 17 or newer
+with `jdk.compiler`, or `{ "ok": false, "reason": "..." }` when
+`ToolProvider.getSystemJavaCompiler()` returns null (a JRE) or the runtime is
+older than 17. The entry class alone is compiled for Java 8 so an old JVM can
+still load it and answer the probe instead of failing on the class version.
+
+By default only `public` declarations are included; `include.code.java.visibility`
+may add `protected`, `package`, and `private`. A declaration's class comes from
+its modifiers, with two implicit cases: members of an interface or annotation
+type without an access modifier are `public`, and so are enum constants, while
+an enum constructor is `private`. An endpoint's class is the least visible of
+its own and every enclosing type's, so a public method of a private nested
+class is `private`. An `@doc` on a declaration outside the configured classes is
+`unsupported_declaration`.
+
+Supported Java declarations are:
+
+- top-level and member types of every kind: `class`, `interface`, `enum`,
+  `record`, and `@interface`
+- methods and constructors, including a record's compact constructor
+- fields and enum constants; a record's components are its private final
+  fields
+
+Local classes, anonymous classes, lambdas, initializer blocks, and everything
+inside a method body are not walked, so an `@doc` there is neither a link nor
+a diagnostic, except that an annotated Javadoc directly before an initializer
+block is `unsupported_declaration` located at the block's `static` keyword or
+opening brace.
+
+Java canonical IDs use `.` qualification through every enclosing type and a
+parenthesized parameter-type list for methods and constructors: `Foo`,
+`Foo.Inner`, `Foo.MAX`, `Foo.bar(int,String)`, `Foo.Foo(int)`, and
+`Outer.Inner.m()`. A constructor is named after its type, so its symbol name is
+the type's simple name. Parameter types are printed from the type tree alone:
+annotations are removed (`@A int` is `int`), type arguments are removed
+(`List<String>` is `List`, `Map.Entry<K, V>` is `Map.Entry`), qualified names
+and type variables are kept as written (`java.util.List`, `T`), each array
+dimension is `[]` whether written on the type or after the name, varargs are
+arrays (`String...` is `String[]`, `String[]...` is `String[][]`), and no
+whitespace or parameter names appear. A method's own type parameters do not
+appear, so `<U> Foo(List<U> u)` is `Foo.Foo(List)`. Overloads that print the
+same way, such as `m(List<String>)` and `m(List<Integer>)`, share one endpoint:
+the first declaration keeps it and a second annotated one is
+`duplicate_code_symbol`.
+
+The annotation source is the Javadoc comment javac associates with the
+declaration: the last `/**` comment before the declaration's first token
+(its Javadoc, annotations, or modifiers), separated from it only by whitespace
+and non-Javadoc comments. Of two consecutive Javadoc comments only the second
+counts. `DocTrees.getDocComment` decides the association, but it returns the
+comment with its formatting stripped, so the text and its positions come from
+the original source. `@doc\s+(\S+)` is matched over the comment body with the
+`/**` and `*/` delimiters excluded, so a target directly followed by `*/` ends
+before it, and the asterisks that lead continuation lines count as whitespace,
+so a target on the line after `@doc` does not absorb its `*`. `//` and
+`/* ... */` comments are never annotation sources. Projects that run `javadoc`
+with `-Xdoclint` register the tag with `-tag doc:a:"DocBridge:"` so the
+unknown-tag check accepts it.
+
+Ranges follow the shared contract. A symbol's `location` and `nameRange` cover
+the name identifier, found in the source after the declaration's modifiers,
+type parameters, and return type. `declarationRange` starts at the Javadoc
+comment when the declaration has one, else at its first annotation or
+modifier (or its first token), and ends where javac ends the declaration: after
+the closing brace of a type or method body, after `;` for a method without a
+body or the last field of a statement, and after the initializer or the
+following `,` for an earlier field. `signatureRange` shares the start and ends
+before the body's opening brace for types and methods, after the last header
+token such as `)`, a `throws` type, or the closing `>` of a type parameter
+list; for a method without a body and for fields it equals
+`declarationRange`.
+
+Offsets from `Trees.getSourcePositions` index the content in UTF-16 code units,
+so columns need no conversion; lines and columns are computed from the
+content's own line starts, never from javac's `LineMap`, which expands tabs. A
+CRLF file keeps its `\r` inside the line, and a BOM is column 1 of line 1: javac
+rejects it, so the worker parses the content without it and shifts every offset
+back by one.
+
+An `@doc` in the Javadoc of a package declaration, an import, or an initializer
+block, or in a Javadoc dangling at the end of the file, reports one
+`unsupported_declaration` located at the package name, the imported name, the
+block's first token, or the comment itself. A field statement that declares
+several names (`int a, b;`) exposes every name as a symbol, but an `@doc` above
+it is `unsupported_declaration` at the first name because the annotation cannot
+say which name it documents, as in Go; declare the link in
+`docbridge.links.json` instead. Members carry no `isMember`, so a visible
+method or field without `@doc` is an `undocumented_symbol` in audit mode, as in
+Rust and Go; of several declarations that share an endpoint, only the first is
+reported.
+
+A diagnostic of kind `ERROR` from javac makes the file a `code_parse_error`
+with no symbols and javac's English message; the reported position is the
+error with the smallest start offset, or its preferred position when javac
+reports no start, converted from the original content. `javac` accepts newer
+syntax only as far as the installed JDK parses it, and preview features are
+not enabled.
