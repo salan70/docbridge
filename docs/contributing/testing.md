@@ -59,6 +59,19 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
   `scripts/pending-worker-cases.test.ts` spawns. These languages are pending
   registration, so their conformance cases live under
   `test-fixtures/pending-languages/` until they join the corpus below.
+- `src/scan/code/worker/runtime-worker.test.ts` covers runtime resolution with
+  an injected probe; `runtime-worker-integration.test.ts` resolves the real
+  Python, Ruby, and Java workers of the checkout, probe included, and scans one
+  file with each. `scripts/pending-worker-cases.test.ts` starts the workers
+  with the same resolved command and stripped environment. A runtime missing
+  from `PATH` fails these tests instead of skipping them.
+- `just verify-dist` runs each runtime-backed worker from `dist/workers/`, and
+  `just pack-smoke <tarball>` runs each from the installed package: in an
+  install path with spaces, read-only and then writable, plus a configured
+  runtime that does not exist. `--runtime-workers-only` smokes only these
+  workers; the informational `pack-smoke-windows` CI job runs that mode on the
+  tarball `test-dist` packs, because native scanners are not shipped for
+  Windows.
 - `src/scan/code/conformance.test.ts` runs every case under
   `test-fixtures/scanner-conformance/<case>/<language>/` through the real
   adapter for that language. It compares the result with that directory's
