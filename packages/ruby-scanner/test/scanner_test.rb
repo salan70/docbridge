@@ -372,6 +372,30 @@ class ReopeningTest < Minitest::Test
   end
 end
 
+class DuplicateEndpointTest < Minitest::Test
+  include ScanHelpers
+
+  def test_repeated_annotated_definitions_report_one_duplicate_at_the_first_repeat
+    file = scan(<<~RUBY)
+      class Foo
+        # @doc docs/a.md#one
+        def m; end
+
+        # @doc docs/a.md#two
+        def m; end
+
+        # @doc docs/a.md#three
+        def m; end
+      end
+    RUBY
+    assert_equal %w[duplicate_code_symbol], codes(file)
+    assert_equal({ filePath: FILE_PATH, line: 6, column: 7 }, file[:diagnostics][0][:location])
+    assert_equal %w[Foo.m], symbol_ids(file)
+    assert_equal({ filePath: FILE_PATH, line: 3, column: 7 }, file[:symbols][0][:location])
+    assert_equal %w[docs/a.md#one], link_targets(file)
+  end
+end
+
 class VisibilityTest < Minitest::Test
   include ScanHelpers
 
