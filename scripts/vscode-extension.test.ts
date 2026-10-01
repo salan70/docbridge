@@ -64,6 +64,7 @@ describe("buildReleaseManifest", () => {
       "onLanguage:javascriptreact",
       "onLanguage:python",
       "onLanguage:ruby",
+      "onLanguage:java",
       "onLanguage:markdown",
     ]);
     expect(manifest.repository).toEqual({

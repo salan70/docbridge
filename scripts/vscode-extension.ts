@@ -86,6 +86,7 @@ const activationEvents = [
   "onLanguage:javascriptreact",
   "onLanguage:python",
   "onLanguage:ruby",
+  "onLanguage:java",
   "onLanguage:markdown",
 ];
 

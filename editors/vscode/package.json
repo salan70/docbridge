@@ -11,6 +11,7 @@
     "dart",
     "documentation",
     "go",
+    "java",
     "javascript",
     "language-server",
     "lsp",
@@ -64,6 +65,7 @@
   "activationEvents": [
     "onLanguage:dart",
     "onLanguage:go",
+    "onLanguage:java",
     "onLanguage:javascript",
     "onLanguage:javascriptreact",
     "onLanguage:markdown",
