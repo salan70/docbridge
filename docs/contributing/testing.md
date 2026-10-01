@@ -100,9 +100,11 @@ Extra flags such as `--json` pass through.
 `publishDiagnostics` for `AuthService.java`: cold, from starting the server to
 its first publish, and warm, from a full-text edit to the publish of the rescan
 it causes, which includes the 50 ms rescan debounce. `--runs N` sets the server
-starts (default 20) and `--edits N` the edits per start (default 5). The
-numbers depend on the machine and the JDK, so record them with both when they
-inform a decision.
+starts (default 20) and `--edits N` the edits per start (default 5). A run
+fails instead of reporting numbers when a publish carries a diagnostic or when
+the server cannot navigate from the `AuthService` class to its section, because
+then no Java scan was timed. The numbers depend on the machine and the JDK, so
+record them with both when they inform a decision.
 
 ## Repository self-audit
 

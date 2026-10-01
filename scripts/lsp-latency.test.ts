@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import { formatLatencyReport, measureLatency, parseLatencyArgs, percentile } from "./lsp-latency";
 
@@ -50,6 +52,68 @@ test("formatLatencyReport prints the count, p50, p95, and maximum of each kind",
       "warm (edit to the next publish): n=3 p50=300 ms p95=310 ms max=310 ms",
   );
 });
+
+/**
+ * A language server that publishes empty diagnostics for every opened or
+ * edited document and answers every request with no result, so it knows no
+ * Java endpoint: what a server that rejects `include.code.java` looks like.
+ */
+const SERVER_WITHOUT_JAVA = `
+let buffered = Buffer.alloc(0);
+function send(message) {
+  const body = JSON.stringify({ jsonrpc: "2.0", ...message });
+  process.stdout.write("Content-Length: " + Buffer.byteLength(body) + "\\r\\n\\r\\n" + body);
+}
+function handle(message) {
+  if (message.method === "exit") process.exit(0);
+  if (message.method === "textDocument/didOpen" || message.method === "textDocument/didChange") {
+    const uri = message.params.textDocument.uri;
+    send({ method: "textDocument/publishDiagnostics", params: { uri, diagnostics: [] } });
+  }
+  if (message.id !== undefined) {
+    send({ id: message.id, result: message.method === "initialize" ? { capabilities: {} } : null });
+  }
+}
+process.stdin.on("data", (chunk) => {
+  buffered = Buffer.concat([buffered, chunk]);
+  for (;;) {
+    const headerEnd = buffered.indexOf("\\r\\n\\r\\n");
+    if (headerEnd === -1) return;
+    const length = Number(/Content-Length: (\\d+)/.exec(buffered.subarray(0, headerEnd).toString())[1]);
+    if (buffered.length < headerEnd + 4 + length) return;
+    handle(JSON.parse(buffered.subarray(headerEnd + 4, headerEnd + 4 + length).toString()));
+    buffered = buffered.subarray(headerEnd + 4 + length);
+  }
+});
+`;
+
+test("measureLatency fails, without timing anything, when the server never starts", async () => {
+  const outcome = Promise.race([
+    measureLatency(["docbridge-no-such-executable"], { runs: 1, edits: 1 }).then(
+      () => "measured",
+      (error: unknown) => (error instanceof Error ? error.message : String(error)),
+    ),
+    new Promise((settle) => {
+      setTimeout(() => settle("still waiting"), 5000);
+    }),
+  ]);
+
+  expect(await outcome).toStartWith("Language server failed to start");
+}, 10_000);
+
+test("measureLatency fails when the server publishes no diagnostics but scanned no Java", async () => {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-lsp-latency-"));
+  try {
+    const server = join(root, "server.js");
+    writeFileSync(server, SERVER_WITHOUT_JAVA);
+
+    await expect(measureLatency(["bun", server], { runs: 1, edits: 1 })).rejects.toThrow(
+      "The server links nothing at AuthService in AuthService.java, so the Java worker did not scan it and nothing was timed.",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}, 30_000);
 
 test("measureLatency times a cold start and an edit on the Java example", async () => {
   const samples = await measureLatency(

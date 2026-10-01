@@ -7,7 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { documentUri, startLspSession } from "./lsp-client";
+import { documentUri, startLspSession, type LspSession } from "./lsp-client";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const EXAMPLE_ROOT = join(repoRoot, "examples/java");
@@ -88,9 +88,13 @@ function summaryLine(label: string, values: readonly number[]): string {
  * Start the server `options.runs` times with `command` on examples/java. Each
  * start opens `AuthService.java` and times the first publish for it, then
  * sends `options.edits` full-text edits, each appending a distinct comment so
- * the scan cache cannot answer it, and times the publish each one causes. The
- * example is clean, so any published diagnostic means the scan did not run
- * the worker, and the measurement fails instead of timing that.
+ * the scan cache cannot answer it, and times the publish each one causes.
+ *
+ * A sample counts only when the publish comes from a Java scan: the example is
+ * clean, so any published diagnostic fails the measurement, and so does a
+ * server that cannot navigate from the `AuthService` class to the section that
+ * documents it, because an empty publish alone also comes from a server that
+ * never scanned the file, such as one that rejects `include.code.java`.
  */
 export async function measureLatency(
   command: readonly string[],
@@ -98,6 +102,7 @@ export async function measureLatency(
 ): Promise<LatencySamples> {
   const uri = documentUri(DOCUMENT);
   const original = readFileSync(DOCUMENT, "utf8");
+  const linkedClass = classNamePosition(original, "AuthService");
   const samples: LatencySamples = { cold: [], warm: [] };
 
   for (let run = 0; run < options.runs; run += 1) {
@@ -110,6 +115,7 @@ export async function measureLatency(
       session.openDocument(uri, "java", original);
       const first = await session.waitForPublishNumber(uri, 1, PUBLISH_TIMEOUT_MS);
       assertClean(first.diagnostics);
+      await assertJavaScanned(session, uri, linkedClass);
       samples.cold.push(first.receivedAt - startedAt);
 
       for (let edit = 0; edit < options.edits; edit += 1) {
@@ -122,6 +128,7 @@ export async function measureLatency(
         });
         const next = await session.waitForPublishNumber(uri, published + 1, PUBLISH_TIMEOUT_MS);
         assertClean(next.diagnostics);
+        await assertJavaScanned(session, uri, linkedClass);
         samples.warm.push(next.receivedAt - sentAt);
       }
     } finally {
@@ -135,6 +142,36 @@ function assertClean(diagnostics: readonly Record<string, unknown>[]): void {
   if (diagnostics.length > 0) {
     const messages = diagnostics.map((diagnostic) => String(diagnostic.message)).join("; ");
     throw new Error(`The Java example published diagnostics, so no scan was timed: ${messages}`);
+  }
+}
+
+/** The zero-based LSP position of `name` in the `public class <name>` line of `source`. */
+function classNamePosition(source: string, name: string): { line: number; character: number } {
+  const lines = source.split("\n");
+  const line = lines.findIndex((text) => text.startsWith(`public class ${name}`));
+  if (line === -1) {
+    throw new Error(`The Java example declares no public class ${name}.`);
+  }
+  return { line, character: (lines[line] ?? "").indexOf(name) };
+}
+
+/**
+ * Fail unless the server navigates from the linked class at `position` to its
+ * documentation, which only the scan of a registered Java worker makes possible.
+ */
+async function assertJavaScanned(
+  session: LspSession,
+  uri: string,
+  position: { line: number; character: number },
+): Promise<void> {
+  const locations = await session.request<unknown[] | null>("textDocument/definition", {
+    textDocument: { uri },
+    position,
+  });
+  if (locations === null || locations.length === 0) {
+    throw new Error(
+      "The server links nothing at AuthService in AuthService.java, so the Java worker did not scan it and nothing was timed.",
+    );
   }
 }
 

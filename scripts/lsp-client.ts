@@ -1,6 +1,6 @@
 // Minimal LSP client over stdio for the packaged-VSIX verification
 // (`scripts/vscode-extension.ts`), which drives `docbridge lsp`.
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 type Diagnostic = Record<string, unknown>;
@@ -91,6 +91,20 @@ export function startLspSession(
    * exists to catch, and a hang would report nothing at all.
    */
   let terminal: Error | undefined;
+  /**
+   * Whether the process lifecycle is over: the process exited, or it never
+   * started, in which case Node emits `error` and may never emit `exit`.
+   */
+  let finished = false;
+  let settleLifecycle: (() => void) | undefined;
+  const lifecycleOver = new Promise<void>((settle) => {
+    settleLifecycle = settle;
+  });
+
+  function markFinished(): void {
+    finished = true;
+    settleLifecycle?.();
+  }
 
   function fail(error: Error): void {
     terminal ??= error;
@@ -121,12 +135,17 @@ export function startLspSession(
   child.stderr.on("data", (chunk: Buffer) => process.stderr.write(chunk));
   child.on("error", (error: Error) => {
     fail(new Error(`Language server failed to start: ${error.message}`));
+    // No process ID means the spawn itself failed, so no `exit` is coming.
+    if (child.pid === undefined) {
+      markFinished();
+    }
   });
   child.on("exit", (code: number | null, signal: NodeJS.Signals | null) => {
     const cause = code === null ? `signal ${signal}` : `code ${code}`;
     const methods = [...pending.values()].map((waiting) => waiting.method).join(", ");
     const replying = methods === "" ? "" : ` before replying to ${methods}`;
     fail(new Error(`Language server exited with ${cause}${replying}.`));
+    markFinished();
   });
   // `stdin` errors when the server is gone; `send` reports that through the
   // request's own failure, so the raw EPIPE must not reach the event loop.
@@ -230,10 +249,11 @@ export function startLspSession(
     /**
      * Best-effort cleanup. Callers run it from a `finally`, so it must never
      * replace the failure that is already on its way out; a server that has
-     * died, or that ignores `shutdown`, is killed instead.
+     * died, or that ignores `shutdown`, is killed instead, and one that never
+     * started has nothing to stop.
      */
     async stop(): Promise<void> {
-      if (hasExited(child)) {
+      if (finished) {
         return;
       }
       try {
@@ -242,17 +262,13 @@ export function startLspSession(
       } catch {
         // The server is unreachable; fall through to the kill below.
       }
-      await Promise.race([waitForExit(child), sleep(2000)]);
-      if (!hasExited(child)) {
+      await Promise.race([lifecycleOver, sleep(2000)]);
+      if (!finished) {
         child.kill("SIGKILL");
-        await waitForExit(child);
+        await lifecycleOver;
       }
     },
   };
-}
-
-function hasExited(child: ChildProcessWithoutNullStreams): boolean {
-  return child.exitCode !== null || child.signalCode !== null;
 }
 
 /**
@@ -290,12 +306,6 @@ function createMessageDecoder(): (chunk: Buffer) => Record<string, unknown>[] {
       buffered = buffered.subarray(start + length);
     }
   };
-}
-
-function waitForExit(child: ChildProcessWithoutNullStreams): Promise<void> {
-  return new Promise<void>((settle) => {
-    child.once("exit", () => settle());
-  });
 }
 
 function sleep(ms: number): Promise<void> {

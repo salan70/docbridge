@@ -125,6 +125,20 @@ describe("a server that never answers", () => {
     }
   });
 
+  test("stopping a server that never started finishes at once", async () => {
+    const missing = startLspSession(["docbridge-no-such-executable"], repoRoot);
+    await missing.initialize(repoRoot).catch(() => {});
+
+    const stopped = await Promise.race([
+      missing.stop().then(() => "stopped"),
+      new Promise((settle) => {
+        setTimeout(() => settle("still waiting"), 1000);
+      }),
+    ]);
+
+    expect(stopped).toBe("stopped");
+  });
+
   test("stopping a server that already exited is not itself a failure", async () => {
     const dead = startLspSession(["bun", "-e", "process.exit(0)"], repoRoot);
     await dead.initialize(repoRoot).catch(() => {});
