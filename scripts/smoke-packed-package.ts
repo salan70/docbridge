@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import {
   supportedScannerExecutableNames,
@@ -256,6 +256,9 @@ function installAndSmoke(tarballPath: string, tempRoot: string, options: SmokeOp
       "dart-fixture",
       "rust-fixture",
       "go-fixture",
+      "javascript-fixture",
+      "python-fixture",
+      "ruby-fixture",
     ] as const) {
       run(
         [
@@ -326,6 +329,50 @@ function writeScannerFixtures(root: string): void {
   writeFileSync(
     join(root, "go-fixture/docs/auth.md"),
     "<!-- @code internal/auth/service.go#AuthService -->\n## Auth Service\n",
+  );
+
+  writeAuthServiceFixture(
+    root,
+    "javascript",
+    "src/auth.jsx",
+    "/** @doc docs/auth.md#auth-service */\nexport const AuthService = () => <form />;\n",
+  );
+  writeAuthServiceFixture(
+    root,
+    "python",
+    "src/auth.py",
+    'class AuthService:\n    """@doc docs/auth.md#auth-service"""\n',
+  );
+  writeAuthServiceFixture(
+    root,
+    "ruby",
+    "lib/auth.rb",
+    "# @doc docs/auth.md#auth-service\nclass AuthService; end\n",
+  );
+}
+
+/**
+ * The `<language>-fixture` project: `content` declares `AuthService` in
+ * `relPath` and links it to `docs/auth.md`, which links back. The Python and
+ * Ruby fixtures run on the runtimes the smoke host provides.
+ */
+function writeAuthServiceFixture(
+  root: string,
+  language: string,
+  relPath: string,
+  content: string,
+): void {
+  const fixtureName = `${language}-fixture`;
+  mkdirSync(join(root, fixtureName, dirname(relPath)), { recursive: true });
+  mkdirSync(join(root, fixtureName, "docs"), { recursive: true });
+  const suffix = relPath.slice(relPath.lastIndexOf("."));
+  writeFixtureConfig(root, fixtureName, {
+    [language]: { patterns: [`${dirname(relPath)}/**/*${suffix}`] },
+  });
+  writeFileSync(join(root, fixtureName, relPath), content);
+  writeFileSync(
+    join(root, fixtureName, "docs/auth.md"),
+    `<!-- @code ${relPath}#AuthService -->\n## Auth Service\n`,
   );
 }
 
