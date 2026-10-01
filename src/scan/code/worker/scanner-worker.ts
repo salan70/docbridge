@@ -274,27 +274,43 @@ export function runScannerWorkerProcess(
       killSignal: "SIGKILL",
       ...(input.timeoutMs === undefined ? {} : { timeout: input.timeoutMs }),
     });
-    const stderr = result.stderr ?? "";
-    if (result.error !== undefined) {
-      return syncSpawnFailure(result.error, input.timeoutMs, maxOutputBytes, stderr);
-    }
-    if (result.status === null) {
-      return {
-        ok: false,
-        kind: "execution",
-        error: signalError(result.signal),
-        stderr,
-      };
-    }
-    return {
-      ok: true,
-      exitCode: result.status,
-      stdout: result.stdout ?? "",
-      stderr,
-    };
+    return syncWorkerProcessResult(result, input.timeoutMs, maxOutputBytes);
   } catch (error) {
     return { ok: false, kind: "start", error, stderr: "" };
   }
+}
+
+/**
+ * What `spawnSync` returned for a worker. Node and Bun fill it differently:
+ * Bun leaves `pid` and `status` undefined for a command that never started.
+ */
+type SyncSpawnOutcome = {
+  pid?: number | undefined;
+  status?: number | null | undefined;
+  signal?: string | null | undefined;
+  stdout?: string | null | undefined;
+  stderr?: string | null | undefined;
+  error?: Error | undefined;
+};
+
+/**
+ * Classify a finished `spawnSync` run of a worker.
+ *
+ * @internal Exported to pin the classification of each runtime's result shape.
+ */
+export function syncWorkerProcessResult(
+  result: SyncSpawnOutcome,
+  timeoutMs: number | undefined,
+  maxOutputBytes: number,
+): ScannerWorkerProcessResult {
+  const stderr = result.stderr ?? "";
+  if (result.error !== undefined) {
+    return syncSpawnFailure(result.error, workerStarted(result), timeoutMs, maxOutputBytes, stderr);
+  }
+  if (typeof result.status !== "number") {
+    return { ok: false, kind: "execution", error: signalError(result.signal), stderr };
+  }
+  return { ok: true, exitCode: result.status, stdout: result.stdout ?? "", stderr };
 }
 
 /**
@@ -453,12 +469,28 @@ function closedProcessResult(
 }
 
 /**
+ * Whether a `spawnSync` result shows the worker started: an exit status, a
+ * terminating signal, or a process ID. Node reports pid 0 for a command that
+ * never started; Bun leaves it undefined.
+ */
+function workerStarted(result: SyncSpawnOutcome): boolean {
+  return (
+    typeof result.status === "number" ||
+    typeof result.signal === "string" ||
+    (typeof result.pid === "number" && result.pid > 0)
+  );
+}
+
+/**
  * Classify a `spawnSync` error. Node and Bun both report a timeout as
  * `ETIMEDOUT` and an output stream over `maxBuffer` as `ENOBUFS`; the worker
- * ran in both cases. Any other error means it never started.
+ * ran in both cases. Any other error is an execution failure when the worker
+ * started (Node reports `EPIPE` for a worker that exits without reading its
+ * input) and a start failure otherwise.
  */
 function syncSpawnFailure(
   error: Error,
+  started: boolean,
   timeoutMs: number | undefined,
   maxOutputBytes: number,
   stderr: string,
@@ -470,7 +502,7 @@ function syncSpawnFailure(
   if (code === "ENOBUFS") {
     return { ok: false, kind: "execution", error: outputLimitError(maxOutputBytes), stderr };
   }
-  return { ok: false, kind: "start", error, stderr };
+  return { ok: false, kind: started ? "execution" : "start", error, stderr };
 }
 
 function signalError(signal: string | null | undefined): Error {

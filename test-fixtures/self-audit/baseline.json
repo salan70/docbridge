@@ -803,6 +803,11 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/scanner-worker.ts#syncWorkerProcessResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/markdown/section.ts#capSectionLength",
       "class": "internal_helper"
     },

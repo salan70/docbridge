@@ -11,6 +11,7 @@ import {
   invokeScannerWorkerAsync,
   runScannerWorkerProcess,
   runScannerWorkerProcessAsync,
+  syncWorkerProcessResult,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
 
@@ -177,6 +178,64 @@ test("runScannerWorkerProcess returns at the timeout even when a descendant hold
 
   expect(Date.now() - started).toBeLessThan(1_500);
   expect(result).toMatchObject({ ok: false, kind: "execution" });
+});
+
+test("runScannerWorkerProcess never reports a worker that exits without reading its input as unstartable", () => {
+  const result = runScannerWorkerProcess({
+    command: ["sh", "-c", "exit 0"],
+    stdin: "x".repeat(4 * 1024 * 1024),
+  });
+
+  expect(result).not.toMatchObject({ ok: false, kind: "start" });
+});
+
+test("syncWorkerProcessResult reports an error after the worker started as an execution failure", () => {
+  // Node reports a worker that exits without reading its input this way.
+  const epipe = Object.assign(new Error("spawnSync sh EPIPE"), { code: "EPIPE" });
+
+  expect(
+    syncWorkerProcessResult(
+      { pid: 4242, status: 0, signal: null, stdout: "", stderr: "", error: epipe },
+      1_000,
+      1_000,
+    ),
+  ).toEqual({ ok: false, kind: "execution", error: epipe, stderr: "" });
+  expect(
+    syncWorkerProcessResult(
+      { pid: 4242, status: null, signal: "SIGPIPE", stdout: "", stderr: "", error: epipe },
+      1_000,
+      1_000,
+    ),
+  ).toMatchObject({ ok: false, kind: "execution" });
+});
+
+test("syncWorkerProcessResult reports the same run without an error by its exit status", () => {
+  // Bun reports a worker that exits without reading its input this way.
+  expect(
+    syncWorkerProcessResult(
+      { pid: 4242, status: 0, signal: null, stdout: "", stderr: "" },
+      1_000,
+      1_000,
+    ),
+  ).toEqual({ ok: true, exitCode: 0, stdout: "", stderr: "" });
+});
+
+test("syncWorkerProcessResult reports an error with no sign of a started worker as a start failure", () => {
+  const enoent = Object.assign(new Error("spawnSync worker ENOENT"), { code: "ENOENT" });
+
+  // Node reports pid 0 and a null status; Bun leaves both undefined.
+  for (const shape of [
+    { pid: 0, status: null, signal: null },
+    { pid: undefined, status: undefined, signal: null },
+  ]) {
+    expect(
+      syncWorkerProcessResult(
+        { ...shape, stdout: null, stderr: null, error: enoent },
+        1_000,
+        1_000,
+      ),
+    ).toEqual({ ok: false, kind: "start", error: enoent, stderr: "" });
+  }
 });
 
 test("runScannerWorkerProcess reports output above the cap as an execution failure", () => {
