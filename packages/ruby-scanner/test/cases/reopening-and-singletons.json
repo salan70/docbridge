@@ -1,0 +1,259 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "language": "ruby",
+    "projectRoot": "/tmp/project",
+    "requestId": "case-reopening",
+    "files": [
+      {
+        "filePath": "app/models/user.rb",
+        "content": "# @doc docs/user.md#user\nclass User\n  # @doc docs/user.md#find\n  def self.find(id); end\nend\n\n# @doc docs/user.md#user-admin\nclass User\n  class << self\n    # @doc docs/user.md#admin\n    def admin; end\n  end\n\n  # @doc docs/user.md#find\n  def self.find(id); end\nend\n"
+      }
+    ],
+    "options": {}
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "case-reopening",
+    "language": "ruby",
+    "files": [
+      {
+        "filePath": "app/models/user.rb",
+        "symbols": [
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "app/models/user.rb",
+            "symbolName": "User",
+            "canonicalId": "User",
+            "endpoint": "app/models/user.rb#User",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 2,
+              "column": 7
+            },
+            "nameRange": {
+              "start": {
+                "line": 2,
+                "column": 7
+              },
+              "end": {
+                "line": 2,
+                "column": 11
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 5,
+                "column": 4
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "line": 5,
+                "column": 4
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "app/models/user.rb",
+            "symbolName": "find",
+            "canonicalId": "User.self.find",
+            "endpoint": "app/models/user.rb#User.self.find",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 4,
+              "column": 12
+            },
+            "nameRange": {
+              "start": {
+                "line": 4,
+                "column": 12
+              },
+              "end": {
+                "line": 4,
+                "column": 16
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 3,
+                "column": 3
+              },
+              "end": {
+                "line": 4,
+                "column": 25
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 3,
+                "column": 3
+              },
+              "end": {
+                "line": 4,
+                "column": 20
+              }
+            }
+          },
+          {
+            "kind": "code",
+            "language": "ruby",
+            "filePath": "app/models/user.rb",
+            "symbolName": "admin",
+            "canonicalId": "User.self.admin",
+            "endpoint": "app/models/user.rb#User.self.admin",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 11,
+              "column": 9
+            },
+            "nameRange": {
+              "start": {
+                "line": 11,
+                "column": 9
+              },
+              "end": {
+                "line": 11,
+                "column": 14
+              }
+            },
+            "declarationRange": {
+              "start": {
+                "line": 10,
+                "column": 5
+              },
+              "end": {
+                "line": 11,
+                "column": 19
+              }
+            },
+            "signatureRange": {
+              "start": {
+                "line": 10,
+                "column": 5
+              },
+              "end": {
+                "line": 11,
+                "column": 14
+              }
+            }
+          }
+        ],
+        "undocumentedSymbols": [],
+        "links": [
+          {
+            "source": "app/models/user.rb#User",
+            "target": "docs/user.md#user",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 1,
+              "column": 8
+            },
+            "targetRange": {
+              "start": {
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "line": 1,
+                "column": 25
+              }
+            }
+          },
+          {
+            "source": "app/models/user.rb#User",
+            "target": "docs/user.md#user-admin",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 7,
+              "column": 8
+            },
+            "targetRange": {
+              "start": {
+                "line": 7,
+                "column": 8
+              },
+              "end": {
+                "line": 7,
+                "column": 31
+              }
+            }
+          },
+          {
+            "source": "app/models/user.rb#User.self.find",
+            "target": "docs/user.md#find",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 3,
+              "column": 10
+            },
+            "targetRange": {
+              "start": {
+                "line": 3,
+                "column": 10
+              },
+              "end": {
+                "line": 3,
+                "column": 27
+              }
+            }
+          },
+          {
+            "source": "app/models/user.rb#User.self.admin",
+            "target": "docs/user.md#admin",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 10,
+              "column": 12
+            },
+            "targetRange": {
+              "start": {
+                "line": 10,
+                "column": 12
+              },
+              "end": {
+                "line": 10,
+                "column": 30
+              }
+            }
+          }
+        ],
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "duplicate_code_symbol",
+            "target": "app/models/user.rb#User.self.find",
+            "language": "ruby",
+            "message": "Duplicate Ruby code symbol endpoint: app/models/user.rb#User.self.find",
+            "location": {
+              "filePath": "app/models/user.rb",
+              "line": 15,
+              "column": 12
+            },
+            "range": {
+              "start": {
+                "line": 15,
+                "column": 12
+              },
+              "end": {
+                "line": 15,
+                "column": 16
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
