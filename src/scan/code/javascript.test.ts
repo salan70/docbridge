@@ -149,6 +149,105 @@ test("a JavaScript syntax error is a JavaScript code_parse_error", () => {
   ]);
 });
 
+test("an annotated interface in a .js file is a code_parse_error with no endpoint or link", () => {
+  const result = scanTypeScript(
+    "src/a.js",
+    "/** @doc docs/a.md#x */ export interface X { a: number; }\n",
+  );
+
+  expect(result.symbols).toEqual([]);
+  expect(result.undocumentedSymbols).toEqual([]);
+  expect(result.links).toEqual([]);
+  expect(result.diagnostics).toEqual([
+    {
+      severity: "error",
+      code: "code_parse_error",
+      language: "javascript",
+      target: "src/a.js",
+      message:
+        "JavaScript parse error: 'interface' declarations can only be used in TypeScript files.",
+      location: { filePath: "src/a.js", line: 1, column: 42 },
+    },
+  ]);
+});
+
+test.each([
+  ["a type alias", "export type Id = string;\n", { line: 1, column: 13 }],
+  ["a type annotation", "export function login(email: string) {}\n", { line: 1, column: 30 }],
+  ["an enum", "export enum Role { Admin }\n", { line: 1, column: 13 }],
+  ["an implements clause", "export class A implements B {}\n", { line: 1, column: 16 }],
+])("%s in a .js file is a JavaScript code_parse_error at the construct", (_label, content, at) => {
+  const result = scanTypeScript(
+    "src/a.js",
+    `${content}/** @doc docs/a.md#b */\nexport const b = 1;\n`,
+  );
+
+  expect(result.symbols).toEqual([]);
+  expect(result.links).toEqual([]);
+  expect(result.diagnostics).toMatchObject([
+    {
+      code: "code_parse_error",
+      language: "javascript",
+      message: expect.stringMatching(
+        /^JavaScript parse error: .* only be used in TypeScript files/,
+      ),
+      location: { filePath: "src/a.js", ...at },
+    },
+  ]);
+});
+
+test.each(["src/a.jsx", "src/a.mjs", "src/a.cjs"])(
+  "TypeScript-only syntax in %s is a code_parse_error too",
+  (filePath) => {
+    const result = scanTypeScript(filePath, "export interface X {}\n");
+
+    expect(result.diagnostics.map(({ code, language }) => [code, language])).toEqual([
+      ["code_parse_error", "javascript"],
+    ]);
+  },
+);
+
+test("a parser error wins over TypeScript-only syntax in the same JavaScript file", () => {
+  const result = scanTypeScript("src/a.js", "export interface X {}\nexport function f( {\n");
+
+  expect(result.diagnostics).toMatchObject([
+    { code: "code_parse_error", message: "JavaScript parse error: '}' expected." },
+  ]);
+});
+
+test("JSDoc types in a .js file stay comments, not TypeScript syntax", () => {
+  const content = [
+    "/** @typedef {{ id: string, roles: Array<'admin' | 'user'> }} User */",
+    "",
+    "/**",
+    " * @doc docs/a.md#login",
+    " * @template T",
+    " * @param {string} email",
+    " * @param {import('./session.js').Options<T>} [options]",
+    " * @returns {Promise<User | undefined>}",
+    " */",
+    "export async function login(email, options) {",
+    "  return /** @type {User} */ (await fetch(email));",
+    "}",
+    "",
+  ].join("\n");
+
+  const result = scanTypeScript("src/a.js", content);
+
+  expect(result.diagnostics).toEqual([]);
+  expect(result.symbols.map((symbol) => symbol.endpoint)).toEqual(["src/a.js#login"]);
+});
+
+test("the same TypeScript-only syntax in a .ts file stays valid", () => {
+  const result = scanTypeScript(
+    "src/a.ts",
+    "/** @doc docs/a.md#x */ export interface X { a: number; }\n",
+  );
+
+  expect(result.diagnostics).toEqual([]);
+  expect(result.symbols.map((symbol) => symbol.endpoint)).toEqual(["src/a.ts#X"]);
+});
+
 test("two annotated declarations of one JavaScript endpoint are duplicate_code_symbol", () => {
   const content = [
     "export class A {",

@@ -83,9 +83,9 @@ export function scanTypeScript(
     scriptKindOf(filePath),
   );
 
-  const parseDiagnostics = getParseDiagnostics(sourceFile);
-  if (parseDiagnostics.length > 0) {
-    const first = parseDiagnostics[0];
+  const syntaxErrors = syntaxDiagnostics(sourceFile);
+  if (syntaxErrors.length > 0) {
+    const first = syntaxErrors[0];
     return {
       language: scriptLanguage(filePath),
       filePath,
@@ -247,6 +247,20 @@ function scriptKindOf(filePath: string): ts.ScriptKind {
   return filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
 }
 
+/**
+ * The syntax errors that make a file unscannable, in the order to report them.
+ * A parser error comes first. A JavaScript file the parser accepts can still
+ * use syntax that only TypeScript allows, such as `interface` or a type
+ * annotation; the compiler rejects that as a JavaScript grammar error.
+ */
+function syntaxDiagnostics(sourceFile: ts.SourceFile): readonly ts.Diagnostic[] {
+  const parseDiagnostics = getParseDiagnostics(sourceFile);
+  if (parseDiagnostics.length > 0 || scriptLanguage(sourceFile.fileName) !== "javascript") {
+    return parseDiagnostics;
+  }
+  return javaScriptGrammarDiagnostics(sourceFile);
+}
+
 function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
   // parseDiagnostics is not part of the public typings but is populated by
   // ts.createSourceFile and is the only source of syntactic parse errors here.
@@ -254,6 +268,33 @@ function getParseDiagnostics(sourceFile: ts.SourceFile): ts.Diagnostic[] {
     parseDiagnostics?: ts.DiagnosticWithLocation[];
   };
   return withDiagnostics.parseDiagnostics ?? [];
+}
+
+/**
+ * The compiler's syntactic diagnostics for a JavaScript file, which add its
+ * JavaScript-only grammar checks to the parser's. A program over this one
+ * already parsed file, without the standard library or module resolution,
+ * reads nothing from disk and runs no type checking.
+ */
+function javaScriptGrammarDiagnostics(sourceFile: ts.SourceFile): readonly ts.Diagnostic[] {
+  const { fileName } = sourceFile;
+  const host: ts.CompilerHost = {
+    getSourceFile: (name) => (name === fileName ? sourceFile : undefined),
+    fileExists: (name) => name === fileName,
+    readFile: () => undefined,
+    writeFile: () => undefined,
+    getDefaultLibFileName: () => "lib.d.ts",
+    getCurrentDirectory: () => "/",
+    getCanonicalFileName: (name) => name,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => "\n",
+  };
+  const program = ts.createProgram({
+    rootNames: [fileName],
+    options: { allowJs: true, noLib: true, noResolve: true, types: [] },
+    host,
+  });
+  return program.getSyntacticDiagnostics(sourceFile);
 }
 
 function collectDocTags(filePath: string, sourceFile: ts.SourceFile, statement: ts.Node): DocTag[] {

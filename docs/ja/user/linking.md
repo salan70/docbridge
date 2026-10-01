@@ -158,7 +158,9 @@ class の member を、同じ JSDoc comment と `AuthService.login` のような
 member はすべて `public` で、`#private` member は endpoint になりません。
 `module.exports = ...` や `exports.name = ...` などの CommonJS の代入は endpoint では
 なく、`@doc` を書くと `unsupported_declaration` です。JSX はすべての JavaScript
-ファイルで解析されます。
+ファイルで解析されます。`interface`、`type` alias、型注釈など TypeScript だけの構文は
+JavaScript ファイルでは構文エラーで、`code_parse_error` になります。JSDoc の型は
+そのまま有効です。
 
 ### Python の宣言
 

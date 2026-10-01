@@ -460,6 +460,14 @@ follows the suffix (`JS`, `JSX`, `TS`, `TSX`), so JSX in a declaration parses
 without configuration. As in the TypeScript compiler, every JavaScript suffix
 accepts JSX, not only `.jsx`.
 
+A JavaScript file is also held to the TypeScript compiler's JavaScript
+grammar. Syntax that only TypeScript allows, such as an `interface`, a `type`
+alias, an `enum`, a type annotation, or an `implements` clause, is a syntax
+error even though the parser accepts it. The first such error, with the
+compiler's message, is a `code_parse_error` like any other syntax error, and a
+parser error, when the file has one, is reported instead. JSDoc types are
+comments and stay valid. TypeScript files are not affected.
+
 Supported JavaScript declarations are the ESM `export` forms the TypeScript
 scanner supports and the members of exported classes, with the same JSDoc
 attachment, canonical IDs, ranges, duplicate handling, and diagnostics as

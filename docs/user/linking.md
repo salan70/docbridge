@@ -180,7 +180,9 @@ comments and IDs such as `AuthService.login`. Every member is `public`;
 `#private` members are not endpoints. CommonJS assignments such as
 `module.exports = ...` and `exports.name = ...` are not endpoints, so an
 `@doc` on one is `unsupported_declaration`. JSX parses in every JavaScript
-file.
+file. TypeScript-only syntax, such as an `interface`, a `type` alias, or a type
+annotation, is a syntax error in a JavaScript file and is reported as
+`code_parse_error`; JSDoc types stay valid.
 
 ### Python declarations
 
