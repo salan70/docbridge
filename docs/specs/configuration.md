@@ -121,6 +121,7 @@ configuration is invalid (`config_invalid_value`): every code file must belong
 to exactly one language.
 
 <!-- @code src/config/scanner-runtimes.ts#ScannerRuntimes -->
+<!-- @code src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommand -->
 
 ## Scanner Runtimes
 

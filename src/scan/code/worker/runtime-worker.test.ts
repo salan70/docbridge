@@ -1,0 +1,615 @@
+import { beforeEach, expect, test } from "bun:test";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import type { RuntimeProbeOutcome } from "./runtime-probe";
+import { clearRuntimeProbeCache, resolveRuntimeWorkerCommand } from "./runtime-worker";
+
+const PYTHON_ENTRY = "packages/python-scanner/docbridge_python_scanner.py";
+const RUBY_ENTRY = "packages/ruby-scanner/bin/docbridge-ruby-scanner";
+const JAVA_ENTRY = "packages/java-scanner/build/docbridge-java-scanner.jar";
+
+const PYTHON_OK: RuntimeProbeOutcome = { kind: "ok", runtime: "cpython", version: "3.12.4" };
+
+beforeEach(() => {
+  clearRuntimeProbeCache();
+});
+
+/** A package root holding the given files, standing in for a checkout or an install. */
+function withPackage(files: string[], run: (root: string) => void): void {
+  const root = mkdtempSync(join(tmpdir(), "docbridge-runtime-worker-"));
+  try {
+    for (const relPath of files) {
+      mkdirSync(join(root, relPath, ".."), { recursive: true });
+      writeFileSync(join(root, relPath), "");
+    }
+    run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+/** A probe answering per runtime executable, recording every command it sees. */
+function fakeProbe(outcomes: Record<string, RuntimeProbeOutcome>) {
+  const calls: string[][] = [];
+  const probe = (command: readonly string[]): RuntimeProbeOutcome => {
+    calls.push([...command]);
+    return (
+      outcomes[command[0] ?? ""] ?? {
+        kind: "unstartable",
+        reason: `spawnSync ${command[0]} ENOENT`,
+      }
+    );
+  };
+  return { calls, probe };
+}
+
+test("resolveRuntimeWorkerCommand runs a usable python3 isolated on the bundled entrypoint", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { probe } = fakeProbe({ python3: PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "linux",
+      probe,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      command: ["python3", "-I", "-S", join(root, PYTHON_ENTRY)],
+      stripEnv: ["PYTHONPATH", "PYTHONSTARTUP", "PYTHONHOME", "PYTHONSAFEPATH"],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand runs Ruby without RubyGems on the bundled script", () => {
+  withPackage([RUBY_ENTRY], (root) => {
+    const { probe } = fakeProbe({
+      ruby: { kind: "ok", runtime: "cruby", version: "3.3.6" },
+    });
+
+    const result = resolveRuntimeWorkerCommand("ruby", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      probe,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      command: [
+        "ruby",
+        "--disable=gems,did_you_mean,error_highlight",
+        "-W0",
+        join(root, RUBY_ENTRY),
+      ],
+      stripEnv: ["RUBYOPT", "RUBYLIB", "PRISM_FFI_BACKEND"],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand runs Java with start-up flags on the bundled JAR", () => {
+  withPackage([JAVA_ENTRY], (root) => {
+    const { probe } = fakeProbe({ java: { kind: "ok", runtime: "jdk", version: "17.0.19" } });
+
+    const result = resolveRuntimeWorkerCommand("java", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      probe,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      command: [
+        "java",
+        "-Xshare:auto",
+        "-XX:TieredStopAtLevel=1",
+        "-XX:+UseSerialGC",
+        "-jar",
+        join(root, JAVA_ENTRY),
+      ],
+      stripEnv: ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand uses the npm package entrypoint without a source checkout", () => {
+  withPackage(["dist/workers/python/docbridge_python_scanner.py"], (root) => {
+    const { probe } = fakeProbe({ python3: PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      distRoot: join(root, "dist"),
+      env: {},
+      platform: "linux",
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      command: [
+        "python3",
+        "-I",
+        "-S",
+        join(root, "dist/workers/python/docbridge_python_scanner.py"),
+      ],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand reports a missing bundled worker without probing", () => {
+  withPackage([], (root) => {
+    const { calls, probe } = fakeProbe({ java: { kind: "ok", runtime: "jdk", version: "21" } });
+
+    const result = resolveRuntimeWorkerCommand("java", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      distRoot: join(root, "dist"),
+      env: {},
+      probe,
+    });
+
+    expect(calls).toEqual([]);
+    expect(result).toEqual({
+      ok: false,
+      diagnostic: {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        target: "java",
+        message:
+          `Java scanner worker is unavailable: the bundled worker is missing; looked for ` +
+          `${join(root, JAVA_ENTRY)} and ${join(root, "dist/workers/java/docbridge-java-scanner.jar")}; ` +
+          "run `just build-java-scanner` in a source checkout",
+      },
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand prefers the configured command over the variable and candidates", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({
+      py: PYTHON_OK,
+      "/env/python3": PYTHON_OK,
+      python3: PYTHON_OK,
+    });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      command: ["py", "-3.12"],
+      env: { DOCBRIDGE_PYTHON_RUNTIME: "/env/python3" },
+      platform: "linux",
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      command: ["py", "-3.12", "-I", "-S", join(root, PYTHON_ENTRY)],
+    });
+    expect(calls).toHaveLength(1);
+  });
+});
+
+test("resolveRuntimeWorkerCommand resolves a relative configured executable against the project root", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const projectRoot = join(root, "project");
+    const { probe } = fakeProbe({ [join(projectRoot, ".venv/bin/python")]: PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot,
+      sourceRoot: root,
+      command: [".venv/bin/python"],
+      env: {},
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      command: [join(projectRoot, ".venv/bin/python"), "-I", "-S", join(root, PYTHON_ENTRY)],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand looks up a bare configured executable name on PATH", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { probe } = fakeProbe({ "python3.12": PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: join(root, "project"),
+      sourceRoot: root,
+      command: ["python3.12"],
+      env: {},
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      command: ["python3.12", "-I", "-S", join(root, PYTHON_ENTRY)],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand reports a configured command that cannot start, without fallback", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      command: ["/opt/py/bin/python3"],
+      env: {},
+      platform: "linux",
+      probe,
+    });
+
+    expect(calls.map((command) => command[0])).toEqual(["/opt/py/bin/python3"]);
+    expect(result).toEqual({
+      ok: false,
+      diagnostic: {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        target: "python",
+        message:
+          "Python scanner worker is unavailable: scanners.python.command (/opt/py/bin/python3) " +
+          "could not be started: spawnSync /opt/py/bin/python3 ENOENT; no other runtime is " +
+          "tried while scanners.python.command is set",
+      },
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand reports a configured command whose probe crashes as failed", () => {
+  withPackage([RUBY_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({
+      "/opt/ruby/bin/ruby": { kind: "failed", reason: "probe exited with status 1" },
+      ruby: { kind: "ok", runtime: "cruby", version: "3.4.9" },
+    });
+
+    const result = resolveRuntimeWorkerCommand("ruby", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      command: ["/opt/ruby/bin/ruby"],
+      env: {},
+      probe,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: {
+        code: "code_scanner_failed",
+        message:
+          "Ruby scanner worker failed: scanners.ruby.command (/opt/ruby/bin/ruby) failed its " +
+          "probe: probe exited with status 1; no other runtime is tried while " +
+          "scanners.ruby.command is set",
+      },
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand uses DOCBRIDGE_<LANGUAGE>_RUNTIME when no command is configured", () => {
+  withPackage([JAVA_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({
+      "/opt/jdk/bin/java": { kind: "ok", runtime: "jdk", version: "21.0.5" },
+      java: { kind: "ok", runtime: "jdk", version: "17.0.19" },
+    });
+
+    const result = resolveRuntimeWorkerCommand("java", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: { DOCBRIDGE_JAVA_RUNTIME: "/opt/jdk/bin/java" },
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      command: [
+        "/opt/jdk/bin/java",
+        "-Xshare:auto",
+        "-XX:TieredStopAtLevel=1",
+        "-XX:+UseSerialGC",
+        "-jar",
+        join(root, JAVA_ENTRY),
+      ],
+    });
+    expect(calls).toHaveLength(1);
+  });
+});
+
+test("resolveRuntimeWorkerCommand reports a failing environment override without fallback", () => {
+  withPackage([JAVA_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({
+      "/opt/jre/bin/java": {
+        kind: "rejected",
+        reason: "the Java runtime at /opt/jre has no jdk.compiler module",
+      },
+      java: { kind: "ok", runtime: "jdk", version: "17.0.19" },
+    });
+
+    const result = resolveRuntimeWorkerCommand("java", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: { DOCBRIDGE_JAVA_RUNTIME: "/opt/jre/bin/java" },
+      probe,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: {
+        code: "code_scanner_unavailable",
+        message:
+          "Java scanner worker is unavailable: DOCBRIDGE_JAVA_RUNTIME (/opt/jre/bin/java) is not " +
+          "a usable JDK 17 or later: the Java runtime at /opt/jre has no jdk.compiler module; " +
+          "no other runtime is tried while DOCBRIDGE_JAVA_RUNTIME is set",
+      },
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand treats an empty environment override as unset", () => {
+  withPackage([RUBY_ENTRY], (root) => {
+    const { probe } = fakeProbe({ ruby: { kind: "ok", runtime: "cruby", version: "3.4.9" } });
+
+    const result = resolveRuntimeWorkerCommand("ruby", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: { DOCBRIDGE_RUBY_RUNTIME: "" },
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      command: [
+        "ruby",
+        "--disable=gems,did_you_mean,error_highlight",
+        "-W0",
+        join(root, RUBY_ENTRY),
+      ],
+    });
+  });
+});
+
+test.each<[string, RuntimeProbeOutcome]>([
+  ["missing", { kind: "unstartable", reason: "spawnSync python3 ENOENT" }],
+  ["below the floor", { kind: "rejected", reason: "CPython 3.9.18 is below the 3.10 floor" }],
+  ["crashing", { kind: "failed", reason: "probe exited with status 1" }],
+])("resolveRuntimeWorkerCommand falls through to python when python3 is %s", (_label, outcome) => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({ python3: outcome, python: PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "darwin",
+      probe,
+    });
+
+    expect(calls.map((command) => command[0])).toEqual(["python3", "python"]);
+    expect(result).toMatchObject({
+      ok: true,
+      command: ["python", "-I", "-S", join(root, PYTHON_ENTRY)],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand tries the py -3 launcher before python on Windows", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({ python: PYTHON_OK });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "win32",
+      probe,
+    });
+
+    expect(calls).toEqual([
+      ["py", "-3", "-I", "-S", join(root, PYTHON_ENTRY)],
+      ["python", "-I", "-S", join(root, PYTHON_ENTRY)],
+    ]);
+    expect(result).toMatchObject({
+      ok: true,
+      command: ["python", "-I", "-S", join(root, PYTHON_ENTRY)],
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand names the runtime, floor, and every candidate when none is found", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { probe } = fakeProbe({});
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "linux",
+      probe,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      diagnostic: {
+        severity: "error",
+        code: "code_scanner_unavailable",
+        target: "python",
+        message:
+          "Python scanner worker is unavailable: no usable CPython 3.10 or later found: python3 " +
+          "could not be started: spawnSync python3 ENOENT; python could not be started: " +
+          "spawnSync python ENOENT. Install CPython 3.10 or later, or set " +
+          "scanners.python.command or DOCBRIDGE_PYTHON_RUNTIME",
+      },
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand reports the first found candidate's probe crash as failed", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { probe } = fakeProbe({
+      python3: { kind: "failed", reason: "probe did not finish within 10 s" },
+    });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      platform: "linux",
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: {
+        code: "code_scanner_failed",
+        message: expect.stringContaining(
+          "Python scanner worker failed: no usable CPython 3.10 or later found: python3 failed " +
+            "its probe: probe did not finish within 10 s; python could not be started",
+        ),
+      },
+    });
+  });
+});
+
+test.each<[string, RuntimeProbeOutcome, string]>([
+  [
+    "a version below the floor",
+    { kind: "ok", runtime: "cpython", version: "3.9.18" },
+    "is CPython 3.9.18, below the 3.10 floor",
+  ],
+  [
+    "another runtime",
+    { kind: "ok", runtime: "pypy", version: "3.10.14" },
+    "reports runtime pypy 3.10.14, not CPython",
+  ],
+])("resolveRuntimeWorkerCommand rejects an ok probe that reports %s", (_label, outcome, reason) => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { probe } = fakeProbe({ "/opt/py/bin/python3": outcome });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      command: ["/opt/py/bin/python3"],
+      env: {},
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: {
+        code: "code_scanner_unavailable",
+        message: expect.stringContaining(
+          `scanners.python.command (/opt/py/bin/python3) ${reason};`,
+        ),
+      },
+    });
+  });
+});
+
+test("resolveRuntimeWorkerCommand reports an unreadable probe version as failed", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { probe } = fakeProbe({
+      "/opt/py/bin/python3": { kind: "ok", runtime: "cpython", version: "unknown" },
+    });
+
+    const result = resolveRuntimeWorkerCommand("python", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      command: ["/opt/py/bin/python3"],
+      env: {},
+      probe,
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      diagnostic: {
+        code: "code_scanner_failed",
+        message: expect.stringContaining("reported an unreadable version: unknown"),
+      },
+    });
+  });
+});
+
+test.each([
+  ["1.8.0_392", false],
+  ["16.0.2", false],
+  ["17", true],
+  ["21.0.5", true],
+])("resolveRuntimeWorkerCommand applies the JDK 17 floor to Java %s", (version, usable) => {
+  withPackage([JAVA_ENTRY], (root) => {
+    const { probe } = fakeProbe({ java: { kind: "ok", runtime: "jdk", version } });
+
+    const result = resolveRuntimeWorkerCommand("java", {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: {},
+      probe,
+    });
+
+    expect(result.ok).toBe(usable);
+  });
+});
+
+test("resolveRuntimeWorkerCommand probes a command once for the same PATH and DOCBRIDGE_ values", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: { PATH: "/usr/bin", DOCBRIDGE_UNRELATED: "1", HOME: "/home/a" },
+      platform: "linux" as const,
+      probe,
+    };
+
+    resolveRuntimeWorkerCommand("python", options);
+    resolveRuntimeWorkerCommand("python", { ...options, env: { ...options.env, HOME: "/home/b" } });
+
+    expect(calls).toHaveLength(1);
+  });
+});
+
+test.each([
+  ["PATH", { PATH: "/opt/bin:/usr/bin" }],
+  ["a DOCBRIDGE_ variable", { DOCBRIDGE_UNRELATED: "2" }],
+])("resolveRuntimeWorkerCommand probes again when %s changes", (_label, change) => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+    const env = { PATH: "/usr/bin", DOCBRIDGE_UNRELATED: "1" };
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      platform: "linux" as const,
+      probe,
+    };
+
+    resolveRuntimeWorkerCommand("python", { ...options, env });
+    resolveRuntimeWorkerCommand("python", { ...options, env: { ...env, ...change } });
+
+    expect(calls).toHaveLength(2);
+  });
+});
+
+test("resolveRuntimeWorkerCommand probes again after the probe cache is cleared", () => {
+  withPackage([PYTHON_ENTRY], (root) => {
+    const { calls, probe } = fakeProbe({ python3: PYTHON_OK });
+    const options = {
+      projectRoot: "/project",
+      sourceRoot: root,
+      env: { PATH: "/usr/bin" },
+      platform: "linux" as const,
+      probe,
+    };
+
+    resolveRuntimeWorkerCommand("python", options);
+    clearRuntimeProbeCache();
+    resolveRuntimeWorkerCommand("python", options);
+
+    expect(calls).toHaveLength(2);
+  });
+});

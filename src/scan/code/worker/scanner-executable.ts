@@ -17,7 +17,15 @@ const SCANNER_EXECUTABLE_NAMES: Readonly<Record<ScannerWorkerLanguage, string>> 
 };
 
 export type ScannerWorkerCommandResolution =
-  | { ok: true; command: string[] }
+  | {
+      ok: true;
+      command: string[];
+      /**
+       * Environment variables the worker must start without. Runtime-backed
+       * resolutions always set it; a native executable needs none.
+       */
+      stripEnv?: readonly string[];
+    }
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 type ScannerWorkerResolutionOptions = {

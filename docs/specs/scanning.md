@@ -37,6 +37,7 @@ that depend on that file are suppressed.
 <!-- @code src/model/scan-result.ts#CodeScanResult -->
 <!-- @code src/scan/code/adapter.ts#CodeLanguageAdapter -->
 <!-- @code src/scan/code/worker/scanner-executable.ts#resolveScannerWorkerCommand -->
+<!-- @code src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommand -->
 
 ## Code Scanning
 
@@ -139,6 +140,42 @@ executable and the spawn is still refused with a permission error, the
 filesystem itself refuses execution, which is what a `noexec` mount does;
 DocBridge emits `code_scanner_unavailable` naming the binary's directory and
 that cause.
+
+Runtime-backed workers are pending registration: the Python, Ruby, and Java
+workers below are resolved and run as described here once their languages are
+registered. Each is a script or JAR that runs on a language runtime found on
+the machine instead of a bundled binary, so it is not platform-gated and runs
+wherever its runtime runs, Windows included. Its entrypoint is under
+`packages/` in a source checkout (the Java JAR needs `just build-java-scanner`
+first) and under `dist/workers/<language>/` in the npm package. The command is
+the runtime argv followed by fixed flags and the entrypoint, and the listed
+variables are removed from the worker's environment because each can load code
+or options into the runtime before the entrypoint runs:
+
+| Language | Runtime floor              | Flags before the entrypoint                                  | npm package entrypoint                            | Removed variables                                             |
+| -------- | -------------------------- | ------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------- |
+| Python   | CPython 3.10               | `-I -S`                                                      | `dist/workers/python/docbridge_python_scanner.py` | `PYTHONPATH`, `PYTHONSTARTUP`, `PYTHONHOME`, `PYTHONSAFEPATH` |
+| Ruby     | CRuby 3.3 with Prism       | `--disable=gems,did_you_mean,error_highlight -W0`            | `dist/workers/ruby/bin/docbridge-ruby-scanner`    | `RUBYOPT`, `RUBYLIB`, `PRISM_FFI_BACKEND`                     |
+| Java     | JDK 17 with `jdk.compiler` | `-Xshare:auto -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -jar` | `dist/workers/java/docbridge-java-scanner.jar`    | `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, `_JAVA_OPTIONS`      |
+
+The runtime argv comes from configuration, an environment variable, or the
+documented candidates, in the order that
+[Scanner Runtimes](configuration.md#scanner-runtimes) defines. Before using a
+runtime, DocBridge runs the full command with `--probe` in the same stripped
+environment and reads the one JSON line the worker prints (see each language's
+section). The probe is limited to 10 seconds and 64 KiB of output. Its result
+is cached for the rest of the CLI process or language server session, keyed by
+the full command and the values of `PATH` and every `DOCBRIDGE_*` variable; a
+configuration change clears the cache.
+
+A missing bundled entrypoint, a runtime that cannot be started, and a probe
+that answers `ok: false`, reports another runtime, or reports a version below
+the floor are `code_scanner_unavailable`, naming the runtime, the floor, and
+what was found. A probe that exits unsuccessfully, is killed, times out,
+exceeds the output limit, or prints anything but the expected JSON line is
+`code_scanner_failed`. When no candidate is usable, the message lists each
+candidate's outcome and takes its code from the first candidate that started.
+The scan itself then follows the worker protocol rules above.
 
 <!-- @code src/shared/glob.ts#collectFiles -->
 

@@ -603,6 +603,41 @@
     },
     {
       "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntime",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeOutcome",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawn",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawnResult",
+      "class": "internal_helper"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#clearRuntimeProbeCache",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#RuntimeWorkerCommandResolution",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
+      "target": "src/scan/code/worker/runtime-worker.ts#runtimeWorkerEntrypoints",
+      "class": "sibling_export"
+    },
+    {
+      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-executable.ts#scannerExecutableName",
       "class": "sibling_export"
     },
