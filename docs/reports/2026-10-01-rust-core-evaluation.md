@@ -9,7 +9,7 @@ time and 4.1% fewer tokens, and added 64% more lines for the same behavior.
 This is a dated observation from 2026-10-01, not current guidance. The raw
 records are in [Rust core evaluation records](2026-10-01-rust-core-evaluation-records.md),
 the procedure in Slices A and B of the
-[language wave and Rust evaluation plan](../plans/language-wave-and-rust-evaluation-plan.md),
+[language wave and Rust evaluation plan](../plans/done/language-wave-and-rust-evaluation-plan.md),
 and the resulting decision in [Rust core evaluation](../decisions/rust-core-evaluation.md).
 
 ## Method
