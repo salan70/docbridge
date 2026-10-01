@@ -180,7 +180,8 @@ wherever its runtime runs, Windows included. Its entrypoint is under
 first) and under `dist/workers/<language>/` in the npm package. The command is
 the runtime argv followed by fixed flags and the entrypoint, and the listed
 variables are removed from the worker's environment because each can load code
-or options into the runtime before the entrypoint runs:
+or options into the runtime before the entrypoint runs. On Windows, where
+variable names ignore case, each is removed in any letter case:
 
 | Language | Runtime floor              | Flags before the entrypoint                                  | npm package entrypoint                            | Removed variables                                             |
 | -------- | -------------------------- | ------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------- |

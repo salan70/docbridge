@@ -12,6 +12,7 @@ import {
   runScannerWorkerProcess,
   runScannerWorkerProcessAsync,
   syncWorkerProcessResult,
+  workerProcessEnv,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
 
@@ -114,6 +115,21 @@ test("runScannerWorkerProcess removes the variables named in stripEnv from the w
   } finally {
     delete process.env.DOCBRIDGE_TEST_INJECTED;
     delete process.env.DOCBRIDGE_TEST_KEPT;
+  }
+});
+
+test("workerProcessEnv strips a variable in any letter case on Windows only", () => {
+  process.env.DocBridge_Test_Mixed = "mixed";
+  try {
+    expect(workerProcessEnv(["DOCBRIDGE_TEST_MIXED"], "win32")).not.toHaveProperty(
+      "DocBridge_Test_Mixed",
+    );
+    expect(workerProcessEnv(["DOCBRIDGE_TEST_MIXED"], "linux")).toHaveProperty(
+      "DocBridge_Test_Mixed",
+      "mixed",
+    );
+  } finally {
+    delete process.env.DocBridge_Test_Mixed;
   }
 });
 

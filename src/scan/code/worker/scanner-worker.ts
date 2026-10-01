@@ -236,14 +236,21 @@ export function clangModuleCachePath(): string {
 /**
  * The environment a worker process starts with: the current environment
  * without the variables in `stripEnv`, plus the clang module cache path the
- * Swift toolchain needs. Every process runner, synchronous or not, uses it.
+ * Swift toolchain needs. Every process runner, synchronous or not, and the
+ * runtime probe use it. Windows variable names ignore case, so there a name
+ * is stripped in any letter case.
  */
-export function workerProcessEnv(stripEnv: readonly string[] = []): Record<string, string> {
+export function workerProcessEnv(
+  stripEnv: readonly string[] = [],
+  platform: NodeJS.Platform = process.platform,
+): Record<string, string> {
   const moduleCachePath = clangModuleCachePath();
   mkdirSync(moduleCachePath, { recursive: true });
+  const fold = platform === "win32" ? (name: string) => name.toUpperCase() : (name: string) => name;
+  const stripped = new Set(stripEnv.map(fold));
   const env: Record<string, string> = {};
   for (const [name, value] of Object.entries(process.env)) {
-    if (value !== undefined && !stripEnv.includes(name)) {
+    if (value !== undefined && !stripped.has(fold(name))) {
       env[name] = value;
     }
   }
