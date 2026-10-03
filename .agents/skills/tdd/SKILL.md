@@ -38,6 +38,9 @@ t-wada style Red-Green-Refactor.
 
 ## DocBridge specifics
 
+- Place tests and fixtures as
+  [docs/contributing/testing.md](../../../docs/contributing/testing.md)
+  describes.
 - Parser and scanner changes use small inline TypeScript or Markdown fixtures
   that make the annotation contract obvious.
 - Resolver changes cover both resolving bidirectional links and the diagnostic

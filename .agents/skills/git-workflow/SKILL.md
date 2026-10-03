@@ -29,13 +29,19 @@ cannot be pushed to directly. Follow these rules for all git work.
 2. Implement test-first. For logic changes, use the `tdd` skill.
 3. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
    `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
-   result. Commit in focused, logical commits; the `pre-commit` hook runs the
-   stages that `AGENTS.md` describes.
+   result. Commit in focused, logical commits. The `pre-commit` hook runs
+   `just verify` over the working tree, not only the staged snapshot, then
+   lists linked counterparts that were not staged; act on each as the report
+   says. If `git config core.hooksPath` is unset, run `just install-git-hooks`
+   first.
 4. Write the PR body with the `concise-writing` skill, push with
    `git push -u origin <branch>`, and open a PR using the repository template.
    Title, body, and issue linking follow
    [pull-requests.md](../../../docs/contributing/pull-requests.md). Add exactly
-   one `release:` label.
+   one `release:` label. When the PR lands a plan's final slice, archive the
+   plan in the same PR as
+   [writing.md](../../../docs/contributing/writing.md#implementation-plans)
+   describes.
 5. Wait for CI and the `release-label` check to pass.
 6. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.

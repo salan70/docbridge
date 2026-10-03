@@ -9,6 +9,10 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - There is no separate top-level `test/` directory. Do not create one.
 - Name test files `<module>.test.ts`. The runner discovers them automatically;
   no configuration lists test paths.
+- Put a project that exists only to drive tests under `test-fixtures/`, and a
+  per-diagnostic fixture under `test-fixtures/diagnostics/`. `examples/` holds
+  one human-facing showcase per language. Tests may read an example, but do not
+  move it into `test-fixtures/` or reshape it for a test.
 
 ## Shared test helpers
 

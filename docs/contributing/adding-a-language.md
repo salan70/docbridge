@@ -78,7 +78,7 @@ Whether the work needs a plan follows the [Writing Guidelines](writing.md).
 - [ ] Update the English and Japanese user guides, including the language table
       in `configuration.md`, the declaration rules in `linking.md`, and
       `troubleshooting.md`.
-- [ ] Update both READMEs, `editors/vscode/README.md`, `CONTRIBUTING.md`,
-      [Testing](testing.md), and the language list in `AGENTS.md`.
+- [ ] Update both READMEs, `editors/vscode/README.md`, `CONTRIBUTING.md`, and
+      [Testing](testing.md).
 - [ ] Add the user-facing change under `## [Unreleased]` in `CHANGELOG.md` and
       release it with `release: minor`.
