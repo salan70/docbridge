@@ -112,6 +112,11 @@ function checkSkillMetadata(root: string, errors: string[]): void {
       errors.push(`${path} frontmatter must be a YAML mapping.`);
       continue;
     }
+    const repeatedKey = firstRepeatedTopLevelKey(frontmatter);
+    if (repeatedKey !== undefined) {
+      errors.push(`${path} frontmatter repeats the key ${JSON.stringify(repeatedKey)}.`);
+      continue;
+    }
     const skillName = metadata["name"];
     if (
       typeof skillName !== "string" ||
@@ -137,6 +142,26 @@ function checkSkillMetadata(root: string, errors: string[]): void {
       );
     }
   }
+}
+
+/**
+ * Bun's YAML parser keeps the last value of a repeated key, so a duplicate
+ * that YAML forbids would pass silently. Compare the top-level keys instead.
+ */
+function firstRepeatedTopLevelKey(frontmatter: string): string | undefined {
+  const seen = new Set<string>();
+  for (const line of frontmatter.split(/\r?\n/)) {
+    const key = /^(?:"([^"]*)"|'([^']*)'|([^\s#'"][^:]*?))\s*:(?:\s|$)/.exec(line);
+    if (key === null) {
+      continue;
+    }
+    const name = key[1] ?? key[2] ?? key[3] ?? "";
+    if (seen.has(name)) {
+      return name;
+    }
+    seen.add(name);
+  }
+  return undefined;
 }
 
 function parseYamlMapping(source: string): Record<string, unknown> | undefined {

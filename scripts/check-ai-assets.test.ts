@@ -250,6 +250,20 @@ test("checkAiAssets reports SKILL.md frontmatter that is not valid YAML", () => 
   });
 });
 
+test("checkAiAssets reports SKILL.md frontmatter that repeats a key", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      ".agents/skills/tdd/SKILL.md",
+      "---\nname: tdd\ndescription: [invalid, value]\ndescription: Test first.\n---\n\n# tdd\n",
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      '.agents/skills/tdd/SKILL.md frontmatter repeats the key "description".',
+    ]);
+  });
+});
+
 test("checkAiAssets reports a skill name that differs from its directory", () => {
   withAiAssets((root) => {
     write(
