@@ -9,6 +9,7 @@ names and pull request titles. Commit subjects follow
 
 ```text
 <feat|fix|chore>/#<issue>-<kebab-desc>
+<feat|fix|chore>/<kebab-desc>
 ```
 
 Examples:
@@ -17,15 +18,15 @@ Examples:
 feat/#42-version-flag
 fix/#51-anchor-resolution
 chore/#75-rename-scanner-executables
+chore/agent-environment-inventory
 ```
 
 Rules:
 
 - Use `feat/`, `fix/`, or `chore/` for ordinary work. The precise change type
   lives in the commit message and pull request title, not the branch prefix.
-- Include `#<issue>` so the branch visibly names its tracked issue.
-- Omit `#<issue>` only when the change legitimately needs no issue under the
-  content-based exceptions in [CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Include `#<issue>` when the branch resolves an issue, so the branch visibly
+  names it. Omit it when no issue exists.
 - Dependabot branch names (`dependabot/...`) are outside repository control.
 
 Encode the `#` as `%23` in hand-written GitHub URLs that embed a branch name.
@@ -62,8 +63,10 @@ Rules:
 ## Pull request body
 
 Follow the repository [Writing Guidelines](writing.md) and the pull request
-template. Summarize the delivered result in no more than three bullets. Link the
-accepted issue instead of repeating its background or acceptance criteria.
+template. Summarize the delivered result in no more than three bullets. When
+the pull request resolves an issue, link it instead of repeating its background
+or acceptance criteria. Without an issue, state the problem the pull request
+solves.
 
 Record only checks that actually ran. Keep Review notes only for decisions or
 deviations not captured by the issue, remaining risks, or focused review
@@ -77,13 +80,13 @@ Every pull request carries exactly one `release:` label: `release: none`,
 requires the version bump and CHANGELOG roll from `just release-bump <kind>` in
 the same pull request, and merging it publishes that release. The required
 `release-label` check enforces the label and the matching change. The
-[git-workflow skill](../../.claude/skills/git-workflow/SKILL.md#releases-per-pr)
+[git-workflow skill](../../.agents/skills/git-workflow/SKILL.md#releases-per-pr)
 defines when to use each kind.
 
 ## Linking issues
 
-Non-trivial pull requests link their accepted issue with a GitHub closing
-keyword in the pull request body:
+A pull request that resolves an issue links it with a GitHub closing keyword
+in the pull request body:
 
 ```text
 Closes #123
@@ -98,9 +101,6 @@ Rules:
 - Put the issue number in the body, not in the pull request title.
 - Prefer `Closes` for work that should close the issue. Other GitHub closing
   keywords (`Fixes`, `Resolves`) are also accepted when they fit.
-- When an issue is not required under the content-based exceptions in
-  [CONTRIBUTING.md](../../CONTRIBUTING.md), leave the closing line unused and
-  state the exception in the pull request template instead.
 
 ## Documented exceptions
 

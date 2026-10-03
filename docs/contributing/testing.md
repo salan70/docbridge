@@ -9,6 +9,10 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - There is no separate top-level `test/` directory. Do not create one.
 - Name test files `<module>.test.ts`. The runner discovers them automatically;
   no configuration lists test paths.
+- Put a project that exists only to drive tests under `test-fixtures/`, and a
+  per-diagnostic fixture under `test-fixtures/diagnostics/`. `examples/` holds
+  one human-facing showcase per language. Tests may read an example, but do not
+  move it into `test-fixtures/` or reshape it for a test.
 
 ## Shared test helpers
 
@@ -20,10 +24,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 
 - `just typecheck` runs `tsc --noEmit` over the whole project. `bun build`
   strips types without checking them, so this is the only gate that catches
-  type errors. `just verify` composes it with format checks, lint, `just check`,
-  `just check-docs`, `just check-ai-assets`, `just typecheck-extension`, and
-  `just test` for the pre-commit hook; CI exposes the same checks as separate
-  steps for diagnosis.
+  type errors. `just verify`, which the pre-commit hook runs, composes it with
+  the other checks and test suites that its `justfile` recipe lists; CI exposes
+  the same checks as separate steps for diagnosis.
 - The TypeScript toolchain is pinned through `bun.lock` (`typescript`,
   `@types/bun`, and the transitive `@types/node`). Run installs with
   `bun install --frozen-lockfile` so every machine resolves the same types; a

@@ -12,9 +12,9 @@ without rereading the same claim.
 
 1. Read the repository [writing guidelines](../../../docs/contributing/writing.md).
 2. Identify the artifact, its reader, and the decision or action it supports.
-3. Inspect its sources of truth. For a pull request, read the accepted issue, any
-   implementation plan, the diff, and actual verification results. Never infer a
-   result that was not observed.
+3. Inspect its sources of truth. For a pull request, read the linked issue or
+   request, any implementation plan, the diff, and actual verification results.
+   Never infer a result that was not observed.
 4. Assign each claim to its owning artifact. Link to facts owned elsewhere with
    only enough context to route the reader.
 5. Draft the result first. Preserve evidence, safety boundaries, compatibility,

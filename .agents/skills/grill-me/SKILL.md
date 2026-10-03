@@ -1,12 +1,16 @@
 ---
 name: grill-me
-description: 計画や設計について、共通理解に達するまで一問ずつ徹底的に質問する。Use when the user says grill me, grill して, 徹底的に詰めて, or asks to deeply examine a plan or design.
+description: Question the user one at a time about a plan or design until both share an understanding. Use when the user says grill me, grill して, or 徹底的に詰めて, or asks to examine a plan or design in depth.
 ---
 
 # grill-me
 
-この計画のあらゆる側面について、私たちが共通の認識に達するまで、徹底的に私に質問を投げかけてください。設計のツリーを枝分かれの先まで一つひとつたどり、決定事項間の依存関係を順番に解決していきましょう。各質問に対し、あなたの推奨する回答も併せて提示してください。
+Interview the user about every aspect of the plan until you reach a shared
+understanding. Walk each branch of the design tree to its end, and resolve the
+dependencies between decisions in order. Give your recommended answer with each
+question.
 
-質問は一度に一つずつお願いします。
+Ask one question at a time, in the user's language.
 
-もしコードベースを探索することで答えが得られる質問であれば、質問する代わりにコードベースを調査してください。
+When exploring the codebase can answer a question, explore it instead of
+asking.
