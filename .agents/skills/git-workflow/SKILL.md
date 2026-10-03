@@ -49,6 +49,11 @@ Agents may create branches, commit, push, and open PRs. **Merging a PR requires
 explicit human approval**; merging a releasing PR also publishes the release.
 Never push to `main` directly or try to bypass its protection.
 
+`gh pr merge` asks for approval through `.claude/settings.json` and
+`.codex/rules/docbridge.rules`. Neither is a security boundary: Codex's
+automatic approval reviewer can approve the prompt, and `gh api` can merge
+without matching either rule.
+
 ## Releases (per PR)
 
 Versioning follows SemVer. During `0.x`, new features and breaking changes bump

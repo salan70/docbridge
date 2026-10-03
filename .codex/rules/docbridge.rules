@@ -1,0 +1,18 @@
+# Merging a pull request publishes a release when it carries a releasing
+# label, so it needs explicit human approval (AGENTS.md, Git Policy). This
+# rule makes Codex ask before running it. It is not a security boundary: an
+# automatic approval reviewer can still approve it, and `gh api` can merge
+# without matching it.
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "prompt",
+    justification = "Merging needs explicit human approval and may publish a release.",
+    match = [
+        "gh pr merge",
+        "gh pr merge 184 --merge",
+    ],
+    not_match = [
+        "gh pr view 184",
+        "gh pr checks 184",
+    ],
+)

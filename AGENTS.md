@@ -176,5 +176,5 @@ skill (`.agents/skills/git-workflow/SKILL.md`). Always-on invariants:
 
 ## Codex-specific guidance
 
-Codex skills live in `.agents/skills/` and are selected by their frontmatter
-descriptions.
+Codex loads the project rules in `.codex/rules/` only when this project is
+trusted.

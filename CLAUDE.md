@@ -14,3 +14,5 @@ shared body.
   `.agents/`.
 - Project skills in `.claude/skills/` are auto-discovered. Each is a symlink to
   its source under `.agents/skills/`, as the shared Skills rules describe.
+- `.claude/settings.json` holds the shared permission rules, such as the
+  approval prompt for `gh pr merge`.
