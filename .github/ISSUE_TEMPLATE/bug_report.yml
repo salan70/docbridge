@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for reproducible incorrect behavior or a regression. Non-trivial implementation begins only after the issue receives the `status: accepted` label, regardless of who will implement it.
+        Use this form for reproducible incorrect behavior or a regression.
   - type: checkboxes
     id: existing-issues
     attributes:
@@ -82,7 +82,7 @@ body:
       label: Are you interested in implementing a fix?
       options:
         - "No"
-        - "Yes, after the issue is accepted"
+        - "Yes"
         - Not sure
     validations:
       required: true

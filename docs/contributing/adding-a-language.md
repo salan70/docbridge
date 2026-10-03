@@ -9,9 +9,8 @@ stay where they are: the worker protocol in
 [Rust](../plans/done/rust-language-support-plan.md) plans show the full
 sequence and its decisions.
 
-Start from an accepted feature issue. Whether the work also needs a plan
-follows the [Writing Guidelines](writing.md). `<lang>` below is the lowercase
-language ID.
+Whether the work needs a plan follows the [Writing Guidelines](writing.md).
+`<lang>` below is the lowercase language ID.
 
 ## Worker
 

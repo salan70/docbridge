@@ -9,7 +9,7 @@ safety constraints, not filling every possible section.
 | Artifact              | Owns                                                            | Leaves elsewhere                                      |
 | --------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
 | Issue                 | Problem, desired outcome, boundaries, and acceptance criteria   | Implementation sequence and delivered result          |
-| Implementation plan   | Decisions and order needed to implement an accepted issue       | Repeated problem statements and later delivery status |
+| Implementation plan   | Decisions and order needed to implement an agreed change        | Repeated problem statements and later delivery status |
 | Pull request          | Delivered result, deviations, verification, and review guidance | Issue background and copied acceptance criteria       |
 | Current documentation | Current user tasks, contributor policy, and normative contracts | Delivery history and superseded behavior              |
 | Changelog             | Concise user-visible effect grouped by release                  | Implementation detail and verification logs           |
@@ -20,8 +20,8 @@ context for the reader to decide whether to follow the link.
 Keep one authoritative explanation per concept within each language. Required
 Japanese and English counterparts remain separate and must stay synchronized.
 
-An implementation plan is optional. Write one only when the accepted issue does
-not determine significant implementation choices or sequencing. Archive a
+An implementation plan is optional. Write one only when the issue or request
+does not determine significant implementation choices or sequencing. Archive a
 completed plan as historical context; do not turn it into current guidance.
 
 ## Drafting rules

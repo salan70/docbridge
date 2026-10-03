@@ -1,15 +1,13 @@
 ## Summary
 
 <!-- Describe the delivered result in no more than three bullets. -->
-<!-- Do not repeat the issue background or acceptance criteria. Link the issue below. -->
+<!-- With an issue, link it below instead of repeating its background or acceptance criteria. Without one, also state the problem this pull request solves. -->
 
-## Issue gate
+## Issue
 
-<!-- Keep exactly one line. Non-trivial work requires an issue with the `status: accepted` label, regardless of who creates or implements it. -->
-<!-- Write Closes #NN as plain text below. Do not wrap it in backticks or a code fence; GitHub will not auto-close the issue otherwise. -->
+<!-- Write Closes #NN as plain text below. Do not wrap it in backticks or a code fence; GitHub will not auto-close the issue otherwise. Delete this section when no issue exists. -->
 
 - Closes #
-- Issue not required: <!-- typo, wording, formatting, broken link, or automated dependency update; explain -->
 
 ## Release
 

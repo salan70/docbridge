@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for documentation problems. Typo, wording, formatting, broken-link, or similarly small corrections do not require an issue; non-trivial documentation work begins after the issue receives the `status: accepted` label.
+        Use this form for documentation problems.
   - type: checkboxes
     id: existing-issues
     attributes:

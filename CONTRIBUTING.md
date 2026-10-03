@@ -66,10 +66,11 @@ in place of `docbridge`:
 bun run src/cli/index.ts docs show linking
 ```
 
-## Start non-trivial work with an accepted issue
+## Issues
 
-Choose an issue form based only on the type of work, regardless of who creates
-the issue or implements it:
+Issues are optional. Open one to report a problem, to propose a change, or to
+agree on scope before you invest in a large change. Choose the form by the type
+of work:
 
 | Work                                                            | Issue form          |
 | --------------------------------------------------------------- | ------------------- |
@@ -79,37 +80,25 @@ the issue or implements it:
 | Incorrect, missing, or substantially restructured documentation | Documentation issue |
 | Routine upkeep with a concrete outcome                          | Maintenance task    |
 
-Every issue must use the matching form and provide its required information.
-Non-trivial work begins only after the issue receives the `status: accepted`
-label. Acceptance confirms the agreed problem and scope; it does not guarantee
-that a future pull request will merge. A non-trivial pull request without a
-linked accepted issue may be closed without detailed review.
-
-An issue is optional only for content-based exceptions: typo, wording,
-formatting, broken-link, or similarly small corrections, plus automated
-dependency updates. The identity of the issue author
-or implementer is never an exception. When uncertain, open the matching issue
-form and wait for acceptance before writing code.
-
-Follow the [Writing Guidelines](docs/contributing/writing.md). Each form field
-owns distinct information; link to an existing fact instead of paraphrasing it.
+Provide the form's required information and follow the
+[Writing Guidelines](docs/contributing/writing.md). Each form field owns
+distinct information; link to an existing fact instead of paraphrasing it.
 
 ## Making a change
 
 1. Start from an up-to-date `main` branch and create a focused branch. Name it
    per [Pull requests](docs/contributing/pull-requests.md)
-   (`<feat|fix|chore>/#<issue>-<kebab-desc>`).
-2. For non-trivial work, confirm that its matching issue has the
-   `status: accepted` label before implementation.
-3. Keep code, tests, specifications, and user documentation consistent. Use
+   (`<feat|fix|chore>/#<issue>-<kebab-desc>`, without `#<issue>` when no issue
+   exists).
+2. Keep code, tests, specifications, and user documentation consistent. Use
    `just related-gate` before committing to find linked counterparts that your
    uncommitted changes did not update, or `just related-gate-report` for the
    staged set with the counterparts' content, as the pre-commit hook prints it.
-4. For logic changes, write the failing test first and follow the conventions
+3. For logic changes, write the failing test first and follow the conventions
    in [Testing](docs/contributing/testing.md).
-5. Apply deterministic formatting with `just format`. `just lint-fix` applies
+4. Apply deterministic formatting with `just format`. `just lint-fix` applies
    only Oxlint's safe fixes; review every resulting diff.
-6. Run the relevant focused checks while iterating, then run the shared gates
+5. Run the relevant focused checks while iterating, then run the shared gates
    before opening a pull request.
 
 Do not weaken a formatter, linter, complexity limit, or exclusion to make a
@@ -175,10 +164,9 @@ with `just install-editor-deps`.
   `release-label` check fails without it. See
   [Pull requests](docs/contributing/pull-requests.md#release-label) for the
   labels and the version bump a releasing label requires.
-- Link non-trivial work to its accepted issue as described in
-  [Pull requests](docs/contributing/pull-requests.md#linking-issues). If an
-  issue is not required, state the content-based exception in the pull request
-  template instead.
+- Link the issue a pull request resolves as described in
+  [Pull requests](docs/contributing/pull-requests.md#linking-issues). Without
+  an issue, the pull request states the problem it solves.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
 - For every linked counterpart reported for the pull request's changes, update

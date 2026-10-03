@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for routine upkeep that is not a bug, feature, technical design proposal, or documentation issue. Non-trivial implementation begins only after the issue receives the `status: accepted` label, regardless of who will implement it.
+        Use this form for routine upkeep that is not a bug, feature, technical design proposal, or documentation issue.
   - type: checkboxes
     id: existing-issues
     attributes:
