@@ -22,26 +22,27 @@ cannot be pushed to directly. Follow these rules for all git work.
 
 ## Standard change flow
 
-1. Sync local `main` first: `git switch main && git pull --ff-only`. Never branch
-   from a stale `main`.
-2. Create the branch from `main` using the naming in
-   [pull-requests.md](../../../docs/contributing/pull-requests.md).
-3. Implement test-first. For logic changes, use the `tdd` skill.
-4. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
+1. Branch from a freshly fetched `main`, named per
+   [pull-requests.md](../../../docs/contributing/pull-requests.md):
+   `git fetch origin && git switch --no-track -c <branch> origin/main`. This
+   works even while another worktree holds `main`.
+2. Implement test-first. For logic changes, use the `tdd` skill.
+3. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
    `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
-   result. Commit in focused, logical commits. The `pre-commit` hook runs the shared,
-   read-only `just verify` gate, then `just related-gate-report` over the
-   staged files. The report never blocks; update each listed counterpart or
-   state why it needs no update.
-5. Write the PR body with the `concise-writing` skill, then push the branch and
-   open a PR using the repository template. Title, body, and issue linking
-   follow [pull-requests.md](../../../docs/contributing/pull-requests.md). Add
-   exactly one `release:` label.
-6. Wait for CI and the `release-label` check to pass.
-7. Once CI is green and a human has explicitly approved the merge, merge with
+   result. Commit in focused, logical commits; the `pre-commit` hook runs the
+   stages that `AGENTS.md` describes.
+4. Write the PR body with the `concise-writing` skill, push with
+   `git push -u origin <branch>`, and open a PR using the repository template.
+   Title, body, and issue linking follow
+   [pull-requests.md](../../../docs/contributing/pull-requests.md). Add exactly
+   one `release:` label.
+5. Wait for CI and the `release-label` check to pass.
+6. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.
-8. After merge, return to an updated `main` and remove the local branch:
-   `git switch main && git pull --ff-only && git branch -d <branch>`.
+7. After merge, run `git fetch --prune origin` and delete the local branch,
+   removing its worktree first if it has one: `git branch -d <branch>` from a
+   checkout that contains the merge, or `git branch -D <branch>` once you have
+   confirmed that the PR merged.
 
 ## AI agent autonomy gates
 
