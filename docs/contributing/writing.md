@@ -20,9 +20,17 @@ context for the reader to decide whether to follow the link.
 Keep one authoritative explanation per concept within each language. Required
 Japanese and English counterparts remain separate and must stay synchronized.
 
+## Implementation plans
+
 An implementation plan is optional. Write one only when the issue or request
-does not determine significant implementation choices or sequencing. Archive a
-completed plan as historical context; do not turn it into current guidance.
+does not determine significant implementation choices or sequencing.
+
+An active plan lives directly under `docs/plans/` and tracks its slices in a
+`## Status` checklist. A plan is complete once every box is checked and the
+work has merged to `main`. The pull request that lands the final slice checks
+the last box, moves the plan into `docs/plans/done/` with `git mv`, and adds it
+to `docs/plans/done/README.md`, so the archive stays current without a separate
+sweep. An archived plan is historical context, not current guidance.
 
 ## Drafting rules
 
