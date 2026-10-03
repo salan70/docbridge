@@ -39,10 +39,12 @@ cannot be pushed to directly. Follow these rules for all git work.
 5. Wait for CI and the `release-label` check to pass.
 6. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.
-7. After merge, run `git fetch --prune origin` and delete the local branch,
-   removing its worktree first if it has one: `git branch -d <branch>` from a
-   checkout that contains the merge, or `git branch -D <branch>` once you have
-   confirmed that the PR merged.
+7. After merge, run `git fetch --prune origin` and confirm that
+   `git merge-base --is-ancestor <branch> origin/main` succeeds. Then leave the
+   branch: remove a linked worktree with `git worktree remove <path>`, or in
+   the main checkout switch to `main`, or to `--detach origin/main` while
+   another worktree holds `main`. Delete the branch with `git branch -D <branch>`;
+   the ancestry check has already shown that every commit on it merged.
 
 ## AI agent autonomy gates
 
@@ -51,9 +53,10 @@ explicit human approval**; merging a releasing PR also publishes the release.
 Never push to `main` directly or try to bypass its protection.
 
 `gh pr merge` asks for approval through `.claude/settings.json` and
-`.codex/rules/docbridge.rules`. Neither is a security boundary: Codex's
-automatic approval reviewer can approve the prompt, and `gh api` can merge
-without matching either rule.
+`.codex/rules/docbridge.rules`. Neither is a security boundary: Codex applies
+its rule only to a command that runs outside the sandbox, its automatic
+approval reviewer can approve the prompt, and `gh api` can merge without
+matching either rule.
 
 ## Releases (per PR)
 

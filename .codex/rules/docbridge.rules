@@ -1,8 +1,11 @@
 # Merging a pull request publishes a release when it carries a releasing
 # label, so it needs explicit human approval (AGENTS.md, Git Policy). This
-# rule makes Codex ask before running it. It is not a security boundary: an
-# automatic approval reviewer can still approve it, and `gh api` can merge
-# without matching it.
+# rule makes Codex ask before it runs the merge outside the sandbox: through
+# an escalation request when the sandbox blocks the network, or directly with
+# full access. It is not a security boundary. Codex skips the rule for a
+# command that runs inside the sandbox, read-only sessions did not apply
+# project rules when tested with Codex CLI 0.159, an automatic approval
+# reviewer can approve the prompt, and `gh api` can merge without matching it.
 prefix_rule(
     pattern = ["gh", "pr", "merge"],
     decision = "prompt",
