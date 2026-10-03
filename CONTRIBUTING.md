@@ -112,10 +112,8 @@ Run the common read-only gate:
 just verify
 ```
 
-It runs formatting checks, lint, DocBridge's self-check, documentation structure
-and AI-asset checks, TypeScript type checking of the CLI and the editor client,
-and the Bun test suite. Also verify the
-distributable build:
+It runs the checks and test suites that the `verify` recipe in `justfile` lists.
+Also verify the distributable build:
 
 ```sh
 just build
@@ -123,22 +121,22 @@ just build
 
 Run additional checks when the affected area requires them:
 
-| Area                  | Commands                                                  |
-| --------------------- | --------------------------------------------------------- |
-| Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`     |
-| Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`       |
-| Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`       |
-| Go scanner            | `just test-go-scanner`, `just build-go-scanner`           |
-| Python scanner        | `just test-python-scanner`                                |
-| Ruby scanner          | `just test-ruby-scanner`                                  |
-| Java scanner          | `just test-java-scanner`, `just lint-java`                |
-| Language Server speed | `just lsp-latency`                                        |
-| Examples              | `just check-example <language>`                           |
-| npm distribution      | `just verify-dist`                                        |
-| Editor client         | `just typecheck-extension` (also in `just verify`)        |
-| VS Code extension     | `just package-vsix`, `just verify-vsix`                   |
-| Local VSIX install    | `just package-vsix-local`, `just verify-vsix-local`       |
-| Repository self-audit | `just check-audit-baseline` (also covered by `just test`) |
+| Area                  | Commands                                                           |
+| --------------------- | ------------------------------------------------------------------ |
+| Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`              |
+| Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`                |
+| Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`                |
+| Go scanner            | `just test-go-scanner`, `just build-go-scanner`                    |
+| Python scanner        | `just test-python-scanner` (also in `just verify`)                 |
+| Ruby scanner          | `just test-ruby-scanner` (also in `just verify`)                   |
+| Java scanner          | `just test-java-scanner`, `just lint-java` (both in `just verify`) |
+| Language Server speed | `just lsp-latency`                                                 |
+| Examples              | `just check-example <language>`                                    |
+| npm distribution      | `just verify-dist`                                                 |
+| Editor client         | `just typecheck-extension` (also in `just verify`)                 |
+| VS Code extension     | `just package-vsix`, `just verify-vsix`                            |
+| Local VSIX install    | `just package-vsix-local`, `just verify-vsix-local`                |
+| Repository self-audit | `just check-audit-baseline` (also covered by `just test`)          |
 
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.

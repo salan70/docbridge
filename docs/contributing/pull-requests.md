@@ -80,7 +80,7 @@ Every pull request carries exactly one `release:` label: `release: none`,
 requires the version bump and CHANGELOG roll from `just release-bump <kind>` in
 the same pull request, and merging it publishes that release. The required
 `release-label` check enforces the label and the matching change. The
-[git-workflow skill](../../.claude/skills/git-workflow/SKILL.md#releases-per-pr)
+[git-workflow skill](../../.agents/skills/git-workflow/SKILL.md#releases-per-pr)
 defines when to use each kind.
 
 ## Linking issues
