@@ -21,6 +21,11 @@ const sharedImport = `@${sharedGuidance}`;
  */
 const minimumEmbeddedBlockLength = 60;
 
+/** The Agent Skills rules for a skill's discovery metadata. */
+const skillNamePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const maximumSkillNameLength = 64;
+const maximumSkillDescriptionLength = 1024;
+
 /** Configurations whose exclusion list must never skip a skill tree. */
 const exclusionConfigs = [
   { path: ".oxfmtrc.json", format: "json", key: "ignorePatterns" },
@@ -29,14 +34,16 @@ const exclusionConfigs = [
 ] as const;
 
 /**
- * Check the AI asset layout: every skill lives once under the Codex tree, the
- * Claude tree holds only symlinks that resolve to the same skill, and
- * `CLAUDE.md` imports the shared `AGENTS.md` body instead of copying it.
+ * Check the AI asset layout: every skill lives once under the Codex tree with
+ * valid discovery metadata, the Claude tree holds only symlinks that resolve to
+ * the same skill, and `CLAUDE.md` imports the shared `AGENTS.md` body instead
+ * of copying it.
  */
 export function checkAiAssets(root: string): string[] {
   const errors: string[] = [];
   checkTemplateSkill(root, errors);
   checkLinkedSkills(root, errors);
+  checkSkillMetadata(root, errors);
   checkExclusions(root, errors);
   checkAgentGuidance(root, errors);
   return errors;
@@ -74,8 +81,72 @@ function checkLinkedSkills(root: string, errors: string[]): void {
       resolved === undefined ||
       resolved !== resolvePath(root, codexPath)
     ) {
-      errors.push(`${claudePath} must be a symlink to ${codexPath}.`);
+      errors.push(`${claudePath} must be a symlink that resolves to ${codexPath}.`);
     }
+  }
+}
+
+/**
+ * Check the frontmatter that agents read to discover each skill, following the
+ * Agent Skills specification. A skill whose directory does not resolve is
+ * already reported by the layout checks.
+ */
+function checkSkillMetadata(root: string, errors: string[]): void {
+  for (const name of skillNames(root, codexTree)) {
+    if (resolvePath(root, `${codexTree}/${name}`) === undefined) {
+      continue;
+    }
+    const path = `${codexTree}/${name}/SKILL.md`;
+    const content = readTextFile(join(root, path));
+    if (content === undefined) {
+      errors.push(`${path} is missing.`);
+      continue;
+    }
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content)?.[1];
+    if (frontmatter === undefined) {
+      errors.push(`${path} must begin with YAML frontmatter between \`---\` lines.`);
+      continue;
+    }
+    const metadata = parseYamlMapping(frontmatter);
+    if (metadata === undefined) {
+      errors.push(`${path} frontmatter must be a YAML mapping.`);
+      continue;
+    }
+    const skillName = metadata["name"];
+    if (
+      typeof skillName !== "string" ||
+      skillName.length > maximumSkillNameLength ||
+      !skillNamePattern.test(skillName)
+    ) {
+      errors.push(
+        `${path} name must be 1-${maximumSkillNameLength} lowercase letters, digits, and single hyphens.`,
+      );
+    } else if (skillName !== name) {
+      errors.push(
+        `${path} name ${JSON.stringify(skillName)} must match its directory ${JSON.stringify(name)}.`,
+      );
+    }
+    const description = metadata["description"];
+    if (
+      typeof description !== "string" ||
+      description.trim() === "" ||
+      [...description].length > maximumSkillDescriptionLength
+    ) {
+      errors.push(
+        `${path} description must be a non-empty string of at most ${maximumSkillDescriptionLength} characters.`,
+      );
+    }
+  }
+}
+
+function parseYamlMapping(source: string): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = Bun.YAML.parse(source);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
   }
 }
 

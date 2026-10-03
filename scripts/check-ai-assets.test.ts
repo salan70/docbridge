@@ -12,7 +12,7 @@ function write(root: string, path: string, content: string): void {
 }
 
 function skill(name: string): string {
-  return `---\nname: ${name}\n---\n\n# ${name}\n`;
+  return `---\nname: ${name}\ndescription: Use when a test needs the ${name} skill.\n---\n\n# ${name}\n`;
 }
 
 const SHARED_GUIDANCE = `# AGENTS.md
@@ -77,7 +77,7 @@ test("checkAiAssets reports a Claude skill copied instead of linked", () => {
     write(root, ".claude/skills/tdd/SKILL.md", skill("tdd"));
 
     expect(checkAiAssets(root)).toEqual([
-      ".claude/skills/tdd must be a symlink to .agents/skills/tdd.",
+      ".claude/skills/tdd must be a symlink that resolves to .agents/skills/tdd.",
     ]);
   });
 });
@@ -115,7 +115,7 @@ test("checkAiAssets reports a Codex docbridge skill that is not the template", (
 
     expect(checkAiAssets(root)).toEqual([
       ".agents/skills/docbridge must be a symlink to templates/skills/docbridge.",
-      ".claude/skills/docbridge must be a symlink to .agents/skills/docbridge.",
+      ".claude/skills/docbridge must be a symlink that resolves to .agents/skills/docbridge.",
     ]);
   });
 });
@@ -126,7 +126,7 @@ test("checkAiAssets reports broken skill symlinks", () => {
 
     expect(checkAiAssets(root)).toEqual([
       ".agents/skills/docbridge must be a symlink to templates/skills/docbridge.",
-      ".claude/skills/docbridge must be a symlink to .agents/skills/docbridge.",
+      ".claude/skills/docbridge must be a symlink that resolves to .agents/skills/docbridge.",
     ]);
   });
 });
@@ -194,6 +194,137 @@ test("checkAiAssets reports an exclusion that names a skill tree directory", () 
     expect(checkAiAssets(root)).toEqual([
       '.rumdl.toml excludes ".agents/skills"; both skill trees must stay formatted and linted.',
     ]);
+  });
+});
+
+test("checkAiAssets reports a skill directory without SKILL.md", () => {
+  withAiAssets((root) => {
+    unlinkSync(join(root, ".agents/skills/tdd/SKILL.md"));
+    write(root, ".agents/skills/tdd/README.md", "# tdd\n");
+
+    expect(checkAiAssets(root)).toEqual([".agents/skills/tdd/SKILL.md is missing."]);
+  });
+});
+
+test("checkAiAssets reports a SKILL.md that does not start with frontmatter", () => {
+  withAiAssets((root) => {
+    write(root, ".agents/skills/tdd/SKILL.md", "# tdd\n\n---\nname: tdd\n---\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/tdd/SKILL.md must begin with YAML frontmatter between `---` lines.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports SKILL.md frontmatter that is never closed", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      ".agents/skills/tdd/SKILL.md",
+      "---\nname: tdd\ndescription: Test first.\n\n# tdd\n",
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/tdd/SKILL.md must begin with YAML frontmatter between `---` lines.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports SKILL.md frontmatter that is not a YAML mapping", () => {
+  withAiAssets((root) => {
+    write(root, ".agents/skills/tdd/SKILL.md", "---\n- tdd\n- Test first.\n---\n\n# tdd\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/tdd/SKILL.md frontmatter must be a YAML mapping.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports SKILL.md frontmatter that is not valid YAML", () => {
+  withAiAssets((root) => {
+    write(root, ".agents/skills/tdd/SKILL.md", "---\nname: [tdd\n---\n\n# tdd\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/tdd/SKILL.md frontmatter must be a YAML mapping.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports a skill name that differs from its directory", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      ".agents/skills/tdd/SKILL.md",
+      "---\nname: test-first\ndescription: Test first.\n---\n\n# tdd\n",
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      '.agents/skills/tdd/SKILL.md name "test-first" must match its directory "tdd".',
+    ]);
+  });
+});
+
+test("checkAiAssets reports a skill name that breaks the naming rule", () => {
+  withAiAssets((root) => {
+    write(root, ".agents/skills/test--first/SKILL.md", skill("test--first"));
+    symlinkSync("../../.agents/skills/test--first", join(root, ".claude/skills/test--first"));
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/test--first/SKILL.md name must be 1-64 lowercase letters, digits, and single hyphens.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports a skill name longer than 64 characters", () => {
+  withAiAssets((root) => {
+    const name = "a".repeat(65);
+    write(root, `.agents/skills/${name}/SKILL.md`, skill(name));
+    symlinkSync(`../../.agents/skills/${name}`, join(root, `.claude/skills/${name}`));
+
+    expect(checkAiAssets(root)).toEqual([
+      `.agents/skills/${name}/SKILL.md name must be 1-64 lowercase letters, digits, and single hyphens.`,
+    ]);
+  });
+});
+
+test("checkAiAssets reports a skill without a description", () => {
+  withAiAssets((root) => {
+    write(root, ".agents/skills/tdd/SKILL.md", "---\nname: tdd\n---\n\n# tdd\n");
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/tdd/SKILL.md description must be a non-empty string of at most 1024 characters.",
+    ]);
+  });
+});
+
+test("checkAiAssets reports a skill description longer than 1024 characters", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      ".agents/skills/tdd/SKILL.md",
+      `---\nname: tdd\ndescription: ${"a".repeat(1025)}\n---\n\n# tdd\n`,
+    );
+
+    expect(checkAiAssets(root)).toEqual([
+      ".agents/skills/tdd/SKILL.md description must be a non-empty string of at most 1024 characters.",
+    ]);
+  });
+});
+
+test("checkAiAssets accepts quoted and folded skill descriptions", () => {
+  withAiAssets((root) => {
+    write(
+      root,
+      ".agents/skills/tdd/SKILL.md",
+      '---\nname: tdd\ndescription: "Use when: a change needs a test first."\n---\n\n# tdd\n',
+    );
+    write(
+      root,
+      ".agents/skills/concise-writing/SKILL.md",
+      "---\nname: concise-writing\ndescription: >-\n  Use when an issue or pull request\n  needs concise prose.\n---\n\n# concise-writing\n",
+    );
+
+    expect(checkAiAssets(root)).toEqual([]);
   });
 });
 
