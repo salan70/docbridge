@@ -9,9 +9,8 @@ stay where they are: the worker protocol in
 [Rust](../plans/done/rust-language-support-plan.md) plans show the full
 sequence and its decisions.
 
-Start from an accepted feature issue. Whether the work also needs a plan
-follows the [Writing Guidelines](writing.md). `<lang>` below is the lowercase
-language ID.
+Whether the work needs a plan follows the [Writing Guidelines](writing.md).
+`<lang>` below is the lowercase language ID.
 
 ## Worker
 
@@ -79,7 +78,7 @@ language ID.
 - [ ] Update the English and Japanese user guides, including the language table
       in `configuration.md`, the declaration rules in `linking.md`, and
       `troubleshooting.md`.
-- [ ] Update both READMEs, `editors/vscode/README.md`, `CONTRIBUTING.md`,
-      [Testing](testing.md), and the repository layout in `AGENTS.md`.
+- [ ] Update both READMEs, `editors/vscode/README.md`, `CONTRIBUTING.md`, and
+      [Testing](testing.md).
 - [ ] Add the user-facing change under `## [Unreleased]` in `CHANGELOG.md` and
       release it with `release: minor`.

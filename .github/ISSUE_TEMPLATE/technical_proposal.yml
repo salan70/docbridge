@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for a technical design change. Non-trivial implementation begins only after the issue receives the `status: accepted` label, regardless of who will implement it.
+        Use this form for a technical design change.
   - type: checkboxes
     id: existing-issues
     attributes:
