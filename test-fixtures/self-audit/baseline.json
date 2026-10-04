@@ -63,11 +63,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#InitCliError",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/cli/errors.ts#manifestRepairGuidance",
       "class": "sibling_export"
     },
@@ -773,11 +768,6 @@
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#createLazyWorkerResponseValidator",
-      "class": "internal_helper"
-    },
-    {
-      "code": "undocumented_symbol",
       "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorker",
       "class": "internal_helper"
     },
@@ -1254,11 +1244,6 @@
     {
       "code": "undocumented_symbol",
       "target": "src/setup/update-notice.ts#isUpdateCheckOptedOut",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/setup/update-notice.ts#shouldCheckForUpdates",
       "class": "sibling_export"
     },
     {

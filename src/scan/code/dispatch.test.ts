@@ -291,18 +291,6 @@ test("scanCodeFiles starts no worker for a language without a readable file", ()
   expect(requests).toEqual([]);
 });
 
-test("a worker adapter scans a single file through a one-file request", () => {
-  const requests: RecordedRequest[] = [];
-  const goAdapter = createScannerWorkerAdapter("go", () => ["go-worker"], {
-    run: echoingWorker(requests),
-  });
-
-  const scan = goAdapter.scanFile("a.go", "package a\n", {}, { projectRoot: "/project" });
-
-  expect(scan.filePath).toBe("a.go");
-  expect(requestedPaths(requests)).toEqual([["a.go"]]);
-});
-
 test("check suppresses link diagnostics for every file of a failed worker request", () => {
   withProject(
     {

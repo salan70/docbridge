@@ -6,7 +6,6 @@ import { join } from "node:path";
 import { deferred, isAbortError } from "../../../shared/cancelable";
 import {
   clangModuleCachePath,
-  createLazyWorkerResponseValidator,
   invokeScannerWorker,
   invokeScannerWorkerAsync,
   runScannerWorkerProcess,
@@ -15,20 +14,6 @@ import {
   workerProcessEnv,
   type ScannerWorkerProcessResult,
 } from "./scanner-worker";
-
-test("worker response schema compilation is lazy and cached", () => {
-  let compileCount = 0;
-  const compiled = { validate: true };
-  const validator = createLazyWorkerResponseValidator(() => {
-    compileCount += 1;
-    return compiled;
-  });
-
-  expect(compileCount).toBe(0);
-  expect(validator()).toBe(compiled);
-  expect(validator()).toBe(compiled);
-  expect(compileCount).toBe(1);
-});
 
 test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", () => {
   const path = clangModuleCachePath();

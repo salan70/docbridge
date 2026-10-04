@@ -1,12 +1,7 @@
 import { expect, test } from "bun:test";
 import { sep } from "node:path";
 
-import {
-  decideUpdateCheck,
-  formatUpdateNotice,
-  isUpdateCheckOptedOut,
-  shouldCheckForUpdates,
-} from "./update-notice";
+import { decideUpdateCheck, formatUpdateNotice, isUpdateCheckOptedOut } from "./update-notice";
 import { detectUpgradeGuidance } from "./upgrade-guidance";
 
 const guidance = detectUpgradeGuidance({
@@ -17,7 +12,7 @@ const guidance = detectUpgradeGuidance({
 });
 
 test("decideUpdateCheck enables a bare invocation with no command", () => {
-  expect(shouldCheckForUpdates({ argv: [], env: {}, isTty: true })).toBe(true);
+  expect(decideUpdateCheck({ argv: [], env: {}, isTty: true })).toEqual({ enabled: true });
 });
 
 test.each([
@@ -36,12 +31,8 @@ test.each([
   ["", "empty"],
 ])("decideUpdateCheck ignores DOCBRIDGE_NO_UPDATE_CHECK=%s (%s)", (value) => {
   expect(
-    shouldCheckForUpdates({
-      argv: ["check"],
-      env: { DOCBRIDGE_NO_UPDATE_CHECK: value },
-      isTty: true,
-    }),
-  ).toBe(true);
+    decideUpdateCheck({ argv: ["check"], env: { DOCBRIDGE_NO_UPDATE_CHECK: value }, isTty: true }),
+  ).toEqual({ enabled: true });
 });
 
 test.each(["lsp", "upgrade"])("decideUpdateCheck suppresses the notice for %s", (command) => {

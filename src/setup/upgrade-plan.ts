@@ -94,7 +94,6 @@ export type UpgradePlan = {
   nextSteps: string[];
   /** Set when destructive operations need `--yes` or an interactive answer. */
   requiresConfirmation: boolean;
-  exitCode: number;
 };
 
 /** Compare the running binary against the registry's latest stable release. */
@@ -269,7 +268,6 @@ export function planUpgrade(input: {
       operations.some(
         (operation) => operation.action === "overwrite" || operation.action === "remove",
       ),
-    exitCode: 0,
   };
 }
 

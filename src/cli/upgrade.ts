@@ -133,7 +133,7 @@ export function runUpgrade(
 
   if (plan.mode === "check" || options.dryRun) {
     io.stdout(formatUpgradePlan(plan));
-    return plan.exitCode;
+    return 0;
   }
 
   return applyUpgrade(projectRoot, packageRoot, plan, io, initRuntime);
@@ -170,7 +170,7 @@ function applyUpgrade(
   }
 
   io.stdout(formatUpgradePlan(plan));
-  return plan.exitCode;
+  return 0;
 }
 
 function parseAgentTarget(value: string | undefined): AgentTarget {

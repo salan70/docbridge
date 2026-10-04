@@ -21,9 +21,6 @@ import {
 /** The in-process TypeScript code language adapter. */
 export const typeScriptAdapter: CodeLanguageAdapter = {
   language: "typescript",
-  scanFile(filePath: string, content: string, options: CodeScanOptions) {
-    return scanTypeScript(filePath, content, options);
-  },
   scanFiles(files, options: CodeScanOptions) {
     return files.map(({ filePath, content }) => scanTypeScript(filePath, content, options));
   },
