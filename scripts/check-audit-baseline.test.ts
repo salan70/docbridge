@@ -2,7 +2,6 @@ import { expect, test } from "bun:test";
 import { join } from "node:path";
 
 import {
-  BASELINE_CLASSES,
   BASELINE_PATH,
   compareAuditBaseline,
   compareRepositoryAuditBaseline,
@@ -104,24 +103,6 @@ test("formatBaselineDiff names unreviewed additions and stale removals", () => {
   expect(report).toContain("stale baseline entry");
   expect(report).toContain("unlinked_doc_section docs/specs/old.md#gone");
   expect(report).toContain(BASELINE_PATH);
-  for (const reviewClass of BASELINE_CLASSES) {
-    expect(report).toContain(reviewClass);
-  }
-});
-
-test("parseBaseline rejects an unknown review class", () => {
-  expect(() =>
-    parseBaseline({
-      version: 1,
-      entries: [
-        {
-          code: "undocumented_symbol",
-          target: "src/core/foo.ts#foo",
-          class: "not_a_class",
-        },
-      ],
-    }),
-  ).toThrow(/unknown review class/i);
 });
 
 test("compareAuditBaseline accepts an exact match regardless of entry order", () => {
@@ -145,12 +126,10 @@ test("compareAuditBaseline accepts an exact match regardless of entry order", ()
         {
           code: "unlinked_doc_section",
           target: "docs/specs/cli.md#error-guidance",
-          class: "structural_doc",
         },
         {
           code: "undocumented_symbol",
           target: "src/core/foo.ts#foo",
-          class: "internal_helper",
         },
       ],
     }),
@@ -168,7 +147,6 @@ test("compareAuditBaseline fails when the live audit set diverges", () => {
         {
           code: "undocumented_symbol",
           target: "src/core/old.ts#kept",
-          class: "sibling_export",
         },
       ],
     }),

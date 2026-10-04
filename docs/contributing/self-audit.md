@@ -3,8 +3,7 @@
 This document is the policy for DocBridge's own link graph. It does not change
 the public meaning of `docbridge check --audit`. Adopters still see every
 in-scope `undocumented_symbol` and `unlinked_doc_section` warning; this
-repository additionally keeps a classified baseline of the warnings it has
-reviewed.
+repository additionally keeps a baseline of the warnings it has reviewed.
 
 ## What must participate
 
@@ -25,12 +24,13 @@ type beside it.
 These in-scope endpoints are expected to appear in `check --audit` and in the
 baseline. They are not missing contracts:
 
-| Class             | Meaning                                                                                                                           |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `internal_helper` | Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared type aliases that are not themselves a public contract. |
-| `test_support`    | Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`, `src/lsp/fixtures.ts`).                                        |
-| `sibling_export`  | Additional exports in a module whose primary contract is already linked.                                                          |
-| `structural_doc`  | Overviews, tutorials, catalogs, workflow prose, and headings whose parent is already bridged.                                     |
+- Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared
+  type aliases that are not themselves a public contract.
+- Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`,
+  `src/lsp/fixtures.ts`).
+- Additional exports in a module whose primary contract is already linked.
+- Overviews, tutorials, catalogs, workflow prose, and headings whose parent is
+  already bridged.
 
 Zero audit warnings is not a goal. False or low-value links are worse than a
 reviewed gap.
@@ -51,7 +51,7 @@ and line numbers are not part of the identity.
 `--audit` set to that file:
 
 - A live key absent from the file is an unreviewed addition. Add a reciprocal
-  `@doc` / `@code` pair, or add a classified baseline entry.
+  `@doc` / `@code` pair, or add a baseline entry.
 - A file key absent from the live set is a stale baseline entry. Delete it in
   the same change that closed the gap.
 
@@ -68,5 +68,5 @@ adapter factory for every language, so pointing those headings at it would be
 a false relationship. Expanding `include.code` to the worker packages needs
 separate maintainer approval.
 
-Those seven headings are classified `structural_doc`. JavaScript Scanning is
-linked instead, because the in-process TypeScript scanner implements it.
+Those seven headings are baseline entries. JavaScript Scanning is linked
+instead, because the in-process TypeScript scanner implements it.
