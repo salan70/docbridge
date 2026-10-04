@@ -55,8 +55,6 @@ Whether the work needs a plan follows the [Writing Guidelines](writing.md).
       whose behavior depends on the language.
 - [ ] Cover configuration acceptance and rejection in `src/config/config.test.ts`
       and discovery in `src/setup/init-discovery.test.ts`.
-- [ ] Refresh `test-fixtures/self-audit/baseline.json` as
-      [Self-audit](self-audit.md) describes.
 
 ## Distribution
 

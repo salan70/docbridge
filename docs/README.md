@@ -63,7 +63,7 @@ with the specification for the interface whose exact contract you need:
 - [Commit messages](contributing/commits.md)
 - [Pull requests](contributing/pull-requests.md)
 - [Releasing](contributing/releasing.md)
-- [Self-audit baseline](contributing/self-audit.md)
+- [Self-audit](contributing/self-audit.md)
 
 ## Historical records
 
