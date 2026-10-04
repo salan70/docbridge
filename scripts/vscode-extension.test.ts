@@ -13,11 +13,8 @@ import {
   assertPackagingInputs,
   buildReleaseManifest,
   defaultVsixPath,
-  extensionBundleCommand,
   requiredScannerPlatformKeys,
-  serverBundleCommand,
   verifyExpandedVsix,
-  vscodeMarketplacePublishCommand,
 } from "./vscode-extension";
 
 const hostPlatformKey = scannerPlatformKey();
@@ -301,52 +298,6 @@ describe("defaultVsixPath", () => {
     expect(defaultVsixPath("/repo", "1.2.3", "local")).toBe(
       "/repo/editors/vscode/.tmp/out/docbridge-1.2.3-local.vsix",
     );
-  });
-});
-
-describe("serverBundleCommand", () => {
-  test("bundles the VSIX server for Node, the runtime its shebang and verify-dist assume", () => {
-    expect(serverBundleCommand()).toEqual([
-      "bun",
-      "build",
-      "src/cli/index.ts",
-      "--outdir",
-      "dist",
-      "--target",
-      "node",
-    ]);
-  });
-});
-
-describe("extensionBundleCommand", () => {
-  test("bundles the editor client for Node and leaves vscode to the editor host", () => {
-    expect(extensionBundleCommand()).toEqual([
-      "bun",
-      "build",
-      "src/extension.ts",
-      "--outfile",
-      "out/extension.js",
-      "--target",
-      "node",
-      "--format",
-      "cjs",
-      "--external",
-      "vscode",
-    ]);
-  });
-});
-
-describe("publish command builders", () => {
-  test("publishes an existing VSIX to VS Code Marketplace with VSCE_PAT", () => {
-    expect(vscodeMarketplacePublishCommand("/tmp/docbridge.vsix", "secret")).toEqual([
-      "bunx",
-      "@vscode/vsce",
-      "publish",
-      "--packagePath",
-      "/tmp/docbridge.vsix",
-      "-p",
-      "secret",
-    ]);
   });
 });
 

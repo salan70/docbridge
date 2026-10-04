@@ -13,14 +13,9 @@ import { join } from "node:path";
 
 import { resolvePackageRoot } from "../shared/package-root";
 import { makeProject } from "../test-support";
+import { CliError } from "./errors";
 import { run } from "./index";
-import {
-  InitCliError,
-  parseInitOptions,
-  runInit,
-  runInitWithAgent,
-  type InitPrompts,
-} from "./init";
+import { parseInitOptions, runInit, runInitWithAgent, type InitPrompts } from "./init";
 import { capture } from "./test-support";
 
 const nonInteractivePrompts: InitPrompts = {
@@ -51,7 +46,7 @@ test("parseInitOptions accepts shared init options", () => {
 });
 
 test("parseInitOptions rejects unknown options", () => {
-  expect(() => parseInitOptions(["--bogus"], "init")).toThrow(InitCliError);
+  expect(() => parseInitOptions(["--bogus"], "init")).toThrow(CliError);
   expect(() => parseInitOptions(["--bogus"], "init")).toThrow("Unknown option");
 });
 

@@ -3,1568 +3,1243 @@
   "entries": [
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/docs.ts#createFileDocumentationReader",
-      "class": "sibling_export"
+      "target": "src/cli/docs.ts#createFileDocumentationReader"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/docs.ts#DocsCommand",
-      "class": "sibling_export"
+      "target": "src/cli/docs.ts#DocsCommand"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/docs.ts#DocumentationReader",
-      "class": "sibling_export"
+      "target": "src/cli/docs.ts#DocumentationReader"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/docs.ts#DocumentationSummary",
-      "class": "sibling_export"
+      "target": "src/cli/docs.ts#DocumentationSummary"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/docs.ts#parseDocsCommand",
-      "class": "sibling_export"
+      "target": "src/cli/docs.ts#parseDocsCommand"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#agentTargetGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#agentTargetGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#CliError",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#CliError"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#commandHelpGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#commandHelpGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#configRepairGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#configRepairGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#configSetupGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#configSetupGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#DiagnosticOutputError",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#DiagnosticOutputError"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#includeContentGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#includeContentGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#InitCliError",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#manifestRepairGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#manifestRepairGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#missingInputGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#missingInputGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#rootPathGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#rootPathGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/errors.ts#upgradeConfirmationGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/errors.ts#upgradeConfirmationGuidance",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#GLOBAL_HELP"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#GLOBAL_HELP",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#hasHelpFlag"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#hasHelpFlag",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#isSubcommand"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#isSubcommand",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#parseCommandOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#parseCommandOptions",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#Subcommand"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#Subcommand",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#SUBCOMMANDS"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#SUBCOMMANDS",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#TableCommandOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#TableCommandOptions",
-      "class": "sibling_export"
+      "target": "src/cli/help.ts#TableParsedSubcommand"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/help.ts#TableParsedSubcommand",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#CliCheckOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#CliCheckOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#CliContextOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#CliContextOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#CliGraphOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#CliGraphOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#CliRelatedOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#CliRelatedOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#CliRuntime"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#CliRuntime",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#parseCheckOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#parseCheckOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#parseContextOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#parseContextOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#parseGraphOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#parseGraphOptions",
-      "class": "sibling_export"
+      "target": "src/cli/index.ts#parseRelatedOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/index.ts#parseRelatedOptions",
-      "class": "sibling_export"
+      "target": "src/cli/init.ts#createDefaultPrompts"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/init.ts#createDefaultPrompts",
-      "class": "sibling_export"
+      "target": "src/cli/init.ts#InitPrompts"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/init.ts#InitPrompts",
-      "class": "sibling_export"
+      "target": "src/cli/init.ts#InitRuntime"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/init.ts#InitRuntime",
-      "class": "sibling_export"
+      "target": "src/cli/io.ts#CliIo"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/io.ts#CliIo",
-      "class": "sibling_export"
+      "target": "src/cli/render/context.ts#formatContextResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/context.ts#formatContextResult",
-      "class": "internal_helper"
+      "target": "src/cli/render/context.ts#renderContextBlock"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/context.ts#renderContextBlock",
-      "class": "internal_helper"
+      "target": "src/cli/render/diagnostics.ts#formatDiagnostic"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/diagnostics.ts#formatDiagnostic",
-      "class": "internal_helper"
+      "target": "src/cli/render/diagnostics.ts#formatSummary"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/diagnostics.ts#formatSummary",
-      "class": "internal_helper"
+      "target": "src/cli/render/graph.ts#formatGraphResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/graph.ts#formatGraphResult",
-      "class": "internal_helper"
+      "target": "src/cli/render/related.ts#formatGateResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/related.ts#formatGateResult",
-      "class": "internal_helper"
+      "target": "src/cli/render/related.ts#formatRelatedResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/render/related.ts#formatRelatedResult",
-      "class": "internal_helper"
+      "target": "src/cli/test-support.ts#capture"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/test-support.ts#capture",
-      "class": "test_support"
+      "target": "src/cli/test-support.ts#Captured"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/test-support.ts#Captured",
-      "class": "test_support"
+      "target": "src/cli/upgrade.ts#UpgradeRuntime"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/cli/upgrade.ts#UpgradeRuntime",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#codeFenceLanguage"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#codeFenceLanguage",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#codeFileOwners"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#codeFileOwners",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#CodeFileRead"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#CodeFileRead",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#CodeInclude"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#CodeInclude",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#CollectedCodeFile"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#CollectedCodeFile",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#EXCLUDED_SUFFIXES"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#EXCLUDED_SUFFIXES",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#hasExcludedSuffix"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#hasExcludedSuffix",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#isCodeLanguage"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#isCodeLanguage",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#KNOWN_CODE_LANGUAGES"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#KNOWN_CODE_LANGUAGES",
-      "class": "sibling_export"
+      "target": "src/config/code-language.ts#LANGUAGE_SUFFIXES"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/code-language.ts#LANGUAGE_SUFFIXES",
-      "class": "sibling_export"
+      "target": "src/config/scanner-runtimes.ts#RUNTIME_WORKER_LANGUAGES"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/scanner-runtimes.ts#RUNTIME_WORKER_LANGUAGES",
-      "class": "sibling_export"
+      "target": "src/config/scanner-runtimes.ts#RuntimeWorkerLanguage"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/scanner-runtimes.ts#RuntimeWorkerLanguage",
-      "class": "sibling_export"
+      "target": "src/config/scanner-runtimes.ts#validateScannerRuntimes"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/scanner-runtimes.ts#validateScannerRuntimes",
-      "class": "sibling_export"
+      "target": "src/query/context.ts#ContextResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/context.ts#ContextResult",
-      "class": "sibling_export"
+      "target": "src/query/context.ts#ContextSummary"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/context.ts#ContextSummary",
-      "class": "sibling_export"
+      "target": "src/query/graph-output.ts#compareNodes"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#compareNodes",
-      "class": "sibling_export"
+      "target": "src/query/graph-output.ts#comparePairs"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#comparePairs",
-      "class": "sibling_export"
+      "target": "src/query/graph-output.ts#GraphPair"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#GraphPair",
-      "class": "sibling_export"
+      "target": "src/query/graph-output.ts#GraphResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#GraphResult",
-      "class": "sibling_export"
+      "target": "src/query/graph-output.ts#GraphSummary"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#GraphSummary",
-      "class": "sibling_export"
+      "target": "src/query/related.ts#RelatedResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/related.ts#RelatedResult",
-      "class": "sibling_export"
+      "target": "src/query/related.ts#RelatedSummary"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/related.ts#RelatedSummary",
-      "class": "sibling_export"
+      "target": "src/scan/code/dispatch.ts#CodeAdapterOverrides"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/dispatch.ts#CodeAdapterOverrides",
-      "class": "sibling_export"
+      "target": "src/scan/code/dispatch.ts#createScannerWorkerAdapter"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/dispatch.ts#createScannerWorkerAdapter",
-      "class": "sibling_export"
+      "target": "src/scan/code/dispatch.ts#scanCodeFiles"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/dispatch.ts#scanCodeFiles",
-      "class": "sibling_export"
+      "target": "src/scan/code/dispatch.ts#scanCodeFilesAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/dispatch.ts#scanCodeFilesAsync",
-      "class": "sibling_export"
+      "target": "src/scan/code/scan-cache.ts#CodeScanCache"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/scan-cache.ts#CodeScanCache",
-      "class": "internal_helper"
+      "target": "src/scan/code/scan-cache.ts#codeScanCacheKey"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/scan-cache.ts#codeScanCacheKey",
-      "class": "internal_helper"
+      "target": "src/scan/code/scan-cache.ts#emptyCodeScanCache"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/scan-cache.ts#emptyCodeScanCache",
-      "class": "internal_helper"
+      "target": "src/scan/code/scan-cache.ts#isReusableScan"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/scan-cache.ts#isReusableScan",
-      "class": "internal_helper"
+      "target": "src/query/project-scan.ts#scanProjectAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/project-scan.ts#scanProjectAsync",
-      "class": "sibling_export"
+      "target": "src/scan/code/adapter.ts#CodeScanOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/adapter.ts#CodeScanOptions",
-      "class": "sibling_export"
+      "target": "src/scan/code/adapter.ts#CodeScanContext"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/adapter.ts#CodeScanContext",
-      "class": "sibling_export"
+      "target": "src/scan/code/adapter.ts#CodeScanFile"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/adapter.ts#CodeScanFile",
-      "class": "sibling_export"
+      "target": "src/scan/code/adapter.ts#PreparedCodeAdapter"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/adapter.ts#PreparedCodeAdapter",
-      "class": "sibling_export"
+      "target": "src/config/config.ts#checkPatternSuffix"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#checkPatternSuffix",
-      "class": "sibling_export"
+      "target": "src/config/config.ts#CONFIG_FILE_NAME"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#CONFIG_FILE_NAME",
-      "class": "sibling_export"
+      "target": "src/config/config.ts#LANGUAGE_VISIBILITY"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#LANGUAGE_VISIBILITY",
-      "class": "sibling_export"
+      "target": "src/config/config.ts#resolveConfig"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/config.ts#resolveConfig",
-      "class": "sibling_export"
+      "target": "src/query/context.ts#computeContext"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/context.ts#computeContext",
-      "class": "sibling_export"
+      "target": "src/query/context.ts#ContextBlock"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/context.ts#ContextBlock",
-      "class": "sibling_export"
+      "target": "src/model/diagnostics.ts#collectErroredFiles"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/diagnostics.ts#collectErroredFiles",
-      "class": "internal_helper"
+      "target": "src/model/diagnostics.ts#pluralize"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/diagnostics.ts#pluralize",
-      "class": "sibling_export"
+      "target": "src/model/diagnostics.ts#summarizeDiagnostics"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/diagnostics.ts#summarizeDiagnostics",
-      "class": "sibling_export"
+      "target": "src/model/endpoint.ts#compareEndpointOrder"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/endpoint.ts#compareEndpointOrder",
-      "class": "internal_helper"
+      "target": "src/model/endpoint.ts#endpointRange"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/endpoint.ts#endpointRange",
-      "class": "internal_helper"
+      "target": "src/model/endpoint.ts#filePathOf"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/endpoint.ts#filePathOf",
-      "class": "internal_helper"
+      "target": "src/model/endpoint.ts#fragmentOf"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/endpoint.ts#fragmentOf",
-      "class": "internal_helper"
+      "target": "src/shared/error.ts#reasonOf"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/error.ts#reasonOf",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#Cancelable"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#Cancelable",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#abortError"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#abortError",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#cancelableSequence"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#cancelableSequence",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#deferred"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#deferred",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#isAbortError"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#isAbortError",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#mapCancelable"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#mapCancelable",
-      "class": "internal_helper"
+      "target": "src/shared/cancelable.ts#settledCancelable"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/cancelable.ts#settledCancelable",
-      "class": "internal_helper"
+      "target": "src/shared/glob.ts#matchGlob"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/glob.ts#matchGlob",
-      "class": "sibling_export"
+      "target": "src/shared/glob.ts#readManagedFile"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/glob.ts#readManagedFile",
-      "class": "sibling_export"
+      "target": "src/shared/glob.ts#validateGlobPattern"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/glob.ts#validateGlobPattern",
-      "class": "sibling_export"
+      "target": "src/query/graph-output.ts#computeGraphResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/graph-output.ts#computeGraphResult",
-      "class": "sibling_export"
+      "target": "src/link/graph.ts#counterpartsOf"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/link/graph.ts#counterpartsOf",
-      "class": "sibling_export"
+      "target": "src/link/graph.ts#GraphEndpoint"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/link/graph.ts#GraphEndpoint",
-      "class": "sibling_export"
+      "target": "src/shared/indent.ts#dedentBlockLines"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/indent.ts#dedentBlockLines",
-      "class": "internal_helper"
+      "target": "src/config/json-source.ts#JsonArrayNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonArrayNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonBooleanNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonBooleanNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonMember"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonMember",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonNullNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonNullNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonNumberNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonNumberNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonObjectNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonObjectNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#JsonStringNode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#JsonStringNode",
-      "class": "sibling_export"
+      "target": "src/config/json-source.ts#ParseJsonSourceResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/json-source.ts#ParseJsonSourceResult",
-      "class": "sibling_export"
+      "target": "src/config/link-manifest.ts#LINK_MANIFEST_FILE_NAME"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/link-manifest.ts#LINK_MANIFEST_FILE_NAME",
-      "class": "sibling_export"
+      "target": "src/model/link-manifest.ts#LinkManifest"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/link-manifest.ts#LinkManifest",
-      "class": "sibling_export"
+      "target": "src/model/link-manifest.ts#LinkManifestEntry"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/link-manifest.ts#LinkManifestEntry",
-      "class": "sibling_export"
+      "target": "src/config/link-manifest.ts#LoadLinkManifestResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/link-manifest.ts#LoadLinkManifestResult",
-      "class": "sibling_export"
+      "target": "src/config/link-manifest.ts#resolveLinkManifest"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/config/link-manifest.ts#resolveLinkManifest",
-      "class": "sibling_export"
+      "target": "src/model/link-target.ts#ParseLinkTargetOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/link-target.ts#ParseLinkTargetOptions",
-      "class": "sibling_export"
+      "target": "src/scan/markdown/markdown-syntax.ts#FenceMarker"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/markdown-syntax.ts#FenceMarker",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/markdown-syntax.ts#fenceMarkerOf"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/markdown-syntax.ts#fenceMarkerOf",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/markdown-syntax.ts#headingLevel"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/markdown-syntax.ts#headingLevel",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/markdown-syntax.ts#isFenceClose"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/markdown-syntax.ts#isFenceClose",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/markdown-syntax.ts#matchAtxHeading"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/markdown-syntax.ts#matchAtxHeading",
-      "class": "internal_helper"
+      "target": "src/model/scan-result.ts#MarkdownScanResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/scan-result.ts#MarkdownScanResult",
-      "class": "sibling_export"
+      "target": "src/shared/package-root.ts#resolvePackageRoot"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/package-root.ts#resolvePackageRoot",
-      "class": "sibling_export"
+      "target": "src/shared/path-order.ts#comparePaths"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/path-order.ts#comparePaths",
-      "class": "internal_helper"
+      "target": "src/query/related.ts#computeRelated"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/related.ts#computeRelated",
-      "class": "sibling_export"
+      "target": "src/query/related.ts#normalizeChangedPaths"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/related.ts#normalizeChangedPaths",
-      "class": "sibling_export"
+      "target": "src/query/related.ts#RelatedGateViolation"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/query/related.ts#RelatedGateViolation",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntime"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntime",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntimeAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-probe.ts#probeRuntimeAsync",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeOutcome"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeOutcome",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawn"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawn",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawnResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-probe.ts#RuntimeProbeSpawnResult",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/runtime-probe.ts#spawnRuntimeProbe"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-probe.ts#spawnRuntimeProbe",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/runtime-worker.ts#clearRuntimeProbeCache"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-worker.ts#clearRuntimeProbeCache",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommandAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-worker.ts#resolveRuntimeWorkerCommandAsync",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/runtime-worker.ts#RuntimeWorkerCommandResolution"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-worker.ts#RuntimeWorkerCommandResolution",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/runtime-worker.ts#runtimeWorkerEntrypoints"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/runtime-worker.ts#runtimeWorkerEntrypoints",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-executable.ts#scannerExecutableName"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-executable.ts#scannerExecutableName",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-executable.ts#scannerPlatformKey"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-executable.ts#scannerPlatformKey",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-executable.ts#scannerRootsFromModuleUrl"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-executable.ts#scannerRootsFromModuleUrl",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-executable.ts#ScannerWorkerCommandResolution"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-executable.ts#ScannerWorkerCommandResolution",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-executable.ts#supportedScannerExecutableNames"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-executable.ts#supportedScannerExecutableNames",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-executable.ts#supportedScannerPlatformKeys"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-executable.ts#supportedScannerPlatformKeys",
-      "class": "sibling_export"
+      "target": "src/scan/code/worker/scanner-worker.ts#clangModuleCachePath"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#clangModuleCachePath",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorker"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#createLazyWorkerResponseValidator",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcess"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorker",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerProcessResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcess",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#workerProcessEnv"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerProcessResult",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRequest"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#workerProcessEnv",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRun"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRequest",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRunAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRun",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorkerAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#ScannerWorkerRunAsync",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcessAsync"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#invokeScannerWorkerAsync",
-      "class": "internal_helper"
+      "target": "src/scan/code/worker/scanner-worker.ts#syncWorkerProcessResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#runScannerWorkerProcessAsync",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/section.ts#capSectionLength"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/worker/scanner-worker.ts#syncWorkerProcessResult",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/section.ts#extractDocSection"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/section.ts#capSectionLength",
-      "class": "internal_helper"
+      "target": "src/scan/markdown/section.ts#MAX_SECTION_LENGTH"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/section.ts#extractDocSection",
-      "class": "internal_helper"
+      "target": "src/shared/source-range.ts#sliceSourceRange"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/markdown/section.ts#MAX_SECTION_LENGTH",
-      "class": "internal_helper"
+      "target": "src/test-support.ts#codes"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/shared/source-range.ts#sliceSourceRange",
-      "class": "internal_helper"
+      "target": "src/test-support.ts#graphFrom"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/test-support.ts#codes",
-      "class": "test_support"
+      "target": "src/test-support.ts#GraphSources"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/test-support.ts#graphFrom",
-      "class": "test_support"
+      "target": "src/test-support.ts#makeProject"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/test-support.ts#GraphSources",
-      "class": "test_support"
+      "target": "src/model/types.ts#CheckResult"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/test-support.ts#makeProject",
-      "class": "test_support"
+      "target": "src/model/types.ts#CodeLanguage"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#CheckResult",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#CodeSymbolEndpoint"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#CodeLanguage",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#DiagnosticCode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#CodeSymbolEndpoint",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#DocAnchorEndpoint"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#DiagnosticCode",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#DocHeadingOutline"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#DocAnchorEndpoint",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#EndpointKind"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#DocHeadingOutline",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#LinkAnnotation"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#EndpointKind",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#LinkTarget"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#LinkAnnotation",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#Position"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#LinkTarget",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#Range"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#Position",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#SourceLocation"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#Range",
-      "class": "internal_helper"
+      "target": "src/model/types.ts#Summary"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#SourceLocation",
-      "class": "internal_helper"
+      "target": "src/scan/code/typescript.ts#typeScriptAdapter"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/model/types.ts#Summary",
-      "class": "internal_helper"
+      "target": "src/scan/code/typescript.ts#javaScriptAdapter"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript.ts#typeScriptAdapter",
-      "class": "sibling_export"
+      "target": "src/scan/code/typescript-diagnostics.ts#scriptLanguage"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript.ts#javaScriptAdapter",
-      "class": "sibling_export"
+      "target": "src/scan/code/typescript-diagnostics.ts#duplicateCodeSymbolDiagnostic"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript-diagnostics.ts#scriptLanguage",
-      "class": "internal_helper"
+      "target": "src/scan/code/typescript-diagnostics.ts#duplicateLinkDiagnostic"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript-diagnostics.ts#duplicateCodeSymbolDiagnostic",
-      "class": "internal_helper"
+      "target": "src/scan/code/typescript-diagnostics.ts#parseErrorDiagnostic"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript-diagnostics.ts#duplicateLinkDiagnostic",
-      "class": "internal_helper"
+      "target": "src/scan/code/typescript-diagnostics.ts#unsupportedDeclarationDiagnostic"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript-diagnostics.ts#parseErrorDiagnostic",
-      "class": "internal_helper"
+      "target": "src/lsp/diagnostics.ts#diagnosticsForFile"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/scan/code/typescript-diagnostics.ts#unsupportedDeclarationDiagnostic",
-      "class": "internal_helper"
+      "target": "src/lsp/fixtures.ts#CODE_FILE"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/diagnostics.ts#diagnosticsForFile",
-      "class": "sibling_export"
+      "target": "src/lsp/fixtures.ts#DOC_FILE"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/fixtures.ts#CODE_FILE",
-      "class": "test_support"
+      "target": "src/lsp/fixtures.ts#stateOf"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/fixtures.ts#DOC_FILE",
-      "class": "test_support"
+      "target": "src/lsp/fixtures.ts#HeldBatch"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/fixtures.ts#stateOf",
-      "class": "test_support"
+      "target": "src/lsp/fixtures.ts#heldTypeScript"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/fixtures.ts#HeldBatch",
-      "class": "test_support"
+      "target": "src/lsp/index-lookup.ts#buildPositionIndex"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/fixtures.ts#heldTypeScript",
-      "class": "test_support"
+      "target": "src/lsp/index-lookup.ts#endpointAt"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/index-lookup.ts#buildPositionIndex",
-      "class": "sibling_export"
+      "target": "src/lsp/navigation.ts#Locator"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/index-lookup.ts#endpointAt",
-      "class": "sibling_export"
+      "target": "src/lsp/paths.ts#relativePathToUri"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/navigation.ts#Locator",
-      "class": "sibling_export"
+      "target": "src/lsp/position.ts#fromLspPosition"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/paths.ts#relativePathToUri",
-      "class": "sibling_export"
+      "target": "src/lsp/position.ts#LspRange"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/position.ts#fromLspPosition",
-      "class": "sibling_export"
+      "target": "src/lsp/position.ts#rangeContains"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/position.ts#LspRange",
-      "class": "sibling_export"
+      "target": "src/lsp/position.ts#toLspRange"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/position.ts#rangeContains",
-      "class": "sibling_export"
+      "target": "src/lsp/project.ts#ProjectState"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/position.ts#toLspRange",
-      "class": "sibling_export"
+      "target": "src/lsp/server.ts#SendFn"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/project.ts#ProjectState",
-      "class": "sibling_export"
+      "target": "src/lsp/scheduler.ts#Timers"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/server.ts#SendFn",
-      "class": "sibling_export"
+      "target": "src/lsp/transport.ts#MessageReader"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/scheduler.ts#Timers",
-      "class": "internal_helper"
+      "target": "src/setup/init-discovery.ts#AgentTarget"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/lsp/transport.ts#MessageReader",
-      "class": "sibling_export"
+      "target": "src/setup/init-discovery.ts#CodeLanguageCandidate"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#AgentTarget",
-      "class": "sibling_export"
+      "target": "src/setup/init-discovery.ts#discoverAgentTarget"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#CodeLanguageCandidate",
-      "class": "sibling_export"
+      "target": "src/setup/init-discovery.ts#discoverCodeScope"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#discoverAgentTarget",
-      "class": "sibling_export"
+      "target": "src/setup/init-discovery.ts#discoverDocsScope"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#discoverCodeScope",
-      "class": "sibling_export"
+      "target": "src/setup/init-discovery.ts#RepositoryDiscovery"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#discoverDocsScope",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#agentDestinations"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-discovery.ts#RepositoryDiscovery",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#buildConfigFromScope"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#agentDestinations",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#ConfirmedScope"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#buildConfigFromScope",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#formatFileOp"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#ConfirmedScope",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#formatInitPlan"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#formatFileOp",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#INIT_SKILL_NAMES"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#formatInitPlan",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#InitCommandKind"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#INIT_SKILL_NAMES",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#InitPlan"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#InitCommandKind",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#InitSharedOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#InitPlan",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#LEGACY_SKILL_NAMES"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#InitSharedOptions",
-      "class": "sibling_export"
+      "target": "src/setup/init-plan.ts#listDistributableSkills"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#LEGACY_SKILL_NAMES",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#fetchLatestStableVersion"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/init-plan.ts#listDistributableSkills",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#FetchLike"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#fetchLatestStableVersion",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#LatestVersionLookup"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#FetchLike",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#LatestVersionSource"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#LatestVersionLookup",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#NPM_REGISTRY_LATEST_URL"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#LatestVersionSource",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#REGISTRY_TIMEOUT_MS"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#NPM_REGISTRY_LATEST_URL",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#ResolveLatestOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#REGISTRY_TIMEOUT_MS",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#resolveRegistryUrl"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#ResolveLatestOptions",
-      "class": "sibling_export"
+      "target": "src/setup/registry.ts#selectStableVersion"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#resolveRegistryUrl",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#FileOpAction"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/registry.ts#selectStableVersion",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#isSymlink"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#FileOpAction",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#listSkillFiles"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#isSymlink",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#ManagedPathKind"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#listSkillFiles",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#PlannedFileOp"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#ManagedPathKind",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#SkillTreeComparison"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#PlannedFileOp",
-      "class": "sibling_export"
+      "target": "src/setup/skill-assets.ts#unmanageablePathMessage"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#SkillTreeComparison",
-      "class": "sibling_export"
+      "target": "src/setup/update-cache.ts#isUpdateCacheFresh"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/skill-assets.ts#unmanageablePathMessage",
-      "class": "sibling_export"
+      "target": "src/setup/update-cache.ts#readUpdateCache"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-cache.ts#isUpdateCacheFresh",
-      "class": "sibling_export"
+      "target": "src/setup/update-cache.ts#UPDATE_CACHE_SCHEMA_VERSION"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-cache.ts#readUpdateCache",
-      "class": "sibling_export"
+      "target": "src/setup/update-cache.ts#UPDATE_CACHE_TTL_MS"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-cache.ts#UPDATE_CACHE_SCHEMA_VERSION",
-      "class": "sibling_export"
+      "target": "src/setup/update-cache.ts#UpdateCacheRecord"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-cache.ts#UPDATE_CACHE_TTL_MS",
-      "class": "sibling_export"
+      "target": "src/setup/update-cache.ts#writeUpdateCache"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-cache.ts#UpdateCacheRecord",
-      "class": "sibling_export"
+      "target": "src/setup/update-notice.ts#isUpdateCheckOptedOut"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-cache.ts#writeUpdateCache",
-      "class": "sibling_export"
+      "target": "src/setup/update-notice.ts#UpdateCheckDecision"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-notice.ts#isUpdateCheckOptedOut",
-      "class": "sibling_export"
+      "target": "src/setup/update-notice.ts#UpdateCheckSuppressionReason"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-notice.ts#shouldCheckForUpdates",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-guidance.ts#detectInstallScope"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-notice.ts#UpdateCheckDecision",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-guidance.ts#detectPackageManager"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/update-notice.ts#UpdateCheckSuppressionReason",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-guidance.ts#formatUpgradeGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-guidance.ts#detectInstallScope",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-guidance.ts#InstallScope"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-guidance.ts#detectPackageManager",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-guidance.ts#PackageManager"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-guidance.ts#formatUpgradeGuidance",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-guidance.ts#UpgradeGuidance"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-guidance.ts#InstallScope",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#CliVersionReport"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-guidance.ts#PackageManager",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#CliVersionStatus"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-guidance.ts#UpgradeGuidance",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#formatUpgradePlan"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#CliVersionReport",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#inspectLegacySkills"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#CliVersionStatus",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#inspectManagedSkill"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#formatUpgradePlan",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#LegacySkillKind"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#inspectLegacySkills",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#LegacySkillReport"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#inspectManagedSkill",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#ManagedSkillReport"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#LegacySkillKind",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#ManagedSkillState"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#LegacySkillReport",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#reportCliVersion"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#ManagedSkillReport",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#resolveUpgradeAgentTarget"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#ManagedSkillState",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#UpgradeMode"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#reportCliVersion",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#UpgradeOptions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#resolveUpgradeAgentTarget",
-      "class": "sibling_export"
+      "target": "src/setup/upgrade-plan.ts#UpgradePlan"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#UpgradeMode",
-      "class": "sibling_export"
+      "target": "src/setup/version.ts#compareStableVersions"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#UpgradeOptions",
-      "class": "sibling_export"
+      "target": "src/setup/version.ts#parseStableVersion"
     },
     {
       "code": "undocumented_symbol",
-      "target": "src/setup/upgrade-plan.ts#UpgradePlan",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/setup/version.ts#compareStableVersions",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/setup/version.ts#parseStableVersion",
-      "class": "sibling_export"
-    },
-    {
-      "code": "undocumented_symbol",
-      "target": "src/setup/version.ts#StableVersion",
-      "class": "sibling_export"
+      "target": "src/setup/version.ts#StableVersion"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/annotations.md#annotations",
-      "class": "structural_doc"
+      "target": "docs/specs/annotations.md#annotations"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/lsp.md#code-to-doc",
-      "class": "structural_doc"
+      "target": "docs/specs/lsp.md#code-to-doc"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/lsp.md#diagnostics",
-      "class": "structural_doc"
+      "target": "docs/specs/lsp.md#diagnostics"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/lsp.md#doc-to-code",
-      "class": "structural_doc"
+      "target": "docs/specs/lsp.md#doc-to-code"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/lsp.md#ranges",
-      "class": "structural_doc"
+      "target": "docs/specs/lsp.md#ranges"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/lsp.md#vs-code-compatible-client",
-      "class": "structural_doc"
+      "target": "docs/specs/lsp.md#vs-code-compatible-client"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#dart-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#dart-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#go-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#go-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#java-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#java-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#python-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#python-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#ruby-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#ruby-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#rust-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#rust-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/specs/scanning.md#swift-scanning",
-      "class": "structural_doc"
+      "target": "docs/specs/scanning.md#swift-scanning"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/automation.md#agent-specific-recipes",
-      "class": "structural_doc"
+      "target": "docs/user/automation.md#agent-specific-recipes"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/automation.md#continuous-integration",
-      "class": "structural_doc"
+      "target": "docs/user/automation.md#continuous-integration"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/automation.md#git-hooks",
-      "class": "structural_doc"
+      "target": "docs/user/automation.md#git-hooks"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/automation.md#next-steps",
-      "class": "structural_doc"
+      "target": "docs/user/automation.md#next-steps"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/commands.md#common-options",
-      "class": "structural_doc"
+      "target": "docs/user/commands.md#common-options"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/commands.md#documentation-commands",
-      "class": "structural_doc"
+      "target": "docs/user/commands.md#documentation-commands"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/commands.md#next-steps",
-      "class": "structural_doc"
+      "target": "docs/user/commands.md#next-steps"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/commands.md#update-notification",
-      "class": "structural_doc"
+      "target": "docs/user/commands.md#update-notification"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/configuration.md#languages",
-      "class": "structural_doc"
+      "target": "docs/user/configuration.md#languages"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/configuration.md#minimal-configuration",
-      "class": "structural_doc"
+      "target": "docs/user/configuration.md#minimal-configuration"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/configuration.md#validate-changes",
-      "class": "structural_doc"
+      "target": "docs/user/configuration.md#validate-changes"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/getting-started.md#add-the-first-reciprocal-link",
-      "class": "structural_doc"
+      "target": "docs/user/getting-started.md#add-the-first-reciprocal-link"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/getting-started.md#install",
-      "class": "structural_doc"
+      "target": "docs/user/getting-started.md#install"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/getting-started.md#next-steps",
-      "class": "structural_doc"
+      "target": "docs/user/getting-started.md#next-steps"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/linking.md#choose-what-to-link",
-      "class": "structural_doc"
+      "target": "docs/user/linking.md#choose-what-to-link"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/linking.md#code-to-documentation",
-      "class": "structural_doc"
+      "target": "docs/user/linking.md#code-to-documentation"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/linking.md#heading-anchors-and-reciprocity",
-      "class": "structural_doc"
+      "target": "docs/user/linking.md#heading-anchors-and-reciprocity"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/linking.md#next-steps",
-      "class": "structural_doc"
+      "target": "docs/user/linking.md#next-steps"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/linking.md#propose-candidates-docs-first",
-      "class": "structural_doc"
+      "target": "docs/user/linking.md#propose-candidates-docs-first"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/linking.md#semantic-link-review",
-      "class": "structural_doc"
+      "target": "docs/user/linking.md#semantic-link-review"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/troubleshooting.md#configuration-errors",
-      "class": "structural_doc"
+      "target": "docs/user/troubleshooting.md#configuration-errors"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/troubleshooting.md#link-authoring-errors",
-      "class": "structural_doc"
+      "target": "docs/user/troubleshooting.md#link-authoring-errors"
     },
     {
       "code": "unlinked_doc_section",
-      "target": "docs/user/troubleshooting.md#scanner-errors",
-      "class": "structural_doc"
+      "target": "docs/user/troubleshooting.md#scanner-errors"
     }
   ]
 }

@@ -101,16 +101,13 @@ type ScannerWorkerFailure = {
 
 type ScannerWorkerResult = ScannerWorkerSuccess | ScannerWorkerFailure;
 
-/** @internal Exported only to make the lazy initialization contract executable in tests. */
-export function createLazyWorkerResponseValidator<T>(compile: () => T): () => T {
-  let validator: T | undefined;
-  return () => {
-    validator ??= compile();
-    return validator;
-  };
-}
+let compiledResponseValidator: ValidateFunction | undefined;
 
-const responseValidator = createLazyWorkerResponseValidator(compileWorkerResponseValidator);
+/** Compile the response schema on first use, so a scan without workers never pays for it. */
+function responseValidator(): ValidateFunction {
+  compiledResponseValidator ??= compileWorkerResponseValidator();
+  return compiledResponseValidator;
+}
 
 function compileWorkerResponseValidator(): ValidateFunction {
   const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -570,22 +567,13 @@ function formatSchemaError(errors: ErrorObject[] | null | undefined): string {
 }
 
 function responseFilesMatchRequest(
-  responseFiles: unknown[],
+  responseFiles: ScannerWorkerResponseFile[],
   requestFiles: ScannerWorkerFile[],
 ): boolean {
-  if (responseFiles.length !== requestFiles.length) {
-    return false;
-  }
-  return responseFiles.every((file, index) => {
-    if (!isRecord(file)) {
-      return false;
-    }
-    return file.filePath === requestFiles[index]?.filePath;
-  });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return (
+    responseFiles.length === requestFiles.length &&
+    responseFiles.every((file, index) => file.filePath === requestFiles[index]?.filePath)
+  );
 }
 
 function scannerUnavailableDiagnostic(

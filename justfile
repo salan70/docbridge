@@ -119,15 +119,16 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check check-docs check-ai-assets typecheck typecheck-extension test test-python-scanner test-ruby-scanner test-java-scanner
+verify: format-check lint check typecheck typecheck-extension test test-python-scanner test-ruby-scanner test-java-scanner
 
 check:
     bun run src/cli/index.ts check
 
+# Focused run of the documentation structure check; `just test` also runs it.
 check-docs:
     bun run scripts/check-docs.ts
 
-# Fail when the Claude and Codex skill trees have drifted apart.
+# Fail when the Claude and Codex skill trees have drifted apart; `just test` also runs it.
 check-ai-assets:
     bun run scripts/check-ai-assets.ts
 

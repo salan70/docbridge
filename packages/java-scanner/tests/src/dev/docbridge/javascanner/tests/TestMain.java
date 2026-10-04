@@ -50,6 +50,7 @@ public final class TestMain {
     checkDocWhitespace();
     checkDuplicateCardinality();
     checkDocumentedEndpointsNeverUndocumented();
+    checkVisibilityFilters();
     System.out.println(passed + " passed, " + failures.size() + " failed");
     if (!failures.isEmpty()) {
       System.exit(1);
@@ -344,6 +345,56 @@ public final class TestMain {
             "undocumented P|P|1:14-1:15",
             "undocumented m|P.m(int)|4:15-4:16",
             "diagnostic unsupported_declaration|Input.java|3:16-3:17"));
+  }
+
+  private static void checkVisibilityFilters() {
+    // One member per visibility level. A filter keeps exactly the listed
+    // levels; an annotated member outside it is unsupported_declaration.
+    String source =
+        "public class V {\n"
+            + "  /** @doc d.md#pub */\n"
+            + "  public int a;\n"
+            + "  /** @doc d.md#pro */\n"
+            + "  protected int b;\n"
+            + "  /** @doc d.md#pkg */\n"
+            + "  int c;\n"
+            + "  /** @doc d.md#pri */\n"
+            + "  private int d;\n"
+            + "}\n";
+    String hiddenA = "diagnostic unsupported_declaration|Input.java|3:14-3:15";
+    String hiddenB = "diagnostic unsupported_declaration|Input.java|5:17-5:18";
+    String hiddenC = "diagnostic unsupported_declaration|Input.java|7:7-7:8";
+    String hiddenD = "diagnostic unsupported_declaration|Input.java|9:15-9:16";
+    checkScan(
+        "visibility: every level",
+        source,
+        ALL,
+        List.of(
+            "symbol a|V.a|3:14-3:15",
+            "symbol b|V.b|5:17-5:18",
+            "symbol c|V.c|7:7-7:8",
+            "symbol d|V.d|9:15-9:16",
+            "undocumented V|V|1:14-1:15",
+            "link Input.java#V.a|d.md#pub",
+            "link Input.java#V.b|d.md#pro",
+            "link Input.java#V.c|d.md#pkg",
+            "link Input.java#V.d|d.md#pri"));
+    checkScan("visibility: no level", source, List.of(), List.of(hiddenA, hiddenB, hiddenC, hiddenD));
+    checkScan(
+        "visibility: protected only",
+        source,
+        List.of("protected"),
+        List.of("symbol b|V.b|5:17-5:18", "link Input.java#V.b|d.md#pro", hiddenA, hiddenC, hiddenD));
+    checkScan(
+        "visibility: package only",
+        source,
+        List.of("package"),
+        List.of("symbol c|V.c|7:7-7:8", "link Input.java#V.c|d.md#pkg", hiddenA, hiddenB, hiddenD));
+    checkScan(
+        "visibility: private only",
+        source,
+        List.of("private"),
+        List.of("symbol d|V.d|9:15-9:16", "link Input.java#V.d|d.md#pri", hiddenA, hiddenB, hiddenC));
   }
 
   private static final List<String> ALL = List.of("public", "protected", "package", "private");

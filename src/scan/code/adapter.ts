@@ -30,12 +30,6 @@ export type CodeScanFile = {
  */
 export type CodeLanguageAdapter = {
   language: CodeLanguage;
-  scanFile(
-    filePath: string,
-    content: string,
-    options: CodeScanOptions,
-    context: CodeScanContext,
-  ): CodeScanResult;
   /**
    * Scan a batch of files of this language in one call. Returns one result per
    * file, in the order of `files`.

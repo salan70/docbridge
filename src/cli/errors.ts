@@ -9,14 +9,6 @@ export class CliError extends Error {
   }
 }
 
-/** Errors raised while parsing or running the init commands. */
-export class InitCliError extends CliError {
-  constructor(message: string, guidance?: string) {
-    super(message, guidance);
-    this.name = "InitCliError";
-  }
-}
-
 /** A core diagnostic dump that must remain byte-for-byte free of CLI decoration. */
 export class DiagnosticOutputError extends Error {
   constructor(message: string) {

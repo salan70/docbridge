@@ -7,28 +7,17 @@ import { check } from "../src/query/check";
 const repoRoot = resolve(import.meta.dir, "..");
 
 export const AUDIT_CODES = ["undocumented_symbol", "unlinked_doc_section"] as const;
-export const BASELINE_CLASSES = [
-  "internal_helper",
-  "test_support",
-  "sibling_export",
-  "structural_doc",
-] as const;
 
 export type AuditCode = (typeof AUDIT_CODES)[number];
-export type BaselineClass = (typeof BASELINE_CLASSES)[number];
 
 export type AuditKey = {
   code: AuditCode;
   target: string;
 };
 
-export type BaselineEntry = AuditKey & {
-  class: BaselineClass;
-};
-
 export type BaselineFile = {
   version: 1;
-  entries: BaselineEntry[];
+  entries: AuditKey[];
 };
 
 export type AuditDiagnosticLike = {
@@ -50,14 +39,9 @@ export type BaselineDiff = {
 export type BaselineComparison = { ok: true } | { ok: false; message: string };
 
 const AUDIT_CODE_SET = new Set<string>(AUDIT_CODES);
-const BASELINE_CLASS_SET = new Set<string>(BASELINE_CLASSES);
 
 function isAuditCode(value: string): value is AuditCode {
   return AUDIT_CODE_SET.has(value);
-}
-
-function isBaselineClass(value: string): value is BaselineClass {
-  return BASELINE_CLASS_SET.has(value);
 }
 
 function compareAuditKeys(left: AuditKey, right: AuditKey): number {
@@ -102,10 +86,7 @@ function readStringField(record: Record<string, unknown>, field: string, path: s
   return value;
 }
 
-/**
- * Parse the committed baseline document. Unknown review classes fail loudly so
- * a new category cannot slip in without a policy update.
- */
+/** Parse the committed baseline document. */
 export function parseBaseline(raw: unknown): BaselineFile {
   if (!isRecord(raw)) {
     throw new Error("Baseline must be a JSON object.");
@@ -117,7 +98,7 @@ export function parseBaseline(raw: unknown): BaselineFile {
     throw new Error("Baseline entries must be an array.");
   }
 
-  const entries: BaselineEntry[] = raw.entries.map((entry, index) => {
+  const entries: AuditKey[] = raw.entries.map((entry, index) => {
     const path = `entries[${index}]`;
     if (!isRecord(entry)) {
       throw new Error(`Baseline ${path} must be an object.`);
@@ -128,16 +109,7 @@ export function parseBaseline(raw: unknown): BaselineFile {
       throw new Error(`Baseline ${path}.code is not an audit diagnostic code.`);
     }
 
-    const reviewClass = readStringField(entry, "class", `${path}.class`);
-    if (!isBaselineClass(reviewClass)) {
-      throw new Error(`Baseline ${path}.class has unknown review class "${reviewClass}".`);
-    }
-
-    return {
-      code,
-      target: readStringField(entry, "target", `${path}.target`),
-      class: reviewClass,
-    };
+    return { code, target: readStringField(entry, "target", `${path}.target`) };
   });
 
   const seen = new Set<string>();
@@ -169,11 +141,10 @@ export const BASELINE_PATH = "test-fixtures/self-audit/baseline.json";
 
 export function formatBaselineDiff(diff: BaselineDiff): string {
   const lines: string[] = [];
-  const classes = BASELINE_CLASSES.join(", ");
 
   if (diff.added.length > 0) {
     lines.push(
-      `Unreviewed audit targets (add a reciprocal link, or a classified entry in ${BASELINE_PATH} with one of: ${classes}):`,
+      `Unreviewed audit targets (add a reciprocal link, or an entry in ${BASELINE_PATH}):`,
     );
     for (const key of diff.added) {
       lines.push(`  unreviewed audit target: ${key.code} ${key.target}`);

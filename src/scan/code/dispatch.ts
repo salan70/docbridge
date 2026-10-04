@@ -103,8 +103,6 @@ export function createScannerWorkerAdapter(
   };
   return {
     language,
-    scanFile: (filePath, content, options, context) =>
-      bound(context).scanFile(filePath, content, options, context),
     scanFiles: (files, options, context) =>
       files.length === 0 ? [] : bound(context).scanFiles(files, options, context),
     scanFilesAsync: scanBatchAsync,
@@ -122,10 +120,6 @@ function boundWorkerAdapter(
   const runtime = resolved.ok ? resolved.runtime : [];
   const adapter: WorkerAdapter = {
     language,
-    scanFile(filePath, content, options, context) {
-      const [scan] = adapter.scanFiles([{ filePath, content }], options, context);
-      return scan ?? emptyScan(language, filePath);
-    },
     scanFiles(files, options, context) {
       if (files.length === 0) {
         return [];

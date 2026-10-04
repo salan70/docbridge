@@ -15,7 +15,7 @@ import {
 } from "../setup/init-plan";
 import { applySkillOperation } from "../setup/skill-assets";
 import { resolvePackageRoot } from "../shared/package-root";
-import { agentTargetGuidance, commandHelpGuidance, InitCliError, rootPathGuidance } from "./errors";
+import { agentTargetGuidance, commandHelpGuidance, CliError, rootPathGuidance } from "./errors";
 import type { CliIo } from "./io";
 
 export type InitPrompts = {
@@ -69,7 +69,7 @@ export function parseInitOptions(args: string[], command: InitCommandKind): Init
     if (arg === "--root") {
       const root = args[index + 1];
       if (root === undefined) {
-        throw new InitCliError("--root requires a path.", rootPathGuidance(command));
+        throw new CliError("--root requires a path.", rootPathGuidance(command));
       }
       options.root = root;
       index += 1;
@@ -79,16 +79,16 @@ export function parseInitOptions(args: string[], command: InitCommandKind): Init
     if (arg === "--agent-target") {
       const target = args[index + 1];
       if (target === undefined) {
-        throw new InitCliError("--agent-target requires a value.", agentTargetGuidance(command));
+        throw new CliError("--agent-target requires a value.", agentTargetGuidance(command));
       }
       if (!AGENT_TARGETS.has(target as AgentTarget)) {
-        throw new InitCliError(
+        throw new CliError(
           `Unknown agent target: ${target}. Supported values: codex, claude, both${command === "init" ? ", none" : ""}.`,
           agentTargetGuidance(command),
         );
       }
       if (command === "init-with-agent" && target === "none") {
-        throw new InitCliError(
+        throw new CliError(
           "init-with-agent requires an agent target other than none.",
           agentTargetGuidance(command),
         );
@@ -99,10 +99,10 @@ export function parseInitOptions(args: string[], command: InitCommandKind): Init
     }
 
     if (arg.startsWith("--")) {
-      throw new InitCliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
+      throw new CliError(`Unknown option: ${arg}`, commandHelpGuidance(command));
     }
 
-    throw new InitCliError(`Unexpected argument: ${arg}`, commandHelpGuidance(command));
+    throw new CliError(`Unexpected argument: ${arg}`, commandHelpGuidance(command));
   }
 
   return options;
@@ -228,7 +228,7 @@ function resolveConfirmedScope(input: {
   }
 
   if (!input.prompts.isInteractive) {
-    throw new InitCliError(
+    throw new CliError(
       "Interactive setup requires a TTY. Re-run with --yes for non-interactive mode.",
     );
   }
@@ -236,7 +236,7 @@ function resolveConfirmedScope(input: {
   if (input.discovery.docs.ambiguous) {
     const choices = input.discovery.docs.candidates.map((candidate) => candidate.pattern);
     if (choices.length === 0) {
-      throw new InitCliError(
+      throw new CliError(
         "Docs scope is ambiguous and no candidates were detected. Create docbridge.config.json manually.",
       );
     }
@@ -246,7 +246,7 @@ function resolveConfirmedScope(input: {
   }
 
   if (input.discovery.docs.recommended === undefined) {
-    throw new InitCliError("Docs scope could not be determined.");
+    throw new CliError("Docs scope could not be determined.");
   }
 
   let docsPattern = input.discovery.docs.recommended.pattern;
@@ -299,7 +299,7 @@ function selectLanguages(
   }
 
   if (selected.length === 0) {
-    throw new InitCliError("At least one supported code language must remain in scope.");
+    throw new CliError("At least one supported code language must remain in scope.");
   }
 
   return selected;
@@ -335,14 +335,14 @@ function resolveProjectRoot(root: string, command: InitCommandKind): string {
   try {
     stats = statSync(projectRoot);
   } catch {
-    throw new InitCliError(`Root path does not exist: ${root}`, rootPathGuidance(command));
+    throw new CliError(`Root path does not exist: ${root}`, rootPathGuidance(command));
   }
 
   if (!stats.isDirectory()) {
-    throw new InitCliError(`Root path is not a directory: ${root}`, rootPathGuidance(command));
+    throw new CliError(`Root path is not a directory: ${root}`, rootPathGuidance(command));
   }
 
   return projectRoot;
 }
 
-export { InitCliError, buildConfigFromScope };
+export { buildConfigFromScope };

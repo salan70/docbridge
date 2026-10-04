@@ -75,14 +75,6 @@ export function decideUpdateCheck(input: {
   return { enabled: true };
 }
 
-export function shouldCheckForUpdates(input: {
-  argv: readonly string[];
-  env?: NoticeEnv;
-  isTty: boolean;
-}): boolean {
-  return decideUpdateCheck(input).enabled;
-}
-
 /**
  * Render the notice, or `undefined` when there is nothing to say. A latest
  * version that is not a strictly newer stable release — equal, older, a

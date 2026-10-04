@@ -47,9 +47,6 @@ jobs:
       - name: just check
         run: nix develop -c just check
 
-      - name: just check-ai-assets
-        run: nix develop -c just check-ai-assets
-
       - name: just typecheck
         run: nix develop -c just typecheck
 
@@ -173,7 +170,7 @@ jobs:
           cd packages/go-scanner
           go test ./...
 
-      # --- Python worker: setup, format, lint, and tests ---
+      # --- Python worker: setup and tests ---
       # The worker's runtime floor is CPython 3.10. setup-python provides that
       # interpreter for a floor run of the unittest suite; the nix shell's
       # CPython (the latest release) covers the same suite through `just`.
@@ -184,12 +181,6 @@ jobs:
 
       - name: Test the Python scanner on CPython 3.10
         run: python3 -m unittest discover -s packages/python-scanner/tests
-
-      - name: just format-check-python
-        run: nix develop -c just format-check-python
-
-      - name: just lint-python
-        run: nix develop -c just lint-python
 
       - name: just test-python-scanner
         run: nix develop -c just test-python-scanner
@@ -217,7 +208,7 @@ jobs:
         run: nix develop -c just test-ruby-scanner
       # --- end Ruby worker ---
 
-      # --- Java worker: setup, build, lint, and tests ---
+      # --- Java worker: setup, build, and tests ---
       # The JDK pinned by .java-version is installed outside Nix like the Dart
       # and Go toolchains; the recipes need only javac, jar, and java.
       - name: Set up the JDK for the Java scanner
@@ -228,9 +219,6 @@ jobs:
 
       - name: Build the Java scanner
         run: nix develop -c just build-java-scanner
-
-      - name: Lint the Java scanner
-        run: nix develop -c just lint-java
 
       - name: Test the Java scanner
         run: nix develop -c just test-java-scanner

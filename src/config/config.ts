@@ -331,16 +331,6 @@ function validateVisibilityOptions(
   diagnostics: DocBridgeDiagnostic[],
 ): void {
   const allowed = LANGUAGE_VISIBILITY[language];
-  if (allowed.length === 0) {
-    diagnostics.push(
-      configDiagnostic(
-        "config_invalid_value",
-        `${target}.visibility`,
-        `\`${target}.visibility\` is not supported for ${language}.`,
-      ),
-    );
-    return;
-  }
   for (const value of values) {
     if (!allowed.includes(value)) {
       diagnostics.push(

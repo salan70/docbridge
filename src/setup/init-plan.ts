@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import type { DocBridgeConfig } from "../config/config";
-import { resolveConfig } from "../config/config";
+import { CONFIG_FILE_NAME, resolveConfig } from "../config/config";
 import { resolvePackageRoot } from "../shared/package-root";
 import type { AgentTarget, CodeLanguageCandidate, RepositoryDiscovery } from "./init-discovery";
 import { classifyManagedPath, unmanageablePathMessage } from "./skill-assets";
@@ -41,8 +41,6 @@ export type ConfirmedScope = {
   docsPattern: string;
   languages: CodeLanguageCandidate[];
 };
-
-const CONFIG_FILE_NAME = "docbridge.config.json";
 
 /** The single managed skill installed by `init` and reconciled by `upgrade`. */
 export const INIT_SKILL_NAMES = ["docbridge"] as const;

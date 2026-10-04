@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -189,13 +189,6 @@ test("checkDocumentation resolves GitHub-style duplicate heading suffixes", () =
 
     expect(checkDocumentation(root)).toEqual([]);
   });
-});
-
-test("just verify includes the documentation structure check", () => {
-  const justfile = readFileSync(join(import.meta.dir, "..", "justfile"), "utf8");
-
-  expect(justfile).toMatch(/^verify: .*\bcheck-docs\b/m);
-  expect(justfile).toContain("\ncheck-docs:\n    bun run scripts/check-docs.ts\n");
 });
 
 test("the repository documentation passes the structural check", () => {
