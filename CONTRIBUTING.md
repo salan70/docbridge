@@ -69,8 +69,7 @@ bun run src/cli/index.ts docs show linking
 Coding agents read `AGENTS.md`, which `CLAUDE.md` imports. Each skill's source
 is `.agents/skills/<name>/`, except the distributable `docbridge` skill under
 `templates/skills/docbridge/`, and `.claude/skills/<name>` is a symlink to it.
-Keep skill bodies tool-neutral. `just check-ai-assets` enforces this layout and
-each skill's frontmatter.
+Keep skill bodies tool-neutral. `just check-ai-assets` enforces this layout.
 
 ## Issues
 
