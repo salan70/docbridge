@@ -78,18 +78,20 @@ serialized copy of the request while the worker runs.
 Each invocation may run for 30 seconds plus 1 second per requested file; a
 worker still running then is killed. Stdout and stderr together may carry up
 to 1 GiB; a worker that writes more fails and may be killed before it finishes.
-The CLI waits for each invocation. The Language Server runs the same request in
-the background and kills the worker when the scan is cancelled; see
-[LSP](lsp.md#rescan-scheduling).
+The CLI and the Language Server run the request in the background the same way.
+The CLI waits for it and kills the worker when the CLI itself is interrupted or
+terminated; the Language Server kills the worker when the scan is cancelled;
+see [LSP](lsp.md#rescan-scheduling).
 
-A worker is killed with `SIGKILL`, which it cannot ignore. The Language Server
-starts each worker in its own process group on POSIX systems and kills the whole
-group, so processes the worker started, such as a runtime behind a wrapper
-script, die with it; on Windows it kills only the worker process. The CLI kills
-only the worker process on every platform, so a process the worker started may
-outlive it. Neither waits on such a process: the CLI returns at the time limit,
-and the Language Server settles at most half a second after the kill, even
-while such a process still holds the worker's output open.
+A worker is killed with `SIGKILL`, which it cannot ignore. Each worker starts in
+its own process group on POSIX systems, and a kill takes the whole group, so
+processes the worker started, such as a runtime behind a wrapper script, die
+with it; on Windows only the worker process is killed, so a process it started
+may outlive it. A scan does not wait on such a process: it settles at most half
+a second after the kill, even while such a process still holds the worker's
+output open. Because a worker is outside the CLI's process group, the CLI kills
+its running workers and probes when it receives `SIGINT`, `SIGTERM`, or
+`SIGHUP`, and then ends by that signal.
 
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully, is
@@ -199,11 +201,10 @@ runtime, DocBridge runs the full command with `--probe` in the same stripped
 environment and reads the one JSON line the worker prints (see each language's
 section). The probe is limited to 10 seconds and to 64 KiB of stdout and
 stderr together; a probe still running after 10 seconds is killed with
-`SIGKILL`, which it cannot ignore. The CLI waits for each probe. The Language
-Server runs it in the background, the way it runs a worker: the probe starts
-in its own process group on POSIX systems, the time and output limits kill the
-group, and cancelling the scan kills the probe at once, so the server keeps
-answering while a slow runtime starts. Its result is cached for the rest of
+`SIGKILL`, which it cannot ignore. A probe runs in the background, the way a
+worker does: it starts in its own process group on POSIX systems, the time and
+output limits kill the group, and cancelling the scan kills the probe at once,
+so the Language Server keeps answering while a slow runtime starts. Its result is cached for the rest of
 the CLI process or language server session, keyed by the full command and the
 values of `PATH` and every `DOCBRIDGE_*` variable; a configuration change
 clears the cache. A cancelled probe caches nothing, and neither does a probe

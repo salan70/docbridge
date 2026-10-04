@@ -9,7 +9,7 @@ import {
   settledCancelable,
   type Cancelable,
 } from "../../../shared/cancelable";
-import { probeRuntime, probeRuntimeAsync, type RuntimeProbeOutcome } from "./runtime-probe";
+import { probeRuntime, type RuntimeProbeOutcome } from "./runtime-probe";
 import {
   scannerRootsFromModuleUrl,
   type ScannerWorkerCommandResolution,
@@ -92,11 +92,6 @@ const RUNTIME_WORKERS: Readonly<Record<RuntimeWorkerLanguage, RuntimeWorkerSpec>
 type RuntimeProbe = (
   command: readonly string[],
   stripEnv: readonly string[],
-) => RuntimeProbeOutcome;
-
-type RuntimeProbeAsync = (
-  command: readonly string[],
-  stripEnv: readonly string[],
 ) => Cancelable<RuntimeProbeOutcome>;
 
 type RuntimeWorkerResolutionOptions = {
@@ -114,8 +109,6 @@ type RuntimeWorkerResolutionOptions = {
   distRoot?: string;
   /** Seam for the `--probe` run; results are cached either way. */
   probe?: RuntimeProbe;
-  /** Seam for the asynchronous `--probe` run; it shares the cache with `probe`. */
-  probeAsync?: RuntimeProbeAsync;
 };
 
 /** One probe a resolution needs: the full worker command and the variables it starts without. */
@@ -123,8 +116,7 @@ type ProbeRequest = { command: string[]; stripEnv: readonly string[] };
 
 /**
  * A resolution as steps: it yields each probe it needs and receives the
- * outcome, so the synchronous and asynchronous resolutions make the same
- * decisions in the same order.
+ * outcome, so the decisions stay apart from how a probe runs.
  */
 type ResolutionSteps = Generator<ProbeRequest, RuntimeWorkerCommandResolution, RuntimeProbeOutcome>;
 
@@ -180,6 +172,9 @@ export function runtimeWorkerEntrypoints(): Readonly<
  * each followed by the worker's fixed runtime flags and bundled entrypoint and
  * accepted only after its `--probe` passes. An explicit override that fails is
  * reported without trying anything else; only candidates fall through.
+ * A probe the cache cannot answer runs in the background. Cancelling the
+ * resolution kills the probe in flight and rejects with an `AbortError`; a
+ * cancelled probe caches nothing.
  *
  * @doc docs/specs/scanning.md#code-scanning
  * @doc docs/specs/configuration.md#scanner-runtimes
@@ -187,36 +182,15 @@ export function runtimeWorkerEntrypoints(): Readonly<
 export function resolveRuntimeWorkerCommand(
   language: RuntimeWorkerLanguage,
   options: RuntimeWorkerResolutionOptions,
-): RuntimeWorkerCommandResolution {
-  const env = options.env ?? process.env;
-  const probe = options.probe ?? probeRuntime;
-  const steps = resolutionSteps(language, options, env);
-  let step = steps.next();
-  while (step.done !== true) {
-    step = steps.next(cachedProbe(step.value, env, probe));
-  }
-  return step.value;
-}
-
-/**
- * The non-blocking counterpart of {@link resolveRuntimeWorkerCommand} for the
- * Language Server. It makes the same decisions and shares the probe cache, and
- * runs each probe the cache cannot answer in the background. Cancelling it
- * kills the probe in flight and rejects with an `AbortError`; a cancelled
- * probe caches nothing.
- */
-export function resolveRuntimeWorkerCommandAsync(
-  language: RuntimeWorkerLanguage,
-  options: RuntimeWorkerResolutionOptions,
 ): Cancelable<RuntimeWorkerCommandResolution> {
   const env = options.env ?? process.env;
-  const probeAsync = options.probeAsync ?? probeRuntimeAsync;
+  const probe = options.probe ?? probeRuntime;
   return cancelableSequence(async (run) => {
     const steps = resolutionSteps(language, options, env);
     let step = steps.next();
     while (step.done !== true) {
       const request = step.value;
-      step = steps.next(await run(() => cachedProbeAsync(request, env, probeAsync)));
+      step = steps.next(await run(() => cachedProbe(request, env, probe)));
     }
     return step.value;
   });
@@ -395,26 +369,6 @@ function cachedProbe(
   { command, stripEnv }: ProbeRequest,
   env: Readonly<Record<string, string | undefined>>,
   probe: RuntimeProbe,
-): RuntimeProbeOutcome {
-  const key = probeCacheKey(command, env);
-  const cached = probeCache.get(key);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const generation = probeCacheGeneration;
-  const outcome = probe(command, stripEnv);
-  rememberProbe(key, generation, outcome);
-  return outcome;
-}
-
-/**
- * {@link cachedProbe} for the asynchronous resolution. Only a probe that
- * finished uncancelled, with no cache clear since it started, is cached.
- */
-function cachedProbeAsync(
-  { command, stripEnv }: ProbeRequest,
-  env: Readonly<Record<string, string | undefined>>,
-  probeAsync: RuntimeProbeAsync,
 ): Cancelable<RuntimeProbeOutcome> {
   const key = probeCacheKey(command, env);
   const cached = probeCache.get(key);
@@ -422,7 +376,7 @@ function cachedProbeAsync(
     return settledCancelable(cached);
   }
   const generation = probeCacheGeneration;
-  return mapCancelable(probeAsync(command, stripEnv), (outcome) => {
+  return mapCancelable(probe(command, stripEnv), (outcome) => {
     rememberProbe(key, generation, outcome);
     return outcome;
   });

@@ -12,7 +12,7 @@ import type { LinkManifest } from "../model/link-manifest";
 import type { CodeScanResult } from "../model/scan-result";
 import type { MarkdownScanResult } from "../model/scan-result";
 import type { DocBridgeDiagnostic } from "../model/types";
-import { scanCodeFilesAsync, type CodeAdapterOverrides } from "../scan/code/dispatch";
+import { scanCodeFiles, type CodeAdapterOverrides } from "../scan/code/dispatch";
 import type { CodeScanCache } from "../scan/code/scan-cache";
 import { scanMarkdown } from "../scan/markdown/markdown";
 import { cancelableSequence, type Cancelable } from "../shared/cancelable";
@@ -93,7 +93,7 @@ export function scanProject(
   if (previousCache !== undefined && !sameConfiguration && previousCache.fingerprint !== "") {
     options.onConfigurationChange?.();
   }
-  const codeScan = scanCodeFilesAsync(
+  const codeScan = scanCodeFiles(
     options.projectRoot,
     inputs.codeFiles,
     inputs.config.include.code,
@@ -159,7 +159,7 @@ function loadProjectScan(
 function codeScanOptions(
   inputs: ProjectScanInputs,
   options: ScanProjectBaseOptions,
-): Parameters<typeof scanCodeFilesAsync>[4] {
+): Parameters<typeof scanCodeFiles>[4] {
   const { contentByFile } = inputs;
   const { scanners } = inputs.config;
   return {

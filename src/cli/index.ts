@@ -60,6 +60,7 @@ import { formatDiagnostic, formatSummary } from "./render/diagnostics";
 import { formatGraphResult } from "./render/graph";
 import { formatGateResult, formatRelatedResult } from "./render/related";
 import { parseUpgradeOptions, runUpgrade } from "./upgrade";
+import { killWorkersOnSignal } from "./worker-signals";
 
 const VERSION = pkg.version;
 
@@ -479,6 +480,7 @@ async function resolveLatestForInvocation(
 }
 
 if (import.meta.main) {
+  killWorkersOnSignal();
   const argv = process.argv.slice(2);
   const isTty = process.stderr.isTTY === true;
   const latest = await resolveLatestForInvocation(argv, process.env, isTty);

@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 
 import { KNOWN_CODE_LANGUAGES } from "../../config/code-language";
 import type { CodeLanguage } from "../../model/types";
-import { scanCodeFilesAsync } from "./dispatch";
+import { scanCodeFiles } from "./dispatch";
 
 /**
  * Cross-language conformance cases. Each case holds one `input.txt` per
@@ -51,7 +51,7 @@ for (const name of cases) {
         const expectedPath = join(caseDir, "expected.json");
         const relPath = SCANNED_PATH[language];
 
-        const { codeFiles } = await scanCodeFilesAsync(
+        const { codeFiles } = await scanCodeFiles(
           caseDir,
           [{ language, relPath }],
           { [language]: { patterns: [relPath] } },

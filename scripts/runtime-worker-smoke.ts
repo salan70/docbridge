@@ -5,8 +5,8 @@ import {
   RUNTIME_WORKER_LANGUAGES,
   type RuntimeWorkerLanguage,
 } from "../src/config/scanner-runtimes";
-import { resolveRuntimeWorkerCommandAsync } from "../src/scan/code/worker/runtime-worker";
-import { runScannerWorkerProcessAsync } from "../src/scan/code/worker/scanner-worker";
+import { resolveRuntimeWorkerCommand } from "../src/scan/code/worker/runtime-worker";
+import { runScannerWorkerProcess } from "../src/scan/code/worker/scanner-worker";
 
 /**
  * Smoke checks for the runtime-backed workers shipped under `dist/workers/`.
@@ -49,7 +49,7 @@ export async function smokeRuntimeWorker(
   language: RuntimeWorkerLanguage,
   target: SmokeTarget,
 ): Promise<string> {
-  const resolution = await resolveRuntimeWorkerCommandAsync(language, {
+  const resolution = await resolveRuntimeWorkerCommand(language, {
     projectRoot: target.projectRoot,
     // A dist directory has no `packages/`, so pointing the source root at it
     // makes the dist entrypoint the only one that can be found.
@@ -60,7 +60,7 @@ export async function smokeRuntimeWorker(
     throw new Error(resolution.diagnostic.message);
   }
   const file = ONE_FILE[language];
-  const result = await runScannerWorkerProcessAsync({
+  const result = await runScannerWorkerProcess({
     command: resolution.command,
     stripEnv: resolution.stripEnv,
     stdin: JSON.stringify({
@@ -98,7 +98,7 @@ export async function smokeRuntimeWorkers(target: SmokeTarget): Promise<void> {
 export async function assertMissingRuntimeUnavailable(
   target: SmokeTarget & { missingRuntime: string },
 ): Promise<void> {
-  const resolution = await resolveRuntimeWorkerCommandAsync("python", {
+  const resolution = await resolveRuntimeWorkerCommand("python", {
     projectRoot: target.projectRoot,
     sourceRoot: target.distRoot,
     distRoot: target.distRoot,

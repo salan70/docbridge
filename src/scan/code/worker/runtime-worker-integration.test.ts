@@ -41,12 +41,12 @@ beforeEach(() => {
   clearRuntimeProbeCache();
 });
 
-function scanOneFile(
+async function scanOneFile(
   language: RuntimeWorkerLanguage,
   command: string[],
   stripEnv: readonly string[],
-): unknown {
-  const result = runScannerWorkerProcess({
+): Promise<unknown> {
+  const result = await runScannerWorkerProcess({
     command,
     stripEnv,
     stdin: JSON.stringify({
@@ -57,7 +57,7 @@ function scanOneFile(
       files: [ONE_FILE[language]],
       options: {},
     }),
-  });
+  }).promise;
   if (!result.ok) {
     throw new Error(`cannot start ${command[0]}: ${String(result.error)}`);
   }
@@ -67,14 +67,15 @@ function scanOneFile(
 
 test.each<RuntimeWorkerLanguage>(["python", "ruby", "java"])(
   "the %s worker resolves from the source checkout and scans one file",
-  (language) => {
-    const resolution = resolveRuntimeWorkerCommand(language, { projectRoot: repoRoot });
+  async (language) => {
+    const resolution = await resolveRuntimeWorkerCommand(language, { projectRoot: repoRoot })
+      .promise;
     if (!resolution.ok) {
       throw new Error(resolution.diagnostic.message);
     }
 
     expect(resolution.command.at(-1)?.startsWith(join(repoRoot, "packages"))).toBe(true);
-    const response = scanOneFile(language, resolution.command, resolution.stripEnv) as {
+    const response = (await scanOneFile(language, resolution.command, resolution.stripEnv)) as {
       language: string;
       files: { links: { source: string; target: string }[] }[];
     };
@@ -95,16 +96,16 @@ test("a relative configured runtime path runs the real worker from the project r
     mkdirSync(join(projectRoot, "tools"));
     symlinkSync(python, join(projectRoot, "tools/python3"));
 
-    const resolution = resolveRuntimeWorkerCommand("python", {
+    const resolution = await resolveRuntimeWorkerCommand("python", {
       projectRoot,
       command: ["tools/python3"],
-    });
+    }).promise;
     if (!resolution.ok) {
       throw new Error(resolution.diagnostic.message);
     }
 
     expect(resolution.command[0]).toBe(join(projectRoot, "tools/python3"));
-    const response = scanOneFile("python", resolution.command, resolution.stripEnv) as {
+    const response = (await scanOneFile("python", resolution.command, resolution.stripEnv)) as {
       files: unknown[];
     };
     expect(response.files).toHaveLength(1);
@@ -114,10 +115,10 @@ test("a relative configured runtime path runs the real worker from the project r
 });
 
 test("a configured runtime that does not exist is unavailable without fallback", async () => {
-  const resolution = resolveRuntimeWorkerCommand("ruby", {
+  const resolution = await resolveRuntimeWorkerCommand("ruby", {
     projectRoot: repoRoot,
     command: ["/nonexistent/docbridge/ruby"],
-  });
+  }).promise;
 
   expect(resolution).toMatchObject({
     ok: false,

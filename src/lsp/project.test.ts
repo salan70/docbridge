@@ -149,18 +149,20 @@ describe("Project runtime probes", () => {
     // A runtime-backed resolution standing in for a registered runtime language.
     const adapter = createScannerWorkerAdapter(
       "go",
-      ({ projectRoot }) =>
-        resolveRuntimeWorkerCommand("python", {
-          projectRoot,
-          sourceRoot: pkg,
-          env: {},
-          platform: "linux",
-          probe: () => {
-            probes += 1;
-            return { kind: "ok", runtime: "cpython", version: "3.12.4" };
-          },
-        }),
-      { runAsync: () => settledCancelable(EXITED) },
+      {
+        commandAsync: ({ projectRoot }) =>
+          resolveRuntimeWorkerCommand("python", {
+            projectRoot,
+            sourceRoot: pkg,
+            env: {},
+            platform: "linux",
+            probe: () => {
+              probes += 1;
+              return settledCancelable({ kind: "ok", runtime: "cpython", version: "3.12.4" });
+            },
+          }),
+      },
+      { run: () => settledCancelable(EXITED) },
     );
     const project = new Project(root, { adapters: { go: adapter } });
 
@@ -209,16 +211,23 @@ describe("Project scan cache", () => {
     // A runtime-backed resolution standing in for a registered runtime language.
     const adapter = createScannerWorkerAdapter(
       "go",
-      ({ projectRoot }) =>
-        resolveRuntimeWorkerCommand("python", {
-          projectRoot,
-          sourceRoot: pkg,
-          env: { ...env },
-          platform: "linux",
-          probe: () => ({ kind: "ok", runtime: "cpython", version: versions[env.PATH] ?? "" }),
-        }),
       {
-        runAsync: (input) => {
+        commandAsync: ({ projectRoot }) =>
+          resolveRuntimeWorkerCommand("python", {
+            projectRoot,
+            sourceRoot: pkg,
+            env: { ...env },
+            platform: "linux",
+            probe: () =>
+              settledCancelable({
+                kind: "ok",
+                runtime: "cpython",
+                version: versions[env.PATH] ?? "",
+              }),
+          }),
+      },
+      {
+        run: (input) => {
           requests += 1;
           return settledCancelable(parseErrorResponse(input.stdin));
         },

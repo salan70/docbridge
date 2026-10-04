@@ -50,7 +50,7 @@ type ScanOutcome = { ok: true; scan: FullScan } | { ok: false; diagnostics: DocB
 /**
  * Whole-project model for the Language Server. It scans every include-matched
  * file from disk, overlays open-document buffers, and re-resolves the full link
- * graph on demand. Asynchronous scans reuse the raw code scan results of the
+ * graph on demand. Scans reuse the raw code scan results of the
  * last accepted scan for files whose content, configuration, and resolved
  * worker are unchanged.
  *

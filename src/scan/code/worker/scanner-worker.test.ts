@@ -3,17 +3,29 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { deferred, isAbortError } from "../../../shared/cancelable";
+import { deferred, isAbortError, settledCancelable } from "../../../shared/cancelable";
 import {
   clangModuleCachePath,
   invokeScannerWorker,
-  invokeScannerWorkerAsync,
+  killRunningWorkers,
   runScannerWorkerProcess,
-  runScannerWorkerProcessAsync,
-  syncWorkerProcessResult,
   workerProcessEnv,
   type ScannerWorkerProcessResult,
+  type ScannerWorkerRun,
 } from "./scanner-worker";
+
+type ProcessInput = Parameters<ScannerWorkerRun>[0];
+
+/** Invoke the worker with a process runner that settles at once with what `run` returns. */
+function invoke(
+  request: Parameters<typeof invokeScannerWorker>[0],
+  command: string[],
+  run: (input: ProcessInput) => ScannerWorkerProcessResult,
+  stripEnv?: readonly string[],
+): ReturnType<typeof invokeScannerWorker>["promise"] {
+  return invokeScannerWorker(request, command, (input) => settledCancelable(run(input)), stripEnv)
+    .promise;
+}
 
 test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", () => {
   const path = clangModuleCachePath();
@@ -27,79 +39,17 @@ test("clangModuleCachePath is rooted in the OS temp dir and scoped per user", ()
   }
 });
 
-test("runScannerWorkerProcess pipes stdin to the worker and captures stdout, stderr, and exit code", () => {
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", "cat; echo err >&2; exit 3"],
-    stdin: "ping",
-  });
-
-  expect(result).toEqual({
-    ok: true,
-    exitCode: 3,
-    stdout: "ping",
-    stderr: "err\n",
-  });
-});
-
-test("runScannerWorkerProcess reports a start failure when the command does not exist", () => {
-  const result = runScannerWorkerProcess({
-    command: ["docbridge-nonexistent-worker-command"],
-    stdin: "",
-  });
-
-  expect(result.ok).toBe(false);
-  if (!result.ok) {
-    expect(result.kind).toBe("start");
-  }
-});
-
-test("runScannerWorkerProcess captures worker output larger than one megabyte", () => {
+test("runScannerWorkerProcess captures worker output larger than one megabyte", async () => {
   const bytes = 2 * 1024 * 1024;
-  const result = runScannerWorkerProcess({
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", `head -c ${bytes} /dev/zero | tr '\\0' a`],
     stdin: "",
-  });
+  }).promise;
 
   expect(result.ok).toBe(true);
   if (result.ok) {
     expect(result.exitCode).toBe(0);
     expect(result.stdout.length).toBe(bytes);
-  }
-});
-
-test("runScannerWorkerProcess exposes the clang module cache path to the worker", () => {
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", 'printf "%s" "$CLANG_MODULE_CACHE_PATH"'],
-    stdin: "",
-  });
-
-  expect(result.ok).toBe(true);
-  if (result.ok) {
-    expect(result.stdout).toBe(clangModuleCachePath());
-  }
-});
-
-test("runScannerWorkerProcess removes the variables named in stripEnv from the worker environment", () => {
-  process.env.DOCBRIDGE_TEST_INJECTED = "injected";
-  process.env.DOCBRIDGE_TEST_KEPT = "kept";
-  try {
-    const result = runScannerWorkerProcess({
-      command: [
-        "sh",
-        "-c",
-        'printf "%s|%s" "${DOCBRIDGE_TEST_INJECTED-unset}" "${DOCBRIDGE_TEST_KEPT-unset}"',
-      ],
-      stdin: "",
-      stripEnv: ["DOCBRIDGE_TEST_INJECTED"],
-    });
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.stdout).toBe("unset|kept");
-    }
-  } finally {
-    delete process.env.DOCBRIDGE_TEST_INJECTED;
-    delete process.env.DOCBRIDGE_TEST_KEPT;
   }
 });
 
@@ -118,9 +68,9 @@ test("workerProcessEnv strips a variable in any letter case on Windows only", ()
   }
 });
 
-test("invokeScannerWorker passes stripEnv to the process runner", () => {
+test("invokeScannerWorker passes stripEnv to the process runner", async () => {
   let received: readonly string[] | undefined;
-  invokeScannerWorker(
+  await invoke(
     {
       schemaVersion: 1,
       requestId: "strip",
@@ -140,142 +90,12 @@ test("invokeScannerWorker passes stripEnv to the process runner", () => {
   expect(received).toEqual(["RUBYOPT", "JAVA_TOOL_OPTIONS"]);
 });
 
-test("runScannerWorkerProcess reports an execution failure when the worker is killed by a signal", () => {
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", "kill -KILL $$"],
-    stdin: "",
-  });
-
-  expect(result.ok).toBe(false);
-  if (!result.ok) {
-    expect(result.kind).toBe("execution");
-    expect(String(result.error)).toContain("SIGKILL");
-  }
-});
-
-test("runScannerWorkerProcess stops a worker that outlives its timeout and reports an execution failure", () => {
-  const started = Date.now();
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", "sleep 5"],
-    stdin: "",
-    timeoutMs: 100,
-  });
-
-  expect(Date.now() - started).toBeLessThan(4_000);
-  expect(result.ok).toBe(false);
-  if (!result.ok) {
-    expect(result.kind).toBe("execution");
-    expect(String(result.error)).toContain("timed out after 100 ms");
-  }
-});
-
-test("runScannerWorkerProcess returns at the timeout even when a descendant holds the worker's output", () => {
-  const started = Date.now();
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", "sleep 2 & wait"],
-    stdin: "",
-    timeoutMs: 100,
-  });
-
-  expect(Date.now() - started).toBeLessThan(1_500);
-  expect(result).toMatchObject({ ok: false, kind: "execution" });
-});
-
-test("runScannerWorkerProcess never reports a worker that exits without reading its input as unstartable", () => {
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", "exit 0"],
-    stdin: "x".repeat(4 * 1024 * 1024),
-  });
-
-  expect(result).not.toMatchObject({ ok: false, kind: "start" });
-});
-
-test("syncWorkerProcessResult reports an error after the worker started as an execution failure", () => {
-  // Node reports a worker that exits without reading its input this way.
-  const epipe = Object.assign(new Error("spawnSync sh EPIPE"), { code: "EPIPE" });
-
-  expect(
-    syncWorkerProcessResult(
-      { pid: 4242, status: 0, signal: null, stdout: "", stderr: "", error: epipe },
-      1_000,
-      1_000,
-    ),
-  ).toEqual({ ok: false, kind: "execution", error: epipe, stderr: "" });
-  expect(
-    syncWorkerProcessResult(
-      { pid: 4242, status: null, signal: "SIGPIPE", stdout: "", stderr: "", error: epipe },
-      1_000,
-      1_000,
-    ),
-  ).toMatchObject({ ok: false, kind: "execution" });
-});
-
-test("syncWorkerProcessResult reports the same run without an error by its exit status", () => {
-  // Bun reports a worker that exits without reading its input this way.
-  expect(
-    syncWorkerProcessResult(
-      { pid: 4242, status: 0, signal: null, stdout: "", stderr: "" },
-      1_000,
-      1_000,
-    ),
-  ).toEqual({ ok: true, exitCode: 0, stdout: "", stderr: "" });
-});
-
-test("syncWorkerProcessResult reports an error with no sign of a started worker as a start failure", () => {
-  const enoent = Object.assign(new Error("spawnSync worker ENOENT"), { code: "ENOENT" });
-
-  // Node reports pid 0 and a null status; Bun leaves both undefined.
-  for (const shape of [
-    { pid: 0, status: null, signal: null },
-    { pid: undefined, status: undefined, signal: null },
-  ]) {
-    expect(
-      syncWorkerProcessResult(
-        { ...shape, stdout: null, stderr: null, error: enoent },
-        1_000,
-        1_000,
-      ),
-    ).toEqual({ ok: false, kind: "start", error: enoent, stderr: "" });
-  }
-});
-
 /** A shell script that writes `each` bytes to stdout, then `each` bytes to stderr. */
 function writeBothStreams(each: number): string {
   return `head -c ${each} /dev/zero | tr '\\0' a; head -c ${each} /dev/zero | tr '\\0' b >&2`;
 }
 
-test("runScannerWorkerProcess caps stdout and stderr together", () => {
-  const over = runScannerWorkerProcess({
-    command: ["sh", "-c", writeBothStreams(600)],
-    stdin: "",
-    maxOutputBytes: 1_000,
-  });
-  const atCap = runScannerWorkerProcess({
-    command: ["sh", "-c", writeBothStreams(500)],
-    stdin: "",
-    maxOutputBytes: 1_000,
-  });
-
-  expect(over).toMatchObject({ ok: false, kind: "execution" });
-  expect(String((over as { error?: unknown }).error)).toContain("more than 1000 bytes");
-  expect(atCap).toMatchObject({ ok: true, exitCode: 0 });
-});
-
-test("runScannerWorkerProcess reports output above the cap as an execution failure", () => {
-  const result = runScannerWorkerProcess({
-    command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
-    stdin: "",
-    maxOutputBytes: 1_000,
-  });
-
-  expect(result.ok).toBe(false);
-  if (!result.ok) {
-    expect(result.kind).toBe("execution");
-    expect(String(result.error)).toContain("more than 1000 bytes");
-  }
-});
-
-test("invokeScannerWorker gives the worker 30 seconds plus one second per requested file", () => {
+test("invokeScannerWorker gives the worker 30 seconds plus one second per requested file", async () => {
   const timeouts: Array<number | undefined> = [];
   const run = (input: { timeoutMs?: number }): ScannerWorkerProcessResult => {
     timeouts.push(input.timeoutMs);
@@ -289,8 +109,8 @@ test("invokeScannerWorker gives the worker 30 seconds plus one second per reques
     options: {},
   };
 
-  invokeScannerWorker({ ...base, files: [{ filePath: "a.go", content: "" }] }, ["worker"], run);
-  invokeScannerWorker(
+  await invoke({ ...base, files: [{ filePath: "a.go", content: "" }] }, ["worker"], run);
+  await invoke(
     {
       ...base,
       files: [
@@ -306,8 +126,8 @@ test("invokeScannerWorker gives the worker 30 seconds plus one second per reques
   expect(timeouts).toEqual([31_000, 33_000]);
 });
 
-test("invokeScannerWorker reports a worker that started and then failed as scanner failed", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker reports a worker that started and then failed as scanner failed", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-crash",
@@ -338,8 +158,8 @@ test("invokeScannerWorker reports a worker that started and then failed as scann
   });
 });
 
-test("invokeScannerWorker rejects responses with missing requested files", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker rejects responses with missing requested files", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-missing-file",
@@ -369,8 +189,8 @@ test("invokeScannerWorker rejects responses with missing requested files", () =>
   }
 });
 
-test("invokeScannerWorker rejects responses with unexpected file paths", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker rejects responses with unexpected file paths", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-wrong-file",
@@ -408,8 +228,8 @@ test("invokeScannerWorker rejects responses with unexpected file paths", () => {
   }
 });
 
-test("invokeScannerWorker rejects malformed nested scan results", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker rejects malformed nested scan results", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-malformed-symbol",
@@ -457,8 +277,8 @@ test("invokeScannerWorker rejects malformed nested scan results", () => {
   }
 });
 
-test("invokeScannerWorker emits scanner unavailable when the process cannot start", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker emits scanner unavailable when the process cannot start", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-3",
@@ -492,9 +312,9 @@ test("invokeScannerWorker emits scanner unavailable when the process cannot star
 // spawn time means the mode is not the problem: the filesystem itself refuses
 // to execute, which is what a `noexec` mount does. On macOS that is where
 // `bunx` caches packages. See issue #74.
-test("invokeScannerWorker explains exec-denied spawn failures as a noexec mount", () => {
+test("invokeScannerWorker explains exec-denied spawn failures as a noexec mount", async () => {
   const error = Object.assign(new Error("spawn EACCES"), { code: "EACCES" });
-  const result = invokeScannerWorker(
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-noexec",
@@ -518,9 +338,9 @@ test("invokeScannerWorker explains exec-denied spawn failures as a noexec mount"
   }
 });
 
-test("invokeScannerWorker explains an EPERM spawn failure the same way", () => {
+test("invokeScannerWorker explains an EPERM spawn failure the same way", async () => {
   const error = Object.assign(new Error("spawn EPERM"), { code: "EPERM" });
-  const result = invokeScannerWorker(
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-eperm",
@@ -540,8 +360,8 @@ test("invokeScannerWorker explains an EPERM spawn failure the same way", () => {
   }
 });
 
-test("invokeScannerWorker renders a non-Error spawn rejection readably", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker renders a non-Error spawn rejection readably", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-nonerror",
@@ -560,8 +380,8 @@ test("invokeScannerWorker renders a non-Error spawn rejection readably", () => {
   }
 });
 
-test("invokeScannerWorker emits scanner failed for invalid stdout and preserves stderr", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker emits scanner failed for invalid stdout and preserves stderr", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-4",
@@ -589,8 +409,8 @@ test("invokeScannerWorker emits scanner failed for invalid stdout and preserves 
   }
 });
 
-test("invokeScannerWorker accepts a member symbol flagged isMember", () => {
-  const result = invokeScannerWorker(
+test("invokeScannerWorker accepts a member symbol flagged isMember", async () => {
+  const result = await invoke(
     {
       schemaVersion: 1,
       requestId: "req-5",
@@ -660,8 +480,8 @@ function isAlive(pid: number): boolean {
   }
 }
 
-test("runScannerWorkerProcessAsync pipes stdin to the worker and captures stdout, stderr, and exit code", async () => {
-  const result = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess pipes stdin to the worker and captures stdout, stderr, and exit code", async () => {
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "cat; echo err >&2; exit 3"],
     stdin: "ping",
   }).promise;
@@ -669,9 +489,9 @@ test("runScannerWorkerProcessAsync pipes stdin to the worker and captures stdout
   expect(result).toEqual({ ok: true, exitCode: 3, stdout: "ping", stderr: "err\n" });
 });
 
-test("runScannerWorkerProcessAsync decodes multi-byte output split across chunks", async () => {
+test("runScannerWorkerProcess decodes multi-byte output split across chunks", async () => {
   const text = "ログイン🌟".repeat(50_000);
-  const result = await runScannerWorkerProcessAsync({
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "cat"],
     stdin: text,
   }).promise;
@@ -682,8 +502,8 @@ test("runScannerWorkerProcessAsync decodes multi-byte output split across chunks
   }
 });
 
-test("runScannerWorkerProcessAsync reports a start failure when the command does not exist", async () => {
-  const result = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess reports a start failure when the command does not exist", async () => {
+  const result = await runScannerWorkerProcess({
     command: ["docbridge-nonexistent-worker-command"],
     stdin: "",
   }).promise;
@@ -694,8 +514,8 @@ test("runScannerWorkerProcessAsync reports a start failure when the command does
   }
 });
 
-test("runScannerWorkerProcessAsync reports an execution failure when the worker is killed by a signal", async () => {
-  const result = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess reports an execution failure when the worker is killed by a signal", async () => {
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "kill -KILL $$"],
     stdin: "",
   }).promise;
@@ -704,12 +524,13 @@ test("runScannerWorkerProcessAsync reports an execution failure when the worker 
   if (!result.ok) {
     expect(result.kind).toBe("execution");
     expect(String(result.error)).toContain("SIGKILL");
+    expect(result.cause).toEqual({ type: "signal", signal: "SIGKILL" });
   }
 });
 
-test("runScannerWorkerProcessAsync stops a worker that outlives its timeout", async () => {
+test("runScannerWorkerProcess stops a worker that outlives its timeout", async () => {
   const started = Date.now();
-  const result = await runScannerWorkerProcessAsync({
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "exec sleep 5"],
     stdin: "",
     timeoutMs: 100,
@@ -720,15 +541,16 @@ test("runScannerWorkerProcessAsync stops a worker that outlives its timeout", as
   if (!result.ok) {
     expect(result.kind).toBe("execution");
     expect(String(result.error)).toContain("timed out after 100 ms");
+    expect(result.cause).toEqual({ type: "timeout" });
   }
 });
 
-test("runScannerWorkerProcessAsync kills a timed-out worker's descendants and settles at once", async () => {
+test("runScannerWorkerProcess kills a timed-out worker's descendants and settles at once", async () => {
   const dir = mkdtempSync(join(tmpdir(), "docbridge-descendant-"));
   try {
     const pidFile = join(dir, "pid");
     const started = Date.now();
-    const result = await runScannerWorkerProcessAsync({
+    const result = await runScannerWorkerProcess({
       command: ["sh", "-c", `sleep 2 & echo $! > '${pidFile}'; wait`],
       stdin: "",
       timeoutMs: 300,
@@ -743,14 +565,14 @@ test("runScannerWorkerProcessAsync kills a timed-out worker's descendants and se
   }
 });
 
-test("runScannerWorkerProcessAsync settles a killed worker whose escaped descendant holds its output", async () => {
+test("runScannerWorkerProcess settles a killed worker whose escaped descendant holds its output", async () => {
   // The descendant starts its own process group, so killing the worker's group
   // misses it; it keeps stdout and stderr open for 3 s.
   const escape =
     "require('node:child_process').spawn('sleep', ['3'], " +
     "{ detached: true, stdio: ['ignore', 'inherit', 'inherit'] }); setTimeout(() => {}, 30000);";
   const started = Date.now();
-  const result = await runScannerWorkerProcessAsync({
+  const result = await runScannerWorkerProcess({
     command: [process.execPath, "-e", escape],
     stdin: "",
     timeoutMs: 300,
@@ -764,8 +586,8 @@ test("runScannerWorkerProcessAsync settles a killed worker whose escaped descend
   }
 });
 
-test("runScannerWorkerProcessAsync reports stdout above the cap as an execution failure", async () => {
-  const result = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess reports stdout above the cap as an execution failure", async () => {
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a"],
     stdin: "",
     maxOutputBytes: 1_000,
@@ -775,16 +597,17 @@ test("runScannerWorkerProcessAsync reports stdout above the cap as an execution 
   if (!result.ok) {
     expect(result.kind).toBe("execution");
     expect(String(result.error)).toContain("more than 1000 bytes");
+    expect(result.cause).toEqual({ type: "output-limit" });
   }
 });
 
-test("runScannerWorkerProcessAsync caps stdout and stderr together", async () => {
-  const over = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess caps stdout and stderr together", async () => {
+  const over = await runScannerWorkerProcess({
     command: ["sh", "-c", writeBothStreams(600)],
     stdin: "",
     maxOutputBytes: 1_000,
   }).promise;
-  const atCap = await runScannerWorkerProcessAsync({
+  const atCap = await runScannerWorkerProcess({
     command: ["sh", "-c", writeBothStreams(500)],
     stdin: "",
     maxOutputBytes: 1_000,
@@ -795,8 +618,8 @@ test("runScannerWorkerProcessAsync caps stdout and stderr together", async () =>
   expect(atCap).toMatchObject({ ok: true, exitCode: 0 });
 });
 
-test("runScannerWorkerProcessAsync reports stderr above the cap as an execution failure", async () => {
-  const result = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess reports stderr above the cap as an execution failure", async () => {
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "head -c 100000 /dev/zero | tr '\\0' a >&2"],
     stdin: "",
     maxOutputBytes: 1_000,
@@ -808,8 +631,8 @@ test("runScannerWorkerProcessAsync reports stderr above the cap as an execution 
   }
 });
 
-test("runScannerWorkerProcessAsync survives a worker that exits without reading its input", async () => {
-  const result = await runScannerWorkerProcessAsync({
+test("runScannerWorkerProcess survives a worker that exits without reading its input", async () => {
+  const result = await runScannerWorkerProcess({
     command: ["sh", "-c", "exit 0"],
     stdin: "x".repeat(4 * 1024 * 1024),
   }).promise;
@@ -817,10 +640,10 @@ test("runScannerWorkerProcessAsync survives a worker that exits without reading 
   expect(result).toEqual({ ok: true, exitCode: 0, stdout: "", stderr: "" });
 });
 
-test("runScannerWorkerProcessAsync removes the variables named in stripEnv and sets the clang cache", async () => {
+test("runScannerWorkerProcess removes the variables named in stripEnv and sets the clang cache", async () => {
   process.env.DOCBRIDGE_TEST_INJECTED = "injected";
   try {
-    const result = await runScannerWorkerProcessAsync({
+    const result = await runScannerWorkerProcess({
       command: [
         "sh",
         "-c",
@@ -843,7 +666,7 @@ test("cancelling an asynchronous worker run kills the worker and rejects with an
   const dir = mkdtempSync(join(tmpdir(), "docbridge-cancel-"));
   try {
     const pidFile = join(dir, "pid");
-    const task = runScannerWorkerProcessAsync({
+    const task = runScannerWorkerProcess({
       command: [
         "sh",
         "-c",
@@ -869,7 +692,7 @@ test("cancelling an asynchronous worker run kills the worker's descendants", asy
   const dir = mkdtempSync(join(tmpdir(), "docbridge-cancel-descendant-"));
   try {
     const pidFile = join(dir, "pid");
-    const task = runScannerWorkerProcessAsync({
+    const task = runScannerWorkerProcess({
       command: [
         "sh",
         "-c",
@@ -891,9 +714,40 @@ test("cancelling an asynchronous worker run kills the worker's descendants", asy
   }
 });
 
-test("invokeScannerWorkerAsync interprets the worker response like the synchronous path", async () => {
+test.skipIf(process.platform === "win32")(
+  "killRunningWorkers kills a running worker and its descendants",
+  async () => {
+    const dir = mkdtempSync(join(tmpdir(), "docbridge-kill-running-"));
+    try {
+      const pidFile = join(dir, "pid");
+      const task = runScannerWorkerProcess({
+        command: [
+          "sh",
+          "-c",
+          `sleep 30 & echo $! > '${pidFile}.tmp' && mv '${pidFile}.tmp' '${pidFile}'; wait`,
+        ],
+        stdin: "",
+      });
+      await eventually(() => existsSync(pidFile));
+      const descendant = Number(readFileSync(pidFile, "utf8").trim());
+      expect(isAlive(descendant)).toBe(true);
+
+      killRunningWorkers();
+
+      expect(await task.promise).toMatchObject({
+        ok: false,
+        cause: { type: "signal", signal: "SIGKILL" },
+      });
+      await eventually(() => !isAlive(descendant), 1_500);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
+
+test("invokeScannerWorker interprets the worker response", async () => {
   const inputs: Array<{ stripEnv?: readonly string[]; timeoutMs?: number }> = [];
-  const result = await invokeScannerWorkerAsync(
+  const result = await invokeScannerWorker(
     {
       schemaVersion: 1,
       requestId: "req-async",
@@ -948,40 +802,9 @@ test("invokeScannerWorkerAsync interprets the worker response like the synchrono
   expect(inputs.map((input) => [input.stripEnv, input.timeoutMs])).toEqual([[["GOFLAGS"], 31_000]]);
 });
 
-test("invokeScannerWorkerAsync reports an execution failure as scanner failed", async () => {
-  const result = await invokeScannerWorkerAsync(
-    {
-      schemaVersion: 1,
-      requestId: "req-async-crash",
-      language: "go",
-      projectRoot: "/project",
-      files: [{ filePath: "a.go", content: "" }],
-      options: {},
-    },
-    ["go-worker"],
-    () => ({
-      promise: Promise.resolve({
-        ok: false,
-        kind: "execution",
-        error: new Error("worker timed out after 31000 ms"),
-        stderr: "",
-      }),
-      cancel: () => undefined,
-    }),
-  ).promise;
-
-  expect(result.ok).toBe(false);
-  if (!result.ok) {
-    expect(result.diagnostic.code).toBe("code_scanner_failed");
-    expect(result.diagnostic.message).toBe(
-      "Go scanner worker failed: worker timed out after 31000 ms",
-    );
-  }
-});
-
-test("cancelling invokeScannerWorkerAsync cancels the process run", () => {
+test("cancelling invokeScannerWorker cancels the process run", () => {
   let cancelled = false;
-  const task = invokeScannerWorkerAsync(
+  const task = invokeScannerWorker(
     {
       schemaVersion: 1,
       requestId: "req-async-cancel",
