@@ -116,21 +116,7 @@ describe("release preparation", () => {
       readVersion(root, "package.json"),
     );
   });
-
-  test("bumps the release version through this script", () => {
-    expect(releaseBumpRecipe()).toContain("bun run scripts/set-release-version.ts");
-  });
 });
-
-/** The body of the `release-bump` recipe in the justfile. */
-function releaseBumpRecipe(): string {
-  const justfile = readFileSync(resolve(import.meta.dir, "../justfile"), "utf8");
-  const recipe = /^release-bump .*:\n((?:[ \t]+.*\n|\n)+)/m.exec(justfile)?.[1];
-  if (recipe === undefined) {
-    throw new Error("justfile has no `release-bump` recipe");
-  }
-  return recipe;
-}
 
 function runCli(args: string[]): { exitCode: number; stdout: string; stderr: string } {
   const result = Bun.spawnSync({

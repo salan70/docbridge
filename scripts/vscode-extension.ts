@@ -174,7 +174,7 @@ export function defaultVsixPath(
  * `#!/usr/bin/env node` shebang, `scripts/verify-dist.ts` executes it directly,
  * and Bun — which the extension launches it with — runs it just as well.
  */
-export function serverBundleCommand(): string[] {
+function serverBundleCommand(): string[] {
   return ["bun", "build", "src/cli/index.ts", "--outdir", "dist", "--target", "node"];
 }
 
@@ -182,7 +182,7 @@ export function serverBundleCommand(): string[] {
  * Bundles the editor client so `vscode-languageclient` is inlined. vsce is
  * invoked with `--no-dependencies`, which does not pack `node_modules`.
  */
-export function extensionBundleCommand(): string[] {
+function extensionBundleCommand(): string[] {
   return [
     "bun",
     "build",
@@ -368,7 +368,7 @@ export function publishVscodeExtension(vsixPath: string = defaultVsixPath(repoRo
   run(vscodeMarketplacePublishCommand(resolve(vsixPath), token), repoRoot);
 }
 
-export function vscodeMarketplacePublishCommand(vsixPath: string, token: string): string[] {
+function vscodeMarketplacePublishCommand(vsixPath: string, token: string): string[] {
   return ["bunx", "@vscode/vsce", "publish", "--packagePath", vsixPath, "-p", token];
 }
 
