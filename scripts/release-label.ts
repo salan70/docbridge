@@ -8,6 +8,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { changelogSection } from "./changelog-section";
 import { nextVersion, type VersionBump, versionedManifestPaths } from "./set-release-version";
 
 export type ReleaseKind = "none" | VersionBump;
@@ -96,22 +97,6 @@ function rootVersion(snapshot: ReleaseSnapshot): string {
 
 function unreleasedBody(changelog: string): string {
   return changelogSection(changelog, "## [Unreleased]") ?? "";
-}
-
-/** The trimmed body under the first heading that starts with `heading`. */
-function changelogSection(changelog: string, heading: string): string | undefined {
-  const lines = changelog.split("\n");
-  const start = lines.findIndex((line) => line.startsWith(heading));
-  if (start === -1) {
-    return undefined;
-  }
-  const end = lines.findIndex(
-    (line, index) => index > start && (line.startsWith("## [") || /^\[[^\]]+\]:\s/.test(line)),
-  );
-  return lines
-    .slice(start + 1, end === -1 ? undefined : end)
-    .join("\n")
-    .trim();
 }
 
 function readSnapshot(read: (path: string) => string): ReleaseSnapshot {
