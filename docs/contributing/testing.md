@@ -65,11 +65,9 @@ DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
 - `src/scan/code/worker/runtime-worker.test.ts` covers runtime resolution with
   an injected probe; `runtime-worker-integration.test.ts` resolves the real
   Python, Ruby, and Java workers of the checkout, probe included, and scans one
-  file with each. `scanner-worker-conformance.test.ts` sends each worker every
-  conformance input in one request with the same resolved command and
-  stripped environment, and the Python, Ruby, and Java integration tests run
-  them through the registered adapters. A runtime missing from `PATH` fails
-  these tests instead of skipping them.
+  file with each. The Python, Ruby, and Java integration tests run the workers
+  through the registered adapters. A runtime missing from `PATH` fails these
+  tests instead of skipping them.
 - `just verify-dist` runs each runtime-backed worker from `dist/workers/`, and
   `just pack-smoke <tarball>` runs each from the installed package: in an
   install path with spaces, read-only and then writable, plus a configured

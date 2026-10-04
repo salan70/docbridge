@@ -9,9 +9,9 @@ import { scanCodeFiles } from "./dispatch";
 /**
  * Cross-language conformance cases. Each case holds one `input.txt` per
  * language and the scan result that language's adapter must produce for it.
- * The schema checks in `worker/scanner-worker-conformance.test.ts` prove the
- * shape of a worker response; these cases prove its meaning: canonical IDs,
- * UTF-16 ranges, repeated links, and parse failures.
+ * The host validates every worker response against the shared schema, so a
+ * case proves both its shape and its meaning: canonical IDs, UTF-16 ranges,
+ * repeated links, and parse failures.
  */
 const CORPUS_ROOT = resolve(import.meta.dir, "../../../test-fixtures/scanner-conformance");
 
@@ -60,22 +60,9 @@ for (const name of cases) {
 
         expect(existsSync(expectedPath)).toBe(true);
         expect(codeFiles).toEqual([JSON.parse(readFileSync(expectedPath, "utf8"))]);
-      });
 
-      test(`${language} adapter locates symbols at their name and links at their target`, () => {
-        const caseDir = join(CORPUS_ROOT, name, language);
-        const content = readFileSync(join(caseDir, "input.txt"), "utf8");
-        const relPath = SCANNED_PATH[language];
-
-        const { codeFiles } = scanCodeFiles(
-          caseDir,
-          [{ language, relPath }],
-          { [language]: { patterns: [relPath] } },
-          () => ({ ok: true, content }),
-        );
-
+        // A symbol is located at its name and a link at its target.
         const scan = codeFiles[0];
-        expect(scan).toBeDefined();
         for (const symbol of [...(scan?.symbols ?? []), ...(scan?.undocumentedSymbols ?? [])]) {
           expect({ line: symbol.location.line, column: symbol.location.column }).toEqual(
             symbol.nameRange?.start ?? {

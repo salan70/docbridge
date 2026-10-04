@@ -47,8 +47,7 @@ Whether the work needs a plan follows the [Writing Guidelines](writing.md).
 
 ## Tests
 
-- [ ] Add `src/scan/code/worker/<lang>-integration.test.ts` and cover the
-      worker in `scanner-worker-conformance.test.ts`.
+- [ ] Add `src/scan/code/worker/<lang>-integration.test.ts`.
 - [ ] Add a `<lang>` directory to every case under
       `test-fixtures/scanner-conformance/`, and add the language's input file
       name to `src/scan/code/conformance.test.ts`.
