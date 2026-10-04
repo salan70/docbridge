@@ -60,7 +60,7 @@ import { formatDiagnostic, formatSummary } from "./render/diagnostics";
 import { formatGraphResult } from "./render/graph";
 import { formatGateResult, formatRelatedResult } from "./render/related";
 import { parseUpgradeOptions, runUpgrade } from "./upgrade";
-import { killWorkersOnSignal } from "./worker-signals";
+import { killingWorkersOnSignal } from "./worker-signals";
 
 const VERSION = pkg.version;
 
@@ -121,7 +121,9 @@ function resolveProjectRoot(root: string, command: Subcommand): string {
 
 async function runCheck(options: CliCheckOptions, io: CliIo): Promise<number> {
   const projectRoot = resolveProjectRoot(options.root, "check");
-  const result = await runChecker({ projectRoot, audit: options.audit });
+  const result = await killingWorkersOnSignal(() =>
+    runChecker({ projectRoot, audit: options.audit }),
+  );
 
   if (options.json) {
     io.stdout(`${JSON.stringify(result, null, 2)}\n`);
@@ -168,7 +170,7 @@ async function runFileCommand<Result>(
     inputFiles.push(...readStdin().split("\n"));
   }
 
-  const outcome = await execute(projectRoot, inputFiles);
+  const outcome = await killingWorkersOnSignal(async () => execute(projectRoot, inputFiles));
   if (!outcome.ok) {
     throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
   }
@@ -480,7 +482,6 @@ async function resolveLatestForInvocation(
 }
 
 if (import.meta.main) {
-  killWorkersOnSignal();
   const argv = process.argv.slice(2);
   const isTty = process.stderr.isTTY === true;
   const latest = await resolveLatestForInvocation(argv, process.env, isTty);

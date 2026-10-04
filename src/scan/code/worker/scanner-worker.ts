@@ -291,7 +291,11 @@ export function runScannerWorkerProcess(
   let child: ChildProcessWithoutNullStreams | undefined;
   try {
     const [executable = "", ...args] = input.command;
-    child = spawn(executable, args, { env: workerProcessEnv(input.stripEnv), detached: ownGroup });
+    child = spawn(executable, args, {
+      env: workerProcessEnv(input.stripEnv),
+      detached: ownGroup,
+      windowsHide: true,
+    });
   } catch (error) {
     settle(() => run.resolve({ ok: false, kind: "start", error, stderr: "" }));
     return { promise: run.promise, cancel: () => undefined };

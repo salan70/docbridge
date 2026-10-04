@@ -79,3 +79,39 @@ test.skipIf(process.platform === "win32")(
     }
   },
 );
+
+test.skipIf(process.platform === "win32")(
+  "a command waiting on stdin still ends when it is terminated",
+  async () => {
+    const root = makeProject({
+      "docbridge.config.json": JSON.stringify({
+        include: { code: { typescript: { patterns: ["src/**/*.ts"] } }, docs: ["docs/**/*.md"] },
+      }),
+    });
+    const cli = Bun.spawn(["bun", "run", CLI, "related", "--root", root, "--stdin"], {
+      stdin: "pipe",
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    try {
+      // Long enough for the CLI to start and block reading its open stdin.
+      await new Promise<void>((done) => {
+        setTimeout(done, 500);
+      });
+
+      cli.kill("SIGTERM");
+      const exited = await Promise.race([
+        cli.exited.then(() => true),
+        new Promise<boolean>((done) => {
+          setTimeout(() => done(false), 2_000);
+        }),
+      ]);
+
+      expect(exited).toBe(true);
+      expect(cli.signalCode).toBe("SIGTERM");
+    } finally {
+      cli.kill("SIGKILL");
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
