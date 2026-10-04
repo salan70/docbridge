@@ -85,7 +85,7 @@ test.each<RuntimeWorkerLanguage>(["python", "ruby", "java"])(
   },
 );
 
-test("a relative configured runtime path runs the real worker from the project root", () => {
+test("a relative configured runtime path runs the real worker from the project root", async () => {
   const python = Bun.which("python3");
   if (python === null) {
     throw new Error("python3 is not on PATH");
@@ -113,7 +113,7 @@ test("a relative configured runtime path runs the real worker from the project r
   }
 });
 
-test("a configured runtime that does not exist is unavailable without fallback", () => {
+test("a configured runtime that does not exist is unavailable without fallback", async () => {
   const resolution = resolveRuntimeWorkerCommand("ruby", {
     projectRoot: repoRoot,
     command: ["/nonexistent/docbridge/ruby"],

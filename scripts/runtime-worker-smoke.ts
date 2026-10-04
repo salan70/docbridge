@@ -5,8 +5,8 @@ import {
   RUNTIME_WORKER_LANGUAGES,
   type RuntimeWorkerLanguage,
 } from "../src/config/scanner-runtimes";
-import { resolveRuntimeWorkerCommand } from "../src/scan/code/worker/runtime-worker";
-import { runScannerWorkerProcess } from "../src/scan/code/worker/scanner-worker";
+import { resolveRuntimeWorkerCommandAsync } from "../src/scan/code/worker/runtime-worker";
+import { runScannerWorkerProcessAsync } from "../src/scan/code/worker/scanner-worker";
 
 /**
  * Smoke checks for the runtime-backed workers shipped under `dist/workers/`.
@@ -45,19 +45,22 @@ type SmokeTarget = {
  * Resolve one worker from `distRoot` and scan one file with it. Returns a
  * one-line summary; throws when resolution, the run, or the response fails.
  */
-export function smokeRuntimeWorker(language: RuntimeWorkerLanguage, target: SmokeTarget): string {
-  const resolution = resolveRuntimeWorkerCommand(language, {
+export async function smokeRuntimeWorker(
+  language: RuntimeWorkerLanguage,
+  target: SmokeTarget,
+): Promise<string> {
+  const resolution = await resolveRuntimeWorkerCommandAsync(language, {
     projectRoot: target.projectRoot,
     // A dist directory has no `packages/`, so pointing the source root at it
     // makes the dist entrypoint the only one that can be found.
     sourceRoot: target.distRoot,
     distRoot: target.distRoot,
-  });
+  }).promise;
   if (!resolution.ok) {
     throw new Error(resolution.diagnostic.message);
   }
   const file = ONE_FILE[language];
-  const result = runScannerWorkerProcess({
+  const result = await runScannerWorkerProcessAsync({
     command: resolution.command,
     stripEnv: resolution.stripEnv,
     stdin: JSON.stringify({
@@ -68,7 +71,7 @@ export function smokeRuntimeWorker(language: RuntimeWorkerLanguage, target: Smok
       files: [{ filePath: file.filePath, content: file.content }],
       options: {},
     }),
-  });
+  }).promise;
   if (!result.ok || result.exitCode !== 0) {
     const status = result.ok ? `exited ${result.exitCode}` : String(result.error);
     throw new Error(`${language} worker ${status}: ${result.stderr}`);
@@ -82,9 +85,9 @@ export function smokeRuntimeWorker(language: RuntimeWorkerLanguage, target: Smok
 }
 
 /** Smoke every runtime-backed worker in `distRoot`, logging each summary. */
-export function smokeRuntimeWorkers(target: SmokeTarget): void {
+export async function smokeRuntimeWorkers(target: SmokeTarget): Promise<void> {
   for (const language of RUNTIME_WORKER_LANGUAGES) {
-    console.log(smokeRuntimeWorker(language, target));
+    console.log(await smokeRuntimeWorker(language, target));
   }
 }
 
@@ -92,15 +95,15 @@ export function smokeRuntimeWorkers(target: SmokeTarget): void {
  * A configured runtime that does not exist must be `code_scanner_unavailable`
  * and must not fall back to a runtime on `PATH`.
  */
-export function assertMissingRuntimeUnavailable(
+export async function assertMissingRuntimeUnavailable(
   target: SmokeTarget & { missingRuntime: string },
-): void {
-  const resolution = resolveRuntimeWorkerCommand("python", {
+): Promise<void> {
+  const resolution = await resolveRuntimeWorkerCommandAsync("python", {
     projectRoot: target.projectRoot,
     sourceRoot: target.distRoot,
     distRoot: target.distRoot,
     command: [target.missingRuntime],
-  });
+  }).promise;
   if (resolution.ok) {
     throw new Error(`a missing runtime override resolved to ${resolution.command.join(" ")}`);
   }
@@ -130,13 +133,16 @@ function hasLink(stdout: string, source: string): boolean {
  * owned by another user or on a read-only store, then restore each original
  * mode. On Windows only files become read-only; directories ignore the bit.
  */
-export function withReadOnlyTree(root: string, callback: () => void): void {
+export async function withReadOnlyTree(
+  root: string,
+  callback: () => void | Promise<void>,
+): Promise<void> {
   const entries = treeModes(root);
   for (const { path, mode } of entries.toReversed()) {
     chmodSync(path, mode & ~0o222);
   }
   try {
-    callback();
+    await callback();
   } finally {
     for (const { path, mode } of entries) {
       chmodSync(path, mode);

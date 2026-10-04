@@ -400,22 +400,22 @@ describe("Server rescan scheduling", () => {
     const opened = nextPublish(CODE_URI);
     open(server, CODE_URI, CODE_TEXT);
     await settle();
-    held.batches.at(-1)?.release();
+    (await held.waitForBatch(0)).release();
     await opened;
 
     change(server, CODE_URI, BROKEN_LINK);
     clock.fire();
     await settle();
-    const running = held.batches.at(-1);
+    const running = await held.waitForBatch(1);
     const hover = request(9, "textDocument/hover", {
       textDocument: { uri: CODE_URI },
       position: LOGIN_POSITION,
     }) as { contents: { value: string } } | null;
 
-    expect(running?.files).toEqual([CODE_FILE]);
+    expect(running.files).toEqual([CODE_FILE]);
     expect(hover?.contents.value).toContain("Login Spec");
     const rescanned = nextPublish(CODE_URI);
-    running?.release();
+    running.release();
     expect((await rescanned).diagnostics.map((d) => d.code)).toContain("doc_anchor_not_found");
   });
 

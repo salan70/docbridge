@@ -30,7 +30,7 @@ const interactivePrompts: InitPrompts = {
   select: (_message, _choices, defaultChoice) => defaultChoice,
 };
 
-test("parseInitOptions accepts shared init options", () => {
+test("parseInitOptions accepts shared init options", async () => {
   expect(
     parseInitOptions(
       ["--root", "examples/typescript", "--yes", "--dry-run", "--force", "--agent-target", "both"],
@@ -45,25 +45,25 @@ test("parseInitOptions accepts shared init options", () => {
   });
 });
 
-test("parseInitOptions rejects unknown options", () => {
+test("parseInitOptions rejects unknown options", async () => {
   expect(() => parseInitOptions(["--bogus"], "init")).toThrow(CliError);
   expect(() => parseInitOptions(["--bogus"], "init")).toThrow("Unknown option");
 });
 
-test("parseInitOptions rejects missing option values", () => {
+test("parseInitOptions rejects missing option values", async () => {
   expect(() => parseInitOptions(["--root"], "init")).toThrow("--root requires a path.");
   expect(() => parseInitOptions(["--agent-target"], "init")).toThrow(
     "--agent-target requires a value.",
   );
 });
 
-test("parseInitOptions rejects none for init-with-agent", () => {
+test("parseInitOptions rejects none for init-with-agent", async () => {
   expect(() => parseInitOptions(["--agent-target", "none"], "init-with-agent")).toThrow(
     "init-with-agent requires an agent target other than none.",
   );
 });
 
-test("runInit --yes creates config and installs skills without writing in dry-run mode", () => {
+test("runInit --yes creates config and installs skills without writing in dry-run mode", async () => {
   const project = makeProject({
     ".agents/skills/.keep": "",
     "docs/specs/cli.md": "# CLI\n",
@@ -86,7 +86,7 @@ test("runInit --yes creates config and installs skills without writing in dry-ru
   }
 });
 
-test("runInit --yes writes config and skills", () => {
+test("runInit --yes writes config and skills", async () => {
   const project = makeProject({
     ".agents/skills/.keep": "",
     "docs/specs/cli.md": "# CLI\n",
@@ -114,7 +114,7 @@ test("runInit --yes writes config and skills", () => {
   }
 });
 
-test("runInitWithAgent prints agent guidance and skips config creation", () => {
+test("runInitWithAgent prints agent guidance and skips config creation", async () => {
   const project = makeProject({ ".claude/skills/.keep": "" });
   try {
     const c = capture();
@@ -135,7 +135,7 @@ test("runInitWithAgent prints agent guidance and skips config creation", () => {
   }
 });
 
-test("runInitWithAgent --yes without an agent directory exits with a target-required message", () => {
+test("runInitWithAgent --yes without an agent directory exits with a target-required message", async () => {
   const project = makeProject({});
   try {
     const c = capture();
@@ -152,7 +152,7 @@ test("runInitWithAgent --yes without an agent directory exits with a target-requ
   }
 });
 
-test("run enters interactive init setup without --yes", () => {
+test("run enters interactive init setup without --yes", async () => {
   const project = makeProject({
     ".agents/skills/.keep": "",
     "docs/specs/cli.md": "# CLI\n",
@@ -160,9 +160,13 @@ test("run enters interactive init setup without --yes", () => {
   });
   try {
     const c = capture();
-    const code = run(["init", "--root", project, "--dry-run", "--agent-target", "codex"], c.io, {
-      prompts: interactivePrompts,
-    });
+    const code = await run(
+      ["init", "--root", project, "--dry-run", "--agent-target", "codex"],
+      c.io,
+      {
+        prompts: interactivePrompts,
+      },
+    );
 
     expect(code).toBe(0);
     expect(c.out).toContain("would create docbridge.config.json");
@@ -172,7 +176,7 @@ test("run enters interactive init setup without --yes", () => {
   }
 });
 
-test("runInitWithAgent enters interactive setup without confirming docs scope", () => {
+test("runInitWithAgent enters interactive setup without confirming docs scope", async () => {
   const project = makeProject({ ".agents/skills/.keep": "" });
   try {
     const c = capture();
@@ -190,7 +194,7 @@ test("runInitWithAgent enters interactive setup without confirming docs scope", 
   }
 });
 
-test("run dispatches init commands through the CLI boundary", () => {
+test("run dispatches init commands through the CLI boundary", async () => {
   const project = makeProject({
     ".agents/skills/.keep": "",
     "docs/specs/cli.md": "# CLI\n",
@@ -198,7 +202,7 @@ test("run dispatches init commands through the CLI boundary", () => {
   });
   try {
     const c = capture();
-    const code = run(
+    const code = await run(
       ["init", "--root", project, "--yes", "--dry-run", "--agent-target", "codex"],
       c.io,
     );
@@ -211,7 +215,7 @@ test("run dispatches init commands through the CLI boundary", () => {
   }
 });
 
-test("runInit --force removes leftover legacy skill directories", () => {
+test("runInit --force removes leftover legacy skill directories", async () => {
   const project = makeProject({
     ".agents/skills/docbridge-adopt/SKILL.md": "# legacy\n",
     ".agents/skills/docbridge-annotate/SKILL.md": "# legacy\n",
@@ -239,7 +243,7 @@ test("runInit --force removes leftover legacy skill directories", () => {
   }
 });
 
-test("runInit leaves leftover legacy skill directories without --force", () => {
+test("runInit leaves leftover legacy skill directories without --force", async () => {
   const project = makeProject({
     ".agents/skills/docbridge-adopt/SKILL.md": "# legacy\n",
     "docs/specs/cli.md": "# CLI\n",
@@ -263,7 +267,7 @@ test("runInit leaves leftover legacy skill directories without --force", () => {
   }
 });
 
-test("runInit --force leaves a symlinked legacy skill directory in place", () => {
+test("runInit --force leaves a symlinked legacy skill directory in place", async () => {
   const project = makeProject({
     "docs/specs/cli.md": "# CLI\n",
     "src/app.ts": "export const app = 1;\n",
@@ -290,7 +294,7 @@ test("runInit --force leaves a symlinked legacy skill directory in place", () =>
   }
 });
 
-test("runInit --force leaves a symlinked docbridge skill directory in place", () => {
+test("runInit --force leaves a symlinked docbridge skill directory in place", async () => {
   const project = makeProject({
     "docs/specs/cli.md": "# CLI\n",
     "src/app.ts": "export const app = 1;\n",

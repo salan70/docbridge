@@ -84,12 +84,12 @@ export function formatGateReport(
  * report rather than an error: this is an awareness surface, and `just verify`
  * already owns the hard verdict.
  */
-export function gateReport(
+export async function gateReport(
   projectRoot: string,
   changedFiles: string[],
   partiallyStagedFiles: string[] = [],
-): string {
-  const relatedOutcome = related({ projectRoot, changedFiles });
+): Promise<string> {
+  const relatedOutcome = await related({ projectRoot, changedFiles });
   if (!relatedOutcome.ok) {
     return formatGateReport([], [], partiallyStagedFiles);
   }
@@ -99,7 +99,7 @@ export function gateReport(
     return formatGateReport([], [], partiallyStagedFiles);
   }
 
-  const contextOutcome = context({ projectRoot, inputFiles: changedFiles });
+  const contextOutcome = await context({ projectRoot, inputFiles: changedFiles });
   return formatGateReport(
     violations,
     contextOutcome.ok ? contextOutcome.result.contexts : [],
@@ -124,7 +124,7 @@ function partiallyStaged(projectRoot: string, changedFiles: string[]): string[] 
 
 if (import.meta.main) {
   const changedFiles = parseChangedFiles(await Bun.stdin.text());
-  const report = gateReport(repoRoot, changedFiles, partiallyStaged(repoRoot, changedFiles));
+  const report = await gateReport(repoRoot, changedFiles, partiallyStaged(repoRoot, changedFiles));
   if (report !== "") {
     console.error(report);
   }

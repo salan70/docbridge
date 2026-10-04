@@ -53,10 +53,10 @@ type SmokeOptions = {
   runtimeWorkersOnly: boolean;
 };
 
-export function smokePackedPackage(
+export async function smokePackedPackage(
   tarball: string,
   options: SmokeOptions = { scannerFixtures: true, runtimeWorkersOnly: false },
-): void {
+): Promise<void> {
   const tarballPath = resolve(tarball);
   const tempRoot = mkdtempSync(join(tmpdir(), "docbridge-pack-smoke-"));
 
@@ -67,7 +67,7 @@ export function smokePackedPackage(
         smokeExecutableBitRepair(tarballPath, tempRoot);
       }
     }
-    smokeRuntimeWorkerInstall(tarballPath, tempRoot);
+    await smokeRuntimeWorkerInstall(tarballPath, tempRoot);
     console.log(`Smoke-tested ${basename(tarballPath)} in ${tempRoot}`);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
@@ -79,7 +79,7 @@ export function smokePackedPackage(
  * installed package, first read-only and then writable, then confirm that a
  * configured runtime that does not exist is reported instead of replaced.
  */
-function smokeRuntimeWorkerInstall(tarballPath: string, tempRoot: string): void {
+async function smokeRuntimeWorkerInstall(tarballPath: string, tempRoot: string): Promise<void> {
   const installRoot = join(tempRoot, "runtime workers install");
   mkdirSync(installRoot, { recursive: true });
   writeFileSync(
@@ -90,9 +90,9 @@ function smokeRuntimeWorkerInstall(tarballPath: string, tempRoot: string): void 
   const packageRoot = join(installRoot, "node_modules", "docbridge");
   const target = { distRoot: join(packageRoot, "dist"), projectRoot: installRoot };
   // Read-only first, before a writable run can leave Python bytecode behind.
-  withReadOnlyTree(packageRoot, () => smokeRuntimeWorkers(target));
-  smokeRuntimeWorkers(target);
-  assertMissingRuntimeUnavailable({
+  await withReadOnlyTree(packageRoot, () => smokeRuntimeWorkers(target));
+  await smokeRuntimeWorkers(target);
+  await assertMissingRuntimeUnavailable({
     ...target,
     missingRuntime: join(installRoot, "missing runtime", "python3"),
   });
@@ -540,7 +540,7 @@ function relativeToRoot(root: string, path: string): string {
 if (import.meta.main) {
   const { tarball, options } = parseArgs(Bun.argv.slice(2));
   try {
-    smokePackedPackage(tarball, options);
+    await smokePackedPackage(tarball, options);
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
   }

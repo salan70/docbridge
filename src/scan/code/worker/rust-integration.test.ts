@@ -10,7 +10,7 @@ import { check } from "../../../query/check";
 import { context } from "../../../query/context";
 import { graph } from "../../../query/graph-output";
 
-function withRustProject(run: (root: string) => void): void {
+async function withRustProject(run: (root: string) => void | Promise<void>): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "docbridge-rust-"));
   try {
     mkdirSync(join(root, "src"), { recursive: true });
@@ -40,17 +40,17 @@ function withRustProject(run: (root: string) => void): void {
       join(root, "docs", "auth.md"),
       ["<!-- @code src/auth_service.rs#AuthService::login -->", "## Login Flow", ""].join("\n"),
     );
-    run(root);
+    await run(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
-test("Rust worker participates in check, context, graph, and LSP navigation", () => {
-  withRustProject((root) => {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+test("Rust worker participates in check, context, graph, and LSP navigation", async () => {
+  await withRustProject(async (root) => {
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const contextResult = context({
+    const contextResult = await context({
       projectRoot: root,
       inputFiles: ["docs/auth.md"],
     });
@@ -64,7 +64,7 @@ test("Rust worker participates in check, context, graph, and LSP navigation", ()
       });
     }
 
-    const graphResult = graph({ projectRoot: root, includeContent: true });
+    const graphResult = await graph({ projectRoot: root, includeContent: true });
     expect(graphResult.ok).toBe(true);
     if (graphResult.ok) {
       expect(graphResult.result.nodes.find((node) => node.kind === "code")).toMatchObject({
@@ -74,7 +74,7 @@ test("Rust worker participates in check, context, graph, and LSP navigation", ()
     }
 
     const project = new Project(root);
-    const state = project.resolve();
+    const state = await project.resolveAsync().promise;
     expect(state.diagnostics).toEqual([]);
     expect(definition(state, "docs/auth.md", { line: 2, column: 5 })).toEqual([
       {
@@ -91,7 +91,7 @@ test("Rust worker participates in check, context, graph, and LSP navigation", ()
   });
 });
 
-test("Rust manifest entry links a member with no annotation", () => {
+test("Rust manifest entry links a member with no annotation", async () => {
   const root = mkdtempSync(join(tmpdir(), "docbridge-rust-manifest-"));
   try {
     mkdirSync(join(root, "src"), { recursive: true });
@@ -124,9 +124,9 @@ test("Rust manifest entry links a member with no annotation", () => {
     );
     writeFileSync(join(root, "docs", "auth.md"), "## Login Flow\n");
 
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const graphOutcome = graph({ projectRoot: root });
+    const graphOutcome = await graph({ projectRoot: root });
     expect(graphOutcome.ok).toBe(true);
     if (!graphOutcome.ok) {
       return;

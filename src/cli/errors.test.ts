@@ -6,9 +6,9 @@ import { join } from "node:path";
 import { run } from "./index";
 import { capture } from "./test-support";
 
-test("unknown commands list available commands and suggest a close match", () => {
+test("unknown commands list available commands and suggest a close match", async () => {
   const c = capture();
-  const code = run(["ctx"], c.io);
+  const code = await run(["ctx"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toBe(
@@ -27,9 +27,9 @@ test("unknown commands list available commands and suggest a close match", () =>
   expect(c.out).toBe("");
 });
 
-test("unknown commands do not include a false suggestion", () => {
+test("unknown commands do not include a false suggestion", async () => {
   const c = capture();
-  const code = run(["bogus"], c.io);
+  const code = await run(["bogus"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toContain("Available commands:");
@@ -38,9 +38,9 @@ test("unknown commands do not include a false suggestion", () => {
   expect(c.out).toBe("");
 });
 
-test("unknown options identify the command-specific help", () => {
+test("unknown options identify the command-specific help", async () => {
   const c = capture();
-  const code = run(["check", "--bogus", "--json"], c.io);
+  const code = await run(["check", "--bogus", "--json"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toBe(
@@ -54,9 +54,9 @@ test("unknown options identify the command-specific help", () => {
   expect(c.out).toBe("");
 });
 
-test("missing option values include a runnable project-root example", () => {
+test("missing option values include a runnable project-root example", async () => {
   const c = capture();
-  const code = run(["check", "--root"], c.io);
+  const code = await run(["check", "--root"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toBe(
@@ -74,9 +74,9 @@ test("missing option values include a runnable project-root example", () => {
   expect(c.out).toBe("");
 });
 
-test("missing context input includes file and stdin examples", () => {
+test("missing context input includes file and stdin examples", async () => {
   const c = capture();
-  const code = run(["context"], c.io);
+  const code = await run(["context"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toBe(
@@ -98,9 +98,9 @@ test("missing context input includes file and stdin examples", () => {
   expect(c.out).toBe("");
 });
 
-test("missing related input uses the related command in its examples", () => {
+test("missing related input uses the related command in its examples", async () => {
   const c = capture();
-  const code = run(["related"], c.io);
+  const code = await run(["related"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toContain("docbridge related src/auth.ts");
@@ -109,11 +109,11 @@ test("missing related input uses the related command in its examples", () => {
   expect(c.out).toBe("");
 });
 
-test("missing check configuration sends setup guidance to stderr", () => {
+test("missing check configuration sends setup guidance to stderr", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-missing-config-"));
   try {
     const c = capture();
-    const code = run(["check", "--root", project], c.io);
+    const code = await run(["check", "--root", project], c.io);
 
     expect(code).toBe(1);
     expect(c.out).toContain("config_file_invalid");
@@ -126,12 +126,12 @@ test("missing check configuration sends setup guidance to stderr", () => {
   }
 });
 
-test("malformed check configuration points to manual repair instead of init", () => {
+test("malformed check configuration points to manual repair instead of init", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-malformed-config-"));
   try {
     writeFileSync(join(project, "docbridge.config.json"), '{ "docs": [');
     const c = capture();
-    const code = run(["check", "--root", project], c.io);
+    const code = await run(["check", "--root", project], c.io);
 
     expect(code).toBe(1);
     expect(c.out).toContain("config_file_invalid");
@@ -142,7 +142,7 @@ test("malformed check configuration points to manual repair instead of init", ()
   }
 });
 
-test("malformed link manifest points to the manifest, not the config", () => {
+test("malformed link manifest points to the manifest, not the config", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-malformed-manifest-"));
   try {
     writeFileSync(
@@ -153,7 +153,7 @@ test("malformed link manifest points to the manifest, not the config", () => {
     );
     writeFileSync(join(project, "docbridge.links.json"), '{ "links": [], }');
     const c = capture();
-    const code = run(["check", "--root", project], c.io);
+    const code = await run(["check", "--root", project], c.io);
 
     expect(code).toBe(1);
     expect(c.out).toContain("config_file_invalid");
@@ -163,11 +163,11 @@ test("malformed link manifest points to the manifest, not the config", () => {
   }
 });
 
-test("guidance-free init failures keep the Error prefix", () => {
+test("guidance-free init failures keep the Error prefix", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-init-error-"));
   try {
     const c = capture();
-    const code = run(["init", "--root", project], c.io, {
+    const code = await run(["init", "--root", project], c.io, {
       prompts: {
         isInteractive: false,
         confirm: () => true,
@@ -185,11 +185,11 @@ test("guidance-free init failures keep the Error prefix", () => {
   }
 });
 
-test("core diagnostic failures remain unprefixed", () => {
+test("core diagnostic failures remain unprefixed", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-context-diagnostic-"));
   try {
     const c = capture();
-    const code = run(["context", "--root", project, "src/auth.ts"], c.io);
+    const code = await run(["context", "--root", project, "src/auth.ts"], c.io);
 
     expect(code).toBe(1);
     expect(c.err).toStartWith("docbridge.config.json error config_file_invalid -");
@@ -200,11 +200,11 @@ test("core diagnostic failures remain unprefixed", () => {
   }
 });
 
-test("missing check configuration keeps JSON output free of human guidance", () => {
+test("missing check configuration keeps JSON output free of human guidance", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-missing-config-json-"));
   try {
     const c = capture();
-    const code = run(["check", "--root", project, "--json"], c.io);
+    const code = await run(["check", "--root", project, "--json"], c.io);
 
     expect(code).toBe(1);
     expect(JSON.parse(c.out)).toEqual({

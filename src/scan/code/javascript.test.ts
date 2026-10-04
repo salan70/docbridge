@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import type { InProcessCodeAdapter } from "./adapter";
 import { javaScriptAdapter, scanTypeScript } from "./typescript";
 
 const LOGIN = "/** @doc docs/auth.md#login */\nexport function login(email, password) {}\n";
@@ -36,8 +37,8 @@ test.each(["src/auth.js", "src/auth.jsx", "src/auth.mjs", "src/auth.cjs"])(
   },
 );
 
-test("the javascript adapter scans every file of a batch in process", () => {
-  const scans = javaScriptAdapter.scanFiles(
+test("the javascript adapter scans every file of a batch in process", async () => {
+  const scans = (javaScriptAdapter as InProcessCodeAdapter).scanFiles(
     [
       { filePath: "src/a.js", content: LOGIN },
       { filePath: "src/b.mjs", content: "export const b = 1;\n" },
@@ -64,7 +65,7 @@ test.each(["src/view.jsx", "src/view.js"])("%s parses JSX inside a declaration",
   expect(result.symbols.map((symbol) => symbol.endpoint)).toEqual([`${filePath}#View`]);
 });
 
-test("class members of an exported JavaScript class are public endpoints", () => {
+test("class members of an exported JavaScript class are public endpoints", async () => {
   const content = [
     "export class AuthService {",
     "  /** @doc docs/auth.md#timeout */",
@@ -89,7 +90,7 @@ test("class members of an exported JavaScript class are public endpoints", () =>
   ]);
 });
 
-test("a JavaScript member is public, so a public-free visibility excludes it", () => {
+test("a JavaScript member is public, so a public-free visibility excludes it", async () => {
   const content = "export class A {\n  /** @doc docs/a.md#run */\n  run() {}\n}\n";
 
   const result = scanTypeScript("src/a.js", content, { visibility: ["protected", "private"] });
@@ -100,7 +101,7 @@ test("a JavaScript member is public, so a public-free visibility excludes it", (
   ]);
 });
 
-test("an annotated #private member is unsupported_declaration with language javascript", () => {
+test("an annotated #private member is unsupported_declaration with language javascript", async () => {
   const content = "export class A {\n  /** @doc docs/a.md#secret */\n  #secret() {}\n}\n";
 
   const result = scanTypeScript("src/a.js", content);
@@ -134,7 +135,7 @@ test.each([
   ]);
 });
 
-test("a JavaScript syntax error is a JavaScript code_parse_error", () => {
+test("a JavaScript syntax error is a JavaScript code_parse_error", async () => {
   const result = scanTypeScript("src/a.js", "export function login( {\n");
 
   expect(result.symbols).toEqual([]);
@@ -149,7 +150,7 @@ test("a JavaScript syntax error is a JavaScript code_parse_error", () => {
   ]);
 });
 
-test("an annotated interface in a .js file is a code_parse_error with no endpoint or link", () => {
+test("an annotated interface in a .js file is a code_parse_error with no endpoint or link", async () => {
   const result = scanTypeScript(
     "src/a.js",
     "/** @doc docs/a.md#x */ export interface X { a: number; }\n",
@@ -207,7 +208,7 @@ test.each(["src/a.jsx", "src/a.mjs", "src/a.cjs"])(
   },
 );
 
-test("a parser error wins over TypeScript-only syntax in the same JavaScript file", () => {
+test("a parser error wins over TypeScript-only syntax in the same JavaScript file", async () => {
   const result = scanTypeScript("src/a.js", "export interface X {}\nexport function f( {\n");
 
   expect(result.diagnostics).toMatchObject([
@@ -215,7 +216,7 @@ test("a parser error wins over TypeScript-only syntax in the same JavaScript fil
   ]);
 });
 
-test("JSDoc types in a .js file stay comments, not TypeScript syntax", () => {
+test("JSDoc types in a .js file stay comments, not TypeScript syntax", async () => {
   const content = [
     "/** @typedef {{ id: string, roles: Array<'admin' | 'user'> }} User */",
     "",
@@ -238,7 +239,7 @@ test("JSDoc types in a .js file stay comments, not TypeScript syntax", () => {
   expect(result.symbols.map((symbol) => symbol.endpoint)).toEqual(["src/a.js#login"]);
 });
 
-test("the same TypeScript-only syntax in a .ts file stays valid", () => {
+test("the same TypeScript-only syntax in a .ts file stays valid", async () => {
   const result = scanTypeScript(
     "src/a.ts",
     "/** @doc docs/a.md#x */ export interface X { a: number; }\n",
@@ -248,7 +249,7 @@ test("the same TypeScript-only syntax in a .ts file stays valid", () => {
   expect(result.symbols.map((symbol) => symbol.endpoint)).toEqual(["src/a.ts#X"]);
 });
 
-test("two annotated declarations of one JavaScript endpoint are duplicate_code_symbol", () => {
+test("two annotated declarations of one JavaScript endpoint are duplicate_code_symbol", async () => {
   const content = [
     "export class A {",
     "  /** @doc docs/a.md#value */",
@@ -276,7 +277,7 @@ const REPEATED_AND_INVALID_LINKS = [
   "",
 ].join("\n");
 
-test("duplicate_link and invalid_link_target from a JavaScript file carry language javascript", () => {
+test("duplicate_link and invalid_link_target from a JavaScript file carry language javascript", async () => {
   const result = scanTypeScript("src/a.js", REPEATED_AND_INVALID_LINKS);
 
   expect(result.diagnostics.map(({ code, language }) => [code, language])).toEqual([
@@ -285,7 +286,7 @@ test("duplicate_link and invalid_link_target from a JavaScript file carry langua
   ]);
 });
 
-test("duplicate_link and invalid_link_target from a TypeScript file still carry no language", () => {
+test("duplicate_link and invalid_link_target from a TypeScript file still carry no language", async () => {
   const result = scanTypeScript("src/a.ts", REPEATED_AND_INVALID_LINKS);
 
   expect(result.diagnostics.map(({ code, language }) => [code, language])).toEqual([

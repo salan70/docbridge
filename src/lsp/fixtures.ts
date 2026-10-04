@@ -2,10 +2,14 @@ import { buildLinkGraph } from "../link/graph";
 import { resolveLinks } from "../link/resolver";
 import { sortDiagnostics } from "../model/diagnostics";
 import type { CodeScanResult } from "../model/scan-result";
-import type { CodeLanguageAdapter } from "../scan/code/adapter";
+import type {
+  CodeLanguageAdapter,
+  InProcessCodeAdapter,
+  WorkerCodeAdapter,
+} from "../scan/code/adapter";
 import { scanTypeScript, typeScriptAdapter } from "../scan/code/typescript";
 import { scanMarkdown } from "../scan/markdown/markdown";
-import { abortError, deferred } from "../shared/cancelable";
+import { abortError, deferred, settledCancelable } from "../shared/cancelable";
 import { buildPositionIndex } from "./index-lookup";
 import type { ProjectState } from "./project";
 
@@ -49,22 +53,46 @@ export type HeldBatch = {
   cancelled: boolean;
 };
 
+type BatchWaiter = ReturnType<typeof deferred<HeldBatch>>;
+
 /**
  * The TypeScript adapter with an asynchronous scan that holds each batch until
  * the test releases it, so a test decides when a scan finishes.
  */
-export function heldTypeScript(): { adapter: CodeLanguageAdapter; batches: HeldBatch[] } {
+export function heldTypeScript(): {
+  adapter: CodeLanguageAdapter;
+  batches: HeldBatch[];
+  waitForBatch(index: number): Promise<HeldBatch>;
+} {
   const batches: HeldBatch[] = [];
-  const adapter: CodeLanguageAdapter = {
-    ...typeScriptAdapter,
+  const waiters = new Map<number, BatchWaiter>();
+  const waitForBatch = (index: number): Promise<HeldBatch> => {
+    const existing = batches[index];
+    if (existing !== undefined) {
+      return Promise.resolve(existing);
+    }
+    let waiter = waiters.get(index);
+    if (waiter === undefined) {
+      waiter = deferred<HeldBatch>();
+      waiters.set(index, waiter);
+    }
+    return waiter.promise;
+  };
+  const workerRef: { current?: WorkerCodeAdapter } = {};
+  const adapter: WorkerCodeAdapter = {
+    language: "typescript",
     scanFilesAsync(files, options, context) {
       const settle = deferred<CodeScanResult[]>();
       const batch: HeldBatch = {
         files: files.map((file) => file.filePath),
-        release: () => settle.resolve(typeScriptAdapter.scanFiles(files, options, context)),
+        release: () =>
+          settle.resolve(
+            (typeScriptAdapter as InProcessCodeAdapter).scanFiles(files, options, context),
+          ),
         cancelled: false,
       };
       batches.push(batch);
+      waiters.get(batches.length - 1)?.resolve(batch);
       return {
         promise: settle.promise,
         cancel: () => {
@@ -73,6 +101,14 @@ export function heldTypeScript(): { adapter: CodeLanguageAdapter; batches: HeldB
         },
       };
     },
+    prepare: () => {
+      const workerAdapter = workerRef.current;
+      if (workerAdapter === undefined) {
+        throw new Error("the TypeScript worker adapter was not initialized");
+      }
+      return settledCancelable({ argv: [], adapter: workerAdapter });
+    },
   };
-  return { adapter, batches };
+  workerRef.current = adapter;
+  return { adapter, batches, waitForBatch };
 }

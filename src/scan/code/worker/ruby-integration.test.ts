@@ -39,16 +39,16 @@ const SERVICE = [
 
 const DOC = "<!-- @code lib/auth/service.rb#Auth::Service.login -->\n## Login Flow\n";
 
-test("the Ruby worker participates in check, context, graph, and LSP navigation", () => {
+test("the Ruby worker participates in check, context, graph, and LSP navigation", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     "lib/auth/service.rb": SERVICE,
     "docs/auth.md": DOC,
   });
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const contextResult = context({ projectRoot: root, inputFiles: ["docs/auth.md"] });
+    const contextResult = await context({ projectRoot: root, inputFiles: ["docs/auth.md"] });
     expect(contextResult.ok).toBe(true);
     if (contextResult.ok) {
       expect(formatContextResult(contextResult.result)).toContain(
@@ -61,7 +61,7 @@ test("the Ruby worker participates in check, context, graph, and LSP navigation"
       });
     }
 
-    const graphResult = graph({ projectRoot: root, includeContent: true });
+    const graphResult = await graph({ projectRoot: root, includeContent: true });
     expect(graphResult.ok).toBe(true);
     if (graphResult.ok) {
       expect(graphResult.result.nodes.find((node) => node.kind === "code")).toMatchObject({
@@ -70,7 +70,7 @@ test("the Ruby worker participates in check, context, graph, and LSP navigation"
       });
     }
 
-    const state = new Project(root).resolve();
+    const state = await new Project(root).resolveAsync().promise;
     expect(state.diagnostics).toEqual([]);
     expect(definition(state, "docs/auth.md", { line: 2, column: 5 })).toEqual([
       {
@@ -92,7 +92,7 @@ test("the Ruby worker participates in check, context, graph, and LSP navigation"
   }
 });
 
-test("a Ruby manifest entry links a singleton method with no annotation", () => {
+test("a Ruby manifest entry links a singleton method with no annotation", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     "docbridge.links.json": JSON.stringify({
@@ -102,13 +102,13 @@ test("a Ruby manifest entry links a singleton method with no annotation", () => 
     "docs/auth.md": "## Build\n",
   });
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("the Ruby worker ignores interpreter variables that load code or options", () => {
+test("the Ruby worker ignores interpreter variables that load code or options", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     "lib/auth/service.rb": SERVICE,
@@ -118,7 +118,7 @@ test("the Ruby worker ignores interpreter variables that load code or options", 
   process.env.RUBYOPT = "-rdocbridge_injected_library";
   process.env.RUBYLIB = "/nonexistent-docbridge-lib";
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
   } finally {
     for (const [name, value] of Object.entries(saved)) {
       if (value === undefined) {
@@ -131,7 +131,7 @@ test("the Ruby worker ignores interpreter variables that load code or options", 
   }
 });
 
-test("a configured Ruby runtime that does not exist fails every file without fallback", () => {
+test("a configured Ruby runtime that does not exist fails every file without fallback", async () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: { code: { ruby: { patterns: ["lib/**/*.rb"] } }, docs: ["docs/**/*.md"] },
@@ -142,7 +142,7 @@ test("a configured Ruby runtime that does not exist fails every file without fal
     "docs/auth.md": "## Auth\n",
   });
   try {
-    const diagnostics = check({ projectRoot: root }).diagnostics;
+    const diagnostics = (await check({ projectRoot: root })).diagnostics;
 
     expect(diagnostics.map((diagnostic) => [diagnostic.code, diagnostic.target])).toEqual([
       ["code_scanner_unavailable", "lib/a.rb"],
@@ -157,10 +157,10 @@ test("a configured Ruby runtime that does not exist fails every file without fal
   }
 });
 
-test("the Ruby example project passes check and audit", () => {
-  expect(check({ projectRoot: EXAMPLE_ROOT, audit: true }).diagnostics).toEqual([]);
+test("the Ruby example project passes check and audit", async () => {
+  expect((await check({ projectRoot: EXAMPLE_ROOT, audit: true })).diagnostics).toEqual([]);
 
-  const graphOutcome = graph({ projectRoot: EXAMPLE_ROOT });
+  const graphOutcome = await graph({ projectRoot: EXAMPLE_ROOT });
   expect(graphOutcome.ok).toBe(true);
   if (graphOutcome.ok) {
     expect(graphOutcome.result.pairs.map((pair) => pair.codeEndpoint).toSorted()).toEqual([
@@ -177,5 +177,5 @@ test("the Language Server scans the Ruby example asynchronously with the same re
   const state = await new Project(EXAMPLE_ROOT).resolveAsync().promise;
 
   expect(state.contentByFile.has("lib/auth/service.rb")).toBe(true);
-  expect(state).toEqual(new Project(EXAMPLE_ROOT).resolve());
+  expect(state).toEqual(await new Project(EXAMPLE_ROOT).resolveAsync().promise);
 });

@@ -118,9 +118,9 @@ function resolveProjectRoot(root: string, command: Subcommand): string {
   return projectRoot;
 }
 
-function runCheck(options: CliCheckOptions, io: CliIo): number {
+async function runCheck(options: CliCheckOptions, io: CliIo): Promise<number> {
   const projectRoot = resolveProjectRoot(options.root, "check");
-  const result = runChecker({ projectRoot, audit: options.audit });
+  const result = await runChecker({ projectRoot, audit: options.audit });
 
   if (options.json) {
     io.stdout(`${JSON.stringify(result, null, 2)}\n`);
@@ -150,13 +150,16 @@ type FileCommandOutcome<Result> =
   | { ok: true; result: Result }
   | { ok: false; diagnostics: DocBridgeDiagnostic[] };
 
-function runFileCommand<Result>(
+async function runFileCommand<Result>(
   command: "related" | "context" | "graph",
   options: FileCommandOptions,
   io: CliIo,
-  execute: (projectRoot: string, inputFiles: string[]) => FileCommandOutcome<Result>,
+  execute: (
+    projectRoot: string,
+    inputFiles: string[],
+  ) => FileCommandOutcome<Result> | Promise<FileCommandOutcome<Result>>,
   render: (result: Result, projectRoot: string, inputFiles: string[]) => number,
-): number {
+): Promise<number> {
   const projectRoot = resolveProjectRoot(options.root, command);
   const inputFiles = [...options.files];
   if (options.stdin) {
@@ -164,7 +167,7 @@ function runFileCommand<Result>(
     inputFiles.push(...readStdin().split("\n"));
   }
 
-  const outcome = execute(projectRoot, inputFiles);
+  const outcome = await execute(projectRoot, inputFiles);
   if (!outcome.ok) {
     throw new DiagnosticOutputError(outcome.diagnostics.map(formatDiagnostic).join("\n"));
   }
@@ -191,7 +194,7 @@ function writeStructuredResult<Result>(
   }
 }
 
-function runRelated(options: CliRelatedOptions, io: CliIo): number {
+async function runRelated(options: CliRelatedOptions, io: CliIo): Promise<number> {
   if (!options.stdin && options.files.length === 0) {
     throw new CliError("No input files were provided.", missingInputGuidance("related"));
   }
@@ -229,7 +232,7 @@ function runRelated(options: CliRelatedOptions, io: CliIo): number {
   );
 }
 
-function runContext(options: CliContextOptions, io: CliIo): number {
+async function runContext(options: CliContextOptions, io: CliIo): Promise<number> {
   if (!options.stdin && options.files.length === 0) {
     throw new CliError("No input files were provided.", missingInputGuidance("context"));
   }
@@ -251,7 +254,7 @@ function runContext(options: CliContextOptions, io: CliIo): number {
   );
 }
 
-function runGraph(options: CliGraphOptions, io: CliIo): number {
+async function runGraph(options: CliGraphOptions, io: CliIo): Promise<number> {
   return runFileCommand(
     "graph",
     options,
@@ -311,7 +314,7 @@ type CommandHandler = (
   io: CliIo,
   initRuntime: InitRuntime,
   cliRuntime: CliRuntime,
-) => number;
+) => number | Promise<number>;
 
 const COMMAND_HANDLERS: Record<Subcommand, CommandHandler> = {
   check: (args, io) => runCheck(parseCheckOptions(args), io),
@@ -348,7 +351,7 @@ const COMMAND_HANDLERS: Record<Subcommand, CommandHandler> = {
  * @doc docs/specs/cli.md#check-command
  * @doc docs/user/commands.md#command-dispatch
  */
-export function run(
+export async function run(
   argv: string[],
   io: CliIo = {
     stdout: (text) => process.stdout.write(text),
@@ -356,7 +359,7 @@ export function run(
   },
   initRuntime: InitRuntime = { prompts: createDefaultPrompts() },
   cliRuntime: CliRuntime = {},
-): number {
+): Promise<number> {
   const [command, ...rest] = argv;
 
   try {
@@ -378,7 +381,7 @@ export function run(
     }
 
     if (isSubcommand(command)) {
-      const exitCode = COMMAND_HANDLERS[command](rest, io, initRuntime, cliRuntime);
+      const exitCode = await COMMAND_HANDLERS[command](rest, io, initRuntime, cliRuntime);
       writeUpdateNotice(argv, io, initRuntime, cliRuntime);
       return exitCode;
     }
@@ -479,7 +482,7 @@ if (import.meta.main) {
   const argv = process.argv.slice(2);
   const isTty = process.stderr.isTTY === true;
   const latest = await resolveLatestForInvocation(argv, process.env, isTty);
-  process.exitCode = run(
+  process.exitCode = await run(
     argv,
     {
       stdout: (text) => process.stdout.write(text),

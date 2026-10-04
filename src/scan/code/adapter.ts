@@ -21,14 +21,8 @@ export type CodeScanFile = {
   content: string;
 };
 
-/**
- * The internal extension point for a code language. TypeScript is scanned in
- * process; the other languages are worker-backed and receive every file of a
- * scan in one request through `scanFiles`.
- *
- * @doc docs/specs/scanning.md#code-scanning
- */
-export type CodeLanguageAdapter = {
+/** Scans in process (TypeScript, JavaScript). */
+export type InProcessCodeAdapter = {
   language: CodeLanguage;
   /**
    * Scan a batch of files of this language in one call. Returns one result per
@@ -39,11 +33,12 @@ export type CodeLanguageAdapter = {
     options: CodeScanOptions,
     context: CodeScanContext,
   ): CodeScanResult[];
-  /**
-   * The cancellable form of `scanFiles` for the Language Server. Adapters that
-   * scan in process omit it, and callers fall back to `scanFiles`.
-   */
-  scanFilesAsync?(
+};
+
+/** Runs a worker process; every call is cancellable. */
+export type WorkerCodeAdapter = {
+  language: CodeLanguage;
+  scanFilesAsync(
     files: readonly CodeScanFile[],
     options: CodeScanOptions,
     context: CodeScanContext,
@@ -52,15 +47,22 @@ export type CodeLanguageAdapter = {
    * Resolve, without blocking, what the adapter runs for one scan of the
    * Language Server: the resolved worker argv and an adapter bound to that
    * resolution, failure included. Cancelling it stops a resolution in
-   * progress, such as a runtime probe. Adapters that scan in process omit it
-   * and count as argv `[]`.
+   * progress, such as a runtime probe.
    */
-  prepare?(context: CodeScanContext): Cancelable<PreparedCodeAdapter>;
+  prepare(context: CodeScanContext): Cancelable<PreparedCodeAdapter>;
 };
+
+/**
+ * The internal extension point for a code language. TypeScript is scanned in
+ * process; the other languages run in cancellable worker processes.
+ *
+ * @doc docs/specs/scanning.md#code-scanning
+ */
+export type CodeLanguageAdapter = InProcessCodeAdapter | WorkerCodeAdapter;
 
 export type PreparedCodeAdapter = {
   argv: readonly string[];
   /** The resolved runtime behind `argv`, when argv alone does not identify it. */
   runtime?: readonly string[];
-  adapter: CodeLanguageAdapter;
+  adapter: WorkerCodeAdapter;
 };

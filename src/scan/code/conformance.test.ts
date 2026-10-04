@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 
 import { KNOWN_CODE_LANGUAGES } from "../../config/code-language";
 import type { CodeLanguage } from "../../model/types";
-import { scanCodeFiles } from "./dispatch";
+import { scanCodeFilesAsync } from "./dispatch";
 
 /**
  * Cross-language conformance cases. Each case holds one `input.txt` per
@@ -33,30 +33,30 @@ const cases = readdirSync(CORPUS_ROOT, { withFileTypes: true })
   .map((entry) => entry.name)
   .toSorted();
 
-test("the conformance corpus has cases", () => {
+test("the conformance corpus has cases", async () => {
   expect(cases.length).toBeGreaterThan(0);
 });
 
 for (const name of cases) {
   describe(`conformance case ${name}`, () => {
-    test("covers every supported language", () => {
+    test("covers every supported language", async () => {
       const languages = readdirSync(join(CORPUS_ROOT, name)).toSorted();
       expect(languages).toEqual([...KNOWN_CODE_LANGUAGES].toSorted());
     });
 
     for (const language of KNOWN_CODE_LANGUAGES) {
-      test(`${language} adapter produces the expected scan result`, () => {
+      test(`${language} adapter produces the expected scan result`, async () => {
         const caseDir = join(CORPUS_ROOT, name, language);
         const content = readFileSync(join(caseDir, "input.txt"), "utf8");
         const expectedPath = join(caseDir, "expected.json");
         const relPath = SCANNED_PATH[language];
 
-        const { codeFiles } = scanCodeFiles(
+        const { codeFiles } = await scanCodeFilesAsync(
           caseDir,
           [{ language, relPath }],
           { [language]: { patterns: [relPath] } },
           () => ({ ok: true, content }),
-        );
+        ).promise;
 
         expect(existsSync(expectedPath)).toBe(true);
         expect(codeFiles).toEqual([JSON.parse(readFileSync(expectedPath, "utf8"))]);

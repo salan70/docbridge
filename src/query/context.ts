@@ -105,12 +105,12 @@ type ContextOutcome =
  * @doc docs/user/commands.md#context-read-counterpart-content
  * @doc docs/user/automation.md#editing-workflow
  */
-export function context(options: ContextOptions): ContextOutcome {
-  const outcome = scanProject({
+export async function context(options: ContextOptions): Promise<ContextOutcome> {
+  const outcome = await scanProject({
     projectRoot: options.projectRoot,
     buildGraph: true,
     keepContent: true,
-  });
+  }).promise;
   if (!outcome.ok) {
     return { ok: false, diagnostics: outcome.diagnostics };
   }

@@ -49,7 +49,7 @@ const DOC = [
   "",
 ].join("\n");
 
-test("JavaScript participates in check, context, graph, and LSP navigation", () => {
+test("JavaScript participates in check, context, graph, and LSP navigation", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     "src/auth/service.js": SERVICE,
@@ -57,9 +57,9 @@ test("JavaScript participates in check, context, graph, and LSP navigation", () 
     "docs/auth.md": DOC,
   });
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const contextResult = context({ projectRoot: root, inputFiles: ["docs/auth.md"] });
+    const contextResult = await context({ projectRoot: root, inputFiles: ["docs/auth.md"] });
     expect(contextResult.ok).toBe(true);
     if (contextResult.ok) {
       const rendered = formatContextResult(contextResult.result);
@@ -71,7 +71,7 @@ test("JavaScript participates in check, context, graph, and LSP navigation", () 
       ]);
     }
 
-    const graphResult = graph({ projectRoot: root, includeContent: true });
+    const graphResult = await graph({ projectRoot: root, includeContent: true });
     expect(graphResult.ok).toBe(true);
     if (graphResult.ok) {
       expect(
@@ -84,7 +84,7 @@ test("JavaScript participates in check, context, graph, and LSP navigation", () 
       ]);
     }
 
-    const state = new Project(root).resolve();
+    const state = await new Project(root).resolveAsync().promise;
     expect(state.diagnostics).toEqual([]);
     expect(definition(state, "docs/auth.md", { line: 2, column: 5 })).toEqual([
       {
@@ -106,7 +106,7 @@ test("JavaScript participates in check, context, graph, and LSP navigation", () 
   }
 });
 
-test("a JavaScript manifest entry links an export with no annotation", () => {
+test("a JavaScript manifest entry links an export with no annotation", async () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: { code: { javascript: { patterns: ["src/**/*.mjs"] } }, docs: ["docs/**/*.md"] },
@@ -118,16 +118,16 @@ test("a JavaScript manifest entry links an export with no annotation", () => {
     "docs/auth.md": "## Refresh\n",
   });
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("the JavaScript example project passes check and audit", () => {
-  expect(check({ projectRoot: EXAMPLE_ROOT, audit: true }).diagnostics).toEqual([]);
+test("the JavaScript example project passes check and audit", async () => {
+  expect((await check({ projectRoot: EXAMPLE_ROOT, audit: true })).diagnostics).toEqual([]);
 
-  const graphOutcome = graph({ projectRoot: EXAMPLE_ROOT });
+  const graphOutcome = await graph({ projectRoot: EXAMPLE_ROOT });
   expect(graphOutcome.ok).toBe(true);
   if (graphOutcome.ok) {
     expect(graphOutcome.result.pairs.map((pair) => pair.codeEndpoint).toSorted()).toEqual([
@@ -144,5 +144,5 @@ test("the Language Server scans the JavaScript example asynchronously with the s
   const state = await new Project(EXAMPLE_ROOT).resolveAsync().promise;
 
   expect(state.contentByFile.has("src/ui/login-form.jsx")).toBe(true);
-  expect(state).toEqual(new Project(EXAMPLE_ROOT).resolve());
+  expect(state).toEqual(await new Project(EXAMPLE_ROOT).resolveAsync().promise);
 });

@@ -18,7 +18,7 @@ const BASIC_SOURCES = {
   docs: [["docs/auth.md", AUTH_MD]],
 } satisfies Parameters<typeof graphFrom>[0];
 
-test("computeRelated includes resolvable one-way links", () => {
+test("computeRelated includes resolvable one-way links", async () => {
   // The doc heading exists but has no @code backlink: still a counterpart.
   const oneWayDoc = "## Login Spec\n";
   const graph = graphFrom({
@@ -33,7 +33,7 @@ test("computeRelated includes resolvable one-way links", () => {
   ]);
 });
 
-test("computeRelated dedupes repeated changed paths", () => {
+test("computeRelated dedupes repeated changed paths", async () => {
   const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["src/auth/login.ts", "src/auth/login.ts"]);
@@ -42,7 +42,7 @@ test("computeRelated dedupes repeated changed paths", () => {
   expect(result.summary).toEqual({ changedFiles: 1, filesWithLinks: 1 });
 });
 
-test("computeRelated orders files by path and endpoints by position", () => {
+test("computeRelated orders files by path and endpoints by position", async () => {
   const zTs = [
     "/**",
     " * @doc docs/auth.md#login-spec",
@@ -79,7 +79,7 @@ test("computeRelated orders files by path and endpoints by position", () => {
   ]);
 });
 
-test("collectGateViolations reports the unchanged code counterpart of a changed doc", () => {
+test("collectGateViolations reports the unchanged code counterpart of a changed doc", async () => {
   const graph = graphFrom(BASIC_SOURCES);
 
   const result = computeRelated(graph, ["docs/auth.md"]);
@@ -94,15 +94,15 @@ test("collectGateViolations reports the unchanged code counterpart of a changed 
   ]);
 });
 
-test("normalizeChangedPaths relativizes absolute paths against the root", () => {
+test("normalizeChangedPaths relativizes absolute paths against the root", async () => {
   expect(normalizeChangedPaths("/repo", ["/repo/src/a.ts"])).toEqual(["src/a.ts"]);
 });
 
-test("normalizeChangedPaths drops empty and whitespace-only entries", () => {
+test("normalizeChangedPaths drops empty and whitespace-only entries", async () => {
   expect(normalizeChangedPaths("/repo", ["", "  ", "src/a.ts"])).toEqual(["src/a.ts"]);
 });
 
-test("normalizeChangedPaths dedupes paths that normalize to the same file", () => {
+test("normalizeChangedPaths dedupes paths that normalize to the same file", async () => {
   expect(normalizeChangedPaths("/repo", ["src/a.ts", "./src/a.ts", "/repo/src/a.ts"])).toEqual([
     "src/a.ts",
   ]);
@@ -124,11 +124,11 @@ function manifestProject(): string {
   });
 }
 
-test("related --gate reports a manifest-linked counterpart", () => {
+test("related --gate reports a manifest-linked counterpart", async () => {
   const root = manifestProject();
 
   try {
-    const outcome = related({ projectRoot: root, changedFiles: ["src/auth.ts"] });
+    const outcome = await related({ projectRoot: root, changedFiles: ["src/auth.ts"] });
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) {

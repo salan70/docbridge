@@ -30,7 +30,7 @@ function withUserDocs(
   }
 }
 
-test("file documentation reader rejects a document without a description", () => {
+test("file documentation reader rejects a document without a description", async () => {
   withUserDocs({ "broken.md": "---\ntitle: Broken\n---\n# Broken\n" }, (packageRoot) => {
     const reader = createFileDocumentationReader(packageRoot);
 
@@ -38,7 +38,7 @@ test("file documentation reader rejects a document without a description", () =>
   });
 });
 
-test("file documentation reader reports unavailable documentation when the directory is missing", () => {
+test("file documentation reader reports unavailable documentation when the directory is missing", async () => {
   const packageRoot = mkdtempSync(join(tmpdir(), "docbridge-docs-missing-"));
   try {
     const reader = createFileDocumentationReader(packageRoot);
@@ -49,7 +49,7 @@ test("file documentation reader reports unavailable documentation when the direc
   }
 });
 
-test("file documentation reader reports unavailable documentation when no documents are packaged", () => {
+test("file documentation reader reports unavailable documentation when no documents are packaged", async () => {
   withUserDocs({}, (packageRoot) => {
     const reader = createFileDocumentationReader(packageRoot);
 
@@ -57,7 +57,7 @@ test("file documentation reader reports unavailable documentation when no docume
   });
 });
 
-test("file documentation reader hides link annotations but preserves fenced examples", () => {
+test("file documentation reader hides link annotations but preserves fenced examples", async () => {
   withUserDocs(
     {
       "linking.md": [
@@ -86,11 +86,11 @@ test("file documentation reader hides link annotations but preserves fenced exam
   );
 });
 
-test("parseDocsCommand rejects a missing operation", () => {
+test("parseDocsCommand rejects a missing operation", async () => {
   expect(() => parseDocsCommand([])).toThrow(CliError);
 });
 
-test("runDocs renders an aligned document list and usage hint", () => {
+test("runDocs renders an aligned document list and usage hint", async () => {
   const reader: DocumentationReader = {
     list: () => [
       { name: "short", description: "Short description." },
@@ -114,10 +114,10 @@ test("runDocs renders an aligned document list and usage hint", () => {
   );
 });
 
-test("run docs list emits valid JSON for every packaged document", () => {
+test("run docs list emits valid JSON for every packaged document", async () => {
   const c = capture();
 
-  const code = run(["docs", "list", "--json"], c.io);
+  const code = await run(["docs", "list", "--json"], c.io);
 
   expect(code).toBe(0);
   expect(JSON.parse(c.out)).toEqual({
@@ -154,10 +154,10 @@ test("run docs list emits valid JSON for every packaged document", () => {
   expect(c.err).toBe("");
 });
 
-test("run docs show prints the selected Markdown body without frontmatter", () => {
+test("run docs show prints the selected Markdown body without frontmatter", async () => {
   const c = capture();
 
-  const code = run(["docs", "show", "commands"], c.io);
+  const code = await run(["docs", "show", "commands"], c.io);
 
   expect(code).toBe(0);
   expect(c.out.startsWith("# Commands\n")).toBe(true);
@@ -167,10 +167,10 @@ test("run docs show prints the selected Markdown body without frontmatter", () =
 
 test.each(["annotations", "linking-workflow", "link-review", "agent-integration"])(
   "run docs show rejects legacy document name %s",
-  (name) => {
+  async (name) => {
     const c = capture();
 
-    const code = run(["docs", "show", name], c.io);
+    const code = await run(["docs", "show", name], c.io);
 
     expect(code).toBe(1);
     expect(c.out).toBe("");

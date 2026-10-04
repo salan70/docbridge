@@ -18,9 +18,9 @@ const COMMANDS = [
 ] as const;
 
 for (const command of COMMANDS) {
-  test(`run prints ${command} help for --help and exits 0`, () => {
+  test(`run prints ${command} help for --help and exits 0`, async () => {
     const c = capture();
-    const code = run([command, "--help"], c.io);
+    const code = await run([command, "--help"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toContain(`docbridge ${command}`);
@@ -29,36 +29,36 @@ for (const command of COMMANDS) {
   });
 }
 
-test("run honors --help before validating other options", () => {
+test("run honors --help before validating other options", async () => {
   const c = capture();
-  const code = run(["context", "--nonexistent", "--help"], c.io);
+  const code = await run(["context", "--nonexistent", "--help"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("docbridge context");
   expect(c.err).toBe("");
 });
 
-test("run honors --help before rejecting positional arguments", () => {
+test("run honors --help before rejecting positional arguments", async () => {
   const c = capture();
-  const code = run(["init", "stray", "-h"], c.io);
+  const code = await run(["init", "stray", "-h"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("docbridge init");
   expect(c.err).toBe("");
 });
 
-test("run keeps global help for --help without a command", () => {
+test("run keeps global help for --help without a command", async () => {
   const c = capture();
-  const code = run(["--help"], c.io);
+  const code = await run(["--help"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("docbridge check");
   expect(c.out).toContain("docbridge graph");
 });
 
-test("run still rejects unknown commands", () => {
+test("run still rejects unknown commands", async () => {
   const c = capture();
-  const code = run(["nope", "--help"], c.io);
+  const code = await run(["nope", "--help"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toContain("Unknown command: nope");
@@ -84,9 +84,9 @@ const HAND_WRITTEN_PARSERS = [
 ] as const;
 
 for (const [command, source, functionName] of HAND_WRITTEN_PARSERS) {
-  test(`${command} help documents every flag its hand-written parser accepts`, () => {
+  test(`${command} help documents every flag its hand-written parser accepts`, async () => {
     const c = capture();
-    run([command, "--help"], c.io);
+    await run([command, "--help"], c.io);
 
     const flags = parserFlags(source, functionName);
     expect(flags.length).toBeGreaterThan(0);

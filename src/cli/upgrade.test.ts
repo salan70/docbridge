@@ -23,7 +23,7 @@ type Fixture = {
   packageRoot: string;
 };
 
-function withFixture(body: (fixture: Fixture) => void): void {
+async function withFixture(body: (fixture: Fixture) => void | Promise<void>): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "docbridge-upgrade-cli-"));
   try {
     const templateDir = join(root, "package", "templates", "skills", "docbridge");
@@ -32,7 +32,7 @@ function withFixture(body: (fixture: Fixture) => void): void {
 
     const projectRoot = join(root, "project");
     mkdirSync(join(projectRoot, ".claude"), { recursive: true });
-    body({ projectRoot, packageRoot: join(root, "package") });
+    await body({ projectRoot, packageRoot: join(root, "package") });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -62,7 +62,7 @@ function runtime(fixture: Fixture, promptOverrides: Partial<InitPrompts> = {}): 
 
 const upToDate: LatestVersionLookup = { status: "ok", latest: "0.0.1", source: "cache" };
 
-test("parseUpgradeOptions reads every supported flag", () => {
+test("parseUpgradeOptions reads every supported flag", async () => {
   expect(
     parseUpgradeOptions([
       "--root",
@@ -94,12 +94,12 @@ test.each([
   expect(() => parseUpgradeOptions(args)).toThrow(message);
 });
 
-test("upgrade --check reports state without writing anything", () => {
-  withFixture((fixture) => {
+test("upgrade --check reports state without writing anything", async () => {
+  await withFixture(async (fixture) => {
     mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-adopt"), { recursive: true });
     const c = capture();
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--check", "--root", fixture.projectRoot],
       c.io,
       runtime(fixture),
@@ -117,11 +117,11 @@ test("upgrade --check reports state without writing anything", () => {
   });
 });
 
-test("upgrade --check stays read-only even with --force", () => {
-  withFixture((fixture) => {
+test("upgrade --check stays read-only even with --force", async () => {
+  await withFixture(async (fixture) => {
     mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-sync"), { recursive: true });
 
-    run(
+    await run(
       ["upgrade", "--check", "--force", "--yes", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture),
@@ -132,11 +132,11 @@ test("upgrade --check stays read-only even with --force", () => {
   });
 });
 
-test("upgrade --dry-run prints the plan without writing files", () => {
-  withFixture((fixture) => {
+test("upgrade --dry-run prints the plan without writing files", async () => {
+  await withFixture(async (fixture) => {
     const c = capture();
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--dry-run", "--root", fixture.projectRoot],
       c.io,
       runtime(fixture),
@@ -149,11 +149,11 @@ test("upgrade --dry-run prints the plan without writing files", () => {
   });
 });
 
-test("upgrade installs an absent managed skill without prompting", () => {
-  withFixture((fixture) => {
+test("upgrade installs an absent managed skill without prompting", async () => {
+  await withFixture(async (fixture) => {
     const c = capture();
 
-    const code = run(["upgrade", "--root", fixture.projectRoot], c.io, runtime(fixture), {
+    const code = await run(["upgrade", "--root", fixture.projectRoot], c.io, runtime(fixture), {
       latest: upToDate,
     });
 
@@ -164,13 +164,13 @@ test("upgrade installs an absent managed skill without prompting", () => {
   });
 });
 
-test("upgrade without --force preserves a locally modified skill", () => {
-  withFixture((fixture) => {
+test("upgrade without --force preserves a locally modified skill", async () => {
+  await withFixture(async (fixture) => {
     const installed = installTemplate(fixture);
     writeFileSync(join(installed, "SKILL.md"), "# Locally edited\n", "utf8");
     const c = capture();
 
-    const code = run(["upgrade", "--root", fixture.projectRoot], c.io, runtime(fixture), {
+    const code = await run(["upgrade", "--root", fixture.projectRoot], c.io, runtime(fixture), {
       latest: upToDate,
     });
 
@@ -180,14 +180,14 @@ test("upgrade without --force preserves a locally modified skill", () => {
   });
 });
 
-test("upgrade --force --yes replaces the skill and removes legacy directories", () => {
-  withFixture((fixture) => {
+test("upgrade --force --yes replaces the skill and removes legacy directories", async () => {
+  await withFixture(async (fixture) => {
     const installed = installTemplate(fixture);
     writeFileSync(join(installed, "SKILL.md"), "# Locally edited\n", "utf8");
     mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-review"), { recursive: true });
     mkdirSync(join(fixture.projectRoot, ".claude/skills/docbridge-custom"), { recursive: true });
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture),
@@ -201,8 +201,8 @@ test("upgrade --force --yes replaces the skill and removes legacy directories", 
   });
 });
 
-test("upgrade --force never removes a symlinked legacy skill", () => {
-  withFixture((fixture) => {
+test("upgrade --force never removes a symlinked legacy skill", async () => {
+  await withFixture(async (fixture) => {
     const skills = join(fixture.projectRoot, ".claude/skills");
     mkdirSync(skills, { recursive: true });
     symlinkSync(
@@ -210,7 +210,7 @@ test("upgrade --force never removes a symlinked legacy skill", () => {
       join(skills, "docbridge-adopt"),
     );
 
-    run(
+    await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture),
@@ -221,8 +221,8 @@ test("upgrade --force never removes a symlinked legacy skill", () => {
   });
 });
 
-test("upgrade --force leaves a symlinked managed skill untouched", () => {
-  withFixture((fixture) => {
+test("upgrade --force leaves a symlinked managed skill untouched", async () => {
+  await withFixture(async (fixture) => {
     const skills = join(fixture.projectRoot, ".claude/skills");
     mkdirSync(skills, { recursive: true });
     symlinkSync(
@@ -231,9 +231,14 @@ test("upgrade --force leaves a symlinked managed skill untouched", () => {
     );
     const c = capture();
 
-    run(["upgrade", "--force", "--yes", "--root", fixture.projectRoot], c.io, runtime(fixture), {
-      latest: upToDate,
-    });
+    await run(
+      ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
+      c.io,
+      runtime(fixture),
+      {
+        latest: upToDate,
+      },
+    );
 
     expect(c.out).toContain("is a symlink and was left in place.");
     expect(
@@ -242,12 +247,12 @@ test("upgrade --force leaves a symlinked managed skill untouched", () => {
   });
 });
 
-test("upgrade --force refuses destructive work non-interactively without --yes", () => {
-  withFixture((fixture) => {
+test("upgrade --force refuses destructive work non-interactively without --yes", async () => {
+  await withFixture(async (fixture) => {
     installTemplate(fixture);
     const c = capture();
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--force", "--root", fixture.projectRoot],
       c.io,
       runtime(fixture),
@@ -262,13 +267,13 @@ test("upgrade --force refuses destructive work non-interactively without --yes",
   });
 });
 
-test("upgrade --force applies nothing when an interactive answer declines", () => {
-  withFixture((fixture) => {
+test("upgrade --force applies nothing when an interactive answer declines", async () => {
+  await withFixture(async (fixture) => {
     const installed = installTemplate(fixture);
     writeFileSync(join(installed, "SKILL.md"), "# Locally edited\n", "utf8");
     const c = capture();
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--force", "--root", fixture.projectRoot],
       c.io,
       runtime(fixture, { isInteractive: true, confirm: () => false }),
@@ -281,12 +286,12 @@ test("upgrade --force applies nothing when an interactive answer declines", () =
   });
 });
 
-test("upgrade --force applies the plan when an interactive answer accepts", () => {
-  withFixture((fixture) => {
+test("upgrade --force applies the plan when an interactive answer accepts", async () => {
+  await withFixture(async (fixture) => {
     const installed = installTemplate(fixture);
     writeFileSync(join(installed, "SKILL.md"), "# Locally edited\n", "utf8");
 
-    run(
+    await run(
       ["upgrade", "--force", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture, { isInteractive: true, confirm: () => true }),
@@ -297,14 +302,14 @@ test("upgrade --force applies the plan when an interactive answer accepts", () =
   });
 });
 
-test("upgrade never modifies docbridge.config.json or unrelated project files", () => {
-  withFixture((fixture) => {
+test("upgrade never modifies docbridge.config.json or unrelated project files", async () => {
+  await withFixture(async (fixture) => {
     const configPath = join(fixture.projectRoot, "docbridge.config.json");
     writeFileSync(configPath, '{"include":{"code":{},"docs":[]}}\n', "utf8");
     const otherPath = join(fixture.projectRoot, ".claude/settings.json");
     writeFileSync(otherPath, '{"hooks":{}}\n', "utf8");
 
-    run(
+    await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture),
@@ -316,10 +321,10 @@ test("upgrade never modifies docbridge.config.json or unrelated project files", 
   });
 });
 
-test("upgrade reports an unresolvable root as a CLI error", () => {
+test("upgrade reports an unresolvable root as a CLI error", async () => {
   const c = capture();
 
-  const code = run(["upgrade", "--root", join(tmpdir(), "docbridge-missing-root")], c.io, {
+  const code = await run(["upgrade", "--root", join(tmpdir(), "docbridge-missing-root")], c.io, {
     prompts: prompts(),
   });
 
@@ -327,11 +332,15 @@ test("upgrade reports an unresolvable root as a CLI error", () => {
   expect(c.err).toContain("Root path does not exist");
 });
 
-test("upgrade tolerates a missing registry answer", () => {
-  withFixture((fixture) => {
+test("upgrade tolerates a missing registry answer", async () => {
+  await withFixture(async (fixture) => {
     const c = capture();
 
-    const code = run(["upgrade", "--check", "--root", fixture.projectRoot], c.io, runtime(fixture));
+    const code = await run(
+      ["upgrade", "--check", "--root", fixture.projectRoot],
+      c.io,
+      runtime(fixture),
+    );
 
     expect(code).toBe(0);
     expect(c.out).toContain("Status: unknown");
@@ -339,15 +348,15 @@ test("upgrade tolerates a missing registry answer", () => {
   });
 });
 
-test("upgrade --force --yes never deletes through a symlinked skills directory", () => {
-  withFixture((fixture) => {
+test("upgrade --force --yes never deletes through a symlinked skills directory", async () => {
+  await withFixture(async (fixture) => {
     const shared = join(fixture.projectRoot, "..", "shared-skills");
     mkdirSync(join(shared, "docbridge-adopt"), { recursive: true });
     writeFileSync(join(shared, "docbridge-adopt", "SKILL.md"), "# Shared\n", "utf8");
     symlinkSync(shared, join(fixture.projectRoot, ".claude/skills"));
     const c = capture();
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       c.io,
       runtime(fixture),
@@ -361,12 +370,12 @@ test("upgrade --force --yes never deletes through a symlinked skills directory",
   });
 });
 
-test("upgrade --force --yes removes local files the template no longer ships", () => {
-  withFixture((fixture) => {
+test("upgrade --force --yes removes local files the template no longer ships", async () => {
+  await withFixture(async (fixture) => {
     const installed = installTemplate(fixture);
     writeFileSync(join(installed, "local-notes.md"), "team notes\n", "utf8");
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture),
@@ -379,11 +388,11 @@ test("upgrade --force --yes removes local files the template no longer ships", (
   });
 });
 
-test("upgrade --check reports a clean skill after a forced migration", () => {
-  withFixture((fixture) => {
+test("upgrade --check reports a clean skill after a forced migration", async () => {
+  await withFixture(async (fixture) => {
     const installed = installTemplate(fixture);
     writeFileSync(join(installed, "local-notes.md"), "team notes\n", "utf8");
-    run(
+    await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       capture().io,
       runtime(fixture),
@@ -391,7 +400,7 @@ test("upgrade --check reports a clean skill after a forced migration", () => {
     );
 
     const c = capture();
-    run(["upgrade", "--check", "--root", fixture.projectRoot], c.io, runtime(fixture), {
+    await run(["upgrade", "--check", "--root", fixture.projectRoot], c.io, runtime(fixture), {
       latest: upToDate,
     });
 
@@ -399,14 +408,14 @@ test("upgrade --check reports a clean skill after a forced migration", () => {
   });
 });
 
-test("upgrade --force --yes never removes a legacy name that is an ordinary file", () => {
-  withFixture((fixture) => {
+test("upgrade --force --yes never removes a legacy name that is an ordinary file", async () => {
+  await withFixture(async (fixture) => {
     const legacy = join(fixture.projectRoot, ".claude/skills/docbridge-adopt");
     mkdirSync(join(fixture.projectRoot, ".claude/skills"), { recursive: true });
     writeFileSync(legacy, "not a directory\n", "utf8");
     const c = capture();
 
-    const code = run(
+    const code = await run(
       ["upgrade", "--force", "--yes", "--root", fixture.projectRoot],
       c.io,
       runtime(fixture),
