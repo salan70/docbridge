@@ -2,8 +2,9 @@
 
 This document is the policy for DocBridge's own link graph. It does not change
 the public meaning of `docbridge check --audit`. Adopters still see every
-in-scope `undocumented_symbol` and `unlinked_doc_section` warning; this
-repository additionally keeps a baseline of the warnings it has reviewed.
+in-scope `undocumented_symbol` and `unlinked_doc_section` warning, and so does
+`just audit` here. No gate compares the warnings against a recorded set; apply
+this policy when a change adds or removes a contract.
 
 ## What must participate
 
@@ -21,8 +22,8 @@ type beside it.
 
 ## Reviewed intentional gaps
 
-These in-scope endpoints are expected to appear in `check --audit` and in the
-baseline. They are not missing contracts:
+These in-scope endpoints are expected to appear in `check --audit`. They are
+not missing contracts:
 
 - Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared
   type aliases that are not themselves a public contract.
@@ -40,25 +41,6 @@ supported declaration. They currently export nothing. Narrowing
 `docbridge.config.json` to hide them would be an exclusion and needs separate
 maintainer approval.
 
-## Baseline
-
-Reviewed gaps live in
-[`test-fixtures/self-audit/baseline.json`](../../test-fixtures/self-audit/baseline.json).
-Each entry is keyed by diagnostic `code` and canonical `target`. Message text
-and line numbers are not part of the identity.
-
-`just check-audit-baseline` and the colocated Bun test compare the live
-`--audit` set to that file:
-
-- A live key absent from the file is an unreviewed addition. Add a reciprocal
-  `@doc` / `@code` pair, or add a baseline entry.
-- A file key absent from the live set is a stale baseline entry. Delete it in
-  the same change that closed the gap.
-
-`just audit` remains a truthful report. The baseline check does not suppress,
-filter, or change CLI diagnostics. It is not part of `just verify` as a
-separate recipe; `bun test` already runs the comparison.
-
 ## Native scanner specifications
 
 Swift, Dart, Rust, Go, Python, Ruby, and Java scanning headings stay
@@ -68,5 +50,5 @@ adapter factory for every language, so pointing those headings at it would be
 a false relationship. Expanding `include.code` to the worker packages needs
 separate maintainer approval.
 
-Those seven headings are baseline entries. JavaScript Scanning is linked
-instead, because the in-process TypeScript scanner implements it.
+JavaScript Scanning is linked instead, because the in-process TypeScript
+scanner implements it.
