@@ -325,24 +325,7 @@ jobs:
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
         run: |
-          if [ ! -f CHANGELOG.md ]; then
-            echo "CHANGELOG.md not found" >&2
-            exit 1
-          fi
-          # Match the heading by literal string (index), not a dynamic regex, so
-          # the dots in the semver version cannot act as regex wildcards.
-          awk -v ver="$VERSION" '
-            index($0, "## [" ver "]") == 1 { flag = 1; next }
-            flag && (/^## \[/ || /^\[[^]]+\]: /) { flag = 0 }
-            flag { print }
-          ' CHANGELOG.md \
-            | sed -e '/./,$!d' \
-            | tac | sed -e '/./,$!d' | tac \
-            > release-notes.md
-          if [ ! -s release-notes.md ]; then
-            echo "No changelog section found for ${VERSION}" >&2
-            exit 1
-          fi
+          nix develop -c bun run scripts/changelog-section.ts "$VERSION" > release-notes.md
           echo "Release notes for ${VERSION}:"
           cat release-notes.md
 

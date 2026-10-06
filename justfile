@@ -139,10 +139,6 @@ check-example lang="typescript" *ARGS:
 audit:
     bun run src/cli/index.ts check --audit
 
-# Compare live --audit keys against the committed repository baseline.
-check-audit-baseline:
-    bun run scripts/check-audit-baseline.ts
-
 # Run check against one diagnostic fixture (see test-fixtures/diagnostics/). The
 # fixture is expected to report its diagnostic, so a non-zero exit is ignored.
 check-fixture code:
@@ -282,7 +278,7 @@ release-bump KIND:
     # Roll the CHANGELOG first: it fails on an empty [Unreleased] before any
     # manifest is touched, so a failed bump leaves no partial change.
     version="$(bun -e "import { nextVersion } from './scripts/set-release-version.ts'; console.log(nextVersion(require('./package.json').version, '{{ KIND }}'))")"
-    VERSION="$version" REPOSITORY=salan70/docbridge node .github/scripts/roll-changelog.mjs
+    VERSION="$version" REPOSITORY=salan70/docbridge bun .github/scripts/roll-changelog.mjs
     bun run scripts/set-release-version.ts {{ KIND }} > /dev/null
     echo "Bumped to ${version}"
 
