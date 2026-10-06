@@ -109,13 +109,10 @@ record them with both when they inform a decision.
 
 ## Repository self-audit
 
-`just test` compares live `check --audit` keys against
-[`test-fixtures/self-audit/baseline.json`](../../test-fixtures/self-audit/baseline.json).
-The comparison is keyed by diagnostic code and canonical target. Policy for
-which endpoints must participate, and how to refresh the baseline, lives in
-[Self-audit](self-audit.md). Run `just check-audit-baseline` for a focused
-mismatch report. Do not add `just audit` to `just verify`; audit warnings stay
-informational at the CLI boundary.
+`just audit` reports this repository's `check --audit` warnings. No test or
+gate compares them against a recorded set. Policy for which endpoints must
+participate lives in [Self-audit](self-audit.md). Do not add `just audit` to
+`just verify`; audit warnings stay informational at the CLI boundary.
 
 ## Notes
 
