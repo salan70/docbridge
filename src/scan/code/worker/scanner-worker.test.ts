@@ -745,6 +745,42 @@ test.skipIf(process.platform === "win32")(
   },
 );
 
+test.skipIf(process.platform === "win32")(
+  "killRunningWorkers does not signal the group of a worker that has exited",
+  async () => {
+    // The worker leaves a process in its group that holds its output open, then
+    // exits. Once the leader is reaped its ID may name another group, so a later
+    // kill must not target it.
+    const dir = mkdtempSync(join(tmpdir(), "docbridge-kill-exited-"));
+    try {
+      const pidFile = join(dir, "pid");
+      const task = runScannerWorkerProcess({
+        command: [
+          "sh",
+          "-c",
+          `sleep 1 & echo "$$ $!" > '${pidFile}.tmp' && mv '${pidFile}.tmp' '${pidFile}'`,
+        ],
+        stdin: "",
+      });
+      await eventually(() => existsSync(pidFile));
+      const [leader, descendant] = readFileSync(pidFile, "utf8").trim().split(" ").map(Number);
+      await eventually(() => !isAlive(leader ?? -1));
+      expect(isAlive(descendant ?? -1)).toBe(true);
+
+      killRunningWorkers();
+
+      // The run settles when the descendant's own sleep releases the output,
+      // not when a kill reaches it.
+      const started = Date.now();
+      expect(await task.promise).toMatchObject({ ok: true, exitCode: 0 });
+      expect(Date.now() - started).toBeGreaterThan(500);
+      await eventually(() => !isAlive(descendant ?? -1));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
+
 test("invokeScannerWorker interprets the worker response", async () => {
   const inputs: Array<{ stripEnv?: readonly string[]; timeoutMs?: number }> = [];
   const result = await invokeScannerWorker(

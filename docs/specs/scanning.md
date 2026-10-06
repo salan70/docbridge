@@ -89,9 +89,11 @@ processes the worker started, such as a runtime behind a wrapper script, die
 with it; on Windows only the worker process is killed, so a process it started
 may outlive it. A scan does not wait on such a process: it settles at most half
 a second after the kill, even while such a process still holds the worker's
-output open. Because a worker is outside the CLI's process group, the CLI kills
-its running workers and probes when it receives `SIGINT`, `SIGTERM`, or
-`SIGHUP` during a scan, and then ends by that signal.
+output open. A worker that has exited is not signalled again, because its
+process ID may by then name another process group, so a process it left behind
+can outlive the scan. Because a worker is outside the CLI's process group, the
+CLI kills its running workers and probes when it receives `SIGINT`, `SIGTERM`,
+or `SIGHUP` during a scan, and then ends by that signal.
 
 If a configured worker cannot be started, DocBridge emits
 `code_scanner_unavailable`. If the worker starts but exits unsuccessfully, is

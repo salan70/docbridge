@@ -63,7 +63,7 @@ const WORKER_OUTPUT_LIMIT_BYTES = 1024 * 1024 * 1024;
  */
 const KILLED_WORKER_GRACE_MS = 500;
 
-/** Every worker the runner started that has not settled, with whether it leads its own group. */
+/** Every worker the runner started that has not exited, with whether it leads its own group. */
 const liveWorkers = new Map<ChildProcessWithoutNullStreams, boolean>();
 
 export type ScannerWorkerProcessResult =
@@ -308,10 +308,13 @@ export function runScannerWorkerProcess(
   const stderr = new OutputCollector(budget);
   let failure: Error | undefined;
   let cause: WorkerExecutionCause | undefined;
+  let exited = false;
   const kill = (reason: Error, why: WorkerExecutionCause): void => {
     failure ??= reason;
     cause ??= why;
-    killWorker(child, ownGroup);
+    if (!exited) {
+      killWorker(child, ownGroup);
+    }
     grace ??= setTimeout(() => {
       closeStreams(child);
       settle(() => run.resolve(closedProcessResult(null, null, failure, cause, stdout, stderr)));
@@ -341,6 +344,13 @@ export function runScannerWorkerProcess(
   });
   // A worker may exit without reading its input; its exit status reports why.
   child.stdin.on("error", () => undefined);
+  // Once the worker is reaped its ID may name another process group, so no
+  // later kill may target it; a process it left in its group keeps its output
+  // open until the grace period closes the streams.
+  child.on("exit", () => {
+    exited = true;
+    liveWorkers.delete(child);
+  });
   child.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
     settle(() => run.resolve(closedProcessResult(code, signal, failure, cause, stdout, stderr)));
   });
@@ -354,7 +364,9 @@ export function runScannerWorkerProcess(
     promise: run.promise,
     cancel() {
       settle(() => {
-        killWorker(child, ownGroup);
+        if (!exited) {
+          killWorker(child, ownGroup);
+        }
         closeStreams(child);
         run.reject(abortError());
       });
@@ -549,9 +561,10 @@ function languageLabel(language: CodeLanguage): string {
 }
 
 /**
- * Kill every worker and probe this process started that is still running:
- * its process group on POSIX, the process itself on Windows. For a process
- * that is about to exit; pending runs are not settled.
+ * Kill every worker and probe this process started that has not exited: its
+ * process group on POSIX, the process itself on Windows. A worker that exited
+ * is not signalled, even while a process it started still holds its output.
+ * For a process that is about to exit; pending runs are not settled.
  */
 export function killRunningWorkers(): void {
   for (const [child, ownGroup] of liveWorkers) {
