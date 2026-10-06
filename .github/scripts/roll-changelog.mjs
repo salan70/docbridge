@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Rolls CHANGELOG.md for a release (run through `just release-bump`):
+// Rolls CHANGELOG.md for a release (run by Bun through `just release-bump`):
 //   - moves the `## [Unreleased]` entries under a new `## [X.Y.Z] - YYYY-MM-DD`
 //     heading, leaving a fresh empty `## [Unreleased]` section,
 //   - refreshes the link references at the bottom.
@@ -9,6 +9,8 @@
 // means the release would ship with empty notes.
 
 import { readFileSync, writeFileSync } from "node:fs";
+
+import { locateChangelogSection } from "../../scripts/changelog-section.ts";
 
 const version = process.env.VERSION;
 const repository = process.env.REPOSITORY;
@@ -23,25 +25,17 @@ const path = "CHANGELOG.md";
 const original = readFileSync(path, "utf8");
 const lines = original.split("\n");
 
-const isVersionHeading = (line) => line.startsWith("## [");
 const isLinkRef = (line) => /^\[[^\]]+\]:\s/.test(line);
 
 // Locate the Unreleased section.
-const unreleasedStart = lines.findIndex((l) => l.startsWith("## [Unreleased]"));
-if (unreleasedStart === -1) {
+const unreleased = locateChangelogSection(lines, "## [Unreleased]");
+if (unreleased === undefined) {
   throw new Error(
     "CHANGELOG.md has no '## [Unreleased]' section. Add one with entries before running `just release-bump`.",
   );
 }
 
-// The section body runs until the next version heading (or EOF / link refs).
-let bodyEnd = lines.length;
-for (let i = unreleasedStart + 1; i < lines.length; i++) {
-  if (isVersionHeading(lines[i]) || isLinkRef(lines[i])) {
-    bodyEnd = i;
-    break;
-  }
-}
+const { start: unreleasedStart, end: bodyEnd } = unreleased;
 
 const body = lines
   .slice(unreleasedStart + 1, bodyEnd)

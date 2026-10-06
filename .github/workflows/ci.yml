@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       - name: Read the Swift version
         id: toolchains
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       # `.swift-version`, `rust-toolchain.toml`, and the Go worker's `go.mod`
       # are the only sources of the toolchain versions; the setup actions below
@@ -81,7 +81,7 @@ jobs:
           swift-version: ${{ steps.toolchains.outputs.swift }}
 
       - name: Install Dart
-        uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1 # v1.8.0
+        uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
         with:
           sdk: "3.11.6"
 
@@ -346,7 +346,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       - name: Install dependencies
         run: nix develop -c bun install --frozen-lockfile
