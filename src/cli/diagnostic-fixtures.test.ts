@@ -25,17 +25,17 @@ type ObservedDiagnostic = {
   line: number | undefined;
 };
 
-function checkFixture(
+async function checkFixture(
   code: DiagnosticCode,
   options: { audit?: boolean } = {},
-): { exitCode: number; diagnostics: ObservedDiagnostic[] } {
+): Promise<{ exitCode: number; diagnostics: ObservedDiagnostic[] }> {
   let out = "";
   let err = "";
   const args = ["check", "--root", join(FIXTURES_ROOT, code), "--json"];
   if (options.audit === true) {
     args.push("--audit");
   }
-  const exitCode = run(args, {
+  const exitCode = await run(args, {
     stdout: (text) => {
       out += text;
     },
@@ -55,8 +55,8 @@ function checkFixture(
 
 // --- config diagnostics (no location; the whole check short-circuits) --------
 
-test("fixture config_file_invalid fires exactly config_file_invalid", () => {
-  const { exitCode, diagnostics } = checkFixture("config_file_invalid");
+test("fixture config_file_invalid fires exactly config_file_invalid", async () => {
+  const { exitCode, diagnostics } = await checkFixture("config_file_invalid");
 
   expect(diagnostics).toEqual([
     { code: "config_file_invalid", filePath: undefined, line: undefined },
@@ -64,8 +64,8 @@ test("fixture config_file_invalid fires exactly config_file_invalid", () => {
   expect(exitCode).toBe(1);
 });
 
-test("fixture config_unknown_key fires exactly config_unknown_key", () => {
-  const { exitCode, diagnostics } = checkFixture("config_unknown_key");
+test("fixture config_unknown_key fires exactly config_unknown_key", async () => {
+  const { exitCode, diagnostics } = await checkFixture("config_unknown_key");
 
   expect(diagnostics).toEqual([
     { code: "config_unknown_key", filePath: undefined, line: undefined },
@@ -73,8 +73,8 @@ test("fixture config_unknown_key fires exactly config_unknown_key", () => {
   expect(exitCode).toBe(1);
 });
 
-test("fixture config_invalid_value fires exactly config_invalid_value", () => {
-  const { exitCode, diagnostics } = checkFixture("config_invalid_value");
+test("fixture config_invalid_value fires exactly config_invalid_value", async () => {
+  const { exitCode, diagnostics } = await checkFixture("config_invalid_value");
 
   expect(diagnostics).toEqual([
     { code: "config_invalid_value", filePath: undefined, line: undefined },
@@ -84,8 +84,8 @@ test("fixture config_invalid_value fires exactly config_invalid_value", () => {
 
 // --- link target and resolution errors ----------------------------------------
 
-test("fixture invalid_link_target fires exactly invalid_link_target", () => {
-  const { exitCode, diagnostics } = checkFixture("invalid_link_target");
+test("fixture invalid_link_target fires exactly invalid_link_target", async () => {
+  const { exitCode, diagnostics } = await checkFixture("invalid_link_target");
 
   expect(diagnostics).toEqual([
     { code: "invalid_link_target", filePath: "internal/example.go", line: 3 },
@@ -101,8 +101,8 @@ test("fixture invalid_link_target fires exactly invalid_link_target", () => {
   expect(exitCode).toBe(1);
 });
 
-test("fixture doc_file_not_found fires exactly doc_file_not_found", () => {
-  const { exitCode, diagnostics } = checkFixture("doc_file_not_found");
+test("fixture doc_file_not_found fires exactly doc_file_not_found", async () => {
+  const { exitCode, diagnostics } = await checkFixture("doc_file_not_found");
 
   expect(diagnostics).toEqual([
     { code: "doc_file_not_found", filePath: "src/example.ts", line: 2 },
@@ -110,8 +110,8 @@ test("fixture doc_file_not_found fires exactly doc_file_not_found", () => {
   expect(exitCode).toBe(1);
 });
 
-test("fixture doc_anchor_not_found fires exactly doc_anchor_not_found", () => {
-  const { exitCode, diagnostics } = checkFixture("doc_anchor_not_found");
+test("fixture doc_anchor_not_found fires exactly doc_anchor_not_found", async () => {
+  const { exitCode, diagnostics } = await checkFixture("doc_anchor_not_found");
 
   expect(diagnostics).toEqual([
     { code: "doc_anchor_not_found", filePath: "src/example.ts", line: 2 },
@@ -119,15 +119,15 @@ test("fixture doc_anchor_not_found fires exactly doc_anchor_not_found", () => {
   expect(exitCode).toBe(1);
 });
 
-test("fixture code_file_not_found fires exactly code_file_not_found", () => {
-  const { exitCode, diagnostics } = checkFixture("code_file_not_found");
+test("fixture code_file_not_found fires exactly code_file_not_found", async () => {
+  const { exitCode, diagnostics } = await checkFixture("code_file_not_found");
 
   expect(diagnostics).toEqual([{ code: "code_file_not_found", filePath: "docs/spec.md", line: 1 }]);
   expect(exitCode).toBe(1);
 });
 
-test("fixture code_symbol_not_found fires exactly code_symbol_not_found", () => {
-  const { exitCode, diagnostics } = checkFixture("code_symbol_not_found");
+test("fixture code_symbol_not_found fires exactly code_symbol_not_found", async () => {
+  const { exitCode, diagnostics } = await checkFixture("code_symbol_not_found");
 
   expect(diagnostics).toEqual([
     { code: "code_symbol_not_found", filePath: "docbridge.links.json", line: 5 },
@@ -135,8 +135,8 @@ test("fixture code_symbol_not_found fires exactly code_symbol_not_found", () => 
   expect(exitCode).toBe(1);
 });
 
-test("fixture code_backlink_not_found fires exactly code_backlink_not_found", () => {
-  const { exitCode, diagnostics } = checkFixture("code_backlink_not_found");
+test("fixture code_backlink_not_found fires exactly code_backlink_not_found", async () => {
+  const { exitCode, diagnostics } = await checkFixture("code_backlink_not_found");
 
   expect(diagnostics).toEqual([
     { code: "code_backlink_not_found", filePath: "docs/spec.md", line: 1 },
@@ -144,8 +144,8 @@ test("fixture code_backlink_not_found fires exactly code_backlink_not_found", ()
   expect(exitCode).toBe(1);
 });
 
-test("fixture doc_backlink_not_found fires exactly doc_backlink_not_found", () => {
-  const { exitCode, diagnostics } = checkFixture("doc_backlink_not_found");
+test("fixture doc_backlink_not_found fires exactly doc_backlink_not_found", async () => {
+  const { exitCode, diagnostics } = await checkFixture("doc_backlink_not_found");
 
   expect(diagnostics).toEqual([
     { code: "doc_backlink_not_found", filePath: "src/example.ts", line: 2 },
@@ -155,8 +155,8 @@ test("fixture doc_backlink_not_found fires exactly doc_backlink_not_found", () =
 
 // --- scan errors: duplicate endpoints and parse failures ----------------------
 
-test("fixture duplicate_doc_anchor fires exactly duplicate_doc_anchor", () => {
-  const { exitCode, diagnostics } = checkFixture("duplicate_doc_anchor");
+test("fixture duplicate_doc_anchor fires exactly duplicate_doc_anchor", async () => {
+  const { exitCode, diagnostics } = await checkFixture("duplicate_doc_anchor");
 
   expect(diagnostics).toEqual([
     { code: "duplicate_doc_anchor", filePath: "docs/spec.md", line: 3 },
@@ -164,8 +164,8 @@ test("fixture duplicate_doc_anchor fires exactly duplicate_doc_anchor", () => {
   expect(exitCode).toBe(1);
 });
 
-test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => {
-  const { exitCode, diagnostics } = checkFixture("duplicate_code_symbol");
+test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", async () => {
+  const { exitCode, diagnostics } = await checkFixture("duplicate_code_symbol");
 
   expect(diagnostics).toEqual([
     { code: "duplicate_code_symbol", filePath: "src/example.ts", line: 11 },
@@ -174,8 +174,8 @@ test("fixture duplicate_code_symbol fires exactly duplicate_code_symbol", () => 
   expect(exitCode).toBe(1);
 });
 
-test("fixture code_parse_error fires exactly code_parse_error", () => {
-  const { exitCode, diagnostics } = checkFixture("code_parse_error");
+test("fixture code_parse_error fires exactly code_parse_error", async () => {
+  const { exitCode, diagnostics } = await checkFixture("code_parse_error");
 
   expect(diagnostics).toEqual([{ code: "code_parse_error", filePath: "src/example.ts", line: 1 }]);
   expect(exitCode).toBe(1);
@@ -183,8 +183,8 @@ test("fixture code_parse_error fires exactly code_parse_error", () => {
 
 // --- warnings (exit code stays 0) ----------------------------------------------
 
-test("fixture duplicate_link fires exactly duplicate_link", () => {
-  const { exitCode, diagnostics } = checkFixture("duplicate_link");
+test("fixture duplicate_link fires exactly duplicate_link", async () => {
+  const { exitCode, diagnostics } = await checkFixture("duplicate_link");
 
   expect(diagnostics).toEqual([
     { code: "duplicate_link", filePath: "internal/example.go", line: 4 },
@@ -200,8 +200,8 @@ test("fixture duplicate_link fires exactly duplicate_link", () => {
   expect(exitCode).toBe(0);
 });
 
-test("fixture dangling_code_annotation fires exactly dangling_code_annotation", () => {
-  const { exitCode, diagnostics } = checkFixture("dangling_code_annotation");
+test("fixture dangling_code_annotation fires exactly dangling_code_annotation", async () => {
+  const { exitCode, diagnostics } = await checkFixture("dangling_code_annotation");
 
   expect(diagnostics).toEqual([
     { code: "dangling_code_annotation", filePath: "docs/spec.md", line: 1 },
@@ -209,8 +209,8 @@ test("fixture dangling_code_annotation fires exactly dangling_code_annotation", 
   expect(exitCode).toBe(0);
 });
 
-test("fixture unsupported_declaration fires exactly unsupported_declaration", () => {
-  const { exitCode, diagnostics } = checkFixture("unsupported_declaration");
+test("fixture unsupported_declaration fires exactly unsupported_declaration", async () => {
+  const { exitCode, diagnostics } = await checkFixture("unsupported_declaration");
 
   expect(diagnostics).toEqual([
     { code: "unsupported_declaration", filePath: "internal/example.go", line: 5 },
@@ -224,8 +224,8 @@ test("fixture unsupported_declaration fires exactly unsupported_declaration", ()
   expect(exitCode).toBe(0);
 });
 
-test("fixture undocumented_symbol fires exactly undocumented_symbol under --audit", () => {
-  const { exitCode, diagnostics } = checkFixture("undocumented_symbol", { audit: true });
+test("fixture undocumented_symbol fires exactly undocumented_symbol under --audit", async () => {
+  const { exitCode, diagnostics } = await checkFixture("undocumented_symbol", { audit: true });
 
   expect(diagnostics).toEqual([
     { code: "undocumented_symbol", filePath: "src/example.ts", line: 1 },
@@ -233,15 +233,15 @@ test("fixture undocumented_symbol fires exactly undocumented_symbol under --audi
   expect(exitCode).toBe(0);
 });
 
-test("fixture undocumented_symbol is clean without --audit", () => {
-  const { exitCode, diagnostics } = checkFixture("undocumented_symbol");
+test("fixture undocumented_symbol is clean without --audit", async () => {
+  const { exitCode, diagnostics } = await checkFixture("undocumented_symbol");
 
   expect(diagnostics).toEqual([]);
   expect(exitCode).toBe(0);
 });
 
-test("fixture unlinked_doc_section fires exactly unlinked_doc_section under --audit", () => {
-  const { exitCode, diagnostics } = checkFixture("unlinked_doc_section", { audit: true });
+test("fixture unlinked_doc_section fires exactly unlinked_doc_section under --audit", async () => {
+  const { exitCode, diagnostics } = await checkFixture("unlinked_doc_section", { audit: true });
 
   // `# Spec` is unannotated but its subtree carries a link, so it is suppressed.
   // The empty `##` closes `## Unlinked`, making `### Below Empty` a separate
@@ -253,8 +253,8 @@ test("fixture unlinked_doc_section fires exactly unlinked_doc_section under --au
   expect(exitCode).toBe(0);
 });
 
-test("fixture unlinked_doc_section is clean without --audit", () => {
-  const { exitCode, diagnostics } = checkFixture("unlinked_doc_section");
+test("fixture unlinked_doc_section is clean without --audit", async () => {
+  const { exitCode, diagnostics } = await checkFixture("unlinked_doc_section");
 
   expect(diagnostics).toEqual([]);
   expect(exitCode).toBe(0);

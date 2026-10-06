@@ -137,8 +137,8 @@ type RelatedOutcome =
  * @doc docs/user/commands.md#related-find-counterpart-files
  * @doc docs/user/automation.md#editing-workflow
  */
-export function related(options: RelatedOptions): RelatedOutcome {
-  const outcome = scanProject({ projectRoot: options.projectRoot, buildGraph: true });
+export async function related(options: RelatedOptions): Promise<RelatedOutcome> {
+  const outcome = await scanProject({ projectRoot: options.projectRoot, buildGraph: true }).promise;
   if (!outcome.ok) {
     return { ok: false, diagnostics: outcome.diagnostics };
   }

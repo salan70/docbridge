@@ -17,20 +17,15 @@ import type {
 } from "./adapter";
 import { codeScanCacheKey, isReusableScan } from "./scan-cache";
 import { javaScriptAdapter, typeScriptAdapter } from "./typescript";
-import {
-  resolveRuntimeWorkerCommand,
-  resolveRuntimeWorkerCommandAsync,
-} from "./worker/runtime-worker";
+import { resolveRuntimeWorkerCommand } from "./worker/runtime-worker";
 import {
   resolveScannerWorkerCommand,
   type ScannerWorkerCommandResolution,
 } from "./worker/scanner-executable";
 import {
   invokeScannerWorker,
-  invokeScannerWorkerAsync,
   type ScannerWorkerRequest,
   type ScannerWorkerRun,
-  type ScannerWorkerRunAsync,
 } from "./worker/scanner-worker";
 
 /**
@@ -43,7 +38,7 @@ type ScannerWorkerCommandFactory = (
   context: CodeScanContext,
 ) => string[] | ScannerWorkerCommandResolution;
 
-/** The non-blocking form of a {@link ScannerWorkerCommandFactory}. */
+/** A {@link ScannerWorkerCommandFactory} that may run a process, such as a runtime probe. */
 type ScannerWorkerCommandFactoryAsync = (
   context: CodeScanContext,
 ) => Cancelable<string[] | ScannerWorkerCommandResolution>;
@@ -51,12 +46,6 @@ type ScannerWorkerCommandFactoryAsync = (
 type ScannerWorkerAdapterOptions = {
   requestId?: () => string;
   run?: ScannerWorkerRun;
-  runAsync?: ScannerWorkerRunAsync;
-  /**
-   * Resolves the worker without blocking, for `prepare` and `scanFilesAsync`;
-   * without it they take the synchronous factory's result.
-   */
-  commandAsync?: ScannerWorkerCommandFactoryAsync;
 };
 
 /** A resolved worker command in the one shape every batch call consumes. */
@@ -65,36 +54,32 @@ type WorkerCommand =
   | { ok: false; diagnostic: DocBridgeDiagnostic };
 
 /** A worker-backed adapter: every optional member is present. */
-type WorkerAdapter = CodeLanguageAdapter &
-  Required<Pick<CodeLanguageAdapter, "scanFilesAsync" | "prepare">>;
+type WorkerAdapter = Extract<CodeLanguageAdapter, { scanFilesAsync: unknown }>;
 
 type PreparedWorkerAdapter = PreparedCodeAdapter & { adapter: WorkerAdapter };
 
 /**
  * Create the adapter for a worker-backed language. `command` resolves the
- * worker for a scan context, and `commandAsync`, when given, resolves it
- * without blocking on the Language Server's path. Each scan resolves it once,
- * through `prepare` or at the start of a batch, and sends the whole batch in
- * one request.
+ * worker for a scan context, at once or through `commandAsync` when the
+ * resolution may run a process. Each scan resolves it once, through `prepare`
+ * or at the start of a batch, and sends the whole batch in one request.
  */
 export function createScannerWorkerAdapter(
   language: CodeLanguage,
-  command: ScannerWorkerCommandFactory,
+  command: ScannerWorkerCommandFactory | { commandAsync: ScannerWorkerCommandFactoryAsync },
   adapterOptions: ScannerWorkerAdapterOptions = {},
 ): CodeLanguageAdapter {
-  const { commandAsync } = adapterOptions;
-  const bound = (context: CodeScanContext): WorkerAdapter =>
-    boundWorkerAdapter(language, workerCommand(command(context)), adapterOptions).adapter;
+  const resolve = (context: CodeScanContext) =>
+    typeof command === "function"
+      ? settledCancelable(command(context))
+      : command.commandAsync(context);
   const prepare = (context: CodeScanContext): Cancelable<PreparedWorkerAdapter> =>
-    mapCancelable(commandAsync?.(context) ?? settledCancelable(command(context)), (value) =>
+    mapCancelable(resolve(context), (value) =>
       boundWorkerAdapter(language, workerCommand(value), adapterOptions),
     );
   const scanBatchAsync: WorkerAdapter["scanFilesAsync"] = (files, options, context) => {
     if (files.length === 0) {
       return settledCancelable([]);
-    }
-    if (commandAsync === undefined) {
-      return bound(context).scanFilesAsync(files, options, context);
     }
     return cancelableSequence(async (step) => {
       const { adapter } = await step(() => prepare(context));
@@ -103,8 +88,6 @@ export function createScannerWorkerAdapter(
   };
   return {
     language,
-    scanFiles: (files, options, context) =>
-      files.length === 0 ? [] : bound(context).scanFiles(files, options, context),
     scanFilesAsync: scanBatchAsync,
     prepare,
   };
@@ -120,21 +103,6 @@ function boundWorkerAdapter(
   const runtime = resolved.ok ? resolved.runtime : [];
   const adapter: WorkerAdapter = {
     language,
-    scanFiles(files, options, context) {
-      if (files.length === 0) {
-        return [];
-      }
-      if (!resolved.ok) {
-        return failedBatch(language, files, resolved.diagnostic);
-      }
-      const result = invokeScannerWorker(
-        workerRequest(language, files, options, context, adapterOptions),
-        resolved.command,
-        adapterOptions.run,
-        resolved.stripEnv,
-      );
-      return result.ok ? result.codeFiles : failedBatch(language, files, result.diagnostic);
-    },
     scanFilesAsync(files, options, context): Cancelable<CodeScanResult[]> {
       if (files.length === 0) {
         return settledCancelable([]);
@@ -142,10 +110,10 @@ function boundWorkerAdapter(
       if (!resolved.ok) {
         return settledCancelable(failedBatch(language, files, resolved.diagnostic));
       }
-      const task = invokeScannerWorkerAsync(
+      const task = invokeScannerWorker(
         workerRequest(language, files, options, context, adapterOptions),
         resolved.command,
-        adapterOptions.runAsync,
+        adapterOptions.run,
         resolved.stripEnv,
       );
       return mapCancelable(task, (result) =>
@@ -157,12 +125,12 @@ function boundWorkerAdapter(
   return { argv, runtime, adapter };
 }
 
-type ScanCodeFilesResult = {
+type AssembledCodeScan = {
   codeFiles: CodeScanResult[];
   diagnostics: DocBridgeDiagnostic[];
 };
 
-type ScanCodeFilesOptions = {
+type CodeScanSources = {
   /** Receives the resolved content for callers that cache it. */
   onContent?: (relPath: string, content: string) => void;
   adapters?: CodeAdapterOverrides;
@@ -178,40 +146,24 @@ type ScanCodeFilesOptions = {
  * Results and diagnostics keep the collection order, with each read failure at
  * its file's position.
  */
-export function scanCodeFiles(
-  projectRoot: string,
-  files: CollectedCodeFile[],
-  codeInclude: CodeInclude,
-  read: (relPath: string) => CodeFileRead,
-  options: ScanCodeFilesOptions = {},
-): ScanCodeFilesResult {
-  const plan = planCodeScan(files, codeInclude, read, options.onContent);
-  const context = scanContext(projectRoot, options);
-  for (const batch of plan.batches) {
-    const adapter = options.adapters?.[batch.language] ?? builtInAdapters[batch.language];
-    fillBatch(plan, batch, adapter.scanFiles(batch.files, batch.options, context));
-  }
-  return assemblePlan(plan);
-}
-
-function scanContext(projectRoot: string, options: ScanCodeFilesOptions): CodeScanContext {
+function scanContext(projectRoot: string, options: CodeScanSources): CodeScanContext {
   return options.scanners === undefined
     ? { projectRoot }
     : { projectRoot, scanners: options.scanners };
 }
 
-type ScanCodeFilesAsyncOptions = ScanCodeFilesOptions & {
+type ScanCodeFilesOptions = CodeScanSources & {
   /** Reusable results of an earlier scan, keyed by `codeScanCacheKey`. */
   cache?: ReadonlyMap<string, CodeScanResult>;
 };
 
-type ScanCodeFilesAsyncResult = ScanCodeFilesResult & {
+type ScanCodeFilesResult = AssembledCodeScan & {
   /** This scan's reusable results, for the next scan's `cache` once this one is accepted. */
   cache: Map<string, CodeScanResult>;
 };
 
 /**
- * The cancellable counterpart of {@link scanCodeFiles} for the Language Server.
+ * Scan collected code files through cancellable worker calls.
  * It reads every file before the first adapter call. Each language's adapter
  * is prepared without blocking, which may probe a runtime. A file whose cache
  * key has a reusable result is not scanned again; the remaining files of each
@@ -219,13 +171,13 @@ type ScanCodeFilesAsyncResult = ScanCodeFilesResult & {
  * `scanFilesAsync` when the adapter has it. Cancelling cancels the running
  * preparation or call and rejects with an `AbortError`.
  */
-export function scanCodeFilesAsync(
+export function scanCodeFiles(
   projectRoot: string,
   files: CollectedCodeFile[],
   codeInclude: CodeInclude,
   read: (relPath: string) => CodeFileRead,
-  options: ScanCodeFilesAsyncOptions = {},
-): Cancelable<ScanCodeFilesAsyncResult> {
+  options: ScanCodeFilesOptions = {},
+): Cancelable<ScanCodeFilesResult> {
   const plan = planCodeScan(files, codeInclude, read, options.onContent);
   const context = scanContext(projectRoot, options);
   return cancelableSequence(async (step) => {
@@ -234,13 +186,27 @@ export function scanCodeFilesAsync(
       const base = options.adapters?.[batch.language] ?? builtInAdapters[batch.language];
       // Each step starts only while the scan is not cancelled. An adapter
       // without `prepare` scans in process and starts its batch at once.
-      const prepare = base.prepare?.bind(base);
       const { argv, runtime, adapter } =
-        prepare === undefined ? { argv: [], adapter: base } : await step(() => prepare(context));
-      const keys = batch.files.map((file) =>
-        codeScanCacheKey(batch.language, file.filePath, file.content, batch.options, argv, runtime),
-      );
-      const cached = keys.map((key) => options.cache?.get(key));
+        "scanFilesAsync" in base
+          ? await step(() => base.prepare(context))
+          : { argv: [], adapter: base };
+      const keys =
+        options.cache === undefined
+          ? []
+          : batch.files.map((file) =>
+              codeScanCacheKey(
+                batch.language,
+                file.filePath,
+                file.content,
+                batch.options,
+                argv,
+                runtime,
+              ),
+            );
+      const cached =
+        options.cache === undefined
+          ? batch.files.map(() => undefined)
+          : keys.map((key) => options.cache?.get(key));
       const missing = batch.files.filter((_, index) => cached[index] === undefined);
       const scanned =
         missing.length === 0
@@ -251,7 +217,12 @@ export function scanCodeFilesAsync(
       fillBatch(plan, batch, results);
       results.forEach((scan, index) => {
         const key = keys[index];
-        if (scan !== undefined && key !== undefined && isReusableScan(scan)) {
+        if (
+          options.cache !== undefined &&
+          scan !== undefined &&
+          key !== undefined &&
+          isReusableScan(scan)
+        ) {
           cache.set(key, scan);
         }
       });
@@ -266,10 +237,9 @@ function scanFilesAsync(
   options: CodeScanOptions,
   context: CodeScanContext,
 ): Cancelable<CodeScanResult[]> {
-  return (
-    adapter.scanFilesAsync?.(files, options, context) ??
-    settledCancelable(adapter.scanFiles(files, options, context))
-  );
+  return "scanFilesAsync" in adapter
+    ? adapter.scanFilesAsync(files, options, context)
+    : settledCancelable(adapter.scanFiles(files, options, context));
 }
 
 /**
@@ -292,18 +262,16 @@ const builtInAdapters: Readonly<Record<CodeLanguage, CodeLanguageAdapter>> = {
 /**
  * The adapter of a runtime-backed language: each scan resolves the runtime
  * from the configured `scanners` entry, the environment, or the candidates,
- * and the Language Server's scans probe it without blocking.
+ * and probes it without blocking.
  */
 function runtimeWorkerAdapter(language: RuntimeWorkerLanguage): CodeLanguageAdapter {
   const resolution = ({ projectRoot, scanners }: CodeScanContext) => {
     const command = scanners?.[language]?.command;
     return command === undefined ? { projectRoot } : { projectRoot, command };
   };
-  return createScannerWorkerAdapter(
-    language,
-    (context) => resolveRuntimeWorkerCommand(language, resolution(context)),
-    { commandAsync: (context) => resolveRuntimeWorkerCommandAsync(language, resolution(context)) },
-  );
+  return createScannerWorkerAdapter(language, {
+    commandAsync: (context) => resolveRuntimeWorkerCommand(language, resolution(context)),
+  });
 }
 
 /** One collected file's place in the output: a read failure or a scan result. */
@@ -366,7 +334,7 @@ function fillBatch(
   });
 }
 
-function assemblePlan(plan: CodeScanPlan): ScanCodeFilesResult {
+function assemblePlan(plan: CodeScanPlan): AssembledCodeScan {
   const codeFiles: CodeScanResult[] = [];
   const diagnostics: DocBridgeDiagnostic[] = [];
   for (const slot of plan.slots) {

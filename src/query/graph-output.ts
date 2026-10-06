@@ -98,12 +98,12 @@ type ScanData = {
  * @doc docs/specs/cli.md#graph-command
  * @doc docs/user/commands.md#graph-inspect-link-structure
  */
-export function graph(options: GraphOptions): GraphOutcome {
-  const outcome = scanProject({
+export async function graph(options: GraphOptions): Promise<GraphOutcome> {
+  const outcome = await scanProject({
     projectRoot: options.projectRoot,
     buildGraph: true,
     keepContent: true,
-  });
+  }).promise;
   if (!outcome.ok) {
     return { ok: false, diagnostics: outcome.diagnostics };
   }

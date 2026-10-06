@@ -9,8 +9,9 @@ import {
 import { buildLinkGraph, type LinkGraph } from "../link/graph";
 import { resolveLinks } from "../link/resolver";
 import { sortDiagnostics } from "../model/diagnostics";
+import type { CodeScanResult, MarkdownScanResult } from "../model/scan-result";
 import type { DocBridgeDiagnostic } from "../model/types";
-import { scanProject, scanProjectAsync } from "../query/project-scan";
+import { scanProject } from "../query/project-scan";
 import type { CodeAdapterOverrides } from "../scan/code/dispatch";
 import { emptyCodeScanCache, type CodeScanCache } from "../scan/code/scan-cache";
 import { clearRuntimeProbeCache } from "../scan/code/worker/runtime-worker";
@@ -34,11 +35,14 @@ type ProjectOptions = {
   adapters?: CodeAdapterOverrides;
 };
 
-/** A scan with its graph and file contents, as both scan forms produce it here. */
-type FullScan = Extract<
-  Awaited<ReturnType<typeof scanProjectAsync>["promise"]>,
-  { ok: true }
->["scan"];
+/** The scan result with its graph and file contents. */
+type FullScan = {
+  codeFiles: CodeScanResult[];
+  docFiles: MarkdownScanResult[];
+  diagnostics: DocBridgeDiagnostic[];
+  graph: LinkGraph;
+  contentByFile: Map<string, string>;
+};
 
 /** The project outcome a scan produces, before link resolution. */
 type ScanOutcome = { ok: true; scan: FullScan } | { ok: false; diagnostics: DocBridgeDiagnostic[] };
@@ -46,7 +50,7 @@ type ScanOutcome = { ok: true; scan: FullScan } | { ok: false; diagnostics: DocB
 /**
  * Whole-project model for the Language Server. It scans every include-matched
  * file from disk, overlays open-document buffers, and re-resolves the full link
- * graph on demand. Asynchronous scans reuse the raw code scan results of the
+ * graph on demand. Scans reuse the raw code scan results of the
  * last accepted scan for files whose content, configuration, and resolved
  * worker are unchanged.
  *
@@ -93,17 +97,6 @@ export class Project {
     this.overlayRevision += 1;
   }
 
-  /** Re-scan and re-resolve the whole project synchronously, returning the new state. */
-  resolve(): ProjectState {
-    const outcome = scanProject({
-      ...this.scanSources(this.overlay),
-      buildGraph: true,
-      keepContent: true,
-    });
-    this.current = resolvedState(outcome);
-    return this.current;
-  }
-
   /**
    * Re-scan and re-resolve the whole project without blocking. The scan reads
    * the overlays and every file before its first worker starts. A changed
@@ -114,8 +107,10 @@ export class Project {
    */
   resolveAsync(): Cancelable<ProjectState> {
     const revision = this.overlayRevision;
-    const scan = scanProjectAsync({
+    const scan = scanProject({
       ...this.scanSources(new Map(this.overlay)),
+      buildGraph: true,
+      keepContent: true,
       cache: this.cache,
       // A changed configuration may name another runtime; probe them again.
       onConfigurationChange: clearRuntimeProbeCache,

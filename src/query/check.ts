@@ -17,12 +17,12 @@ type CheckOptions = {
  * @doc docs/specs/cli.md#check-command
  * @doc docs/user/commands.md#check-validate-the-project
  */
-export function check(options: CheckOptions): CheckResult {
+export async function check(options: CheckOptions): Promise<CheckResult> {
   const audit = options.audit ?? false;
-  const outcome = scanProject({
+  const outcome = await scanProject({
     projectRoot: options.projectRoot,
     ...(options.adapters === undefined ? {} : { adapters: options.adapters }),
-  });
+  }).promise;
   if (!outcome.ok) {
     // Config errors short-circuit scanning; report only config diagnostics.
     const sorted = sortDiagnostics(outcome.diagnostics);

@@ -4,81 +4,63 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { isAbortError, settledCancelable } from "../../../shared/cancelable";
+import { probeRuntime, type RuntimeProbeOutcome } from "./runtime-probe";
 import {
-  probeRuntime,
-  probeRuntimeAsync,
-  spawnRuntimeProbe,
-  type RuntimeProbeSpawn,
-  type RuntimeProbeSpawnResult,
-} from "./runtime-probe";
-import {
-  runScannerWorkerProcessAsync,
-  workerProcessEnv,
+  runScannerWorkerProcess,
   type ScannerWorkerProcessResult,
-  type ScannerWorkerRunAsync,
+  type ScannerWorkerRun,
 } from "./scanner-worker";
 
-function exited(stdout: string, status = 0, stderr = ""): RuntimeProbeSpawnResult {
-  return { status, signal: null, stdout, stderr };
+/** A runner that settles at once with `result`, standing in for a finished probe process. */
+function finished(result: ScannerWorkerProcessResult): ScannerWorkerRun {
+  return () => settledCancelable(result);
 }
 
-function spawnError(code: string, message: string): RuntimeProbeSpawnResult {
-  return {
-    status: null,
-    signal: null,
-    stdout: "",
-    stderr: "",
-    error: Object.assign(new Error(message), { code }),
-  };
+function exited(stdout: string, exitCode = 0, stderr = ""): ScannerWorkerRun {
+  return finished({ ok: true, exitCode, stdout, stderr });
 }
 
-test("probeRuntime runs the command with --probe, bounded to 10 s and 64 KiB of output", () => {
-  const calls: { executable: string; args: string[]; timeout: number; maxBuffer: number }[] = [];
-  const spawn: RuntimeProbeSpawn = (executable, args, options) => {
-    calls.push({ executable, args, timeout: options.timeout, maxBuffer: options.maxBuffer });
-    return exited('{"ok": true, "runtime": "cpython", "version": "3.12.4"}\n');
-  };
-
-  probeRuntime(["py", "-3", "-I", "-S", "/opt/docbridge/scanner.py"], [], spawn);
-
-  expect(calls).toEqual([
-    {
-      executable: "py",
-      args: ["-3", "-I", "-S", "/opt/docbridge/scanner.py", "--probe"],
-      timeout: 10_000,
-      maxBuffer: 64 * 1024,
-    },
-  ]);
-});
-
-test("probeRuntime reports the runtime and version an ok probe prints", () => {
-  const outcome = probeRuntime(["python3"], [], () =>
+test("probeRuntime reports the runtime and version an ok probe prints", async () => {
+  const outcome = await probeRuntime(
+    ["python3"],
+    [],
     exited('{"ok": true, "runtime": "cpython", "version": "3.12.4"}\n'),
-  );
+  ).promise;
 
   expect(outcome).toEqual({ kind: "ok", runtime: "cpython", version: "3.12.4" });
 });
 
-test("probeRuntime reports a probe that answers ok: false as rejected with its reason", () => {
-  const outcome = probeRuntime(["python3"], [], () =>
+test("probeRuntime reports a probe that answers ok: false as rejected with its reason", async () => {
+  const outcome = await probeRuntime(
+    ["python3"],
+    [],
     exited('{"ok": false, "reason": "expected CPython, found PyPy 3.10.14"}\n'),
-  );
+  ).promise;
 
   expect(outcome).toEqual({ kind: "rejected", reason: "expected CPython, found PyPy 3.10.14" });
 });
 
-test("probeRuntime reports an executable that cannot be started as unstartable", () => {
-  const outcome = probeRuntime(["/opt/missing/python3"], [], () =>
-    spawnError("ENOENT", "spawnSync /opt/missing/python3 ENOENT"),
-  );
+test("probeRuntime reports an executable that cannot be started as unstartable", async () => {
+  const outcome = await probeRuntime(
+    ["/opt/missing/python3"],
+    [],
+    finished({
+      ok: false,
+      kind: "start",
+      error: new Error("spawn /opt/missing/python3 ENOENT"),
+      stderr: "",
+    }),
+  ).promise;
 
-  expect(outcome).toEqual({ kind: "unstartable", reason: "spawnSync /opt/missing/python3 ENOENT" });
+  expect(outcome).toEqual({ kind: "unstartable", reason: "spawn /opt/missing/python3 ENOENT" });
 });
 
-test("probeRuntime reports a probe that exits unsuccessfully as failed with its stderr", () => {
-  const outcome = probeRuntime(["ruby"], [], () =>
+test("probeRuntime reports a probe that exits unsuccessfully as failed with its stderr", async () => {
+  const outcome = await probeRuntime(
+    ["ruby"],
+    [],
     exited("", 1, "ruby: cannot load such file -- json (LoadError)\n"),
-  );
+  ).promise;
 
   expect(outcome).toEqual({
     kind: "failed",
@@ -86,29 +68,34 @@ test("probeRuntime reports a probe that exits unsuccessfully as failed with its 
   });
 });
 
-test("probeRuntime reports a probe killed by a signal as failed", () => {
-  const outcome = probeRuntime(["java"], [], () => ({
-    status: null,
-    signal: "SIGSEGV",
-    stdout: "",
-    stderr: "",
-  }));
+test("probeRuntime reports a probe killed by a signal as failed", async () => {
+  const outcome = await probeRuntime(
+    ["java"],
+    [],
+    finished({
+      ok: false,
+      kind: "execution",
+      cause: { type: "signal", signal: "SIGSEGV" },
+      error: new Error("worker terminated by signal SIGSEGV"),
+      stderr: "",
+    }),
+  ).promise;
 
   expect(outcome).toEqual({ kind: "failed", reason: "probe terminated by signal SIGSEGV" });
 });
 
-test("probeRuntime reports a probe that outlives the time limit as failed", () => {
-  const outcome = probeRuntime(["java"], [], () =>
-    spawnError("ETIMEDOUT", "spawnSync java ETIMEDOUT"),
-  );
-
-  expect(outcome).toEqual({ kind: "failed", reason: "probe did not finish within 10 s" });
-});
-
-test("probeRuntime reports a probe that prints more than the output limit as failed", () => {
-  const outcome = probeRuntime(["python3"], [], () =>
-    spawnError("ENOBUFS", "spawnSync python3 ENOBUFS"),
-  );
+test("probeRuntime reports a probe that prints more than the output limit as failed", async () => {
+  const outcome = await probeRuntime(
+    ["python3"],
+    [],
+    finished({
+      ok: false,
+      kind: "execution",
+      cause: { type: "output-limit" },
+      error: new Error("worker wrote more than 65536 bytes to stdout and stderr together"),
+      stderr: "",
+    }),
+  ).promise;
 
   expect(outcome).toEqual({ kind: "failed", reason: "probe printed more than 64 KiB" });
 });
@@ -121,87 +108,18 @@ test.each([
   ["an ok with a numeric version", '{"ok": true, "runtime": "cpython", "version": 3.12}\n'],
   ["a rejection without a reason", '{"ok": false}\n'],
   ["a non-boolean ok", '{"ok": "yes", "runtime": "cpython", "version": "3.12.4"}\n'],
-])("probeRuntime reports %s as malformed probe output", (_label, stdout) => {
-  const outcome = probeRuntime(["python3"], [], () => exited(stdout));
+])("probeRuntime reports %s as malformed probe output", async (_label, stdout) => {
+  const outcome = await probeRuntime(["python3"], [], exited(stdout)).promise;
 
   expect(outcome.kind).toBe("failed");
   expect(outcome).toMatchObject({ reason: expect.stringContaining("malformed probe output") });
 });
 
-test("probeRuntime starts the probe without the stripped variables", () => {
-  process.env.DOCBRIDGE_TEST_PROBE_INJECTED = "injected";
-  process.env.DOCBRIDGE_TEST_PROBE_KEPT = "kept";
-  try {
-    let env: Record<string, string> = {};
-    probeRuntime(["python3"], ["DOCBRIDGE_TEST_PROBE_INJECTED"], (_executable, _args, options) => {
-      env = options.env;
-      return exited('{"ok": true, "runtime": "cpython", "version": "3.12.4"}\n');
-    });
-
-    expect(env.DOCBRIDGE_TEST_PROBE_INJECTED).toBeUndefined();
-    expect(env.DOCBRIDGE_TEST_PROBE_KEPT).toBe("kept");
-  } finally {
-    delete process.env.DOCBRIDGE_TEST_PROBE_INJECTED;
-    delete process.env.DOCBRIDGE_TEST_PROBE_KEPT;
-  }
-});
-
-test("probeRuntime bounds a real probe's output with the default spawn", () => {
-  const outcome = probeRuntime(
-    [process.execPath, "-e", "process.stdout.write('x'.repeat(70000))", "--"],
-    [],
-  );
-
-  expect(outcome).toEqual({ kind: "failed", reason: "probe printed more than 64 KiB" });
-});
-
-test("probeRuntime caps a real probe's stdout and stderr together with the default spawn", () => {
-  const outcome = probeRuntime(
-    [
-      process.execPath,
-      "-e",
-      'process.stdout.write(\'{"ok": true, "runtime": "cpython", "version": "3.12.4"}\\n\'); ' +
-        "process.stderr.write('x'.repeat(65500))",
-      "--",
-    ],
-    [],
-  );
-
-  expect(outcome).toEqual({ kind: "failed", reason: "probe printed more than 64 KiB" });
-});
-
-test("probeRuntime reports a real missing executable as unstartable with the default spawn", () => {
-  const outcome = probeRuntime(["/nonexistent/docbridge-runtime"], []);
-
-  expect(outcome.kind).toBe("unstartable");
-});
-
-test("spawnRuntimeProbe stops a runtime that ignores SIGTERM at the time limit", () => {
-  const dir = mkdtempSync(join(tmpdir(), "docbridge-probe-term-"));
-  try {
-    const runtime = join(dir, "stubborn-runtime");
-    writeFileSync(runtime, "#!/bin/sh\ntrap '' TERM\nsleep 3\n");
-    chmodSync(runtime, 0o755);
-
-    const started = Date.now();
-    const result = spawnRuntimeProbe(runtime, ["--probe"], {
-      env: workerProcessEnv(),
-      timeout: 200,
-      maxBuffer: 64 * 1024,
-    });
-
-    expect(Date.now() - started).toBeLessThan(1_500);
-    expect((result.error as { code?: unknown } | undefined)?.code).toBe("ETIMEDOUT");
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
 const OK_PROBE_LINE = '{"ok": true, "runtime": "cpython", "version": "3.12.4"}';
 
-test("probeRuntimeAsync runs the command with --probe and empty stdin, bounded to 10 s and 64 KiB", async () => {
-  const inputs: Parameters<ScannerWorkerRunAsync>[0][] = [];
-  const runAsync: ScannerWorkerRunAsync = (input) => {
+test("probeRuntime runs the command with --probe and empty stdin, bounded to 10 s and 64 KiB", async () => {
+  const inputs: Parameters<ScannerWorkerRun>[0][] = [];
+  const run: ScannerWorkerRun = (input) => {
     inputs.push(input);
     return settledCancelable<ScannerWorkerProcessResult>({
       ok: true,
@@ -211,10 +129,10 @@ test("probeRuntimeAsync runs the command with --probe and empty stdin, bounded t
     });
   };
 
-  const outcome = await probeRuntimeAsync(
+  const outcome = await probeRuntime(
     ["py", "-3", "-I", "-S", "/opt/docbridge/scanner.py"],
     ["PYTHONPATH"],
-    runAsync,
+    run,
   ).promise;
 
   expect(inputs).toEqual([
@@ -229,13 +147,42 @@ test("probeRuntimeAsync runs the command with --probe and empty stdin, bounded t
   expect(outcome).toEqual({ kind: "ok", runtime: "cpython", version: "3.12.4" });
 });
 
-test.each([
-  ["an ok probe", ["sh", "-c", `printf '%s\\n' '${OK_PROBE_LINE}'`, "--"]],
-  ["a rejection", ["sh", "-c", `printf '%s\\n' '{"ok": false, "reason": "found PyPy"}'`, "--"]],
-  ["an unsuccessful exit", ["sh", "-c", "echo 'cannot load json' >&2; exit 1", "--"]],
-  ["a kill by a signal", ["sh", "-c", "kill -KILL $$", "--"]],
-  ["malformed output", ["sh", "-c", "echo Python 3.12.4", "--"]],
-  ["stdout over 64 KiB", [process.execPath, "-e", "process.stdout.write('x'.repeat(70000))", "--"]],
+const OVER_LIMIT: RuntimeProbeOutcome = {
+  kind: "failed",
+  reason: "probe printed more than 64 KiB",
+};
+
+test.each<[string, string[], RuntimeProbeOutcome]>([
+  [
+    "an ok probe",
+    ["sh", "-c", `printf '%s\\n' '${OK_PROBE_LINE}'`, "--"],
+    { kind: "ok", runtime: "cpython", version: "3.12.4" },
+  ],
+  [
+    "a rejection",
+    ["sh", "-c", `printf '%s\\n' '{"ok": false, "reason": "found PyPy"}'`, "--"],
+    { kind: "rejected", reason: "found PyPy" },
+  ],
+  [
+    "an unsuccessful exit",
+    ["sh", "-c", "echo 'cannot load json' >&2; exit 1", "--"],
+    { kind: "failed", reason: "probe exited with status 1: cannot load json" },
+  ],
+  [
+    "a kill by a signal",
+    ["sh", "-c", "kill -KILL $$", "--"],
+    { kind: "failed", reason: "probe terminated by signal SIGKILL" },
+  ],
+  [
+    "malformed output",
+    ["sh", "-c", "echo Python 3.12.4", "--"],
+    { kind: "failed", reason: 'malformed probe output: "Python 3.12.4"' },
+  ],
+  [
+    "stdout over 64 KiB",
+    [process.execPath, "-e", "process.stdout.write('x'.repeat(70000))", "--"],
+    OVER_LIMIT,
+  ],
   [
     "stdout and stderr together over 64 KiB",
     [
@@ -244,36 +191,52 @@ test.each([
       `process.stdout.write('${OK_PROBE_LINE}\\n'); process.stderr.write('x'.repeat(65500))`,
       "--",
     ],
+    OVER_LIMIT,
   ],
-])("probeRuntimeAsync classifies %s as probeRuntime does", async (_label, command) => {
-  const expected = probeRuntime(command, []);
-
-  const outcome = await probeRuntimeAsync(command, []).promise;
+])("probeRuntime classifies %s of a real probe", async (_label, command, expected) => {
+  const outcome = await probeRuntime(command, []).promise;
 
   expect(outcome).toEqual(expected);
 });
 
-test("probeRuntimeAsync reports a missing executable as unstartable", async () => {
-  const outcome = await probeRuntimeAsync(["/nonexistent/docbridge-runtime"], []).promise;
+test("probeRuntime reports a missing executable as unstartable", async () => {
+  const outcome = await probeRuntime(["/nonexistent/docbridge-runtime"], []).promise;
 
   expect(outcome.kind).toBe("unstartable");
 });
 
 /** The real asynchronous runner with a 100 ms time limit in place of the probe's 10 s. */
-const runWithShortLimit: ScannerWorkerRunAsync = (input) =>
-  runScannerWorkerProcessAsync({ ...input, timeoutMs: 100 });
+const runWithShortLimit: ScannerWorkerRun = (input) =>
+  runScannerWorkerProcess({ ...input, timeoutMs: 100 });
 
-test("probeRuntimeAsync reports a probe that outlives the time limit as failed", async () => {
-  const outcome = await probeRuntimeAsync(["sh", "-c", "exec sleep 5", "--"], [], runWithShortLimit)
+test("probeRuntime reports a probe that outlives the time limit as failed", async () => {
+  const outcome = await probeRuntime(["sh", "-c", "exec sleep 5", "--"], [], runWithShortLimit)
     .promise;
 
   expect(outcome).toEqual({ kind: "failed", reason: "probe did not finish within 10 s" });
 });
 
-test("probeRuntimeAsync starts the probe without the stripped variables", async () => {
+test("probeRuntime stops a runtime that ignores SIGTERM at the time limit", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "docbridge-probe-term-"));
+  try {
+    const runtime = join(dir, "stubborn-runtime");
+    writeFileSync(runtime, "#!/bin/sh\ntrap '' TERM\nsleep 3\n");
+    chmodSync(runtime, 0o755);
+
+    const started = Date.now();
+    const outcome = await probeRuntime([runtime], [], runWithShortLimit).promise;
+
+    expect(Date.now() - started).toBeLessThan(1_500);
+    expect(outcome).toEqual({ kind: "failed", reason: "probe did not finish within 10 s" });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("probeRuntime starts the probe without the stripped variables", async () => {
   process.env.DOCBRIDGE_TEST_PROBE_INJECTED = "injected";
   try {
-    const outcome = await probeRuntimeAsync(
+    const outcome = await probeRuntime(
       [
         "sh",
         "-c",
@@ -291,7 +254,7 @@ test("probeRuntimeAsync starts the probe without the stripped variables", async 
 
 test("a pending timer fires while an asynchronous probe runs", async () => {
   const events: string[] = [];
-  const probe = probeRuntimeAsync(
+  const probe = probeRuntime(
     ["sh", "-c", `sleep 0.5; printf '%s\\n' '${OK_PROBE_LINE}'`, "--"],
     [],
   );
@@ -330,7 +293,7 @@ test("cancelling an asynchronous probe kills the runtime and what it started, an
   const dir = mkdtempSync(join(tmpdir(), "docbridge-probe-cancel-"));
   try {
     const pidFile = join(dir, "pid");
-    const probe = probeRuntimeAsync(
+    const probe = probeRuntime(
       [
         "sh",
         "-c",

@@ -20,7 +20,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 export type VerifyDistOptions = {
   run?: (command: string[], cwd: string) => void;
   /** Runs one runtime-backed worker from `distRoot` on a one-file request. */
-  runRuntimeWorker?: (language: RuntimeWorkerLanguage, distRoot: string) => void;
+  runRuntimeWorker?: (language: RuntimeWorkerLanguage, distRoot: string) => void | Promise<void>;
 };
 
 export async function verifyDistPackage(
@@ -54,7 +54,7 @@ export async function verifyDistPackage(
 
   const runRuntimeWorker = options.runRuntimeWorker ?? runDistRuntimeWorker;
   for (const language of RUNTIME_WORKER_LANGUAGES) {
-    runRuntimeWorker(language, join(root, "dist"));
+    await runRuntimeWorker(language, join(root, "dist"));
   }
   // Running Python from dist caches bytecode beside its modules; `npm pack`
   // runs after this check and must not ship it.
@@ -84,8 +84,11 @@ function assertRuntimeWorkersPresent(root: string): void {
 }
 
 /** Runs the worker against the repository root as its project root. */
-function runDistRuntimeWorker(language: RuntimeWorkerLanguage, distRoot: string): void {
-  console.log(smokeRuntimeWorker(language, { distRoot, projectRoot: repoRoot }));
+async function runDistRuntimeWorker(
+  language: RuntimeWorkerLanguage,
+  distRoot: string,
+): Promise<void> {
+  console.log(await smokeRuntimeWorker(language, { distRoot, projectRoot: repoRoot }));
 }
 
 function assertPackagedScannersExecutable(root: string): void {

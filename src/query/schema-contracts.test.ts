@@ -8,7 +8,7 @@ function readSchema(name: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
-test("graph and context schemas share one diagnostic definition", () => {
+test("graph and context schemas share one diagnostic definition", async () => {
   const common = readSchema("common-output.schema.json");
   const graph = readSchema("graph-output.schema.json") as {
     properties: { diagnostics: { items: { $ref: string } } };
@@ -30,7 +30,7 @@ test("graph and context schemas share one diagnostic definition", () => {
   expect(context.$defs).toBeUndefined();
 });
 
-test("worker schema reuses common output definitions", () => {
+test("worker schema reuses common output definitions", async () => {
   const worker = readSchema("scanner-worker.schema.json") as {
     $defs: Record<string, unknown> & {
       codeSymbol: { properties: { location: { $ref: string }; nameRange: { $ref: string } } };

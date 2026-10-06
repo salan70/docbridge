@@ -31,7 +31,7 @@ const BASIC: GraphSources = {
   docs: [["docs/auth.md", AUTH_MD]],
 };
 
-test("computeContext extracts the full linked declaration including JSDoc for a doc input file", () => {
+test("computeContext extracts the full linked declaration including JSDoc for a doc input file", async () => {
   const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["docs/auth.md"]);
 
   expect(result.contexts).toEqual([
@@ -48,7 +48,7 @@ test("computeContext extracts the full linked declaration including JSDoc for a 
   ]);
 });
 
-test("computeContext deduplicates a counterpart linked from multiple input files", () => {
+test("computeContext deduplicates a counterpart linked from multiple input files", async () => {
   const otherTs = [
     "/**",
     " * @doc docs/auth.md#login-spec",
@@ -78,7 +78,7 @@ test("computeContext deduplicates a counterpart linked from multiple input files
   expect(result.summary).toEqual({ inputFiles: 2, contexts: 1 });
 });
 
-test("computeContext orders context blocks by file path then position", () => {
+test("computeContext orders context blocks by file path then position", async () => {
   const loginTs = [
     "/**",
     " * @doc docs/b.md#b-spec",
@@ -105,7 +105,7 @@ test("computeContext orders context blocks by file path then position", () => {
   ]);
 });
 
-test("computeContext slices same-line declarations by column, excluding neighbors", () => {
+test("computeContext slices same-line declarations by column, excluding neighbors", async () => {
   const sameLineTs = "/** @doc docs/a.md#a-spec */ export const a = 1; export const b = 2;\n";
   const aMd = ["<!-- @code src/a.ts#a -->", "## A Spec", ""].join("\n");
   const sources: GraphSources = {
@@ -129,7 +129,7 @@ test("computeContext slices same-line declarations by column, excluding neighbor
   ]);
 });
 
-test("computeContext dedents a member declaration to its own indentation level", () => {
+test("computeContext dedents a member declaration to its own indentation level", async () => {
   const sources: GraphSources = {
     code: [
       [
@@ -164,13 +164,13 @@ test("computeContext dedents a member declaration to its own indentation level",
   );
 });
 
-test("computeContext leaves a top-level declaration unchanged", () => {
+test("computeContext leaves a top-level declaration unchanged", async () => {
   const result = computeContext(graphFrom(BASIC), contentMap(BASIC), ["docs/auth.md"]);
 
   expect(result.contexts[0]?.content).toBe(LOGIN_TS.trimEnd());
 });
 
-test("computeContext keeps the indentation of a top-level declaration whose lines are all indented", () => {
+test("computeContext keeps the indentation of a top-level declaration whose lines are all indented", async () => {
   // With the JSDoc on the declaration's own line, every line after the first is
   // indented, which must not be mistaken for a member's enclosing indentation.
   const sources: GraphSources = {
@@ -211,11 +211,11 @@ function manifestProject(): string {
   });
 }
 
-test("context returns the counterpart block of a manifest-linked symbol", () => {
+test("context returns the counterpart block of a manifest-linked symbol", async () => {
   const root = manifestProject();
 
   try {
-    const outcome = context({ projectRoot: root, inputFiles: ["src/auth.ts"] });
+    const outcome = await context({ projectRoot: root, inputFiles: ["src/auth.ts"] });
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) {

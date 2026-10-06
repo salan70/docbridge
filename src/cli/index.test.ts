@@ -17,40 +17,40 @@ outputSchemaAjv.addSchema(commonOutputSchema);
 const validateContextOutput = outputSchemaAjv.compile(contextOutputSchema);
 const validateGraphOutput = outputSchemaAjv.compile(graphOutputSchema);
 
-test("run prints help and exits 0 with no command", () => {
+test("run prints help and exits 0 with no command", async () => {
   const c = capture();
-  const code = run([], c.io);
+  const code = await run([], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("Usage:");
   expect(c.err).toBe("");
 });
 
-test("run prints the package version for -v and exits 0", () => {
+test("run prints the package version for -v and exits 0", async () => {
   const c = capture();
-  const code = run(["-v"], c.io);
+  const code = await run(["-v"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toBe(`${pkg.version}\n`);
   expect(c.err).toBe("");
 });
 
-test("run reports a non-existent root on stderr and exits 1", () => {
+test("run reports a non-existent root on stderr and exits 1", async () => {
   const c = capture();
-  const code = run(["check", "--root", "/no/such/dir/docbridge-test"], c.io);
+  const code = await run(["check", "--root", "/no/such/dir/docbridge-test"], c.io);
 
   expect(code).toBe(1);
   expect(c.err.length).toBeGreaterThan(0);
   expect(c.out).toBe("");
 });
 
-test("run reports a non-directory root on stderr and exits 1", () => {
+test("run reports a non-directory root on stderr and exits 1", async () => {
   const dir = mkdtempSync(join(tmpdir(), "docbridge-cli-"));
   const filePath = join(dir, "not-a-dir.txt");
   writeFileSync(filePath, "x");
   try {
     const c = capture();
-    const code = run(["check", "--root", filePath], c.io);
+    const code = await run(["check", "--root", filePath], c.io);
 
     expect(code).toBe(1);
     expect(c.err.length).toBeGreaterThan(0);
@@ -60,9 +60,9 @@ test("run reports a non-directory root on stderr and exits 1", () => {
   }
 });
 
-test("run emits valid JSON for --json against a clean project", () => {
+test("run emits valid JSON for --json against a clean project", async () => {
   const c = capture();
-  const code = run(["check", "--root", "examples/typescript", "--json"], c.io);
+  const code = await run(["check", "--root", "examples/typescript", "--json"], c.io);
 
   expect(code).toBe(0);
   const parsed = JSON.parse(c.out) as {
@@ -73,17 +73,17 @@ test("run emits valid JSON for --json against a clean project", () => {
   expect(parsed.summary).toEqual({ errors: 0, warnings: 0 });
 });
 
-test("run emits 2-space indented pretty JSON", () => {
+test("run emits 2-space indented pretty JSON", async () => {
   const c = capture();
-  run(["check", "--root", "examples/typescript", "--json"], c.io);
+  await run(["check", "--root", "examples/typescript", "--json"], c.io);
 
   expect(c.out).toContain('  "summary": {');
   expect(c.out.endsWith("\n")).toBe(true);
 });
 
-test("run emits a human-readable summary line for a clean project", () => {
+test("run emits a human-readable summary line for a clean project", async () => {
   const c = capture();
-  const code = run(["check", "--root", "examples/typescript"], c.io);
+  const code = await run(["check", "--root", "examples/typescript"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).toContain("Summary: 0 errors, 0 warnings");
@@ -92,7 +92,7 @@ test("run emits a human-readable summary line for a clean project", () => {
   );
 });
 
-test("run exits 1 when check errors exist", () => {
+test("run exits 1 when check errors exist", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-err-"));
   try {
     writeFileSync(
@@ -109,7 +109,7 @@ test("run exits 1 when check errors exist", () => {
       "/**\n * @doc docs/specs/missing.md#nope\n */\nexport function a(): void {}\n",
     );
     const c = capture();
-    const code = run(["check", "--root", project], c.io);
+    const code = await run(["check", "--root", project], c.io);
     expect(code).toBe(1);
     expect(c.out).toContain("error");
     expect(c.out).toContain("Summary:");
@@ -121,9 +121,9 @@ test("run exits 1 when check errors exist", () => {
   }
 });
 
-test("run check --json omits the troubleshooting hint", () => {
+test("run check --json omits the troubleshooting hint", async () => {
   const c = capture();
-  const code = run(["check", "--root", "examples/typescript", "--json"], c.io);
+  const code = await run(["check", "--root", "examples/typescript", "--json"], c.io);
 
   expect(code).toBe(0);
   expect(c.out).not.toContain("docbridge docs show troubleshooting");
@@ -153,11 +153,11 @@ function makeRelatedProject(): string {
   return project;
 }
 
-test("run related prints endpoint counterparts with change-set marks and a summary", () => {
+test("run related prints endpoint counterparts with change-set marks and a summary", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "src/auth/login.ts"], c.io);
+    const code = await run(["related", "--root", project, "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe(
@@ -175,11 +175,14 @@ test("run related prints endpoint counterparts with change-set marks and a summa
   }
 });
 
-test("run related marks counterparts that are in the change set", () => {
+test("run related marks counterparts that are in the change set", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "src/auth/login.ts", "docs/auth.md"], c.io);
+    const code = await run(
+      ["related", "--root", project, "src/auth/login.ts", "docs/auth.md"],
+      c.io,
+    );
 
     expect(code).toBe(0);
     expect(c.out).toContain("  login -> docs/auth.md#login-spec (in change set)");
@@ -190,11 +193,11 @@ test("run related marks counterparts that are in the change set", () => {
   }
 });
 
-test("run related prints only the summary when no input file has links", () => {
+test("run related prints only the summary when no input file has links", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "bun.lock"], c.io);
+    const code = await run(["related", "--root", project, "bun.lock"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe("1 changed file, 0 with links\n");
@@ -203,11 +206,11 @@ test("run related prints only the summary when no input file has links", () => {
   }
 });
 
-test("run related --stdin reads newline-separated paths from stdin", () => {
+test("run related --stdin reads newline-separated paths from stdin", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "--stdin"], {
+    const code = await run(["related", "--root", project, "--stdin"], {
       ...c.io,
       stdin: () => "src/auth/login.ts\nbun.lock\n",
     });
@@ -220,11 +223,11 @@ test("run related --stdin reads newline-separated paths from stdin", () => {
   }
 });
 
-test("run related --stdin accepts empty input and exits 0", () => {
+test("run related --stdin accepts empty input and exits 0", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "--stdin"], { ...c.io, stdin: () => "" });
+    const code = await run(["related", "--root", project, "--stdin"], { ...c.io, stdin: () => "" });
 
     expect(code).toBe(0);
     expect(c.out).toBe("0 changed files, 0 with links\n");
@@ -233,11 +236,11 @@ test("run related --stdin accepts empty input and exits 0", () => {
   }
 });
 
-test("run related --json emits the result as machine-readable JSON", () => {
+test("run related --json emits the result as machine-readable JSON", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "--json", "src/auth/login.ts"], c.io);
+    const code = await run(["related", "--root", project, "--json", "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -269,11 +272,11 @@ test("run related --json emits the result as machine-readable JSON", () => {
   }
 });
 
-test("run related --gate prints unchanged counterparts and exits 1", () => {
+test("run related --gate prints unchanged counterparts and exits 1", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "--gate", "src/auth/login.ts"], c.io);
+    const code = await run(["related", "--root", project, "--gate", "src/auth/login.ts"], c.io);
 
     expect(code).toBe(1);
     expect(c.out).toBe(
@@ -290,11 +293,11 @@ test("run related --gate prints unchanged counterparts and exits 1", () => {
   }
 });
 
-test("run related --gate exits 0 when every counterpart is in the change set", () => {
+test("run related --gate exits 0 when every counterpart is in the change set", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(
+    const code = await run(
       ["related", "--root", project, "--gate", "src/auth/login.ts", "docs/auth.md"],
       c.io,
     );
@@ -306,11 +309,11 @@ test("run related --gate exits 0 when every counterpart is in the change set", (
   }
 });
 
-test("run related --gate exits 0 when no changed file has links", () => {
+test("run related --gate exits 0 when no changed file has links", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "--gate", "bun.lock"], c.io);
+    const code = await run(["related", "--root", project, "--gate", "bun.lock"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe("1 changed file, 0 counterparts not in change set\n");
@@ -319,11 +322,14 @@ test("run related --gate exits 0 when no changed file has links", () => {
   }
 });
 
-test("run related --gate --json emits violations as machine-readable JSON", () => {
+test("run related --gate --json emits violations as machine-readable JSON", async () => {
   const project = makeRelatedProject();
   try {
     const c = capture();
-    const code = run(["related", "--root", project, "--gate", "--json", "src/auth/login.ts"], c.io);
+    const code = await run(
+      ["related", "--root", project, "--gate", "--json", "src/auth/login.ts"],
+      c.io,
+    );
 
     expect(code).toBe(1);
     expect(JSON.parse(c.out)).toEqual({
@@ -342,12 +348,12 @@ test("run related --gate --json emits violations as machine-readable JSON", () =
   }
 });
 
-test("run related reports config errors on stderr and exits 1", () => {
+test("run related reports config errors on stderr and exits 1", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-related-badcfg-"));
   try {
     writeFileSync(join(project, "docbridge.config.json"), "{ not json");
     const c = capture();
-    const code = run(["related", "--root", project, "src/a.ts"], c.io);
+    const code = await run(["related", "--root", project, "src/a.ts"], c.io);
 
     expect(code).toBe(1);
     expect(c.err.length).toBeGreaterThan(0);
@@ -380,11 +386,11 @@ function makeContextProject(): string {
   return project;
 }
 
-test("run context prints counterpart content blocks and a summary", () => {
+test("run context prints counterpart content blocks and a summary", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["context", "--root", project, "src/auth/login.ts"], c.io);
+    const code = await run(["context", "--root", project, "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe(
@@ -405,11 +411,11 @@ test("run context prints counterpart content blocks and a summary", () => {
   }
 });
 
-test("run context prints only the summary when no input file has links", () => {
+test("run context prints only the summary when no input file has links", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["context", "--root", project, "bun.lock"], c.io);
+    const code = await run(["context", "--root", project, "bun.lock"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe("1 input file, 0 context blocks\n");
@@ -418,11 +424,11 @@ test("run context prints only the summary when no input file has links", () => {
   }
 });
 
-test("run context --stdin reads newline-separated paths from stdin", () => {
+test("run context --stdin reads newline-separated paths from stdin", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["context", "--root", project, "--stdin"], {
+    const code = await run(["context", "--root", project, "--stdin"], {
       ...c.io,
       stdin: () => "src/auth/login.ts\nbun.lock\n",
     });
@@ -435,11 +441,11 @@ test("run context --stdin reads newline-separated paths from stdin", () => {
   }
 });
 
-test("run context --json emits contexts, diagnostics, and summary as JSON", () => {
+test("run context --json emits contexts, diagnostics, and summary as JSON", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["context", "--root", project, "--json", "src/auth/login.ts"], c.io);
+    const code = await run(["context", "--root", project, "--json", "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     const output: unknown = JSON.parse(c.out);
@@ -465,7 +471,7 @@ test("run context --json emits contexts, diagnostics, and summary as JSON", () =
   }
 });
 
-test("run context reports broken links in input files on stderr but still exits 0", () => {
+test("run context reports broken links in input files on stderr but still exits 0", async () => {
   const project = makeContextProject();
   try {
     writeFileSync(
@@ -473,7 +479,7 @@ test("run context reports broken links in input files on stderr but still exits 
       "/**\n * @doc docs/auth.md#missing\n */\nexport function broken() {}\n",
     );
     const c = capture();
-    const code = run(["context", "--root", project, "src/auth/broken.ts"], c.io);
+    const code = await run(["context", "--root", project, "src/auth/broken.ts"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe("1 input file, 0 context blocks\n");
@@ -485,7 +491,7 @@ test("run context reports broken links in input files on stderr but still exits 
 
 // --- graph command -----------------------------------------------------------
 
-test("parseGraphOptions reads root, json, include-content, stdin, and positional files", () => {
+test("parseGraphOptions reads root, json, include-content, stdin, and positional files", async () => {
   expect(
     parseGraphOptions([
       "--root",
@@ -505,11 +511,11 @@ test("parseGraphOptions reads root, json, include-content, stdin, and positional
   });
 });
 
-test("run graph --json emits nodes, edges, pairs, diagnostics, and summary", () => {
+test("run graph --json emits nodes, edges, pairs, diagnostics, and summary", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["graph", "--root", project, "--json"], c.io);
+    const code = await run(["graph", "--root", project, "--json"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -579,11 +585,11 @@ test("run graph --json emits nodes, edges, pairs, diagnostics, and summary", () 
   }
 });
 
-test("run graph prints docs-oriented text output for the whole project", () => {
+test("run graph prints docs-oriented text output for the whole project", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["graph", "--root", project], c.io);
+    const code = await run(["graph", "--root", project], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe(
@@ -601,11 +607,11 @@ test("run graph prints docs-oriented text output for the whole project", () => {
   }
 });
 
-test("run graph text output scopes normalized input paths", () => {
+test("run graph text output scopes normalized input paths", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["graph", "--root", project, "./src/auth/login.ts"], c.io);
+    const code = await run(["graph", "--root", project, "./src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe(
@@ -623,7 +629,7 @@ test("run graph text output scopes normalized input paths", () => {
   }
 });
 
-test("run graph text output reports scoped diagnostics on stderr", () => {
+test("run graph text output reports scoped diagnostics on stderr", async () => {
   const project = makeContextProject();
   try {
     writeFileSync(
@@ -631,7 +637,7 @@ test("run graph text output reports scoped diagnostics on stderr", () => {
       "/**\n * @doc docs/auth.md#missing\n */\nexport function broken() {}\n",
     );
     const c = capture();
-    const code = run(["graph", "--root", project, "src/auth/broken.ts"], c.io);
+    const code = await run(["graph", "--root", project, "src/auth/broken.ts"], c.io);
 
     expect(code).toBe(0);
     expect(c.out).toBe("0 nodes, 0 edges, 0 bidirectional pairs, 0 one-way edges, 1 diagnostic\n");
@@ -641,7 +647,7 @@ test("run graph text output reports scoped diagnostics on stderr", () => {
   }
 });
 
-test("run graph --json scopes output to input files and direct counterparts", () => {
+test("run graph --json scopes output to input files and direct counterparts", async () => {
   const project = makeContextProject();
   try {
     mkdirSync(join(project, "src", "billing"), { recursive: true });
@@ -655,7 +661,7 @@ test("run graph --json scopes output to input files and direct counterparts", ()
     );
 
     const c = capture();
-    const code = run(["graph", "--root", project, "--json", "src/auth/login.ts"], c.io);
+    const code = await run(["graph", "--root", project, "--json", "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -717,7 +723,7 @@ function makeMemberProject(): string {
   return project;
 }
 
-test("run check honors typescript visibility opting into private members", () => {
+test("run check honors typescript visibility opting into private members", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-visibility-"));
   try {
     writeFileSync(
@@ -751,7 +757,7 @@ test("run check honors typescript visibility opting into private members", () =>
     );
 
     const c = capture();
-    const code = run(["check", "--root", project], c.io);
+    const code = await run(["check", "--root", project], c.io);
 
     expect(c.out).toContain("0 errors, 0 warnings");
     expect(code).toBe(0);
@@ -760,11 +766,11 @@ test("run check honors typescript visibility opting into private members", () =>
   }
 });
 
-test("run graph --json --include-content dedents a member signature", () => {
+test("run graph --json --include-content dedents a member signature", async () => {
   const project = makeMemberProject();
   try {
     const c = capture();
-    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+    const code = await run(["graph", "--root", project, "--json", "--include-content"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -787,7 +793,7 @@ test("run graph --json --include-content dedents a member signature", () => {
   }
 });
 
-test("run graph --json --include-content keeps an object-typed parameter in the signature", () => {
+test("run graph --json --include-content keeps an object-typed parameter in the signature", async () => {
   const project = mkdtempSync(join(tmpdir(), "docbridge-object-param-"));
   try {
     writeFileSync(
@@ -814,7 +820,7 @@ test("run graph --json --include-content keeps an object-typed parameter in the 
     );
 
     const c = capture();
-    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+    const code = await run(["graph", "--root", project, "--json", "--include-content"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -837,11 +843,11 @@ test("run graph --json --include-content keeps an object-typed parameter in the 
   }
 });
 
-test("run graph --json --include-content includes lightweight node content", () => {
+test("run graph --json --include-content includes lightweight node content", async () => {
   const project = makeContextProject();
   try {
     const c = capture();
-    const code = run(["graph", "--root", project, "--json", "--include-content"], c.io);
+    const code = await run(["graph", "--root", project, "--json", "--include-content"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -866,21 +872,21 @@ test("run graph --json --include-content includes lightweight node content", () 
   }
 });
 
-test("run graph --include-content without --json errors", () => {
+test("run graph --include-content without --json errors", async () => {
   const c = capture();
-  const code = run(["graph", "--include-content"], c.io);
+  const code = await run(["graph", "--include-content"], c.io);
 
   expect(code).toBe(1);
   expect(c.err).toContain("--json");
   expect(c.out).toBe("");
 });
 
-test("run graph includes resolvable one-way links and exits 0 with link diagnostics", () => {
+test("run graph includes resolvable one-way links and exits 0 with link diagnostics", async () => {
   const project = makeContextProject();
   try {
     writeFileSync(join(project, "docs", "auth.md"), "## Login Spec\n\nThe login flow.\n");
     const c = capture();
-    const code = run(["graph", "--root", project, "--json"], c.io);
+    const code = await run(["graph", "--root", project, "--json"], c.io);
 
     expect(code).toBe(0);
     const parsed = JSON.parse(c.out) as {
@@ -912,7 +918,7 @@ test("run graph includes resolvable one-way links and exits 0 with link diagnost
   }
 });
 
-test("run context omits diagnostics located outside the input files", () => {
+test("run context omits diagnostics located outside the input files", async () => {
   const project = makeContextProject();
   try {
     writeFileSync(
@@ -920,7 +926,7 @@ test("run context omits diagnostics located outside the input files", () => {
       "/**\n * @doc docs/auth.md#missing\n */\nexport function broken() {}\n",
     );
     const c = capture();
-    const code = run(["context", "--root", project, "src/auth/login.ts"], c.io);
+    const code = await run(["context", "--root", project, "src/auth/login.ts"], c.io);
 
     expect(code).toBe(0);
     expect(c.err).toBe("");

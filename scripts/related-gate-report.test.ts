@@ -5,11 +5,11 @@ import { formatGateReport, parseChangedFiles } from "./related-gate-report";
 
 const ROOT = join(import.meta.dir, "..");
 
-test("formatGateReport reports nothing when there are no violations", () => {
+test("formatGateReport reports nothing when there are no violations", async () => {
   expect(formatGateReport([], [], [])).toBe("");
 });
 
-test("formatGateReport names every violation and attaches the flagged content", () => {
+test("formatGateReport names every violation and attaches the flagged content", async () => {
   const report = formatGateReport(
     [
       {
@@ -50,7 +50,7 @@ test("formatGateReport names every violation and attaches the flagged content", 
   expect(report).not.toContain("docs/unrelated.md#other");
 });
 
-test("formatGateReport widens the fence around code content holding a backtick run", () => {
+test("formatGateReport widens the fence around code content holding a backtick run", async () => {
   const report = formatGateReport(
     [
       {
@@ -79,12 +79,12 @@ test("formatGateReport widens the fence around code content holding a backtick r
   expect(report).toContain("\n````");
 });
 
-test("parseChangedFiles drops blank lines and trims each path", () => {
+test("parseChangedFiles drops blank lines and trims each path", async () => {
   expect(parseChangedFiles("src/a.ts\n\n  docs/b.md  \n\n")).toEqual(["src/a.ts", "docs/b.md"]);
   expect(parseChangedFiles("")).toEqual([]);
 });
 
-test("formatGateReport warns about partially staged files even with no violations", () => {
+test("formatGateReport warns about partially staged files even with no violations", async () => {
   const report = formatGateReport([], [], ["src/core/related.ts"]);
 
   expect(report).toContain("src/core/related.ts");
@@ -92,7 +92,7 @@ test("formatGateReport warns about partially staged files even with no violation
   expect(report).not.toContain("counterpart not in change set");
 });
 
-test("formatGateReport keeps the warning alongside reported violations", () => {
+test("formatGateReport keeps the warning alongside reported violations", async () => {
   const report = formatGateReport(
     [
       {

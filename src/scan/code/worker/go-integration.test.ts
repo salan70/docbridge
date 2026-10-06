@@ -13,7 +13,7 @@ import { graph } from "../../../query/graph-output";
 
 const EXAMPLE_ROOT = resolve(import.meta.dir, "../../../../examples/go");
 
-function withGoProject(run: (root: string) => void): void {
+async function withGoProject(run: (root: string) => void | Promise<void>): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "docbridge-go-"));
   try {
     mkdirSync(join(root, "internal/auth"), { recursive: true });
@@ -47,17 +47,17 @@ function withGoProject(run: (root: string) => void): void {
       join(root, "docs", "auth.md"),
       ["<!-- @code internal/auth/service.go#Service.Login -->", "## Login Flow", ""].join("\n"),
     );
-    run(root);
+    await run(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
-test("Go worker participates in check, context, graph, and LSP navigation", () => {
-  withGoProject((root) => {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+test("Go worker participates in check, context, graph, and LSP navigation", async () => {
+  await withGoProject(async (root) => {
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const contextResult = context({
+    const contextResult = await context({
       projectRoot: root,
       inputFiles: ["docs/auth.md"],
     });
@@ -71,7 +71,7 @@ test("Go worker participates in check, context, graph, and LSP navigation", () =
       });
     }
 
-    const graphResult = graph({ projectRoot: root, includeContent: true });
+    const graphResult = await graph({ projectRoot: root, includeContent: true });
     expect(graphResult.ok).toBe(true);
     if (graphResult.ok) {
       expect(graphResult.result.nodes.find((node) => node.kind === "code")).toMatchObject({
@@ -81,7 +81,7 @@ test("Go worker participates in check, context, graph, and LSP navigation", () =
     }
 
     const project = new Project(root);
-    const state = project.resolve();
+    const state = await project.resolveAsync().promise;
     expect(state.diagnostics).toEqual([]);
     expect(definition(state, "docs/auth.md", { line: 2, column: 5 })).toEqual([
       {
@@ -103,7 +103,7 @@ test("Go worker participates in check, context, graph, and LSP navigation", () =
   });
 });
 
-test("Go manifest entry links a method with no annotation", () => {
+test("Go manifest entry links a method with no annotation", async () => {
   const root = mkdtempSync(join(tmpdir(), "docbridge-go-manifest-"));
   try {
     mkdirSync(join(root, "internal/auth"), { recursive: true });
@@ -136,9 +136,9 @@ test("Go manifest entry links a method with no annotation", () => {
     );
     writeFileSync(join(root, "docs", "auth.md"), "## Login Flow\n");
 
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const graphOutcome = graph({ projectRoot: root });
+    const graphOutcome = await graph({ projectRoot: root });
     expect(graphOutcome.ok).toBe(true);
     if (!graphOutcome.ok) {
       return;
@@ -156,11 +156,11 @@ test("Go manifest entry links a method with no annotation", () => {
   }
 });
 
-test("the Go example project passes check and audit", () => {
-  const result = check({ projectRoot: EXAMPLE_ROOT, audit: true });
+test("the Go example project passes check and audit", async () => {
+  const result = await check({ projectRoot: EXAMPLE_ROOT, audit: true });
   expect(result.diagnostics).toEqual([]);
 
-  const graphOutcome = graph({ projectRoot: EXAMPLE_ROOT });
+  const graphOutcome = await graph({ projectRoot: EXAMPLE_ROOT });
   expect(graphOutcome.ok).toBe(true);
   if (!graphOutcome.ok) {
     return;
@@ -181,5 +181,5 @@ test("the Language Server scans the Go example asynchronously with the same resu
   const state = await project.resolveAsync().promise;
 
   expect(state.contentByFile.has("internal/auth/service.go")).toBe(true);
-  expect(state).toEqual(new Project(EXAMPLE_ROOT).resolve());
+  expect(state).toEqual(await new Project(EXAMPLE_ROOT).resolveAsync().promise);
 });

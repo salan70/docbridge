@@ -12,11 +12,7 @@ import type { LinkManifest } from "../model/link-manifest";
 import type { CodeScanResult } from "../model/scan-result";
 import type { MarkdownScanResult } from "../model/scan-result";
 import type { DocBridgeDiagnostic } from "../model/types";
-import {
-  scanCodeFiles,
-  scanCodeFilesAsync,
-  type CodeAdapterOverrides,
-} from "../scan/code/dispatch";
+import { scanCodeFiles, type CodeAdapterOverrides } from "../scan/code/dispatch";
 import type { CodeScanCache } from "../scan/code/scan-cache";
 import { scanMarkdown } from "../scan/markdown/markdown";
 import { cancelableSequence, type Cancelable } from "../shared/cancelable";
@@ -42,59 +38,8 @@ type ScanProjectBaseOptions = {
 type ScanProjectOptions = ScanProjectBaseOptions & {
   buildGraph?: boolean;
   keepContent?: boolean;
-};
-
-type ScanProjectOutcome<Scan extends ProjectScan> =
-  | { ok: true; scan: Scan }
-  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
-
-type ScanProjectAsyncOutcome =
-  | {
-      ok: true;
-      scan: ProjectScanWithGraph & ProjectScanWithContent;
-      /** The cache to pass to the next scan once this one is accepted. */
-      cache: CodeScanCache;
-    }
-  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
-
-export function scanProject(
-  options: ScanProjectBaseOptions & { buildGraph: true; keepContent: true },
-): ScanProjectOutcome<ProjectScanWithGraph & ProjectScanWithContent>;
-export function scanProject(
-  options: ScanProjectBaseOptions & { buildGraph: true; keepContent?: false },
-): ScanProjectOutcome<ProjectScanWithGraph>;
-export function scanProject(
-  options: ScanProjectBaseOptions & { buildGraph?: false; keepContent: true },
-): ScanProjectOutcome<ProjectScanWithContent>;
-export function scanProject(
-  options: ScanProjectBaseOptions & { buildGraph?: false; keepContent?: false },
-): ScanProjectOutcome<ProjectScan>;
-/**
- * Load configuration, scan every managed file, and optionally retain derived artifacts.
- *
- * @doc docs/specs/scanning.md#scanning
- */
-export function scanProject(
-  options: ScanProjectOptions,
-): ScanProjectOutcome<ProjectScan & Partial<ProjectScanWithGraph & ProjectScanWithContent>> {
-  const loaded = loadProjectScan(options, options.keepContent === true);
-  if (!loaded.ok) {
-    return loaded;
-  }
-  const { inputs } = loaded;
-  const codeScan = scanCodeFiles(
-    options.projectRoot,
-    inputs.codeFiles,
-    inputs.config.include.code,
-    inputs.readFile,
-    codeScanOptions(inputs, options),
-  );
-  const docReads = readDocFiles(inputs, options);
-  return { ok: true, scan: finishProjectScan(inputs, codeScan, docReads, options.buildGraph) };
-}
-
-type ScanProjectAsyncOptions = ScanProjectBaseOptions & {
-  cache: CodeScanCache;
+  /** Results of an earlier scan to reuse while the configuration is unchanged. */
+  cache?: CodeScanCache;
   /**
    * Called before scanning when the configuration differs from the one
    * `cache` was produced under, so session-wide caches can be dropped too.
@@ -102,44 +47,72 @@ type ScanProjectAsyncOptions = ScanProjectBaseOptions & {
   onConfigurationChange?: () => void;
 };
 
+type ScanProjectOutcome<Scan extends ProjectScan = ProjectScan> =
+  | {
+      ok: true;
+      scan: Scan;
+      /** The cache to pass to the next scan once this one is accepted; empty without `cache`. */
+      cache: CodeScanCache;
+    }
+  | { ok: false; diagnostics: DocBridgeDiagnostic[] };
+
+export function scanProject(
+  options: ScanProjectOptions & { buildGraph: true; keepContent: true },
+): Cancelable<ScanProjectOutcome<ProjectScanWithGraph & ProjectScanWithContent>>;
+export function scanProject(
+  options: ScanProjectOptions & { buildGraph: true; keepContent?: false },
+): Cancelable<ScanProjectOutcome<ProjectScanWithGraph>>;
+export function scanProject(
+  options: ScanProjectOptions & { buildGraph?: false; keepContent: true },
+): Cancelable<ScanProjectOutcome<ProjectScanWithContent>>;
+export function scanProject(
+  options: ScanProjectOptions & { buildGraph?: false; keepContent?: false },
+): Cancelable<ScanProjectOutcome<ProjectScan>>;
 /**
- * The cancellable form of {@link scanProject} for the Language Server. It
- * reads the configuration, the manifest, and every managed file before the
- * first worker starts, reuses `cache` while the configuration is unchanged,
- * and always builds the graph and keeps file contents. Cancelling cancels the
- * running worker and rejects with an `AbortError`.
+ * Load configuration, scan every managed file, and optionally retain derived
+ * artifacts. The configuration, the manifest, and every managed file are read
+ * before the first worker starts. Cancelling cancels the running worker and
+ * rejects with an `AbortError`.
+ *
+ * @doc docs/specs/scanning.md#scanning
  */
-export function scanProjectAsync(
-  options: ScanProjectAsyncOptions,
-): Cancelable<ScanProjectAsyncOutcome> {
-  const loaded = loadProjectScan(options, true);
+export function scanProject(
+  options: ScanProjectOptions,
+): Cancelable<
+  ScanProjectOutcome<ProjectScan & Partial<ProjectScanWithGraph & ProjectScanWithContent>>
+> {
+  const loaded = loadProjectScan(options, options.keepContent === true);
   if (!loaded.ok) {
     return cancelableSequence(async () => loaded);
   }
   const { inputs } = loaded;
-  const fingerprint = JSON.stringify(inputs.config);
-  const sameConfiguration = options.cache.fingerprint === fingerprint;
-  if (!sameConfiguration && options.cache.fingerprint !== "") {
+  const previousCache = options.cache;
+  const fingerprint = previousCache === undefined ? undefined : JSON.stringify(inputs.config);
+  const sameConfiguration =
+    previousCache !== undefined && previousCache.fingerprint === fingerprint;
+  if (previousCache !== undefined && !sameConfiguration && previousCache.fingerprint !== "") {
     options.onConfigurationChange?.();
   }
-  const codeScan = scanCodeFilesAsync(
+  const codeScan = scanCodeFiles(
     options.projectRoot,
     inputs.codeFiles,
     inputs.config.include.code,
     inputs.readFile,
     {
       ...codeScanOptions(inputs, options),
-      ...(sameConfiguration ? { cache: options.cache.entries } : {}),
+      ...(previousCache === undefined
+        ? {}
+        : { cache: sameConfiguration ? previousCache.entries : new Map() }),
     },
   );
   const docReads = readDocFiles(inputs, options);
   return cancelableSequence(async (step) => {
     const { cache, ...code } = await step(codeScan);
-    const scan = finishProjectScan(inputs, code, docReads, true);
+    const scan = finishProjectScan(inputs, code, docReads, options.buildGraph);
     return {
       ok: true,
       scan: scan as ProjectScanWithGraph & ProjectScanWithContent,
-      cache: { fingerprint, entries: cache },
+      cache: { fingerprint: fingerprint ?? "", entries: cache },
     };
   });
 }

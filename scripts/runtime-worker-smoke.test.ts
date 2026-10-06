@@ -25,10 +25,10 @@ beforeEach(() => {
   clearRuntimeProbeCache();
 });
 
-function withTempRoot(run: (root: string) => void): void {
+async function withTempRoot(run: (root: string) => void | Promise<void>): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "docbridge-runtime-smoke-"));
   try {
-    run(root);
+    await run(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -36,8 +36,8 @@ function withTempRoot(run: (root: string) => void): void {
 
 test.each(["python", "ruby", "java"] as const)(
   "smokeRuntimeWorker runs the staged %s worker on one file",
-  (language) => {
-    withTempRoot((root) => {
+  async (language) => {
+    await withTempRoot(async (root) => {
       // Stage from this checkout's workers without writing into its dist/.
       mkdirSync(join(root, "packages"));
       for (const name of ["python-scanner", "ruby-scanner", "java-scanner"]) {
@@ -45,7 +45,7 @@ test.each(["python", "ruby", "java"] as const)(
       }
       stageRuntimeWorkers(root);
 
-      const summary = smokeRuntimeWorker(language, {
+      const summary = await smokeRuntimeWorker(language, {
         distRoot: join(root, "dist"),
         projectRoot: root,
       });
@@ -55,8 +55,8 @@ test.each(["python", "ruby", "java"] as const)(
   },
 );
 
-test("smokeRuntimeWorker rejects a worker whose scan output is not a response", () => {
-  withTempRoot((root) => {
+test("smokeRuntimeWorker rejects a worker whose scan output is not a response", async () => {
+  await withTempRoot(async (root) => {
     mkdirSync(join(root, "dist/workers/python"), { recursive: true });
     writeFileSync(
       join(root, "dist/workers/python/docbridge_python_scanner.py"),
@@ -70,14 +70,14 @@ test("smokeRuntimeWorker rejects a worker whose scan output is not a response", 
       ].join("\n"),
     );
 
-    expect(() =>
+    await expect(
       smokeRuntimeWorker("python", { distRoot: join(root, "dist"), projectRoot: root }),
-    ).toThrow("python worker returned no link for src/auth.py#login");
+    ).rejects.toThrow("python worker returned no link for src/auth.py#login");
   });
 });
 
-test("withReadOnlyTree removes every write bit while it runs and restores the modes after", () => {
-  withTempRoot((root) => {
+test("withReadOnlyTree removes every write bit while it runs and restores the modes after", async () => {
+  await withTempRoot(async (root) => {
     const tree = join(root, "package");
     mkdirSync(join(tree, "bin"), { recursive: true });
     writeFileSync(join(tree, "bin/scanner"), "");
@@ -88,7 +88,7 @@ test("withReadOnlyTree removes every write bit while it runs and restores the mo
     const before = paths.map((path) => statSync(path).mode & 0o7777);
 
     let during: number[] = [];
-    withReadOnlyTree(tree, () => {
+    await withReadOnlyTree(tree, () => {
       during = paths.map((path) => statSync(path).mode & 0o7777);
     });
 
@@ -97,31 +97,31 @@ test("withReadOnlyTree removes every write bit while it runs and restores the mo
   });
 });
 
-test("withReadOnlyTree restores the modes when the callback throws", () => {
-  withTempRoot((root) => {
+test("withReadOnlyTree restores the modes when the callback throws", async () => {
+  await withTempRoot(async (root) => {
     writeFileSync(join(root, "file"), "");
     chmodSync(join(root, "file"), 0o644);
 
-    expect(() =>
+    await expect(
       withReadOnlyTree(root, () => {
         throw new Error("smoke failed");
       }),
-    ).toThrow("smoke failed");
+    ).rejects.toThrow("smoke failed");
     expect(statSync(join(root, "file")).mode & 0o7777).toBe(0o644);
   });
 });
 
-test("assertMissingRuntimeUnavailable passes when a missing configured runtime is unavailable", () => {
-  withTempRoot((root) => {
+test("assertMissingRuntimeUnavailable passes when a missing configured runtime is unavailable", async () => {
+  await withTempRoot(async (root) => {
     mkdirSync(join(root, "dist/workers/python"), { recursive: true });
     writeFileSync(join(root, "dist/workers/python/docbridge_python_scanner.py"), "");
 
-    expect(() =>
+    await expect(
       assertMissingRuntimeUnavailable({
         distRoot: join(root, "dist"),
         projectRoot: root,
         missingRuntime: join(root, "missing runtime", "python3"),
       }),
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 });

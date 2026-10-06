@@ -4,13 +4,13 @@ import { join } from "node:path";
 
 import { definition } from "../lsp/navigation";
 import { Project } from "../lsp/project";
-import type { CodeLanguageAdapter } from "../scan/code/adapter";
+import type { InProcessCodeAdapter } from "../scan/code/adapter";
 import { emptyCodeScanCache } from "../scan/code/scan-cache";
 import { typeScriptAdapter } from "../scan/code/typescript";
 import { makeProject } from "../test-support";
-import { scanProject, scanProjectAsync } from "./project-scan";
+import { scanProject } from "./project-scan";
 
-test("scanProject omits graph and content artifacts by default", () => {
+test("scanProject omits graph and content artifacts by default", async () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: {
@@ -23,7 +23,7 @@ test("scanProject omits graph and content artifacts by default", () => {
   });
 
   try {
-    const outcome = scanProject({ projectRoot: root });
+    const outcome = await scanProject({ projectRoot: root }).promise;
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) {
@@ -37,7 +37,7 @@ test("scanProject omits graph and content artifacts by default", () => {
   }
 });
 
-test("scanProject stops scanning when the manifest is invalid", () => {
+test("scanProject stops scanning when the manifest is invalid", async () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: {
@@ -50,7 +50,7 @@ test("scanProject stops scanning when the manifest is invalid", () => {
   });
 
   try {
-    const outcome = scanProject({ projectRoot: root });
+    const outcome = await scanProject({ projectRoot: root }).promise;
 
     expect(outcome.ok).toBe(false);
     if (outcome.ok) {
@@ -65,7 +65,7 @@ test("scanProject stops scanning when the manifest is invalid", () => {
   }
 });
 
-test("LSP navigation follows a manifest link in both directions", () => {
+test("LSP navigation follows a manifest link in both directions", async () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: {
@@ -81,7 +81,7 @@ test("LSP navigation follows a manifest link in both directions", () => {
   });
 
   try {
-    const state = new Project(root).resolve();
+    const state = await new Project(root).resolveAsync().promise;
 
     expect(definition(state, "src/login.ts", { line: 1, column: 18 })).toEqual([
       {
@@ -118,23 +118,28 @@ const LINKED_PROJECT = {
 };
 
 /** The TypeScript adapter, recording the paths of every batch it scans. */
-function recordingTypeScript(batches: string[][]): CodeLanguageAdapter {
+function recordingTypeScript(batches: string[][]): InProcessCodeAdapter {
   return {
     ...typeScriptAdapter,
     scanFiles(files, options, context) {
       batches.push(files.map((file) => file.filePath));
-      return typeScriptAdapter.scanFiles(files, options, context);
+      return (typeScriptAdapter as InProcessCodeAdapter).scanFiles(files, options, context);
     },
   };
 }
 
-test("scanProjectAsync produces the scan scanProject produces", async () => {
+test("scanProject produces the same scan with and without a cache", async () => {
   const root = makeProject(LINKED_PROJECT);
 
   try {
-    const expected = scanProject({ projectRoot: root, buildGraph: true, keepContent: true });
-    const actual = await scanProjectAsync({ projectRoot: root, cache: emptyCodeScanCache() })
+    const expected = await scanProject({ projectRoot: root, buildGraph: true, keepContent: true })
       .promise;
+    const actual = await scanProject({
+      projectRoot: root,
+      buildGraph: true,
+      keepContent: true,
+      cache: emptyCodeScanCache(),
+    }).promise;
 
     expect(expected.ok).toBe(true);
     expect(actual.ok).toBe(true);
@@ -149,13 +154,13 @@ test("scanProjectAsync produces the scan scanProject produces", async () => {
   }
 });
 
-test("scanProjectAsync reuses cached results until the configuration changes", async () => {
+test("scanProject reuses cached results until the configuration changes", async () => {
   const root = makeProject(LINKED_PROJECT);
   const batches: string[][] = [];
   const adapters = { typescript: recordingTypeScript(batches) };
 
   try {
-    const first = await scanProjectAsync({
+    const first = await scanProject({
       projectRoot: root,
       adapters,
       cache: emptyCodeScanCache(),
@@ -163,8 +168,7 @@ test("scanProjectAsync reuses cached results until the configuration changes", a
     if (!first.ok) {
       throw new Error("expected the first scan to succeed");
     }
-    const second = await scanProjectAsync({ projectRoot: root, adapters, cache: first.cache })
-      .promise;
+    const second = await scanProject({ projectRoot: root, adapters, cache: first.cache }).promise;
     if (!second.ok) {
       throw new Error("expected the second scan to succeed");
     }
@@ -177,7 +181,7 @@ test("scanProjectAsync reuses cached results until the configuration changes", a
         },
       }),
     );
-    await scanProjectAsync({ projectRoot: root, adapters, cache: second.cache }).promise;
+    await scanProject({ projectRoot: root, adapters, cache: second.cache }).promise;
 
     expect(batches).toEqual([
       ["src/billing.ts", "src/login.ts"],
@@ -188,12 +192,11 @@ test("scanProjectAsync reuses cached results until the configuration changes", a
   }
 });
 
-test("scanProjectAsync stops when the manifest is invalid", async () => {
+test("scanProject stops when the manifest is invalid", async () => {
   const root = makeProject({ ...LINKED_PROJECT, "docbridge.links.json": '{ "links": [], }' });
 
   try {
-    const outcome = await scanProjectAsync({ projectRoot: root, cache: emptyCodeScanCache() })
-      .promise;
+    const outcome = await scanProject({ projectRoot: root, cache: emptyCodeScanCache() }).promise;
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) {
@@ -206,7 +209,7 @@ test("scanProjectAsync stops when the manifest is invalid", async () => {
   }
 });
 
-test("scanProjectAsync reports a configuration change before it scans", async () => {
+test("scanProject reports a configuration change before it scans", async () => {
   const root = makeProject(LINKED_PROJECT);
   const events: string[] = [];
   const batches: string[][] = [];
@@ -214,7 +217,7 @@ test("scanProjectAsync reports a configuration change before it scans", async ()
   const adapters = {
     typescript: {
       ...recording,
-      scanFiles: (...args: Parameters<CodeLanguageAdapter["scanFiles"]>) => {
+      scanFiles: (...args: Parameters<InProcessCodeAdapter["scanFiles"]>) => {
         events.push("scan");
         return recording.scanFiles(...args);
       },
@@ -223,7 +226,7 @@ test("scanProjectAsync reports a configuration change before it scans", async ()
   const onConfigurationChange = () => events.push("configuration changed");
 
   try {
-    const first = await scanProjectAsync({
+    const first = await scanProject({
       projectRoot: root,
       adapters,
       cache: emptyCodeScanCache(),
@@ -241,7 +244,7 @@ test("scanProjectAsync reports a configuration change before it scans", async ()
         },
       }),
     );
-    await scanProjectAsync({
+    await scanProject({
       projectRoot: root,
       adapters,
       cache: first.cache,
@@ -270,16 +273,16 @@ test("both scan forms hand the configured scanners to every adapter", async () =
   const adapters = {
     typescript: {
       ...typeScriptAdapter,
-      scanFiles: (...args: Parameters<CodeLanguageAdapter["scanFiles"]>) => {
+      scanFiles: (...args: Parameters<InProcessCodeAdapter["scanFiles"]>) => {
         contexts.push(args[2]);
-        return typeScriptAdapter.scanFiles(...args);
+        return (typeScriptAdapter as InProcessCodeAdapter).scanFiles(...args);
       },
     },
   };
 
   try {
-    scanProject({ projectRoot: root, adapters });
-    await scanProjectAsync({ projectRoot: root, adapters, cache: emptyCodeScanCache() }).promise;
+    await scanProject({ projectRoot: root, adapters }).promise;
+    await scanProject({ projectRoot: root, adapters, cache: emptyCodeScanCache() }).promise;
 
     expect(contexts).toEqual([
       { projectRoot: root, scanners },

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-10-06
+
+### Fixed
+
+- A worker that a scan started no longer outlives the CLI. On POSIX systems
+  each worker runs in its own process group, a time or output limit kills the
+  whole group, and `check`, `related`, `context`, and `graph` kill their
+  running workers when the CLI receives `SIGINT`, `SIGTERM`, or `SIGHUP`
+  during a scan, then end by that signal. Before, a worker that ran past the
+  CLI, or a process the worker started, could keep running.
+
 ## [0.13.0] - 2026-10-01
 
 ### Added
@@ -547,7 +558,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/salan70/docbridge/releases/tag/v0.13.1
 [0.13.0]: https://github.com/salan70/docbridge/releases/tag/v0.13.0
 [0.12.0]: https://github.com/salan70/docbridge/releases/tag/v0.12.0
 [0.11.0]: https://github.com/salan70/docbridge/releases/tag/v0.11.0

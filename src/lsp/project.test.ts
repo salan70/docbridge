@@ -19,17 +19,17 @@ const CODE_FILE = "src/auth/login.ts";
 const DOC_FILE = "docs/auth.md";
 
 describe(Project, () => {
-  test("clearOverlay reverts the file to its on-disk version", () => {
+  test("clearOverlay reverts the file to its on-disk version", async () => {
     const project = new Project(EXAMPLE_ROOT);
     project.setOverlay(
       CODE_FILE,
       "/**\n * @doc docs/auth.md#nonexistent\n */\nexport function login() {}\n",
     );
-    project.resolve();
+    await project.resolveAsync().promise;
     expect(codes(project.state.diagnostics)).toContain("doc_anchor_not_found");
 
     project.clearOverlay(CODE_FILE);
-    project.resolve();
+    await project.resolveAsync().promise;
 
     expect(project.state.diagnostics).toEqual([]);
     expect(
@@ -37,25 +37,25 @@ describe(Project, () => {
     ).toEqual([`${DOC_FILE}#login-spec`]);
   });
 
-  test("an open buffer that matches a code pattern but is not on disk is scanned", () => {
+  test("an open buffer that matches a code pattern but is not on disk is scanned", async () => {
     const project = new Project(EXAMPLE_ROOT);
     project.setOverlay(
       "src/auth/unsaved.ts",
       "/**\n * @doc docs/auth.md#nonexistent\n */\nexport function unsaved() {}\n",
     );
-    project.resolve();
+    await project.resolveAsync().promise;
 
     expect(project.state.contentByFile.has("src/auth/unsaved.ts")).toBe(true);
     expect(codes(project.state.diagnostics)).toContain("doc_anchor_not_found");
   });
 
-  test("an open buffer with its language's excluded suffix is not scanned", () => {
+  test("an open buffer with its language's excluded suffix is not scanned", async () => {
     const project = new Project(EXAMPLE_ROOT);
     project.setOverlay(
       "src/auth/unsaved.d.ts",
       "/**\n * @doc docs/auth.md#nonexistent\n */\nexport declare function unsaved(): void;\n",
     );
-    project.resolve();
+    await project.resolveAsync().promise;
 
     expect(project.state.contentByFile.has("src/auth/unsaved.d.ts")).toBe(false);
     expect(project.state.diagnostics).toEqual([]);
@@ -71,19 +71,19 @@ describe("Project.resolveAsync", () => {
     const state = await project.resolveAsync().promise;
 
     expect(project.state).toBe(state);
-    expect(state).toEqual(new Project(EXAMPLE_ROOT).resolve());
+    expect(state).toEqual(await new Project(EXAMPLE_ROOT).resolveAsync().promise);
   });
 
   test("sends only the changed file to the scanner on the next scan", async () => {
     const held = heldTypeScript();
     const project = new Project(EXAMPLE_ROOT, { adapters: { typescript: held.adapter } });
     const first = project.resolveAsync();
-    held.batches[0]?.release();
+    (await held.waitForBatch(0)).release();
     await first.promise;
 
     project.setOverlay(CODE_FILE, "export async function login() {}\n");
     const second = project.resolveAsync();
-    held.batches[1]?.release();
+    (await held.waitForBatch(1)).release();
     await second.promise;
 
     expect(held.batches.map((batch) => batch.files)).toEqual([BOTH_FILES, [CODE_FILE]]);
@@ -96,12 +96,12 @@ describe("Project.resolveAsync", () => {
     const stale = project.resolveAsync();
 
     project.setOverlay(CODE_FILE, "export async function login() {}\n");
-    held.batches[0]?.release();
+    (await held.waitForBatch(0)).release();
 
     expect(isAbortError(await stale.promise.catch((reason: unknown) => reason))).toBe(true);
     expect(project.state.contentByFile.size).toBe(0);
     const next = project.resolveAsync();
-    held.batches[1]?.release();
+    (await held.waitForBatch(1)).release();
     await next.promise;
     expect(held.batches.map((batch) => batch.files)).toEqual([BOTH_FILES, BOTH_FILES]);
   });
@@ -110,11 +110,12 @@ describe("Project.resolveAsync", () => {
     const held = heldTypeScript();
     const project = new Project(EXAMPLE_ROOT, { adapters: { typescript: held.adapter } });
     const task = project.resolveAsync();
+    const batch = await held.waitForBatch(0);
 
     task.cancel();
 
     expect(isAbortError(await task.promise.catch((reason: unknown) => reason))).toBe(true);
-    expect(held.batches[0]?.cancelled).toBe(true);
+    expect(batch.cancelled).toBe(true);
     expect(project.state.contentByFile.size).toBe(0);
   });
 
@@ -148,18 +149,20 @@ describe("Project runtime probes", () => {
     // A runtime-backed resolution standing in for a registered runtime language.
     const adapter = createScannerWorkerAdapter(
       "go",
-      ({ projectRoot }) =>
-        resolveRuntimeWorkerCommand("python", {
-          projectRoot,
-          sourceRoot: pkg,
-          env: {},
-          platform: "linux",
-          probe: () => {
-            probes += 1;
-            return { kind: "ok", runtime: "cpython", version: "3.12.4" };
-          },
-        }),
-      { runAsync: () => settledCancelable(EXITED) },
+      {
+        commandAsync: ({ projectRoot }) =>
+          resolveRuntimeWorkerCommand("python", {
+            projectRoot,
+            sourceRoot: pkg,
+            env: {},
+            platform: "linux",
+            probe: () => {
+              probes += 1;
+              return settledCancelable({ kind: "ok", runtime: "cpython", version: "3.12.4" });
+            },
+          }),
+      },
+      { run: () => settledCancelable(EXITED) },
     );
     const project = new Project(root, { adapters: { go: adapter } });
 
@@ -208,16 +211,23 @@ describe("Project scan cache", () => {
     // A runtime-backed resolution standing in for a registered runtime language.
     const adapter = createScannerWorkerAdapter(
       "go",
-      ({ projectRoot }) =>
-        resolveRuntimeWorkerCommand("python", {
-          projectRoot,
-          sourceRoot: pkg,
-          env: { ...env },
-          platform: "linux",
-          probe: () => ({ kind: "ok", runtime: "cpython", version: versions[env.PATH] ?? "" }),
-        }),
       {
-        runAsync: (input) => {
+        commandAsync: ({ projectRoot }) =>
+          resolveRuntimeWorkerCommand("python", {
+            projectRoot,
+            sourceRoot: pkg,
+            env: { ...env },
+            platform: "linux",
+            probe: () =>
+              settledCancelable({
+                kind: "ok",
+                runtime: "cpython",
+                version: versions[env.PATH] ?? "",
+              }),
+          }),
+      },
+      {
+        run: (input) => {
           requests += 1;
           return settledCancelable(parseErrorResponse(input.stdin));
         },

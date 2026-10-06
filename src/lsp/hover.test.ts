@@ -14,7 +14,7 @@ const CODE_NAME = { line: 4, column: 18 };
 const HEADING = { line: 2, column: 5 };
 
 describe(hover, () => {
-  test("code to doc renders the linked Markdown section inline", () => {
+  test("code to doc renders the linked Markdown section inline", async () => {
     const result = hover(stateOf(CODE, DOC), CODE_FILE, CODE_NAME);
 
     expect(result?.value).toContain("## Login Spec");
@@ -22,14 +22,14 @@ describe(hover, () => {
     expect(result?.range.start).toEqual({ line: 4, column: 17 });
   });
 
-  test("doc to code shows the endpoint and the declaration signature line", () => {
+  test("doc to code shows the endpoint and the declaration signature line", async () => {
     const result = hover(stateOf(CODE, DOC), DOC_FILE, HEADING);
 
     expect(result?.value).toContain("src/auth/login.ts#login");
     expect(result?.value).toContain("export function login()");
   });
 
-  test("doc to code shows the whole signature when the name is on a later line", () => {
+  test("doc to code shows the whole signature when the name is on a later line", async () => {
     const code =
       "/**\n * @doc docs/auth.md#login-spec\n */\nexport const\n  login = (): void => {};\n";
 
@@ -40,7 +40,7 @@ describe(hover, () => {
     );
   });
 
-  test("doc to code drops the leading doc comment but keeps decorators", () => {
+  test("doc to code drops the leading doc comment but keeps decorators", async () => {
     const code =
       "/**\n * @doc docs/auth.md#login-spec\n */\n@sealed\nexport class login {\n  run(): void {}\n}\n";
 
@@ -51,7 +51,7 @@ describe(hover, () => {
     );
   });
 
-  test("doc to code fences a .tsx signature as tsx", () => {
+  test("doc to code fences a .tsx signature as tsx", async () => {
     const code =
       "/** @doc docs/auth.md#login-spec */\nexport function Login() {\n  return <form />;\n}\n";
     const doc = "<!-- @code src/auth/login.tsx#Login -->\n## Login Spec\n";
@@ -108,7 +108,7 @@ describe(hover, () => {
     },
   );
 
-  test("doc to code drops Javadoc, line, and unnested block comments from a Java signature", () => {
+  test("doc to code drops Javadoc, line, and unnested block comments from a Java signature", async () => {
     const filePath = "src/main/java/auth/Auth.java";
     const code = [
       "/**",
@@ -134,7 +134,7 @@ describe(hover, () => {
     );
   });
 
-  test("concatenates one-to-many sections with a divider", () => {
+  test("concatenates one-to-many sections with a divider", async () => {
     const code =
       "/**\n * @doc docs/auth.md#login-spec\n * @doc docs/auth.md#flow\n */\nexport function login() {}\n";
     const doc = "## Login Spec\n\nFirst section.\n\n## Flow\n\nSecond section.\n";
@@ -146,11 +146,11 @@ describe(hover, () => {
     expect(result?.value).toContain("---");
   });
 
-  test("returns null when the cursor is not on a linked element", () => {
+  test("returns null when the cursor is not on a linked element", async () => {
     expect(hover(stateOf(CODE, DOC), CODE_FILE, { line: 4, column: 1 })).toBeNull();
   });
 
-  test("returns null when the element has no resolvable counterpart", () => {
+  test("returns null when the element has no resolvable counterpart", async () => {
     const code = "/**\n * @doc docs/auth.md#missing\n */\nexport function login() {}\n";
     expect(hover(stateOf(code, "## Other\n"), CODE_FILE, CODE_NAME)).toBeNull();
   });

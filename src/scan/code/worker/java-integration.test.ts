@@ -45,16 +45,16 @@ const LOGIN = `${SERVICE_PATH}#AuthService.login(String,char[])`;
 
 const DOC = `<!-- @code ${LOGIN} -->\n## Login Flow\n`;
 
-test("the Java worker participates in check, context, graph, and LSP navigation", () => {
+test("the Java worker participates in check, context, graph, and LSP navigation", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     [SERVICE_PATH]: SERVICE,
     "docs/auth.md": DOC,
   });
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
 
-    const contextResult = context({ projectRoot: root, inputFiles: ["docs/auth.md"] });
+    const contextResult = await context({ projectRoot: root, inputFiles: ["docs/auth.md"] });
     expect(contextResult.ok).toBe(true);
     if (contextResult.ok) {
       expect(formatContextResult(contextResult.result)).toContain(
@@ -67,7 +67,7 @@ test("the Java worker participates in check, context, graph, and LSP navigation"
       });
     }
 
-    const graphResult = graph({ projectRoot: root, includeContent: true });
+    const graphResult = await graph({ projectRoot: root, includeContent: true });
     expect(graphResult.ok).toBe(true);
     if (graphResult.ok) {
       expect(graphResult.result.nodes.find((node) => node.kind === "code")).toMatchObject({
@@ -76,7 +76,7 @@ test("the Java worker participates in check, context, graph, and LSP navigation"
       });
     }
 
-    const state = new Project(root).resolve();
+    const state = await new Project(root).resolveAsync().promise;
     expect(state.diagnostics).toEqual([]);
     expect(definition(state, "docs/auth.md", { line: 2, column: 5 })).toEqual([
       {
@@ -98,7 +98,7 @@ test("the Java worker participates in check, context, graph, and LSP navigation"
   }
 });
 
-test("a Java manifest entry links a constructor with no Javadoc", () => {
+test("a Java manifest entry links a constructor with no Javadoc", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     "docbridge.links.json": JSON.stringify({
@@ -109,13 +109,13 @@ test("a Java manifest entry links a constructor with no Javadoc", () => {
     "docs/auth.md": "## New\n",
   });
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("the Java worker ignores runtime variables that inject options", () => {
+test("the Java worker ignores runtime variables that inject options", async () => {
   const root = makeProject({
     "docbridge.config.json": CONFIG,
     [SERVICE_PATH]: SERVICE,
@@ -129,7 +129,7 @@ test("the Java worker ignores runtime variables that inject options", () => {
     process.env[name] = "-Xdocbridge-bogus-option";
   }
   try {
-    expect(check({ projectRoot: root }).diagnostics).toEqual([]);
+    expect((await check({ projectRoot: root })).diagnostics).toEqual([]);
   } finally {
     for (const [name, value] of saved) {
       if (value === undefined) {
@@ -142,7 +142,7 @@ test("the Java worker ignores runtime variables that inject options", () => {
   }
 });
 
-test("a configured Java runtime that does not exist fails every file without fallback", () => {
+test("a configured Java runtime that does not exist fails every file without fallback", async () => {
   const root = makeProject({
     "docbridge.config.json": JSON.stringify({
       include: { code: { java: { patterns: ["src/**/*.java"] } }, docs: ["docs/**/*.md"] },
@@ -153,7 +153,7 @@ test("a configured Java runtime that does not exist fails every file without fal
     "docs/auth.md": "## Auth\n",
   });
   try {
-    const diagnostics = check({ projectRoot: root }).diagnostics;
+    const diagnostics = (await check({ projectRoot: root })).diagnostics;
 
     expect(diagnostics.map((diagnostic) => [diagnostic.code, diagnostic.target])).toEqual([
       ["code_scanner_unavailable", "src/A.java"],
@@ -168,10 +168,10 @@ test("a configured Java runtime that does not exist fails every file without fal
   }
 });
 
-test("the Java example project passes check and audit", () => {
-  expect(check({ projectRoot: EXAMPLE_ROOT, audit: true }).diagnostics).toEqual([]);
+test("the Java example project passes check and audit", async () => {
+  expect((await check({ projectRoot: EXAMPLE_ROOT, audit: true })).diagnostics).toEqual([]);
 
-  const graphOutcome = graph({ projectRoot: EXAMPLE_ROOT });
+  const graphOutcome = await graph({ projectRoot: EXAMPLE_ROOT });
   expect(graphOutcome.ok).toBe(true);
   if (graphOutcome.ok) {
     expect(graphOutcome.result.pairs.map((pair) => pair.codeEndpoint).toSorted()).toEqual([
@@ -190,5 +190,5 @@ test("the Language Server scans the Java example asynchronously with the same re
   const state = await new Project(EXAMPLE_ROOT).resolveAsync().promise;
 
   expect(state.contentByFile.has("src/main/java/com/example/auth/AuthService.java")).toBe(true);
-  expect(state).toEqual(new Project(EXAMPLE_ROOT).resolve());
+  expect(state).toEqual(await new Project(EXAMPLE_ROOT).resolveAsync().promise);
 });
