@@ -255,8 +255,9 @@ Use the scanner-produced canonical symbol ID exactly.
 ## Heading anchors and reciprocity
 
 DocBridge creates anchors from ATX headings only. It lowercases the heading,
-collapses runs of whitespace and punctuation to `-`, preserves Unicode letters
-and numbers, and removes leading and trailing hyphens. `## Login Spec (v2)` is
+collapses runs of whitespace and punctuation other than `_` to `-`, keeps `_`
+as GitHub's heading slugs do, preserves Unicode letters and numbers, and removes
+leading and trailing hyphens. `## Login Spec (v2)` is
 `#login-spec-v2`.
 
 Empty headings have no anchor; a `@code` annotation attached to an empty

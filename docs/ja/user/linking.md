@@ -222,8 +222,9 @@ fragment には scanner が生成した canonical symbol ID をそのまま使�
 
 ## 見出し anchor と双方向性
 
-DocBridge は ATX 見出しだけを小文字化し、空白と記号の連続を `-` に変換し、先頭と
-末尾の `-` を除いて anchor を作ります。Unicode の文字と数字は保持されます。
+DocBridge は ATX 見出しだけを小文字化し、`_` を除く空白と記号の連続を `-` に変換し、
+GitHub の見出し slug と同じく `_` は残し、先頭と末尾の `-` を除いて anchor を作ります。
+Unicode の文字と数字は保持されます。
 たとえば `## Login Spec (v2)` は `#login-spec-v2` です。
 空見出しは anchor を持たず、空見出しに付けた `@code` は
 `dangling_code_annotation` になります。同じファイルの重複 anchor は
