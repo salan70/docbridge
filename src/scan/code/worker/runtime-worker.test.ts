@@ -5,7 +5,6 @@ import { join } from "node:path";
 
 import {
   abortError,
-  deferred,
   isAbortError,
   settledCancelable,
   type Cancelable,
@@ -698,7 +697,7 @@ test("cancelling resolveRuntimeWorkerCommand cancels the probe in flight and cac
       env: {},
       platform: "linux" as const,
     };
-    const pending = deferred<RuntimeProbeOutcome>();
+    const pending = Promise.withResolvers<RuntimeProbeOutcome>();
     let cancelled = 0;
     const task = resolveRuntimeWorkerCommand("python", {
       ...options,
@@ -729,7 +728,7 @@ test("an asynchronous probe that finishes after the cache is cleared does not re
       env: {},
       platform: "linux" as const,
     };
-    const pending = deferred<RuntimeProbeOutcome>();
+    const pending = Promise.withResolvers<RuntimeProbeOutcome>();
     const task = resolveRuntimeWorkerCommand("python", {
       ...options,
       probe: () => ({ promise: pending.promise, cancel: () => undefined }),
