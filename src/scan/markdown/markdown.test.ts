@@ -15,6 +15,9 @@ test.each([
   ["# Version 2 point 0", "version-2-point-0", "Version 2 point 0"],
   ["# Done ##", "done", "Done"],
   ["#### Deep Heading", "deep-heading", "Deep Heading"],
+  ["### title_definitions", "title_definitions", "title_definitions"],
+  ["## 画面の移動（go_router）", "画面の移動-go_router", "画面の移動（go_router）"],
+  ["# snake_case and kebab-case", "snake_case-and-kebab-case", "snake_case and kebab-case"],
 ])("scanMarkdown anchor for %s -> %s", (line, anchor, headingText) => {
   const result = scanMarkdown("docs/a.md", `${line}\n`);
   expect(result.anchors).toHaveLength(1);
