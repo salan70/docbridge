@@ -44,7 +44,7 @@ const EMPTY_CONFIG: DocBridgeConfig = {
 
 const KNOWN_TOP_LEVEL_KEYS = new Set(["$schema", "include", "scanners"]);
 const KNOWN_INCLUDE_KEYS = new Set(["code", "docs"]);
-const KNOWN_CODE_ENTRY_KEYS = new Set(["patterns", "visibility"]);
+const KNOWN_CODE_ENTRY_KEYS = new Set(["patterns", "exclude", "visibility"]);
 
 export const LANGUAGE_VISIBILITY: Readonly<Record<CodeLanguage, readonly string[]>> = {
   typescript: ["public", "protected", "private"],
@@ -299,6 +299,10 @@ function validateCodeEntry(
     diagnostics,
   );
 
+  if ("exclude" in value) {
+    validateExcludePatterns(language, value.exclude, diagnostics);
+  }
+
   if ("visibility" in value) {
     if (!isStringArray(value.visibility)) {
       diagnostics.push(
@@ -318,6 +322,9 @@ function validateCodeEntry(
   }
 
   const entry: CodeIncludeEntry = { patterns: value.patterns as string[] };
+  if (isStringArray(value.exclude)) {
+    entry.exclude = value.exclude;
+  }
   if (isStringArray(value.visibility)) {
     entry.visibility = value.visibility;
   }
@@ -342,6 +349,33 @@ function validateVisibilityOptions(
       );
     }
   }
+}
+
+function validateExcludePatterns(
+  language: CodeLanguage,
+  value: unknown,
+  diagnostics: DocBridgeDiagnostic[],
+): void {
+  const target = `include.code.${language}.exclude`;
+
+  if (!Array.isArray(value)) {
+    diagnostics.push(
+      configDiagnostic(
+        "config_invalid_value",
+        target,
+        `\`${target}\` must be an array of strings.`,
+      ),
+    );
+    return;
+  }
+
+  validatePatternStrings(
+    value,
+    `code.${language}.exclude`,
+    LANGUAGE_SUFFIXES[language],
+    EXCLUDED_SUFFIXES[language],
+    diagnostics,
+  );
 }
 
 function validatePatternArray(
@@ -374,6 +408,18 @@ function validatePatternArray(
     );
     return;
   }
+
+  validatePatternStrings(value, field, suffixes, excludedSuffixes, diagnostics);
+}
+
+function validatePatternStrings(
+  value: unknown[],
+  field: string,
+  suffixes: readonly string[],
+  excludedSuffixes: readonly string[],
+  diagnostics: DocBridgeDiagnostic[],
+): void {
+  const target = `include.${field}`;
 
   for (const pattern of value) {
     if (typeof pattern !== "string") {

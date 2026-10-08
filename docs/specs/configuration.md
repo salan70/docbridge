@@ -96,6 +96,11 @@ with one of the language's suffixes and with none of its excluded suffixes:
 | `java`       | `.java`                       |                             |
 
 A matched file that ends with an excluded suffix is not a managed code file.
+An optional `exclude` array removes matched files from management. Each entry
+follows the `patterns` rules (a valid glob that ends with one of the language's
+suffixes and none of its excluded suffixes), and the array may be empty. A file
+matched by `patterns` and by any `exclude` entry is not a managed code file. A
+link to an excluded file reports `code_file_not_found`.
 An optional `visibility` array narrows the audited public surface; allowed
 values are validated per language adapter. Swift accepts `public`, `open`, and `internal`; omitting
 `visibility` scans `public` and `open`. Dart accepts `public`. TypeScript

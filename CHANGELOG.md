@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A language entry under `include.code` accepts an optional `exclude` array.
+  Matched files that an `exclude` pattern selects are not managed, such as
+  Flutter's `*.g.dart` and `*.freezed.dart` files.
+
 ## [0.13.1] - 2026-10-06
 
 ### Fixed

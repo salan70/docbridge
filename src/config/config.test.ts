@@ -419,6 +419,103 @@ test("resolveConfig rejects unsupported dart visibility options", () => {
   expect(result.diagnostics[0]?.message).toContain("Unsupported dart visibility: private");
 });
 
+test("resolveConfig and the schema accept an exclude list on a language entry", () => {
+  const raw = {
+    include: {
+      code: {
+        dart: {
+          patterns: ["lib/**/*.dart"],
+          exclude: ["lib/**/*.g.dart", "lib/**/*.freezed.dart"],
+        },
+      },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  const result = resolveConfig(JSON.stringify(raw));
+  expect(result.diagnostics).toEqual([]);
+  expect(result.config.include.code.dart).toEqual({
+    patterns: ["lib/**/*.dart"],
+    exclude: ["lib/**/*.g.dart", "lib/**/*.freezed.dart"],
+  });
+});
+
+test("resolveConfig and the schema accept an empty exclude list", () => {
+  const raw = {
+    include: {
+      code: { dart: { patterns: ["lib/**/*.dart"], exclude: [] } },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  expect(validateConfigSchema(raw), JSON.stringify(validateConfigSchema.errors)).toBe(true);
+  const result = resolveConfig(JSON.stringify(raw));
+  expect(result.diagnostics).toEqual([]);
+  expect(result.config.include.code.dart).toEqual({ patterns: ["lib/**/*.dart"], exclude: [] });
+});
+
+test("resolveConfig and the schema reject an exclude that is not an array of strings", () => {
+  for (const exclude of ["lib/**/*.g.dart", [1]]) {
+    const raw = {
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], exclude } },
+        docs: ["docs/**/*.md"],
+      },
+    };
+
+    expect(validateConfigSchema(raw)).toBe(false);
+    const result = resolveConfig(JSON.stringify(raw));
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "config_invalid_value",
+        target: "include.code.dart.exclude",
+      }),
+    ]);
+  }
+});
+
+test("resolveConfig names the suffix an exclude pattern must end with", () => {
+  const raw = {
+    include: {
+      code: { dart: { patterns: ["lib/**/*.dart"], exclude: ["lib/**/*.ts"] } },
+      docs: ["docs/**/*.md"],
+    },
+  };
+
+  expect(validateConfigSchema(raw)).toBe(false);
+  expect(resolveConfig(JSON.stringify(raw)).diagnostics).toEqual([
+    {
+      severity: "error",
+      code: "config_invalid_value",
+      target: "lib/**/*.ts",
+      message: "Pattern must end with `.dart`.",
+    },
+  ]);
+});
+
+test("resolveConfig rejects an exclude pattern with unsupported glob syntax", () => {
+  const result = resolveConfig(
+    JSON.stringify({
+      include: {
+        code: { dart: { patterns: ["lib/**/*.dart"], exclude: ["lib/**/*{a,b}.dart"] } },
+        docs: ["docs/**/*.md"],
+      },
+    }),
+  );
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics).toEqual([
+    {
+      severity: "error",
+      code: "config_invalid_value",
+      target: "lib/**/*{a,b}.dart",
+      message:
+        "Invalid pattern in `include.code.dart.exclude`: Pattern supports only `*` and `**` glob syntax.",
+    },
+  ]);
+});
+
 test("resolveConfig rejects the old include.code array form", () => {
   const result = resolveConfig(
     JSON.stringify({ include: { code: ["src/**/*.ts"], docs: ["docs/**/*.md"] } }),

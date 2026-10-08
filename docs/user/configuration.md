@@ -69,7 +69,9 @@ source file may match only one language.
 | `ruby`       | `.rb`                                                | `public`, `protected`, `private`            | `public`              | CRuby 3.3 or later        |
 | `java`       | `.java`                                              | `public`, `protected`, `package`, `private` | `public`              | JDK 17 or later           |
 
-Patterns must end with one of the language's extensions. The npm package
+Patterns must end with one of the language's extensions. Each language also
+accepts an optional `exclude` array that removes matched files, such as generated
+code; see [Excluded files](#excluded-files). The npm package
 bundles the Swift, Dart, Rust, and Go scanners for `darwin-arm64` and
 `linux-x64`; TypeScript, JavaScript, and Markdown need no scanner binary.
 Python, Ruby, and Java are scanned by workers in the package that run on the
@@ -136,9 +138,29 @@ DocBridge there.
 
 ## Excluded files
 
-The configuration has no `exclude` property and no glob negation. Narrow the
-positive include patterns when tests, fixtures, generated files, or general
-documentation should stay outside the graph:
+Use `exclude` in a language entry to remove matched files that should not be
+managed, such as generated code. Flutter's `build_runner` outputs `*.g.dart` and
+`*.freezed.dart` are the usual case:
+
+```json
+{
+  "include": {
+    "code": {
+      "dart": {
+        "patterns": ["lib/**/*.dart"],
+        "exclude": ["lib/**/*.g.dart", "lib/**/*.freezed.dart"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
+
+Each `exclude` pattern follows the `patterns` rules and must end with the
+language's extension. The configuration has no glob negation, so `exclude` is the
+only way to remove files that `patterns` matches. Narrow the positive include
+patterns when tests, fixtures, or general documentation should stay outside the
+graph:
 
 ```json
 {
