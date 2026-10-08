@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `doc_anchor_not_found` suggests the closest anchor in the same Markdown file
+  with `Did you mean`, for both `@doc` annotations and link manifest entries.
+  Anchors in other doc files are not suggested, and no suggestion is added when
+  no anchor is close enough.
+
 ## [0.13.1] - 2026-10-06
 
 ### Fixed

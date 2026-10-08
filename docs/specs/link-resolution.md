@@ -40,7 +40,7 @@ One-to-many and many-to-many relationships are represented as multiple independe
 
 Normal code endpoint resolution is annotation-first. Markdown `@code` resolution checks whether the target code file exists and whether a matching `@doc` pair exists in that file. It does not separately check for an unannotated exported symbol with the same name.
 
-If a code `@doc` target doc file does not exist in the managed docs set, DocBridge emits `doc_file_not_found`. If the file exists but the anchor does not, DocBridge emits `doc_anchor_not_found`. If the anchor exists but the matching `@code` is missing, DocBridge emits `doc_backlink_not_found`.
+If a code `@doc` target doc file does not exist in the managed docs set, DocBridge emits `doc_file_not_found`. If the file exists but the anchor does not, DocBridge emits `doc_anchor_not_found`, adding a `Did you mean` suggestion when the same file has a close anchor. If the anchor exists but the matching `@code` is missing, DocBridge emits `doc_backlink_not_found`.
 
 If a Markdown `@code` target code file does not exist in the managed code set, DocBridge emits `code_file_not_found`. If the file exists but the matching `@doc` pair is missing, DocBridge emits `code_backlink_not_found`.
 
