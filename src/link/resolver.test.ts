@@ -400,6 +400,82 @@ describe(resolveLinks, () => {
 
     expect(diagnostics.map((diagnostic) => diagnostic.target)).toEqual([`${DOC_FILE}#parent`]);
   });
+
+  test("doc_anchor_not_found suggests the nearest anchor in the same doc file", () => {
+    const diagnostics = resolveLinks({
+      codeFiles: [
+        codeFile(
+          CODE_FILE,
+          [codeSymbol("login")],
+          [docLink(`${CODE_FILE}#login`, `${DOC_FILE}#login-spek`)],
+        ),
+      ],
+      docFiles: [docFile(DOC_FILE, [docAnchor("login-spec"), docAnchor("logout")], [])],
+      scanDiagnostics: [],
+      audit: false,
+    });
+
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+    expect(diagnostics[0]?.message).toContain("Did you mean `docs/auth.md#login-spec`?");
+  });
+
+  test("doc_anchor_not_found suggests a non-ASCII heading anchor", () => {
+    const diagnostics = resolveLinks({
+      codeFiles: [
+        codeFile(
+          CODE_FILE,
+          [codeSymbol("login")],
+          [docLink(`${CODE_FILE}#login`, `${DOC_FILE}#画面の移動-go_router`)],
+        ),
+      ],
+      docFiles: [docFile(DOC_FILE, [docAnchor("画面の移動-go-router")], [])],
+      scanDiagnostics: [],
+      audit: false,
+    });
+
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+    expect(diagnostics[0]?.message).toContain("Did you mean `docs/auth.md#画面の移動-go-router`?");
+  });
+
+  test("doc_anchor_not_found omits the suggestion when no anchor is close", () => {
+    const diagnostics = resolveLinks({
+      codeFiles: [
+        codeFile(
+          CODE_FILE,
+          [codeSymbol("login")],
+          [docLink(`${CODE_FILE}#login`, `${DOC_FILE}#login-spek`)],
+        ),
+      ],
+      docFiles: [docFile(DOC_FILE, [docAnchor("other-section")], [])],
+      scanDiagnostics: [],
+      audit: false,
+    });
+
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+    expect(diagnostics[0]?.message).not.toContain("Did you mean");
+  });
+
+  test("doc_anchor_not_found does not suggest an anchor from another doc file", () => {
+    const otherDocFile = "docs/login.md";
+    const diagnostics = resolveLinks({
+      codeFiles: [
+        codeFile(
+          CODE_FILE,
+          [codeSymbol("login")],
+          [docLink(`${CODE_FILE}#login`, `${DOC_FILE}#login-spek`)],
+        ),
+      ],
+      docFiles: [
+        docFile(DOC_FILE, [docAnchor("other-section")], []),
+        docFile(otherDocFile, [docAnchor("login-spec", { filePath: otherDocFile })], []),
+      ],
+      scanDiagnostics: [],
+      audit: false,
+    });
+
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+    expect(diagnostics[0]?.message).not.toContain("Did you mean");
+  });
 });
 
 describe(check, () => {

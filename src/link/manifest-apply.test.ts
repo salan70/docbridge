@@ -160,6 +160,35 @@ test("applyLinkManifest reports doc_anchor_not_found and still marks nothing ann
   expect(result.docFiles[0]?.headings[0]?.hasCodeAnnotation).toBe(false);
 });
 
+test("applyLinkManifest suggests the nearest anchor in the same doc file", () => {
+  const result = apply({
+    manifest: manifestOf([{ code: CODE_ENDPOINT, doc: `${DOC_FILE}#login-flw` }]),
+    docFiles: [docFile([docAnchor("login-flow")])],
+  });
+
+  expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+  expect(result.diagnostics[0]?.message).toContain("Did you mean `docs/auth.md#login-flow`?");
+});
+
+test("applyLinkManifest suggests a non-ASCII heading anchor", () => {
+  const result = apply({
+    manifest: manifestOf([{ code: CODE_ENDPOINT, doc: `${DOC_FILE}#画面の移動-go_router` }]),
+    docFiles: [docFile([docAnchor("画面の移動-go-router")])],
+  });
+
+  expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+  expect(result.diagnostics[0]?.message).toContain(
+    "Did you mean `docs/auth.md#画面の移動-go-router`?",
+  );
+});
+
+test("applyLinkManifest omits the anchor suggestion when no anchor is close", () => {
+  const result = apply({ docFiles: [docFile([docAnchor("other-section")])] });
+
+  expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["doc_anchor_not_found"]);
+  expect(result.diagnostics[0]?.message).not.toContain("Did you mean");
+});
+
 test("applyLinkManifest marks the heading annotated when only the code side fails", () => {
   const result = apply({ codeFiles: [codeFile([], [codeSymbol("unrelated")])] });
 

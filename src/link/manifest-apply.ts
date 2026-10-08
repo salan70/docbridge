@@ -179,7 +179,7 @@ class ApplyState {
       this.report(
         "doc_anchor_not_found",
         entry.docEndpoint,
-        `Doc anchor ${entry.docEndpoint} declared in the link manifest does not exist.`,
+        this.docAnchorNotFoundMessage(entry, state),
         entry,
         "doc",
       );
@@ -265,6 +265,16 @@ class ApplyState {
     const candidates = [...state.byEndpoint.values()].map((symbol) => symbol.canonicalId);
     const suggestion = nearestMatch(entry.code.fragment, candidates);
     return suggestion === undefined ? base : `${base} Did you mean \`${suggestion}\`?`;
+  }
+
+  /** Suggest only anchors from the same doc file as the manifest entry. */
+  private docAnchorNotFoundMessage(entry: LinkManifestEntry, state: DocFileState): string {
+    const base = `Doc anchor ${entry.docEndpoint} declared in the link manifest does not exist.`;
+    const candidates = state.file.anchors.map((anchor) => anchor.anchor);
+    const suggestion = nearestMatch(entry.doc.fragment, candidates);
+    return suggestion === undefined
+      ? base
+      : `${base} Did you mean \`${entry.doc.filePath}#${suggestion}\`?`;
   }
 
   private report(
