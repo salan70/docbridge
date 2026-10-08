@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { deferred, isAbortError, settledCancelable } from "../../../shared/cancelable";
+import { isAbortError, settledCancelable } from "../../../shared/cancelable";
 import {
   clangModuleCachePath,
   invokeScannerWorker,
@@ -851,7 +851,7 @@ test("cancelling invokeScannerWorker cancels the process run", () => {
     },
     ["go-worker"],
     () => ({
-      promise: deferred<ScannerWorkerProcessResult>().promise,
+      promise: Promise.withResolvers<ScannerWorkerProcessResult>().promise,
       cancel: () => {
         cancelled = true;
       },

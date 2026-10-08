@@ -19,7 +19,7 @@ import {
 } from "../../config/code-language";
 import type { DocBridgeDiagnostic } from "../../model/types";
 import { check } from "../../query/check";
-import { deferred, isAbortError, settledCancelable } from "../../shared/cancelable";
+import { isAbortError, settledCancelable } from "../../shared/cancelable";
 import { readManagedFile } from "../../shared/glob";
 import type { CodeLanguageAdapter } from "./adapter";
 import { createScannerWorkerAdapter, scanCodeFiles } from "./dispatch";
@@ -425,12 +425,12 @@ test("an asynchronous worker failure reports the diagnostic for every file in th
 
 test("cancelling an asynchronous worker batch cancels the worker run and rejects", async () => {
   let cancelled = false;
-  const started = deferred<void>();
+  const started = Promise.withResolvers<void>();
   const goAdapter = createScannerWorkerAdapter("go", () => ["go-worker"], {
     run: () => {
       started.resolve();
       return {
-        promise: deferred<ScannerWorkerProcessResult>().promise,
+        promise: Promise.withResolvers<ScannerWorkerProcessResult>().promise,
         cancel: () => {
           cancelled = true;
         },
@@ -599,7 +599,7 @@ test("cancelling scanCodeFiles cancels a worker command resolution and starts no
     "go",
     {
       commandAsync: () => ({
-        promise: deferred<string[]>().promise,
+        promise: Promise.withResolvers<string[]>().promise,
         cancel: () => {
           resolutionCancelled = true;
         },
@@ -647,7 +647,7 @@ test("cancelling scanCodeFiles right away starts no worker", async () => {
     run: () => {
       events.push("worker started");
       return {
-        promise: deferred<ScannerWorkerProcessResult>().promise,
+        promise: Promise.withResolvers<ScannerWorkerProcessResult>().promise,
         cancel: () => {
           events.push("worker cancelled");
         },
@@ -904,7 +904,10 @@ test("scanCodeFiles reads every file before the first worker starts", async () =
     go: createScannerWorkerAdapter("go", () => ["go-worker"], {
       run: () => {
         events.push("worker");
-        return { promise: deferred<ScannerWorkerProcessResult>().promise, cancel: () => undefined };
+        return {
+          promise: Promise.withResolvers<ScannerWorkerProcessResult>().promise,
+          cancel: () => undefined,
+        };
       },
     }),
   };
@@ -927,13 +930,13 @@ test("scanCodeFiles reads every file before the first worker starts", async () =
 
 test("cancelling scanCodeFiles cancels the running worker batch and rejects", async () => {
   let cancelled = false;
-  const started = deferred<void>();
+  const started = Promise.withResolvers<void>();
   const adapters = {
     go: createScannerWorkerAdapter("go", () => ["go-worker"], {
       run: () => {
         started.resolve();
         return {
-          promise: deferred<ScannerWorkerProcessResult>().promise,
+          promise: Promise.withResolvers<ScannerWorkerProcessResult>().promise,
           cancel: () => {
             cancelled = true;
           },
