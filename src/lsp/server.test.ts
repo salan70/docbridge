@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { abortError, deferred, type Cancelable } from "../shared/cancelable";
+import { abortError, type Cancelable } from "../shared/cancelable";
 import { CODE_FILE, heldTypeScript, stateOf } from "./fixtures";
 import { Project, type ProjectState } from "./project";
 import { Server, type SendFn } from "./server";
@@ -86,7 +86,7 @@ function harness(makeProject?: (root: string) => Project) {
   });
   /** Resolves with the next publish for `uri` sent from now on. */
   const nextPublish = (uri: string): Promise<Published> => {
-    const arrival = deferred<void>();
+    const arrival = Promise.withResolvers<void>();
     const from = sent.length;
     waiters.push({
       matches: (message) =>
@@ -157,7 +157,7 @@ class ScriptedProject extends Project {
   }
 
   resolveAsync(): Cancelable<ProjectState> {
-    const outcome = deferred<ProjectState>();
+    const outcome = Promise.withResolvers<ProjectState>();
     const scan: ScriptedScan = { resolve: outcome.resolve, cancelled: false };
     this.scans.push(scan);
     return {
