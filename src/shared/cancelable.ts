@@ -8,26 +8,6 @@ export type Cancelable<T> = {
   cancel(): void;
 };
 
-/** A promise together with the functions that settle it. */
-type Deferred<T> = {
-  promise: Promise<T>;
-  resolve(value: T): void;
-  reject(error: unknown): void;
-};
-
-/** Create a {@link Deferred}, for settling a promise from callbacks. */
-export function deferred<T>(): Deferred<T> {
-  let settle: Pick<Deferred<T>, "resolve" | "reject"> | undefined;
-  const promise = new Promise<T>((resolve, reject) => {
-    settle = { resolve, reject };
-  });
-  return {
-    promise,
-    resolve: (value) => settle?.resolve(value),
-    reject: (error) => settle?.reject(error),
-  };
-}
-
 /** An operation that has already finished with `value`; cancelling it does nothing. */
 export function settledCancelable<T>(value: T): Cancelable<T> {
   return { promise: Promise.resolve(value), cancel: () => undefined };
@@ -39,7 +19,7 @@ export function settledCancelable<T>(value: T): Cancelable<T> {
  * even when `task` itself has already finished; `map` then never runs.
  */
 export function mapCancelable<T, U>(task: Cancelable<T>, map: (value: T) => U): Cancelable<U> {
-  const mapped = deferred<U>();
+  const mapped = Promise.withResolvers<U>();
   let cancelled = false;
   task.promise
     .then((value) => {
@@ -86,7 +66,7 @@ type Step = <U>(next: Cancelable<U> | (() => Cancelable<U>)) => Promise<U>;
  * ignored.
  */
 export function cancelableSequence<T>(body: (step: Step) => Promise<T>): Cancelable<T> {
-  const outcome = deferred<T>();
+  const outcome = Promise.withResolvers<T>();
   let cancelled = false;
   let running: Cancelable<unknown> | undefined;
 
@@ -110,8 +90,8 @@ export function cancelableSequence<T>(body: (step: Step) => Promise<T>): Cancela
     }
   };
 
-  // A settled deferred ignores later settlements, so after cancellation the
-  // body's result or failure is dropped.
+  // A promise ignores resolve and reject calls after it has settled, so after
+  // cancellation the body's result or failure is dropped.
   (async () => body(step))().then(outcome.resolve, outcome.reject);
 
   return {

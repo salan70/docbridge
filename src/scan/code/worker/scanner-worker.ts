@@ -9,7 +9,7 @@ import commonOutputSchema from "../../../../schemas/common-output.schema.json";
 import scannerWorkerSchema from "../../../../schemas/scanner-worker.schema.json";
 import type { CodeScanResult } from "../../../model/scan-result";
 import type { CodeLanguage, DocBridgeDiagnostic } from "../../../model/types";
-import { abortError, deferred, type Cancelable } from "../../../shared/cancelable";
+import { abortError, type Cancelable } from "../../../shared/cancelable";
 import { reasonOf } from "../../../shared/error";
 import type { CodeScanOptions } from "../adapter";
 
@@ -270,7 +270,7 @@ function workerTimeoutMs(fileCount: number): number {
 export function runScannerWorkerProcess(
   input: ScannerWorkerProcessInput,
 ): Cancelable<ScannerWorkerProcessResult> {
-  const run = deferred<ScannerWorkerProcessResult>();
+  const run = Promise.withResolvers<ScannerWorkerProcessResult>();
   let settled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let grace: ReturnType<typeof setTimeout> | undefined;

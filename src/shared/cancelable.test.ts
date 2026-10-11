@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test";
 import {
   abortError,
   cancelableSequence,
-  deferred,
   isAbortError,
   mapCancelable,
   settledCancelable,
@@ -14,7 +13,7 @@ type Task<T> = Cancelable<T> & { resolve(value: T): void; cancelled: () => boole
 
 /** A cancellable task the test settles by hand. */
 function task<T>(): Task<T> {
-  const settle = deferred<T>();
+  const settle = Promise.withResolvers<T>();
   let cancelled = false;
   return {
     promise: settle.promise,
@@ -51,7 +50,7 @@ describe(cancelableSequence, () => {
   test("cancelling rejects at once even when the running step ignores it", async () => {
     let cancelRequested = false;
     const stubborn: Cancelable<number> = {
-      promise: deferred<number>().promise,
+      promise: Promise.withResolvers<number>().promise,
       cancel: () => {
         cancelRequested = true;
       },
@@ -111,7 +110,7 @@ describe(cancelableSequence, () => {
   });
 
   test("a sequence cancelled after its last step still rejects", async () => {
-    const gate = deferred<void>();
+    const gate = Promise.withResolvers<void>();
     const sequence = cancelableSequence(async () => {
       await gate.promise;
       return "done";
@@ -163,6 +162,18 @@ describe(mapCancelable, () => {
     });
 
     expect(await mapped.promise.catch((reason: unknown) => String(reason))).toBe("Error: boom");
+  });
+
+  test("cancelling after the mapped result has settled keeps that result", async () => {
+    const source = task<number>();
+    const mapped = mapCancelable(source, (value) => value * 2);
+
+    source.resolve(2);
+    expect(await mapped.promise).toBe(4);
+
+    mapped.cancel();
+
+    expect(await mapped.promise).toBe(4);
   });
 });
 
