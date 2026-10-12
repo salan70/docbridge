@@ -1,12 +1,14 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import {
   type TimingRow,
   formatTimingTable,
+  isStalled,
   parseMaxRss,
   parseTimingLine,
+  stalledPath,
   summarizeTiming,
   timeCommandFlag,
 } from "./corpus-timing-core";
@@ -18,7 +20,8 @@ import { CANDIDATE_BINARY as CANDIDATE_BASE } from "./target";
 /**
  * Parses a corpus set with the candidate in one process per language and
  * records the parse times and the peak resident set size. Exits 1 when a file
- * takes longer than the limit.
+ * takes longer than the limit, or when no output line arrives within the limit
+ * (the process is then stopped and the file it was on is recorded).
  */
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -67,7 +70,63 @@ function parseArgs(argv: readonly string[]): TimingArgs {
   return { set, languages, out };
 }
 
-type Measured = { stdout: string; maxRssBytes: number | null; memoryNote: string | null };
+type Measured = {
+  stdout: string;
+  maxRssBytes: number | null;
+  memoryNote: string | null;
+  stalled: boolean;
+};
+
+/** How often the gap since the last output line is checked. */
+const STALL_POLL_MILLIS = 250;
+
+type Finished = { stdout: string; stderr: string; status: number | null; stalled: boolean };
+
+/**
+ * Runs the command over `input`, killing its whole process group when no stdout
+ * line arrives within the limit, so a `/usr/bin/time` wrapper stops its child too.
+ */
+function runWithStallLimit(
+  command: string,
+  args: readonly string[],
+  input: string,
+): Promise<Finished> {
+  return new Promise((done, fail) => {
+    const child = spawn(command, args, { detached: true, stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    let stalled = false;
+    let lastLine = Date.now();
+    const timer = setInterval(() => {
+      if (!stalled && isStalled(lastLine, Date.now())) {
+        stalled = true;
+        process.kill(-(child.pid ?? 0), "SIGKILL");
+      }
+    }, STALL_POLL_MILLIS);
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      stdout += chunk;
+      if (chunk.includes("\n")) {
+        lastLine = Date.now();
+      }
+    });
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    // The pipe breaks when the process is killed mid-write; the stall is reported instead.
+    child.stdin.on("error", () => undefined);
+    child.on("error", (error) => {
+      clearInterval(timer);
+      fail(error);
+    });
+    child.on("close", (status) => {
+      clearInterval(timer);
+      done({ stdout, stderr, status, stalled });
+    });
+    child.stdin.end(input);
+  });
+}
 
 /** Why peak memory cannot be measured here, or `null` when `/usr/bin/time` reports it. */
 function memoryUnavailableReason(): string | null {
@@ -86,32 +145,45 @@ function memoryUnavailableReason(): string | null {
 }
 
 /** One candidate process over `input`, wrapped in `/usr/bin/time` unless `unavailable` says it cannot report. */
-function runCandidate(language: GateLanguage, input: string, unavailable: string | null): Measured {
+async function runCandidate(
+  language: GateLanguage,
+  input: string,
+  unavailable: string | null,
+): Promise<Measured> {
   const flag = timeCommandFlag(process.platform);
   const wrapped = unavailable === null && flag !== null;
-  const run = spawnSync(
+  const run = await runWithStallLimit(
     wrapped ? TIME_COMMAND : CANDIDATE_BINARY,
     [...(wrapped ? [flag, CANDIDATE_BINARY] : []), "parse", language],
-    { input, encoding: "utf8", maxBuffer: 1 << 29 },
+    input,
   );
+  if (run.stalled) {
+    return {
+      stdout: run.stdout,
+      maxRssBytes: null,
+      memoryNote: "stopped after a stall",
+      stalled: true,
+    };
+  }
   if (run.status !== 0) {
     throw new Error(
-      `parser-gate parse ${language} exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 500)}`,
+      `parser-gate parse ${language} exited ${run.status}: ${run.stderr.slice(0, 500)}`,
     );
   }
   if (!wrapped) {
-    return { stdout: run.stdout, maxRssBytes: null, memoryNote: unavailable };
+    return { stdout: run.stdout, maxRssBytes: null, memoryNote: unavailable, stalled: false };
   }
   const maxRssBytes = parseMaxRss(run.stderr, process.platform);
   return {
     stdout: run.stdout,
+    stalled: false,
     maxRssBytes,
     memoryNote:
       maxRssBytes === null ? `no maximum resident set size in the ${TIME_COMMAND} report` : null,
   };
 }
 
-function main(): number {
+async function main(): Promise<number> {
   const { set, languages, out } = parseArgs(process.argv.slice(2));
   if (!existsSync(CANDIDATE_BINARY)) {
     throw new Error(
@@ -120,6 +192,7 @@ function main(): number {
   }
   const unavailable = memoryUnavailableReason();
   const rows: TimingRow[] = [];
+  let timedOut = false;
   for (const language of languages) {
     const listing = join(CORPUS_ROOT, language, `${set}.files.jsonl`);
     if (!existsSync(listing)) {
@@ -131,17 +204,28 @@ function main(): number {
     const relativePaths = new Map(
       entries.map((entry) => [entry.file, `${entry.repository}/${entry.path}`]),
     );
-    const measured = runCandidate(
+    const measured = await runCandidate(
       language,
       `${entries.map((entry) => entry.file).join("\n")}\n`,
       unavailable,
     );
     const samples = measured.stdout
       .split("\n")
+      .slice(0, measured.stalled ? -1 : undefined)
       .filter((line) => line !== "")
       .map((line) => parseTimingLine(line))
       .map((sample) => ({ ...sample, path: relativePaths.get(sample.path) ?? sample.path }));
-    if (samples.length !== entries.length) {
+    const stalledFile = measured.stalled
+      ? stalledPath(
+          entries.map((entry) => entry.file),
+          measured.stdout,
+        )
+      : null;
+    if (measured.stalled) {
+      timedOut = true;
+      const name = stalledFile === null ? null : (relativePaths.get(stalledFile) ?? stalledFile);
+      console.error(`${language}: no output line within 10 s; stopped on ${name ?? "(unknown)"}`);
+    } else if (samples.length !== entries.length) {
       throw new Error(`${language}: ${entries.length} files but ${samples.length} results`);
     }
     const stats = summarizeTiming(samples);
@@ -157,6 +241,8 @@ function main(): number {
           ...stats,
           maxRssBytes: measured.maxRssBytes,
           memoryNote: measured.memoryNote,
+          timedOutPath:
+            stalledFile === null ? null : (relativePaths.get(stalledFile) ?? stalledFile),
         },
         null,
         2,
@@ -168,11 +254,11 @@ function main(): number {
     rows.push({ language, stats, maxRssBytes: measured.maxRssBytes });
   }
   console.log(formatTimingTable(rows));
-  return rows.some((row) => row.stats.overLimit > 0) ? 1 : 0;
+  return timedOut || rows.some((row) => row.stats.overLimit > 0) ? 1 : 0;
 }
 
 try {
-  process.exitCode = main();
+  process.exitCode = await main();
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;

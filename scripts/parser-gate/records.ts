@@ -198,6 +198,8 @@ export type Stats = {
   shippedFailed: number;
   shippedAccepted: number;
   candidateRejected: number;
+  /** Files the shipped worker accepts and the candidate run failed on; not rejections. */
+  candidateFailed: number;
   rejectionRate: number | null;
   acceptedByBoth: number;
   notIdentical: number;
@@ -228,6 +230,8 @@ export type Summary = {
     maxRepositoryRejectionRate: number | null;
     maxRepository: string | null;
     notIdentical: number;
+    candidateFailed: number;
+    shippedFailed: number;
     injectedFailures: { shipped: number; candidate: number };
   };
 };
@@ -244,6 +248,7 @@ function statsOf(records: readonly GateRecord[]): Stats {
     shippedFailed: 0,
     shippedAccepted: 0,
     candidateRejected: 0,
+    candidateFailed: 0,
     rejectionRate: null,
     acceptedByBoth: 0,
     notIdentical: 0,
@@ -279,8 +284,10 @@ function countFile(stats: Stats, row: GateRecord): void {
   }
   if (row.shipped === "accept") {
     stats.shippedAccepted += 1;
-    if (row.candidate !== "accept") {
+    if (row.candidate === "reject") {
       stats.candidateRejected += 1;
+    } else if (row.candidate === "failed") {
+      stats.candidateFailed += 1;
     }
   }
   if (row.shipped === "reject" && row.candidate === "accept") {
@@ -349,6 +356,8 @@ export function summarize(records: readonly GateRecord[]): Summary {
       maxRepositoryRejectionRate: worst?.rate ?? null,
       maxRepository: worst?.name ?? null,
       notIdentical: overall.notIdentical,
+      candidateFailed: overall.candidateFailed,
+      shippedFailed: overall.shippedFailed,
       injectedFailures: {
         shipped: overall.injectedChecks.shippedNotOk,
         candidate: overall.injectedChecks.candidateNotOk,
@@ -450,6 +459,7 @@ const TABLE_COLUMNS: readonly { title: string; value: (stats: Stats) => string }
   { title: "shipFail", value: (s) => String(s.shippedFailed) },
   { title: "shipAcc", value: (s) => String(s.shippedAccepted) },
   { title: "candRej", value: (s) => String(s.candidateRejected) },
+  { title: "candFail", value: (s) => String(s.candidateFailed) },
   { title: "rejRate", value: (s) => (s.rejectionRate === null ? "-" : s.rejectionRate.toFixed(4)) },
   { title: "both", value: (s) => String(s.acceptedByBoth) },
   { title: "notIdent", value: (s) => String(s.notIdentical) },

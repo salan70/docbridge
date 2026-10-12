@@ -208,12 +208,13 @@ function readItems(args: CompareArgs, language: GateLanguage): Item[] {
     entries = entries.slice(0, args.limit);
   }
   const items: Item[] = [];
+  const unreadable: string[] = [];
   for (const entry of entries) {
     let content: string;
     try {
       content = readFileSync(entry.file, "utf8");
     } catch (error) {
-      console.error(`skipping unreadable ${entry.file}: ${String(error)}`);
+      unreadable.push(`${entry.file}: ${String(error)}`);
       continue;
     }
     items.push({
@@ -224,6 +225,11 @@ function readItems(args: CompareArgs, language: GateLanguage): Item[] {
       content,
       contentSha256: sha256Hex(content),
     });
+  }
+  if (unreadable.length > 0) {
+    throw new Error(
+      `${language}: ${unreadable.length} listed files are unreadable:\n${unreadable.join("\n")}`,
+    );
   }
   return items;
 }
@@ -267,7 +273,12 @@ function metaOf(
   };
 }
 
-async function runLanguage(args: CompareArgs, language: GateLanguage): Promise<void> {
+/** Writes the language's results; returns the number of files the candidate run failed on. */
+async function runLanguage(
+  args: CompareArgs,
+  language: GateLanguage,
+  items: readonly Item[],
+): Promise<number> {
   const commands: Commands = {
     shipped: resolveWorkerCommand("shipped", language),
     candidate: resolveWorkerCommand("candidate", language),
@@ -282,7 +293,6 @@ async function runLanguage(args: CompareArgs, language: GateLanguage): Promise<v
     appendFileSync(recordsPath, rows.map((row) => `${JSON.stringify(row)}\n`).join(""));
   };
 
-  const items = readItems(args, language);
   const configurations = Object.keys(CONFIGURATIONS[language]);
 
   // unmodified
@@ -406,12 +416,21 @@ async function runLanguage(args: CompareArgs, language: GateLanguage): Promise<v
   console.log(`${language} ${args.set}`);
   console.log(formatTable(summary));
   console.log(`rule: ${JSON.stringify(summary.rule)}`);
+  return summary.rule.candidateFailed;
 }
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  for (const language of args.languages) {
-    await runLanguage(args, language);
+  // Read every list first so an unreadable file stops the run before any measurement.
+  const itemsByLanguage = args.languages.map((language) => readItems(args, language));
+  for (const [index, language] of args.languages.entries()) {
+    const failed = await runLanguage(args, language, itemsByLanguage[index] ?? []);
+    if (failed > 0) {
+      console.error(
+        `${language}: the candidate run failed on ${failed} files; the measurement is invalid`,
+      );
+      process.exitCode = 1;
+    }
   }
 }
 

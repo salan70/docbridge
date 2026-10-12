@@ -17,8 +17,8 @@ import { resolveWorkerCommand } from "./target";
  * `input.txt` and a `case.json` naming whether the shipped worker and the
  * candidate accept it. With `--causes <set>` it also checks that the set's
  * cause file only names causes that have a case, and that it covers every
- * file the measured records show the candidate rejecting alone or scanning
- * differently.
+ * file the measured records show the candidate rejecting alone (unmodified
+ * files) or both accepting and scanning differently (any variant).
  */
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -158,18 +158,20 @@ type RecordRow = {
 };
 
 /**
- * The `<repository>/<path>` keys of the unmodified files the shipped worker
- * accepts and the candidate either rejects or scans differently, in any
- * configuration.
+ * The `<repository>/<path>` keys of the files that need a cause, in any
+ * configuration: an unmodified file the shipped worker accepts and the
+ * candidate does not, or any file, mutated or not, both accept and scan
+ * differently. A mutated file only one side rejects is outside the rule.
  */
 export function differingFiles(rows: readonly RecordRow[]): Set<string> {
   return new Set(
     rows
       .filter(
         (row) =>
-          row.variant === "unmodified" &&
-          row.shipped === "accept" &&
-          (row.candidate !== "accept" || !row.identical),
+          (row.variant === "unmodified" &&
+            row.shipped === "accept" &&
+            row.candidate !== "accept") ||
+          (row.shipped === "accept" && row.candidate === "accept" && !row.identical),
       )
       .map((row) => `${row.repository}/${row.path}`),
   );

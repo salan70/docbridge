@@ -286,9 +286,19 @@ describe("summarize", () => {
       files: 5,
       shippedFailed: 1,
       shippedAccepted: 3,
-      candidateRejected: 2,
+      candidateRejected: 1,
+      candidateFailed: 1,
     });
-    expect(overall.rejectionRate).toBeCloseTo(2 / 3);
+    expect(overall.rejectionRate).toBeCloseTo(1 / 3);
+  });
+
+  test("keeps a failed candidate run out of the rejections and in the rule", () => {
+    const { overall, rule } = summarize([
+      row({ path: "a", shipped: "accept", candidate: "failed", identical: false }),
+      row({ path: "b", shipped: "failed", candidate: "accept", identical: false }),
+    ]);
+    expect(overall.candidateRejected).toBe(0);
+    expect(rule).toMatchObject({ candidateFailed: 1, shippedFailed: 1 });
   });
 
   test("uses only default-configuration unmodified rows for file counts", () => {

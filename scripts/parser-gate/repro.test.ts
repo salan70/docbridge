@@ -101,6 +101,20 @@ test("differing files are the unmodified files the shipped worker accepts and th
   ]);
 });
 
+test("a mutated file differs only when both accept it and the results are not identical", () => {
+  const rows = [
+    { ...row, path: "Sources/G.swift", variant: "injected", candidate: "accept" },
+    { ...row, path: "Sources/H.swift", variant: "malformed:truncate", candidate: "accept" },
+    { ...row, path: "Sources/I.swift", variant: "malformed:truncate", candidate: "reject" },
+    { ...row, path: "Sources/J.swift", variant: "injected", candidate: "accept", identical: true },
+    { ...row, path: "Sources/K.swift", variant: "malformed:truncate", candidate: "failed" },
+  ];
+  expect([...differingFiles(rows)].toSorted()).toEqual([
+    "owner/repo/Sources/G.swift",
+    "owner/repo/Sources/H.swift",
+  ]);
+});
+
 test("causes are consistent when each has a case and the files match", () => {
   const causes = { "owner/repo/Sources/A.swift": ["empty-tuple"] };
   expect(

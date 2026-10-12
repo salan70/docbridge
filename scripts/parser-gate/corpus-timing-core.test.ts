@@ -3,8 +3,10 @@ import { describe, expect, test } from "bun:test";
 import {
   OVER_LIMIT_MICROS,
   formatTimingTable,
+  isStalled,
   parseMaxRss,
   parseTimingLine,
+  stalledPath,
   summarizeTiming,
   timeCommandFlag,
 } from "./corpus-timing-core";
@@ -98,5 +100,27 @@ describe("formatTimingTable", () => {
     expect(table).toContain("swift");
     expect(table).toContain("100.0");
     expect(table).toContain("n/a");
+  });
+});
+
+describe("isStalled", () => {
+  test("is true only when the gap since the last line is over the limit", () => {
+    expect(isStalled(1_000, 10_999)).toBe(false);
+    expect(isStalled(1_000, 11_000)).toBe(false);
+    expect(isStalled(1_000, 11_001)).toBe(true);
+  });
+});
+
+describe("stalledPath", () => {
+  const paths = ["/a", "/b", "/c"];
+
+  test("is the first file with no complete output line", () => {
+    expect(stalledPath(paths, "")).toBe("/a");
+    expect(stalledPath(paths, '{"path":"/a"}\n')).toBe("/b");
+    expect(stalledPath(paths, '{"path":"/a"}\n{"path":"/b"}\n{"pa')).toBe("/c");
+  });
+
+  test("is null when every file has a line", () => {
+    expect(stalledPath(paths, '{"a":1}\n{"a":2}\n{"a":3}\n')).toBeNull();
   });
 });

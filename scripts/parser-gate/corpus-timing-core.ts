@@ -6,6 +6,9 @@
 /** No corpus file may take longer than this (10 s) to parse. */
 export const OVER_LIMIT_MICROS = 10_000_000;
 
+/** No file may take longer than this (10 s) between two output lines. */
+const STALL_LIMIT_MILLIS = OVER_LIMIT_MICROS / 1000;
+
 export type TimingSample = { path: string; micros: number };
 
 export type TimingStats = {
@@ -33,6 +36,20 @@ export function parseTimingLine(line: string): TimingSample {
     return { path: value.path, micros: value.micros };
   }
   throw new Error(`not a timed parse result: ${line}`);
+}
+
+/** Whether more than the limit has passed between `sinceMillis` and `nowMillis`. */
+export function isStalled(sinceMillis: number, nowMillis: number): boolean {
+  return nowMillis - sinceMillis > STALL_LIMIT_MILLIS;
+}
+
+/**
+ * The file being parsed when output stalled: the first path without a complete
+ * line in `stdout`, or `null` when every path has one.
+ */
+export function stalledPath(paths: readonly string[], stdout: string): string | null {
+  const complete = stdout.split("\n").length - 1;
+  return paths[complete] ?? null;
 }
 
 /** The nearest-rank percentile of an ascending list. */
