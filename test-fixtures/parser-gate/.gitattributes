@@ -1,0 +1,2 @@
+# Fixture inputs are byte-exact: some hold CRLF line endings or a byte-order mark.
+**/input.txt -text

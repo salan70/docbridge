@@ -8,6 +8,9 @@ swift_version := trim(read(".swift-version"))
 # different one, and `check-go-toolchain` fails on any other installed version.
 go_version := trim(replace_regex(read("packages/go-scanner/go.mod"), "(?s).*\ngo ([0-9.]+)\n.*", "$1"))
 
+# The Rust toolchain the parser gate candidate pins; `rust-toolchain.toml` is its only source.
+parser_gate_rust_version := trim(replace_regex(read("packages/parser-gate/rust-toolchain.toml"), "(?s).*channel = \"([0-9.]+)\".*", "$1"))
+
 export GOTOOLCHAIN := "local"
 
 default:
@@ -189,6 +192,34 @@ build-rust-scanner:
 
 build-rust-scanner-debug:
     cargo build --manifest-path packages/rust-scanner/Cargo.toml
+
+# The parser gate candidate is built with the toolchain it pins, so a stale shell fails here.
+check-parser-gate-toolchain:
+    test "$(rustc --version | cut -d' ' -f2)" = "{{ parser_gate_rust_version }}" || { echo "rustc is not {{ parser_gate_rust_version }}; run: nix develop .#parser-gate -c just <recipe>" >&2; exit 1; }
+
+format-check-parser-gate: check-parser-gate-toolchain
+    cargo fmt --manifest-path packages/parser-gate/Cargo.toml --check
+
+lint-parser-gate: check-parser-gate-toolchain
+    cargo clippy --manifest-path packages/parser-gate/Cargo.toml --all-targets -- -D warnings
+
+test-parser-gate: check-parser-gate-toolchain
+    cargo test --manifest-path packages/parser-gate/Cargo.toml
+
+build-parser-gate: check-parser-gate-toolchain
+    cargo build --manifest-path packages/parser-gate/Cargo.toml --release
+
+# Compare the shipped workers or the candidate binary with the conformance corpus.
+parser-gate-conformance TARGET="candidate":
+    bun run scripts/parser-gate/conformance.ts {{ TARGET }}
+
+# Compare the shipped workers or the candidate binary with the specified fixtures.
+parser-gate-specified TARGET="candidate" *ARGS:
+    bun run scripts/parser-gate/specified.ts {{ TARGET }} {{ ARGS }}
+
+parser-gate-verify: format-check-parser-gate lint-parser-gate test-parser-gate build-parser-gate
+    just parser-gate-conformance candidate
+    just parser-gate-specified candidate
 
 test-go-scanner: check-go-toolchain
     cd packages/go-scanner && go test ./...
