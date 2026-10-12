@@ -9,7 +9,7 @@ import type {
 } from "../scan/code/adapter";
 import { scanTypeScript, typeScriptAdapter } from "../scan/code/typescript";
 import { scanMarkdown } from "../scan/markdown/markdown";
-import { abortError, deferred, settledCancelable } from "../shared/cancelable";
+import { abortError, settledCancelable } from "../shared/cancelable";
 import { buildPositionIndex } from "./index-lookup";
 import type { ProjectState } from "./project";
 
@@ -53,7 +53,7 @@ export type HeldBatch = {
   cancelled: boolean;
 };
 
-type BatchWaiter = ReturnType<typeof deferred<HeldBatch>>;
+type BatchWaiter = PromiseWithResolvers<HeldBatch>;
 
 /**
  * The TypeScript adapter with an asynchronous scan that holds each batch until
@@ -73,7 +73,7 @@ export function heldTypeScript(): {
     }
     let waiter = waiters.get(index);
     if (waiter === undefined) {
-      waiter = deferred<HeldBatch>();
+      waiter = Promise.withResolvers<HeldBatch>();
       waiters.set(index, waiter);
     }
     return waiter.promise;
@@ -82,7 +82,7 @@ export function heldTypeScript(): {
   const adapter: WorkerCodeAdapter = {
     language: "typescript",
     scanFilesAsync(files, options, context) {
-      const settle = deferred<CodeScanResult[]>();
+      const settle = Promise.withResolvers<CodeScanResult[]>();
       const batch: HeldBatch = {
         files: files.map((file) => file.filePath),
         release: () =>
