@@ -6,6 +6,7 @@
 //! corrections to make here.
 
 use std::collections::HashSet;
+use std::ops::Range;
 
 use tree_sitter::Node;
 
@@ -14,21 +15,24 @@ use crate::models::{
     WorkerFileResponse,
 };
 use crate::position::PositionConverter;
-use crate::syntax;
+use crate::syntax::{self, Scope};
 
 const ACCESS_KEYWORDS: [&str; 5] = ["open", "public", "internal", "fileprivate", "private"];
 const DEFAULT_VISIBILITY: [&str; 2] = ["public", "open"];
 const PARSE_FALLBACK_DETAIL: &str = "Swift parser reported syntax errors.";
 
-pub fn scan_file(file: &WorkerFile, visibility: Option<&[String]>) -> WorkerFileResponse {
+pub fn scan_file(
+    file: &WorkerFile,
+    visibility: Option<&[String]>,
+    scope: Scope,
+) -> WorkerFileResponse {
     let language = tree_sitter_swift::LANGUAGE.into();
     let Some(tree) = syntax::parse(&language, &file.content) else {
         return parse_error_response(file, 1, 1, PARSE_FALLBACK_DETAIL);
     };
-    if let Some(node) = syntax::first_error(&tree) {
-        let position = PositionConverter::new(&file.content).position(node.start_byte());
-        let detail = format!("syntax error near {}.", node.kind());
-        return parse_error_response(file, position.line, position.column, &detail);
+    let first_error = syntax::first_error(&tree);
+    if let (Some(node), Scope::File) = (first_error, scope) {
+        return reject_file(file, node);
     }
 
     let allowed: HashSet<&str> = match visibility {
@@ -42,7 +46,52 @@ pub fn scan_file(file: &WorkerFile, visibility: Option<&[String]>) -> WorkerFile
         declarations: Vec::new(),
     };
     collector.collect(tree.root_node());
-    build_response(file, collector.declarations)
+    let Some(first_error) = first_error else {
+        return build_response(file, collector.declarations, Vec::new());
+    };
+
+    let spans: Vec<Range<usize>> = collector
+        .declarations
+        .iter()
+        .filter(|declaration| !declaration.unsupported)
+        .map(|declaration| declaration.span.clone())
+        .collect();
+    let Some(regions) = syntax::error_regions(&syntax::all_errors(&tree), &spans) else {
+        return reject_file(file, first_error);
+    };
+    let mut errors = Vec::new();
+    let mut kept = Vec::new();
+    for declaration in collector.declarations {
+        if !syntax::is_dropped(&declaration.span, &regions) {
+            kept.push(declaration);
+            continue;
+        }
+        let region = regions
+            .iter()
+            .find(|region| region.span == declaration.span && !declaration.unsupported);
+        if let Some(region) = region {
+            let position = collector.converter.position(region.error_start);
+            errors.push(diagnostic(
+                "code_parse_error",
+                &format!("{}#{}", file.file_path, declaration.canonical_id),
+                None,
+                "error",
+                format!(
+                    "Swift parse error: syntax error near {}.",
+                    region.error_kind
+                ),
+                at(&file.file_path, position.line, position.column),
+                None,
+            ));
+        }
+    }
+    build_response(file, kept, errors)
+}
+
+fn reject_file(file: &WorkerFile, node: Node) -> WorkerFileResponse {
+    let position = PositionConverter::new(&file.content).position(node.start_byte());
+    let detail = format!("syntax error near {}.", node.kind());
+    parse_error_response(file, position.line, position.column, &detail)
 }
 
 fn parse_error_response(
@@ -79,6 +128,8 @@ struct Declaration {
     declaration_range: Option<SourceRange>,
     signature_range: Option<SourceRange>,
     doc_targets: Vec<DocTarget>,
+    /// The bytes of the declaration node, without its doc comments.
+    span: Range<usize>,
 }
 
 struct DocTarget {
@@ -299,6 +350,7 @@ impl<'a> Collector<'a> {
             declaration_range: Some(self.range(declaration_start, node.end_byte())),
             signature_range: Some(self.range(declaration_start, signature_end)),
             doc_targets,
+            span: node.start_byte()..node.end_byte(),
         };
         self.declarations.push(declaration);
     }
@@ -321,6 +373,7 @@ impl<'a> Collector<'a> {
             declaration_range: None,
             signature_range: None,
             doc_targets,
+            span: node.start_byte()..node.end_byte(),
         });
     }
 
@@ -502,7 +555,13 @@ fn skip_while(text: &str, from: usize, predicate: impl Fn(char) -> bool) -> usiz
         .map_or(text.len(), |(index, _)| from + index)
 }
 
-fn build_response(file: &WorkerFile, declarations: Vec<Declaration>) -> WorkerFileResponse {
+/// `parse_errors` are the diagnostics of the declarations dropped for syntax
+/// errors; they follow the others.
+fn build_response(
+    file: &WorkerFile,
+    declarations: Vec<Declaration>,
+    parse_errors: Vec<Diagnostic>,
+) -> WorkerFileResponse {
     let path = file.file_path.as_str();
     let mut symbols: Vec<CodeSymbol> = Vec::new();
     let mut undocumented: Vec<CodeSymbol> = Vec::new();
@@ -598,6 +657,7 @@ fn build_response(file: &WorkerFile, declarations: Vec<Declaration>) -> WorkerFi
         }
     }
 
+    diagnostics.extend(parse_errors);
     WorkerFileResponse {
         file_path: file.file_path.clone(),
         symbols,
@@ -677,13 +737,17 @@ mod tests {
     use super::*;
 
     fn scan(source: &str, visibility: Option<&[&str]>) -> WorkerFileResponse {
+        scan_in(source, visibility, Scope::File)
+    }
+
+    fn scan_in(source: &str, visibility: Option<&[&str]>, scope: Scope) -> WorkerFileResponse {
         let file = WorkerFile {
             file_path: "Sources/A.swift".to_string(),
             content: source.to_string(),
         };
         let visibility: Option<Vec<String>> =
             visibility.map(|levels| levels.iter().map(|level| level.to_string()).collect());
-        scan_file(&file, visibility.as_deref())
+        scan_file(&file, visibility.as_deref(), scope)
     }
 
     fn ids(symbols: &[CodeSymbol]) -> Vec<&str> {
@@ -834,6 +898,90 @@ public func shown() {}
         assert!(response.symbols.is_empty());
         assert!(response.undocumented_symbols.is_empty());
         assert!(response.links.is_empty());
+    }
+
+    fn declaration_scope(source: &str) -> WorkerFileResponse {
+        scan_in(
+            source,
+            Some(&["public", "internal", "private"]),
+            Scope::Declaration,
+        )
+    }
+
+    fn rejected_ids(response: &WorkerFileResponse) -> Vec<&str> {
+        response
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.code == "code_parse_error")
+            .map(|diagnostic| diagnostic.target.as_str())
+            .collect()
+    }
+
+    #[test]
+    fn an_error_in_a_function_body_drops_only_that_function() {
+        let source = "\
+public func a() {}
+public func b() {
+    let x = (
+}
+public func c() {}
+";
+        let response = declaration_scope(source);
+        assert_eq!(ids(&response.undocumented_symbols), ["a()", "c()"]);
+        assert_eq!(rejected_ids(&response), ["Sources/A.swift#b()"]);
+        let location = response.diagnostics[0].location.as_ref().expect("location");
+        assert!((3..=4).contains(&location.line), "{}", location.line);
+        assert_eq!(response.diagnostics[0].severity, "error");
+    }
+
+    #[test]
+    fn an_error_in_a_member_drops_only_that_member() {
+        let source = "\
+public struct S {
+    public func a() {}
+    public func b() {
+        let x = (
+    }
+    public func c() {}
+}
+";
+        let response = declaration_scope(source);
+        assert_eq!(ids(&response.undocumented_symbols), ["S", "S.a()", "S.c()"]);
+        assert_eq!(rejected_ids(&response), ["Sources/A.swift#S.b()"]);
+    }
+
+    #[test]
+    fn an_error_outside_every_declaration_rejects_the_file() {
+        let response = declaration_scope("public func a() {}\nlet x = (\n");
+        assert_eq!(codes(&response), ["code_parse_error"]);
+        assert!(response.undocumented_symbols.is_empty());
+        assert_eq!(rejected_ids(&response), ["Sources/A.swift"]);
+    }
+
+    #[test]
+    fn the_file_scope_rejects_the_whole_file() {
+        let source = "public func a() {}\npublic func b() {\n    let x = (\n}\n";
+        let response = scan(source, None);
+        assert_eq!(codes(&response), ["code_parse_error"]);
+        assert!(response.undocumented_symbols.is_empty());
+        let scoped = declaration_scope(source);
+        assert_eq!(ids(&scoped.undocumented_symbols), ["a()"]);
+    }
+
+    #[test]
+    fn a_dropped_declaration_takes_its_links_with_it() {
+        let source = "\
+/// @doc a.md#a
+public func a() {}
+/// @doc a.md#b
+public func b() {
+    let x = (
+}
+";
+        let response = declaration_scope(source);
+        assert_eq!(ids(&response.symbols), ["a()"]);
+        assert_eq!(response.links.len(), 1);
+        assert_eq!(rejected_ids(&response), ["Sources/A.swift#b()"]);
     }
 
     #[test]

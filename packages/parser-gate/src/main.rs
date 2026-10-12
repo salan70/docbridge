@@ -24,8 +24,9 @@ use std::time::{Duration, Instant};
 use models::{WorkerFile, WorkerFileResponse, WorkerRequest, WorkerResponse};
 use parsers::Language;
 use serde_json::json;
+use syntax::Scope;
 
-type ScanFile = fn(&WorkerFile, Option<&[String]>) -> WorkerFileResponse;
+type ScanFile = fn(&WorkerFile, Option<&[String]>, Scope) -> WorkerFileResponse;
 
 fn scanner_for(language: &str) -> Option<ScanFile> {
     match language {
@@ -48,7 +49,9 @@ fn main() {
         .collect::<Vec<_>>()
         .as_slice()
     {
-        ["scan"] => run_scan(),
+        ["scan"] => run_scan(Scope::File),
+        ["scan", "--scope", "file"] => run_scan(Scope::File),
+        ["scan", "--scope", "declaration"] => run_scan(Scope::Declaration),
         ["parse", language] => run_parse(language, None),
         ["parse", language, "--stack-mb", megabytes] => {
             let Some(megabytes) = megabytes.parse::<usize>().ok().filter(|&n| n > 0) else {
@@ -58,13 +61,13 @@ fn main() {
         }
         ["cancel", language, path] => run_cancel(language, path),
         _ => usage_error(
-            "usage: parser-gate scan | parser-gate parse <language> [--stack-mb N] \
+            "usage: parser-gate scan [--scope file|declaration] | parser-gate parse <language> [--stack-mb N] \
              | parser-gate cancel <swift|dart> <path>",
         ),
     }
 }
 
-fn run_scan() {
+fn run_scan(scope: Scope) {
     let mut input = String::new();
     if let Err(error) = io::stdin().read_to_string(&mut input) {
         usage_error(&format!("failed to read stdin: {error}"));
@@ -81,7 +84,7 @@ fn run_scan() {
     let files = request
         .files
         .iter()
-        .map(|file| scan_file(file, visibility))
+        .map(|file| scan_file(file, visibility, scope))
         .collect();
     let response = WorkerResponse {
         schema_version: request.schema_version,
@@ -141,13 +144,15 @@ fn parse_record(language: Language, path: &str, content: &str) -> serde_json::Va
     let started = Instant::now();
     let error = parsers::first_error(language, path, content);
     let micros = started.elapsed().as_micros() as u64;
-    let location = error
-        .as_ref()
-        .map(|position| json!({ "line": position.line, "column": position.column }));
+    let location = error.as_ref().map(
+        |rejection| json!({ "line": rejection.position.line, "column": rejection.position.column }),
+    );
+    let construct = error.as_ref().and_then(|rejection| rejection.construct);
     json!({
         "path": path,
         "accepted": error.is_none(),
         "error": location,
+        "construct": construct,
         "micros": micros,
     })
 }

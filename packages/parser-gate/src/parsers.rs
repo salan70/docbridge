@@ -52,10 +52,17 @@ impl Language {
     }
 }
 
-/// `None` when `content` parses without syntax errors, otherwise the position
-/// of the first error. A parser that recovers and still returns a tree is
-/// rejected as soon as it reports one error.
-pub fn first_error(language: Language, path: &str, content: &str) -> Option<Position> {
+/// Why a file is rejected: where its first syntax error starts and, for the
+/// tree-sitter parsers, the kind of the syntax that encloses the error.
+pub struct Rejection {
+    pub position: Position,
+    pub construct: Option<&'static str>,
+}
+
+/// `None` when `content` parses without syntax errors, otherwise the first
+/// error. A parser that recovers and still returns a tree is rejected as soon
+/// as it reports one error.
+pub fn first_error(language: Language, path: &str, content: &str) -> Option<Rejection> {
     if let Some(grammar) = language.tree_sitter() {
         return tree_sitter_error(&grammar, content);
     }
@@ -66,18 +73,27 @@ pub fn first_error(language: Language, path: &str, content: &str) -> Option<Posi
         Language::Python => python_error(content),
         _ => unreachable!("tree-sitter languages return above"),
     }?;
-    Some(PositionConverter::new(content).position(offset))
+    Some(Rejection {
+        position: PositionConverter::new(content).position(offset),
+        construct: None,
+    })
 }
 
-fn tree_sitter_error(grammar: &TreeSitterLanguage, content: &str) -> Option<Position> {
+fn tree_sitter_error(grammar: &TreeSitterLanguage, content: &str) -> Option<Rejection> {
     let Some(tree) = syntax::parse(grammar, content) else {
-        return Some(PositionConverter::new(content).position(0));
+        return Some(Rejection {
+            position: PositionConverter::new(content).position(0),
+            construct: None,
+        });
     };
     let node = syntax::first_error(&tree)?;
-    Some(PositionConverter::new(content).position(node.start_byte()))
+    Some(Rejection {
+        position: PositionConverter::new(content).position(node.start_byte()),
+        construct: syntax::construct(&tree),
+    })
 }
 
-fn rust_error(content: &str) -> Option<Position> {
+fn rust_error(content: &str) -> Option<Rejection> {
     let error = syn::parse_file(content).err()?;
     let start = error.span().start();
     // `proc-macro2` columns are 0-based counts of characters on a 1-based line.
@@ -85,9 +101,12 @@ fn rust_error(content: &str) -> Option<Position> {
     let utf16 = line_text.map_or(0, |text| {
         text.chars().take(start.column).map(char::len_utf16).sum()
     });
-    Some(Position {
-        line: start.line.max(1),
-        column: utf16 + 1,
+    Some(Rejection {
+        position: Position {
+            line: start.line.max(1),
+            column: utf16 + 1,
+        },
+        construct: None,
     })
 }
 
@@ -198,18 +217,26 @@ mod tests {
             (Language::JavaScript, "a.js", "let = ;\n"),
         ];
         for (language, path, content) in cases {
-            let position = first_error(language, path, content);
-            assert!(position.is_some(), "{language:?}");
-            assert_eq!(position.map(|p| p.line), Some(1), "{language:?}");
+            let rejection = first_error(language, path, content);
+            assert!(rejection.is_some(), "{language:?}");
+            assert_eq!(rejection.map(|r| r.position.line), Some(1), "{language:?}");
         }
     }
 
     #[test]
     fn a_syntax_error_position_counts_utf16_columns() {
-        let position = first_error(Language::Rust, "a.rs", "// 😀\nfn (\n").expect("rejects");
-        assert_eq!(position.line, 2);
-        let position = first_error(Language::Rust, "a.rs", "/* 😀 */ fn (\n").expect("rejects");
-        assert_eq!(position.column, 13);
+        let rejection = first_error(Language::Rust, "a.rs", "// 😀\nfn (\n").expect("rejects");
+        assert_eq!(rejection.position.line, 2);
+        let rejection = first_error(Language::Rust, "a.rs", "/* 😀 */ fn (\n").expect("rejects");
+        assert_eq!(rejection.position.column, 13);
+    }
+
+    #[test]
+    fn only_the_tree_sitter_parsers_report_a_construct() {
+        let rejection = first_error(Language::Swift, "a.swift", "struct {\n").expect("rejects");
+        assert!(rejection.construct.is_some_and(|kind| !kind.is_empty()));
+        let rejection = first_error(Language::Rust, "a.rs", "fn (\n").expect("rejects");
+        assert_eq!(rejection.construct, None);
     }
 
     #[test]

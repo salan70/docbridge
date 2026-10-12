@@ -6,6 +6,7 @@
 //! corrections to make here.
 
 use std::collections::HashSet;
+use std::ops::Range;
 
 use tree_sitter::{Node, Tree};
 
@@ -14,7 +15,7 @@ use crate::models::{
     WorkerFileResponse,
 };
 use crate::position::PositionConverter;
-use crate::syntax;
+use crate::syntax::{self, Scope};
 
 const PARSE_FALLBACK_DETAIL: &str = "Dart parser reported syntax errors.";
 const CONSTRUCTOR_SIGNATURES: [&str; 4] = [
@@ -32,7 +33,11 @@ const VARIABLE_LISTS: [&str; 3] = [
 
 /// The shipped worker accepts a `visibility` option and ignores it: a Dart
 /// declaration is visible when every name segment of its canonical ID is public.
-pub fn scan_file(file: &WorkerFile, _visibility: Option<&[String]>) -> WorkerFileResponse {
+pub fn scan_file(
+    file: &WorkerFile,
+    _visibility: Option<&[String]>,
+    scope: Scope,
+) -> WorkerFileResponse {
     let language = tree_sitter_dart::LANGUAGE.into();
     let lines = PositionConverter::new(&file.content);
     let Some(tree) = syntax::parse(&language, &file.content) else {
@@ -40,7 +45,7 @@ pub fn scan_file(file: &WorkerFile, _visibility: Option<&[String]>) -> WorkerFil
     };
     // The shipped scanner reports the earliest of its errors, and a byte order
     // mark outside a string or comment is one of them.
-    let syntax_error = first_syntax_error(&tree).map(|node| {
+    let syntax_error = syntax::first_error(&tree).map(|node| {
         (
             node.start_byte(),
             format!("syntax error near {}.", node.kind()),
@@ -48,13 +53,21 @@ pub fn scan_file(file: &WorkerFile, _visibility: Option<&[String]>) -> WorkerFil
     });
     let byte_order_mark = first_stray_byte_order_mark(&tree, &file.content)
         .map(|offset| (offset, "Illegal character '65279'.".to_string()));
+    let byte_order_mark_found = byte_order_mark.is_some();
     let first_error = match (syntax_error, byte_order_mark) {
         (Some(syntax), Some(mark)) => Some(if mark.0 <= syntax.0 { mark } else { syntax }),
         (syntax, mark) => syntax.or(mark),
     };
-    if let Some((offset, detail)) = first_error {
-        let position = lines.position(offset);
-        return parse_error_response(file, position.line, position.column, &detail);
+    // A byte order mark is not a node of the tree, so it rejects the file
+    // whatever the scope.
+    let reject_file = |offset: usize, detail: &str| {
+        let position = PositionConverter::new(&file.content).position(offset);
+        parse_error_response(file, position.line, position.column, detail)
+    };
+    if let Some((offset, detail)) = &first_error {
+        if scope == Scope::File || byte_order_mark_found {
+            return reject_file(*offset, detail);
+        }
     }
 
     let root = tree.root_node();
@@ -65,7 +78,43 @@ pub fn scan_file(file: &WorkerFile, _visibility: Option<&[String]>) -> WorkerFil
         declarations: Vec::new(),
     };
     collector.collect(root);
-    build_response(file, collector.declarations)
+    let Some((first_offset, first_detail)) = first_error else {
+        return build_response(file, collector.declarations, Vec::new());
+    };
+
+    let spans: Vec<Range<usize>> = collector
+        .declarations
+        .iter()
+        .filter(|declaration| !declaration.unsupported)
+        .map(|declaration| declaration.span.clone())
+        .collect();
+    let Some(regions) = syntax::error_regions(&syntax::all_errors(&tree), &spans) else {
+        return reject_file(first_offset, &first_detail);
+    };
+    let mut errors = Vec::new();
+    let mut kept = Vec::new();
+    for declaration in collector.declarations {
+        if !syntax::is_dropped(&declaration.span, &regions) {
+            kept.push(declaration);
+            continue;
+        }
+        let region = regions
+            .iter()
+            .find(|region| region.span == declaration.span && !declaration.unsupported);
+        if let Some(region) = region {
+            let position = collector.lines.position(region.error_start);
+            errors.push(diagnostic(
+                "code_parse_error",
+                &format!("{}#{}", file.file_path, declaration.canonical_id),
+                None,
+                "error",
+                format!("Dart parse error: syntax error near {}.", region.error_kind),
+                at(&file.file_path, position.line, position.column),
+                None,
+            ));
+        }
+    }
+    build_response(file, kept, errors)
 }
 
 fn parse_error_response(
@@ -102,6 +151,8 @@ struct Declaration {
     declaration_range: Option<SourceRange>,
     signature_range: Option<SourceRange>,
     doc_targets: Vec<DocTarget>,
+    /// The bytes of the declaration node, without its doc comments.
+    span: Range<usize>,
 }
 
 #[derive(Clone)]
@@ -118,6 +169,7 @@ struct Shape {
     start: usize,
     end: usize,
     doc_targets: Vec<DocTarget>,
+    span: Range<usize>,
 }
 
 struct Collector<'a> {
@@ -320,6 +372,7 @@ impl<'a> Collector<'a> {
             declaration_range: Some(declaration_range),
             signature_range: Some(signature_range),
             doc_targets: shape.doc_targets.clone(),
+            span: shape.span.clone(),
         });
     }
 
@@ -340,6 +393,7 @@ impl<'a> Collector<'a> {
             name_range: None,
             declaration_range: None,
             signature_range: None,
+            span: shape.span.clone(),
             doc_targets: shape.doc_targets,
         });
     }
@@ -370,6 +424,7 @@ impl<'a> Collector<'a> {
             start,
             end: outer.end_byte(),
             doc_targets,
+            span: outer.start_byte()..outer.end_byte(),
         }
     }
 
@@ -490,24 +545,6 @@ impl<'a> Collector<'a> {
         };
         text.split('<').next().unwrap_or("").trim().to_string()
     }
-}
-
-/// The first `ERROR` or `MISSING` node, or else the deepest node that has an
-/// error below it. The grammar inserts a zero-width `identifier` for a missing
-/// name (`class { }`, `1 +;`); it carries the error flag but is neither `ERROR`
-/// nor `MISSING`, so `syntax::first_error` does not report it.
-fn first_syntax_error(tree: &Tree) -> Option<Node<'_>> {
-    if let Some(node) = syntax::first_error(tree) {
-        return Some(node);
-    }
-    let mut node = tree.root_node();
-    if !node.has_error() {
-        return None;
-    }
-    while let Some(child) = children(node).into_iter().find(|child| child.has_error()) {
-        node = child;
-    }
-    Some(node)
 }
 
 /// The offset of the first U+FEFF that is not inside a comment or the text of
@@ -682,7 +719,13 @@ fn skip_while(text: &str, from: usize, predicate: impl Fn(char) -> bool) -> usiz
         .map_or(text.len(), |(index, _)| from + index)
 }
 
-fn build_response(file: &WorkerFile, declarations: Vec<Declaration>) -> WorkerFileResponse {
+/// `parse_errors` are the diagnostics of the declarations dropped for syntax
+/// errors; they follow the others.
+fn build_response(
+    file: &WorkerFile,
+    declarations: Vec<Declaration>,
+    parse_errors: Vec<Diagnostic>,
+) -> WorkerFileResponse {
     let path = file.file_path.as_str();
     let mut symbols: Vec<CodeSymbol> = Vec::new();
     let mut undocumented: Vec<CodeSymbol> = Vec::new();
@@ -774,6 +817,7 @@ fn build_response(file: &WorkerFile, declarations: Vec<Declaration>) -> WorkerFi
         }
     }
 
+    diagnostics.extend(parse_errors);
     WorkerFileResponse {
         file_path: file.file_path.clone(),
         symbols,
@@ -849,13 +893,17 @@ mod tests {
     use super::*;
 
     fn scan(source: &str, visibility: Option<&[&str]>) -> WorkerFileResponse {
+        scan_in(source, visibility, Scope::File)
+    }
+
+    fn scan_in(source: &str, visibility: Option<&[&str]>, scope: Scope) -> WorkerFileResponse {
         let file = WorkerFile {
             file_path: "lib/a.dart".to_string(),
             content: source.to_string(),
         };
         let visibility: Option<Vec<String>> =
             visibility.map(|levels| levels.iter().map(|level| level.to_string()).collect());
-        scan_file(&file, visibility.as_deref())
+        scan_file(&file, visibility.as_deref(), scope)
     }
 
     fn ids(symbols: &[CodeSymbol]) -> Vec<&str> {
@@ -1028,5 +1076,63 @@ mod tests {
         assert_eq!(doc_matches("@doc a#b @doc"), [(5, "a#b")]);
         assert_eq!(doc_matches("@docs a#b"), []);
         assert_eq!(doc_matches("@doc\n@doc x#y"), [(5, "@doc")]);
+    }
+
+    fn declaration_scope(source: &str) -> WorkerFileResponse {
+        scan_in(source, None, Scope::Declaration)
+    }
+
+    fn rejected_ids(response: &WorkerFileResponse) -> Vec<&str> {
+        response
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.code == "code_parse_error")
+            .map(|diagnostic| diagnostic.target.as_str())
+            .collect()
+    }
+
+    #[test]
+    fn an_error_in_a_function_body_drops_only_that_function() {
+        let source = "void a() {}\nvoid b() {\n  var x = 1 +;\n}\nvoid c() {}\n";
+        let response = declaration_scope(source);
+        assert_eq!(ids(&response.undocumented_symbols), ["a", "c"]);
+        assert_eq!(rejected_ids(&response), ["lib/a.dart#b"]);
+        let location = response.diagnostics[0].location.as_ref().expect("location");
+        assert_eq!(location.line, 3);
+    }
+
+    #[test]
+    fn an_error_in_a_member_drops_only_that_member() {
+        let source =
+            "class S {\n  void a() {}\n  void b() {\n    var x = 1 +;\n  }\n  void c() {}\n}\n";
+        let response = declaration_scope(source);
+        assert_eq!(ids(&response.undocumented_symbols), ["S", "S.a", "S.c"]);
+        assert_eq!(rejected_ids(&response), ["lib/a.dart#S.b"]);
+    }
+
+    #[test]
+    fn an_error_outside_every_declaration_rejects_the_file() {
+        let response = declaration_scope("void a() {}\n)\n");
+        assert_eq!(codes(&response), ["code_parse_error"]);
+        assert!(response.undocumented_symbols.is_empty());
+        assert_eq!(rejected_ids(&response), ["lib/a.dart"]);
+    }
+
+    #[test]
+    fn a_stray_byte_order_mark_rejects_the_file_in_every_scope() {
+        let source = "void a() {}\nvoid b() {\n  var x = 1 +;\n}\n\u{feff}\n";
+        let response = declaration_scope(source);
+        assert_eq!(codes(&response), ["code_parse_error"]);
+        assert!(response.undocumented_symbols.is_empty());
+    }
+
+    #[test]
+    fn the_file_scope_rejects_the_whole_file() {
+        let source = "void a() {}\nvoid b() {\n  var x = 1 +;\n}\n";
+        let response = scan(source, None);
+        assert_eq!(codes(&response), ["code_parse_error"]);
+        assert!(response.undocumented_symbols.is_empty());
+        let scoped = declaration_scope(source);
+        assert_eq!(ids(&scoped.undocumented_symbols), ["a"]);
     }
 }

@@ -5,6 +5,9 @@ edition = "2021"
 publish = false
 description = "DocBridge Phase 0 parser gate candidate (issue #200); never shipped"
 
+[profile.release]
+strip = true
+
 [[bin]]
 name = "parser-gate"
 path = "src/main.rs"
