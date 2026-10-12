@@ -569,6 +569,9 @@ fn build_response(
     let mut undocumented: Vec<CodeSymbol> = Vec::new();
     let mut links: Vec<DocLink> = Vec::new();
     let mut diagnostics: Vec<Diagnostic> = Vec::new();
+    // A set, because a search of `undocumented` for every symbol is quadratic
+    // in a file of many declarations.
+    let mut undocumented_endpoints: HashSet<String> = HashSet::new();
     let mut seen_endpoints: HashSet<String> = HashSet::new();
     let mut duplicate_endpoints: HashSet<String> = HashSet::new();
 
@@ -591,10 +594,7 @@ fn build_response(
 
         let symbol = make_symbol(path, &declaration);
         if declaration.doc_targets.is_empty() {
-            if !undocumented
-                .iter()
-                .any(|existing| existing.endpoint == symbol.endpoint)
-            {
+            if undocumented_endpoints.insert(symbol.endpoint.clone()) {
                 undocumented.push(symbol);
             }
             continue;
@@ -915,6 +915,19 @@ public func shown() {}
 ";
         let response = scan(source, None);
         assert_eq!(ids(&response.undocumented_symbols), ["shown()"]);
+    }
+
+    #[test]
+    fn an_undocumented_endpoint_declared_twice_is_listed_once() {
+        let source = "public func f() {}\npublic func f() {}\npublic func g() {}\n";
+        let response = scan(source, None);
+        let endpoints: Vec<&str> = response
+            .undocumented_symbols
+            .iter()
+            .map(|symbol| symbol.endpoint.as_str())
+            .collect();
+        assert_eq!(endpoints.len(), 2, "{endpoints:?}");
+        assert_ne!(endpoints[0], endpoints[1]);
     }
 
     #[test]
