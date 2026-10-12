@@ -47,20 +47,30 @@ the comparison.
   The flake provides it in a separate `parser-gate` development shell. The
   default shell and the 1.83.0 pin of `packages/rust-scanner` do not change.
 - Recipe: `just parser-gate-verify` formats, lints, builds, and tests the
-  crate, then runs the fixture runners. `just verify` does not include it.
-- Workflow: `.github/workflows/parser-gate.yml` runs the recipe and the
-  five-target build of Slice D on pull requests that change the crate, its
-  scripts, or its fixtures.
-- Binary: `parser-gate`, with two subcommands.
-  - `scan` reads one worker request on stdin and writes one response, as
-    `schemas/scanner-worker.schema.json` defines them. It accepts `swift` and
-    `dart`.
-  - `parse <language>` parses the files named on stdin and writes one record
-    per file: accepted or rejected, the first error position, and the parse
-    time. It accepts all nine languages.
-- Rejection: `scan` rejects a file whose tree contains an `ERROR` or `MISSING`
-  node. It reports one `code_parse_error` at the first such node and no
-  symbols or links, as [Scanning](../specs/scanning.md) requires today.
+  crate, then runs the fixture runners that need only the candidate.
+  `just verify` does not include it. The crate builds under
+  `.tmp/parser-gate/target`: a build directory inside the package holds
+  thousands of files and slows every repository walk.
+- Workflow: `.github/workflows/parser-gate.yml` runs the recipe, the
+  operational checks, and the five-target build of Slice D on pull requests
+  that change the crate, its scripts, or its fixtures.
+- Binary: `parser-gate`, with three subcommands.
+  - `scan [--scope file|declaration]` reads one worker request on stdin and
+    writes one response, as `schemas/scanner-worker.schema.json` defines them.
+    It accepts `swift` and `dart`. The default scope is `file`.
+  - `parse <language> [--stack-mb N]` parses the files named on stdin and
+    writes one record per file: accepted or rejected, the first error
+    position, the construct around it, and the parse time. It accepts all nine
+    languages. `--stack-mb` parses on a thread with a stack of that size.
+  - `cancel <swift|dart> <path>` starts a parse, requests cancellation 50 ms
+    later, and reports how long the parse took to return.
+- Rejection: `scan` rejects a file whose tree contains an `ERROR` node, a
+  `MISSING` node, or a leaf that carries only the error flag, which the Dart
+  grammar emits for a missing name. It reports one `code_parse_error` at the
+  first such node and no symbols or links, as
+  [Scanning](../specs/scanning.md) requires today. The Dart extractor also
+  rejects a byte-order mark outside strings and comments, as the analyzer
+  does.
 - Extraction: the extractors implement
   [Swift scanning](../specs/scanning.md#swift-scanning),
   [Dart scanning](../specs/scanning.md#dart-scanning), and
@@ -233,7 +243,10 @@ Committed fixtures live under `test-fixtures/parser-gate/`.
 
 A specified case that the shipped worker fails is a finding against the
 worker. The report records it, and nobody regenerates the expected file to
-match.
+match. The case keeps the worker's current output beside it in
+`shipped-deviation.json`. Both runners compare against that file and mark the
+case, so a later change in the worker still shows. Each language's
+`FINDINGS.md` lists the findings.
 
 ## Comparison
 
@@ -269,9 +282,13 @@ The decision rule of the issue uses these terms:
 Every differing file gets one or more causes: a grammar limitation, a
 candidate defect, worker behavior the specifications do not require, or a
 fixture defect. Each cause has a hand-written minimal reproduction under
-`test-fixtures/parser-gate/repro/`. A difference without a reproduced cause is
-unexplained. The record also names the construct: the tree-sitter node kind
-that encloses the first difference or error.
+`test-fixtures/parser-gate/repro/<language>/`, and `<set>.causes.json` there
+maps each differing file to its causes. `scripts/parser-gate/repro.ts` runs
+every reproduction against both implementations and, with `--causes <set>`,
+checks that each differing file of the measured records has a cause. A
+difference without a reproduced cause is unexplained. The record also names
+the construct: the tree-sitter node kind that encloses the first error of a
+file the candidate rejects.
 
 Candidate fixes use the fixtures and the development set only, and each fix
 keeps its reproduction as a regression case.
@@ -298,9 +315,16 @@ accepts, on every target. Files only the candidate accepts are reported. The
 issue names "worker test inputs"; the workers keep those inline in their test
 sources, so this plan substitutes the repository's own sources.
 
+The shipped adapters need built workers and language runtimes, so the
+comparison itself runs on the development machine. With `--digest`, the script
+runs the candidate alone and prints a SHA-256 over its verdicts. Each target's
+build prints that digest, and the report compares it with the digest of the
+compared run.
+
 ### Cancellation and adversarial input
 
-The bounds below are measured on the `x86_64-unknown-linux-gnu` runner.
+The bounds below are measured on the `x86_64-unknown-linux-gnu` runner, where
+the workflow runs `scripts/parser-gate/operational.ts`.
 
 - Cancellation, for Swift and Dart: one thread parses a generated 50 MB file,
   and another requests cancellation 50 ms later. The parse must return within
@@ -312,20 +336,29 @@ The bounds below are measured on the `x86_64-unknown-linux-gnu` runner.
   - one valid 50 MB file that repeats a declaration under unique names;
   - one 10 MB line;
   - 1 MB of random printable text.
-- Corpus files: no file may exceed the same 10 s bound. The report records the
-  total, median, 99th percentile, and maximum parse time, and the peak
-  resident memory, for each language.
+- Corpus files: no file may exceed the same 10 s bound.
+  `scripts/parser-gate/corpus-timing.ts` measures the total, median, 99th
+  percentile, and maximum parse time, and the peak resident memory, for each
+  language, and the report records them.
 
 The candidate may reject input beyond a depth or size limit of its own. The
 report states each limit.
+
+A recursive-descent parser can overflow the default stack on deep nesting. An
+input that crashes the candidate is run again with `--stack-mb 1024`, and the
+check passes when that run ends within the bound. The report records both
+results. A migration then has to parse on a thread with such a stack or bound
+the nesting depth.
 
 ## Declaration-scoped rejection
 
 `scan --scope declaration` drops only the smallest supported declaration that
 contains an error node, and the whole file when an error lies outside every
-declaration. For the files the candidate rejects and the shipped worker
-accepts, the report gives the symbol precision and recall of that output
-against the shipped worker's. This score is outside the decision rule.
+declaration. It reports one `code_parse_error` for each dropped declaration,
+named by the declaration's canonical ID. For the files the candidate rejects
+and the shipped worker accepts, `scripts/parser-gate/scope.ts` measures the
+symbol precision and recall of that output against the shipped worker's, and
+the report gives them. This score is outside the decision rule.
 
 ## Records
 
