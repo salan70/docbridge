@@ -49,6 +49,16 @@ export type GateRecord = RecordMeta & {
   links: Count;
   rejection?: { shipped?: Position; candidate?: Position };
   injected?: InjectedCheck;
+  /** On an unmodified row the candidate rejected: the construct it rejected, or `null`. */
+  construct?: string | null;
+};
+
+/** The visibility each configuration sends, always explicit. */
+export const CONFIGURATIONS: Readonly<
+  Record<"swift" | "dart", Readonly<Record<string, readonly string[]>>>
+> = {
+  swift: { default: ["public", "open"], internal: ["public", "open", "internal"] },
+  dart: { default: ["public"] },
 };
 
 export function statusOf(result: TargetResult): Status {
@@ -206,6 +216,11 @@ export type Stats = {
 
 export type Summary = {
   overall: Stats;
+  /**
+   * Files the shipped worker accepts and the candidate rejects, by the
+   * construct it rejected, in the default configuration, most frequent first.
+   */
+  constructs: Record<string, number>;
   repositories: Record<string, Stats>;
   /** The inputs of the plan's decision rule; the verdict is left to the reader. */
   rule: {
@@ -293,6 +308,24 @@ function countMalformed(stats: Stats, row: GateRecord): void {
   }
 }
 
+function countConstructs(records: readonly GateRecord[]): Record<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of records) {
+    if (
+      row.variant === "unmodified" &&
+      row.configuration === DEFAULT_CONFIGURATION &&
+      row.shipped === "accept" &&
+      row.candidate === "reject"
+    ) {
+      const name = row.construct ?? "unknown";
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  }
+  return Object.fromEntries(
+    [...counts].toSorted(([a, x], [b, y]) => y - x || a.localeCompare(b, "en")),
+  );
+}
+
 /** Statistics for all records and for each repository, in name order. */
 export function summarize(records: readonly GateRecord[]): Summary {
   const overall = statsOf(records);
@@ -309,6 +342,7 @@ export function summarize(records: readonly GateRecord[]): Summary {
   }
   return {
     overall,
+    constructs: countConstructs(records),
     repositories,
     rule: {
       rejectionRate: overall.rejectionRate,
@@ -321,6 +355,36 @@ export function summarize(records: readonly GateRecord[]): Summary {
       },
     },
   };
+}
+
+/**
+ * The construct of each path in the output of `parser-gate parse`: the
+ * rejected construct, or `null` when the file was accepted or none was given.
+ */
+export function parseConstructs(stdout: string): Map<string, string | null> {
+  const constructs = new Map<string, string | null>();
+  for (const line of stdout.split("\n").filter((text) => text.trim() !== "")) {
+    const entry: unknown = JSON.parse(line);
+    if (
+      typeof entry !== "object" ||
+      entry === null ||
+      !("path" in entry) ||
+      typeof entry.path !== "string"
+    ) {
+      throw new Error(`malformed parse line: ${line}`);
+    }
+    const construct = "construct" in entry ? entry.construct : null;
+    constructs.set(entry.path, typeof construct === "string" ? construct : null);
+  }
+  return constructs;
+}
+
+/** The row with its `construct`, when it is an unmodified row the candidate rejected. */
+export function withConstruct(row: GateRecord, construct: string | null | undefined): GateRecord {
+  if (row.variant !== "unmodified" || row.candidate !== "reject") {
+    return row;
+  }
+  return { ...row, construct: construct ?? null };
 }
 
 export type FileListEntry = { repository: string; path: string; file: string };

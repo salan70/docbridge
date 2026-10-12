@@ -7,6 +7,7 @@ import {
   alignResponse,
   chunk,
   formatTable,
+  parseConstructs,
   parseFileList,
   requestFilePath,
   buildRecord,
@@ -14,6 +15,7 @@ import {
   multisetDifference,
   statusOf,
   summarize,
+  withConstruct,
 } from "./records";
 import { INJECTED_TARGET, type ReportedSymbol } from "./variants";
 
@@ -440,5 +442,63 @@ describe("formatTable", () => {
     expect(lines[0]).toContain("repository");
     expect(lines[1]).toContain("o/a");
     expect(lines[3]).toContain("TOTAL");
+  });
+});
+
+describe("parseConstructs", () => {
+  test("maps each path to its construct, null when accepted or absent", () => {
+    const stdout = [
+      '{"path":"/a.swift","accepted":false,"error":"x","construct":"class_body","micros":1}',
+      '{"path":"/b.swift","accepted":true,"error":null,"construct":null,"micros":1}',
+      '{"path":"/c.swift","accepted":false,"error":"x","micros":1}',
+      "",
+    ].join("\n");
+    expect(parseConstructs(stdout)).toEqual(
+      new Map([
+        ["/a.swift", "class_body"],
+        ["/b.swift", null],
+        ["/c.swift", null],
+      ]),
+    );
+  });
+
+  test("throws on a malformed line", () => {
+    expect(() => parseConstructs('{"accepted":false}\n')).toThrow();
+  });
+});
+
+describe("withConstruct", () => {
+  test("adds the construct to an unmodified row the candidate rejected", () => {
+    const rejected = row({ shipped: "accept", candidate: "reject" });
+    expect(withConstruct(rejected, "class_body")).toEqual({ ...rejected, construct: "class_body" });
+    expect(withConstruct(rejected, undefined)).toEqual({ ...rejected, construct: null });
+  });
+
+  test("leaves other rows unchanged", () => {
+    const accepted = row({ shipped: "accept", candidate: "accept" });
+    const injected = row({ variant: "injected", candidate: "reject" });
+    expect(withConstruct(accepted, "class_body")).toBe(accepted);
+    expect(withConstruct(injected, "class_body")).toBe(injected);
+  });
+});
+
+describe("summarize constructs", () => {
+  test("counts default-configuration rejected files by construct", () => {
+    const { constructs } = summarize([
+      row({ path: "a", shipped: "accept", candidate: "reject", construct: "class_body" }),
+      row({ path: "b", shipped: "accept", candidate: "reject", construct: "class_body" }),
+      row({ path: "c", shipped: "accept", candidate: "reject", construct: "enum_body" }),
+      row({ path: "d", shipped: "accept", candidate: "reject", construct: null }),
+      row({
+        path: "e",
+        shipped: "accept",
+        candidate: "reject",
+        construct: "enum_body",
+        configuration: "internal",
+      }),
+      row({ path: "f", shipped: "reject", candidate: "reject", construct: "enum_body" }),
+    ]);
+    expect(constructs).toEqual({ class_body: 2, enum_body: 1, unknown: 1 });
+    expect(Object.keys(constructs)).toEqual(["class_body", "enum_body", "unknown"]);
   });
 });

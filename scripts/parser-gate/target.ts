@@ -32,3 +32,8 @@ export function resolveWorkerCommand(target: GateTarget, language: GateLanguage)
   }
   return resolution.command;
 }
+
+/** The candidate's worker command in declaration scope. Throws when it is not built. */
+export function resolveDeclarationScopeCommand(language: GateLanguage): string[] {
+  return [...resolveWorkerCommand("candidate", language), "--scope", "declaration"];
+}

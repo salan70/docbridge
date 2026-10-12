@@ -1,9 +1,11 @@
+import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { invokeScannerWorker } from "../../src/scan/code/worker/scanner-worker";
 import type { ScannerWorkerRequest } from "../../src/scan/code/worker/scanner-worker";
 import {
+  CONFIGURATIONS,
   type GateRecord,
   type InjectedCheck,
   type RecordMeta,
@@ -14,13 +16,15 @@ import {
   checkInjection,
   chunk,
   formatTable,
+  parseConstructs,
   parseFileList,
   requestFilePath,
   statusOf,
   summarize,
+  withConstruct,
 } from "./records";
 import type { GateLanguage, GateTarget } from "./result-diff";
-import { resolveWorkerCommand } from "./target";
+import { CANDIDATE_BINARY, resolveWorkerCommand } from "./target";
 import { injectAnnotation, malformedVariants, selectMalformedFiles, sha256Hex } from "./variants";
 
 /**
@@ -36,13 +40,6 @@ const LANGUAGES: readonly GateLanguage[] = ["swift", "dart"];
 const BATCH_SIZE = 40;
 
 const CONCURRENCY = 4;
-
-/** The visibility each configuration sends, always explicit. */
-const CONFIGURATIONS: Readonly<Record<GateLanguage, Readonly<Record<string, readonly string[]>>>> =
-  {
-    swift: { default: ["public", "open"], internal: ["public", "open", "internal"] },
-    dart: { default: ["public"] },
-  };
 
 const DEFAULT_CONFIGURATION = "default";
 
@@ -96,6 +93,8 @@ type Item = {
   repository: string;
   path: string;
   filePath: string;
+  /** The corpus file the content was read from. */
+  file: string;
   content: string;
   contentSha256: string;
 };
@@ -221,11 +220,33 @@ function readItems(args: CompareArgs, language: GateLanguage): Item[] {
       repository: entry.repository,
       path: entry.path,
       filePath: requestFilePath(entry.repository, entry.path),
+      file: entry.file,
       content,
       contentSha256: sha256Hex(content),
     });
   }
   return items;
+}
+
+/** The construct the candidate's `parse` rejects each file at, keyed by file. */
+function rejectedConstructs(
+  language: GateLanguage,
+  files: readonly string[],
+): Map<string, string | null> {
+  if (files.length === 0) {
+    return new Map();
+  }
+  const run = spawnSync(CANDIDATE_BINARY, ["parse", language], {
+    input: `${files.join("\n")}\n`,
+    encoding: "utf8",
+    maxBuffer: 1 << 28,
+  });
+  if (run.status !== 0) {
+    throw new Error(
+      `parser-gate parse ${language} exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 500)}`,
+    );
+  }
+  return parseConstructs(run.stdout);
 }
 
 function metaOf(
@@ -269,13 +290,32 @@ async function runLanguage(args: CompareArgs, language: GateLanguage): Promise<v
   for (const configuration of configurations) {
     const pairs = await measure(commands, language, configuration, items, "unmodified");
     unmodified.set(configuration, pairs);
+  }
+  const rejectedFiles = [
+    ...new Set(
+      items
+        .filter((_, index) =>
+          [...unmodified.values()].some((pairs) => {
+            const pair = pairs[index];
+            return pair !== undefined && statusOf(pair.candidate) === "reject";
+          }),
+        )
+        .map((item) => item.file),
+    ),
+  ];
+  const constructs = rejectedConstructs(language, rejectedFiles);
+  for (const configuration of configurations) {
+    const pairs = unmodified.get(configuration) ?? [];
     emit(
       items.map((item, index) => {
         const pair = pairs[index];
-        return buildRecord(
-          metaOf(args, language, item, "unmodified", configuration),
-          pair?.shipped ?? "failed",
-          pair?.candidate ?? "failed",
+        return withConstruct(
+          buildRecord(
+            metaOf(args, language, item, "unmodified", configuration),
+            pair?.shipped ?? "failed",
+            pair?.candidate ?? "failed",
+          ),
+          constructs.get(item.file),
         );
       }),
     );

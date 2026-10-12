@@ -241,6 +241,10 @@ parser-gate-corpus-timing SET *ARGS:
 parser-gate-repro *ARGS:
     bun run scripts/parser-gate/repro.ts {{ ARGS }}
 
+# Score the candidate's declaration-scoped output on the files it rejects whole.
+parser-gate-scope SET *ARGS:
+    bun run scripts/parser-gate/scope.ts {{ SET }} {{ ARGS }}
+
 parser-gate-fetch-corpus SET *ARGS:
     bun run scripts/parser-gate/fetch-corpus.ts {{ SET }} {{ ARGS }}
 
