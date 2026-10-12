@@ -259,7 +259,9 @@ and to the candidate, and writes one record per file and configuration.
   and with `public`, `open`, `internal`. Dart runs with `public`.
 - Requests: batches of 40 files. A batch that fails as a whole is retried one
   file at a time. A file on which the shipped worker itself fails is recorded
-  and excluded.
+  and excluded. A file on which the candidate fails to answer is counted apart
+  from the rejections, and one such file makes the run invalid. So does a
+  listed corpus file that cannot be read.
 - Compared: `symbols`, `undocumentedSymbols`, `links`, and `diagnostics`, with
   every range and location, in the order returned. Only JSON key order is
   normalized.
