@@ -34,8 +34,24 @@ jobs:
       - name: just parser-gate-verify
         run: nix develop .#parser-gate -c just parser-gate-verify
 
-      # The plan's limits for cancellation and adversarial inputs are measured
-      # on this runner's target, `x86_64-unknown-linux-gnu`.
+  # The plan's limits for cancellation and adversarial inputs are measured on
+  # this runner's target, `x86_64-unknown-linux-gnu`. The job stands apart from
+  # `verify` so that a missed limit does not hide a passing verification.
+  operational:
+    name: operational
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
+      - name: Install dependencies
+        run: nix develop .#parser-gate -c bun install --frozen-lockfile
+
+      - name: Build the candidate
+        run: nix develop .#parser-gate -c just build-parser-gate
+
       - name: just parser-gate-operational
         run: |
           set -o pipefail
