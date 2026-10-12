@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A function declaration without a body, as used with `@_silgen_name`.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

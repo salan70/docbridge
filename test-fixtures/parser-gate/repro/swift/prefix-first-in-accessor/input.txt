@@ -1,0 +1,5 @@
+struct Tag {
+    let prefix: String
+    let body: String
+    var id: String { prefix + body }
+}

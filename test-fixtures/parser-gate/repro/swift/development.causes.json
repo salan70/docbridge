@@ -1,0 +1,100 @@
+{
+  "Alamofire/Alamofire/Source/Core/Protected.swift": ["directive-member"],
+  "Alamofire/Alamofire/Source/Core/WebSocketRequest.swift": ["empty-tuple-expression"],
+  "Alamofire/Alamofire/Source/Features/Validation.swift": ["empty-tuple-expression"],
+  "Alamofire/Alamofire/Tests/Request+AlamofireTests.swift": ["empty-tuple-expression"],
+  "Alamofire/Alamofire/Tests/ValidationTests.swift": ["empty-tuple-expression"],
+  "apple/container/Sources/APIServer/APIServer+Start.swift": [
+    "empty-tuple-expression",
+    "empty-tuple-pattern"
+  ],
+  "apple/container/Sources/ContainerCommands/Container/ContainerClean.swift": [
+    "any-optional-metatype"
+  ],
+  "apple/container/Sources/ContainerCommands/Container/ContainerDelete.swift": [
+    "any-optional-metatype"
+  ],
+  "apple/container/Sources/ContainerCommands/Container/ContainerStop.swift": [
+    "any-optional-metatype"
+  ],
+  "apple/container/Sources/ContainerXPC/XPCServer.swift": ["nonisolated-unsafe"],
+  "apple/container/Sources/Plugins/RuntimeLinux/RuntimeLinuxHelper+Start.swift": [
+    "nonisolated-unsafe"
+  ],
+  "apple/container/Sources/Services/ContainerAPIService/Client/ProcessIO.swift": [
+    "nonisolated-unsafe"
+  ],
+  "apple/container/Sources/Services/ContainerAPIService/Client/ProgressUpdateClient.swift": [
+    "nonisolated-unsafe"
+  ],
+  "apple/container/Sources/Services/MachineAPIService/Server/MachinesService.swift": [
+    "await-condition-operand",
+    "empty-tuple-expression",
+    "empty-tuple-pattern"
+  ],
+  "apple/container/Sources/Services/RuntimeLinux/Server/RuntimeService.swift": [
+    "await-condition-operand"
+  ],
+  "jordanbaird/Ice/Ice/Bridging/Shims/Deprecated.swift": ["bodiless-function"],
+  "jordanbaird/Ice/Ice/Bridging/Shims/Private.swift": ["bodiless-function"],
+  "jordanbaird/Ice/Ice/MenuBar/MenuBarItems/MenuBarItemImageCache.swift": [
+    "await-condition-operand"
+  ],
+  "jordanbaird/Ice/Ice/MenuBar/MenuBarItems/MenuBarItemManager.swift": ["await-condition-operand"],
+  "jordanbaird/Ice/Ice/Utilities/Extensions.swift": ["empty-tuple-expression"],
+  "nikitabobko/AeroSpace/Sources/AppBundle/config/Config.swift": ["empty-tuple-expression"],
+  "nikitabobko/AeroSpace/Sources/AppBundle/config/parseConfig.swift": ["empty-tuple-expression"],
+  "nikitabobko/AeroSpace/Sources/AppBundle/layout/refresh.swift": ["empty-tuple-expression"],
+  "nikitabobko/AeroSpace/Sources/AppBundle/util/appBundleUtil.swift": ["consuming-get"],
+  "nikitabobko/AeroSpace/Sources/Common/cmdArgs/ArgParser.swift": ["empty-tuple-expression"],
+  "nikitabobko/AeroSpace/Sources/Common/util/AeroAny.swift": ["empty-tuple-expression"],
+  "nikitabobko/AeroSpace/Sources/Common/util/ArrayEx.swift": ["for-in-open-range"],
+  "nikitabobko/AeroSpace/Sources/Common/util/NWConnectionEx.swift": ["empty-tuple-expression"],
+  "permissionlesstech/bitchat/bitchat/App/NearbyNotesCounter.swift": ["empty-tuple-expression"],
+  "permissionlesstech/bitchat/bitchat/Services/BLE/BLEIngressPacketGuard.swift": [
+    "empty-tuple-expression"
+  ],
+  "permissionlesstech/bitchat/bitchat/Services/BLE/BLEService.swift": ["empty-tuple-expression"],
+  "permissionlesstech/bitchat/bitchat/Services/CashuTokenDecoder.swift": ["for-case-tuple-pattern"],
+  "permissionlesstech/bitchat/bitchat/Services/GeohashPresenceService.swift": [
+    "empty-tuple-expression"
+  ],
+  "permissionlesstech/bitchat/bitchat/Services/LocationNotesManager.swift": [
+    "empty-tuple-expression"
+  ],
+  "permissionlesstech/bitchat/bitchat/Views/Components/CommandSuggestionsView.swift": [
+    "attribute-on-macro-expansion"
+  ],
+  "permissionlesstech/bitchat/bitchat/Views/Image Viewers/ImagePickerView.swift": [
+    "attribute-on-macro-expansion"
+  ],
+  "permissionlesstech/bitchat/bitchat/Views/Image Viewers/MacImagePickerView.swift": [
+    "attribute-on-macro-expansion"
+  ],
+  "permissionlesstech/bitchat/bitchatTests/LocationNotesManagerTests.swift": [
+    "empty-tuple-expression"
+  ],
+  "permissionlesstech/bitchat/bitchatTests/NearbyNotesCounterTests.swift": [
+    "empty-tuple-expression"
+  ],
+  "permissionlesstech/bitchat/localPackages/Arti/Sources/TorManager.swift": ["bodiless-function"],
+  "permissionlesstech/bitchat/localPackages/BitFoundation/Sources/BitFoundation/PeerID.swift": [
+    "prefix-first-in-accessor"
+  ],
+  "vapor/vapor/Sources/Vapor/Content/PlaintextEncoder.swift": ["empty-tuple-expression"],
+  "vapor/vapor/Sources/Vapor/HTTP/Headers/HTTPFields+ContentRange.swift": ["string-comment-open"],
+  "vapor/vapor/Sources/Vapor/HTTP/Server/NIOHTTPBodyWriter.swift": ["lifetime-attribute"],
+  "vapor/vapor/Sources/Vapor/HTTP/Server/NIORequestBodyReader.swift": ["lifetime-attribute"],
+  "vapor/vapor/Sources/Vapor/HTTP/Server/SocketAddress+NIOHTTPServer.swift": ["directive-member"],
+  "vapor/vapor/Sources/Vapor/Request/Request+Body.swift": ["lifetime-attribute"],
+  "vapor/vapor/Sources/Vapor/Request/Request.swift": ["lifetime-attribute"],
+  "vapor/vapor/Sources/Vapor/Request/RequestBodyStream.swift": ["consume-condition-operand"],
+  "vapor/vapor/Sources/Vapor/Response/Response+Body.swift": ["lifetime-attribute"],
+  "vapor/vapor/Sources/Vapor/Utilities/FileIO.swift": ["empty-tuple-expression"],
+  "vapor/vapor/Tests/VaporTests/ConditionalResponseCompressionTests.swift": ["directive-member"],
+  "vapor/vapor/Tests/VaporTests/RequestTests.swift": ["empty-tuple-expression"],
+  "vapor/vapor/Tests/VaporTests/ServerTLSTests.swift": ["directive-multiline"],
+  "vapor/vapor/Tests/VaporTests/ServerTests.swift": ["directive-member"],
+  "vapor/vapor/Tests/VaporTests/StreamingBodyTests.swift": ["directive-multiline"],
+  "vapor/vapor/Tests/VaporTests/Utilities/Checkpoint.swift": ["empty-tuple-expression"]
+}

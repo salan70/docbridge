@@ -1,0 +1,8 @@
+struct Holder {
+    var view: View {
+        @_lifetime(borrow self)
+        get { View(self) }
+    }
+    @_lifetime(borrow scope)
+    func open(_ scope: Scope) -> View { View(scope) }
+}

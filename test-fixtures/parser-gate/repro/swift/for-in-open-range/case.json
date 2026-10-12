@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A postfix open range, `0...`, as the sequence of a `for` loop.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

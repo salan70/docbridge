@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A tuple pattern with enum-case elements after `for case`.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

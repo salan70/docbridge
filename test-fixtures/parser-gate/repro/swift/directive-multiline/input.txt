@@ -1,0 +1,6 @@
+func sync() {
+    #warning(
+        "Replace this stub"
+    )
+    flush()
+}

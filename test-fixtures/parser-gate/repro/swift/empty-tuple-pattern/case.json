@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "The empty tuple pattern `.success()` in a switch case.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

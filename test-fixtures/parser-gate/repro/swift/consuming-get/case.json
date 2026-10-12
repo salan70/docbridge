@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A `consuming get` accessor.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

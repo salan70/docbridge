@@ -1,0 +1,7 @@
+func settle(_ token: consuming Token) {
+    switch consume token {
+    case .open: break
+    default: break
+    }
+    if consume token { return }
+}

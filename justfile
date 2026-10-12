@@ -225,6 +225,10 @@ parser-gate-specified TARGET="candidate" *ARGS:
 parser-gate-compare SET *ARGS:
     bun run scripts/parser-gate/compare.ts {{ SET }} {{ ARGS }}
 
+# Check the hand-written reproductions of the candidate's rejections.
+parser-gate-repro *ARGS:
+    bun run scripts/parser-gate/repro.ts {{ ARGS }}
+
 parser-gate-fetch-corpus SET *ARGS:
     bun run scripts/parser-gate/fetch-corpus.ts {{ SET }} {{ ARGS }}
 

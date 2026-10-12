@@ -1,0 +1,8 @@
+func report(_ outcome: Result<Void, Error>) {
+    switch outcome {
+    case .success():
+        break
+    case .failure:
+        break
+    }
+}
