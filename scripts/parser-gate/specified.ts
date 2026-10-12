@@ -14,7 +14,9 @@ import { parseTarget, resolveWorkerCommand } from "./target";
 /**
  * Runs the parser gate's specified fixtures through one worker target. Each
  * case holds `input.txt`, an optional `options.json`, and the `expected.json`
- * of the scan result for the one file sent.
+ * of the scan result for the one file sent. A case whose specified result
+ * differs from the shipped worker (a `worker` finding) also holds a
+ * `shipped-deviation.json`; both targets are compared with it instead.
  */
 const SPECIFIED_ROOT = resolve(import.meta.dir, "../../test-fixtures/parser-gate/specified");
 
@@ -112,11 +114,19 @@ async function main(): Promise<number> {
   }
   let failed = false;
   for (const { language, name } of cases) {
+    const caseDir = join(SPECIFIED_ROOT, language, name);
+    const deviationPath = join(caseDir, "shipped-deviation.json");
+    const deviates = existsSync(deviationPath);
     const expected: unknown = JSON.parse(
-      readFileSync(join(SPECIFIED_ROOT, language, name, "expected.json"), "utf8"),
+      readFileSync(deviates ? deviationPath : join(caseDir, "expected.json"), "utf8"),
     );
     const difference = firstDifference(expected, await actualResult(target, language, name));
-    console.log(formatResultLine(`${name}/${language}`, difference));
+    const line = formatResultLine(`${name}/${language}`, difference);
+    console.log(
+      deviates && difference === undefined
+        ? `${line.replace("ok  ", "ok* ")} (worker finding)`
+        : line,
+    );
     failed ||= difference !== undefined;
   }
   return failed ? 1 : 0;

@@ -225,6 +225,14 @@ parser-gate-specified TARGET="candidate" *ARGS:
 parser-gate-compare SET *ARGS:
     bun run scripts/parser-gate/compare.ts {{ SET }} {{ ARGS }}
 
+# Check that the candidate accepts and rejects the files the shipped adapters do.
+parser-gate-parse-agreement *ARGS:
+    bun run scripts/parser-gate/parse-agreement.ts {{ ARGS }}
+
+# Run the candidate on adversarial inputs and check that Swift and Dart parses cancel.
+parser-gate-operational *ARGS:
+    bun run scripts/parser-gate/operational.ts {{ ARGS }}
+
 # Check the hand-written reproductions of the candidate's rejections.
 parser-gate-repro *ARGS:
     bun run scripts/parser-gate/repro.ts {{ ARGS }}

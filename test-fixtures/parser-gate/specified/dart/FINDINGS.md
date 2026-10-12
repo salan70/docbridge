@@ -24,7 +24,10 @@ Thirty-six cases exist; thirty-five pass against the shipped worker and one is a
 - Basis: `diagnostics.md` lists `unsupported_declaration` under warning codes,
   and `scanning.md` (Code Scanning) says it points at the declaration's name.
   A `typedef` has a name.
-- Conclusion: `worker`. The case fails against the shipped worker.
+- Conclusion: `worker`. `expected.json` keeps the specified result, so it
+  differs from the shipped worker. `shipped-deviation.json` holds the shipped
+  worker's current output; the runner compares both the shipped worker and the
+  candidate with it and reports `ok*` when they match.
 
 ### annotation-unsupported-declaration, `range`
 
