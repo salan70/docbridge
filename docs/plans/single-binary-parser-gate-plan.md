@@ -12,10 +12,10 @@ released.
 
 ## Status
 
-- [ ] Slice A: specified fixtures, candidate crate, Swift and Dart extractors,
+- [x] Slice A: specified fixtures, candidate crate, Swift and Dart extractors,
       and the conformance runner
-- [ ] Slice B: corpus tooling, generated fixtures, and the comparison runner
-- [ ] Slice C: development-set measurement and candidate fixes
+- [x] Slice B: corpus tooling, generated fixtures, and the comparison runner
+- [x] Slice C: development-set measurement and candidate fixes
 - [ ] Slice D: nine-parser executable and the operational checks
 - [ ] Slice E: final holdout measurement, report, and decision record
 
