@@ -22,8 +22,8 @@ import {
   executablePath,
   formatAgreementTable,
   formatDigestTable,
-  isExcludedDirectory,
   parseCandidateLine,
+  parseTrackedPaths,
   scannedPathOf,
   selectSourceFiles,
   summarizeAgreement,
@@ -93,16 +93,21 @@ function parseArgs(argv: readonly string[]): { out: string; digestOnly: boolean 
   return { out, digestOnly };
 }
 
-function walk(dir: string, found: string[]): void {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      if (!isExcludedDirectory(entry.name)) {
-        walk(join(dir, entry.name), found);
-      }
-    } else if (entry.isFile()) {
-      found.push(join(dir, entry.name));
-    }
+/**
+ * The files git tracks, as repository-relative POSIX paths. A walk of the
+ * working tree would also digest a machine's ignored build output, and then
+ * two machines at one commit would print different digests.
+ */
+function trackedPaths(): string[] {
+  const run = spawnSync("git", ["ls-files", "-z"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    maxBuffer: 1 << 26,
+  });
+  if (run.status !== 0) {
+    throw new Error(`git ls-files exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 500)}`);
   }
+  return parseTrackedPaths(run.stdout);
 }
 
 function decodeUtf8(file: string): string | undefined {
@@ -209,9 +214,7 @@ async function main(): Promise<number> {
       `candidate binary not found at ${CANDIDATE_BINARY}; run \`just build-parser-gate\``,
     );
   }
-  const repoPaths: string[] = [];
-  walk(REPO_ROOT, repoPaths);
-  const relativePaths = repoPaths.map((path) => toPosixPath(relative(REPO_ROOT, path), sep));
+  const relativePaths = trackedPaths();
   const rows: AgreementRow[] = [];
   const verdicts: DigestEntry[] = [];
   const unavailable: Record<string, string> = {};

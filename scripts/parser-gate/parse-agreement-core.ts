@@ -21,7 +21,7 @@ export const AGREEMENT_LANGUAGES = [
 
 export type AgreementLanguage = (typeof AGREEMENT_LANGUAGES)[number];
 
-/** Directories the repository walk skips: dependencies, build output, and work trees. */
+/** Directories left out of the comparison: dependencies, build output, and work trees. */
 const EXCLUDED_DIRECTORIES: ReadonlySet<string> = new Set([
   "node_modules",
   "dist",
@@ -69,8 +69,9 @@ export function isExcludedPath(path: string): boolean {
   return path.split("/").some((segment) => EXCLUDED_DIRECTORIES.has(segment));
 }
 
-export function isExcludedDirectory(name: string): boolean {
-  return EXCLUDED_DIRECTORIES.has(name);
+/** The paths in the output of `git ls-files -z`. */
+export function parseTrackedPaths(listing: string): string[] {
+  return listing.split("\0").filter((path) => path !== "");
 }
 
 /** The sorted, unique paths of `language` that are outside the excluded directories. */

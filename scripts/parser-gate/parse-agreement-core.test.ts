@@ -12,6 +12,7 @@ import {
   isExcludedPath,
   languageOfPath,
   parseCandidateLine,
+  parseTrackedPaths,
   scannedPathOf,
   selectSourceFiles,
   summarizeAgreement,
@@ -124,6 +125,16 @@ describe("summarizeAgreement", () => {
       expect(table).toContain(language);
     }
     expect(table).toContain("TOTAL");
+  });
+});
+
+describe("parseTrackedPaths", () => {
+  test("splits the NUL-separated output of git ls-files", () => {
+    expect(parseTrackedPaths("src/a.ts\0docs/b c.md\0")).toEqual(["src/a.ts", "docs/b c.md"]);
+  });
+
+  test("returns nothing for an empty listing", () => {
+    expect(parseTrackedPaths("")).toEqual([]);
   });
 });
 
