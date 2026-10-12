@@ -7,7 +7,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 import { LANGUAGE_SUFFIXES } from "../../src/config/code-language";
 import { scanCodeFiles } from "../../src/scan/code/dispatch";
@@ -16,28 +16,40 @@ import {
   type AgreementLanguage,
   type AgreementRow,
   agreementFails,
+  type DigestEntry,
   classify,
+  computeDigest,
+  executablePath,
   formatAgreementTable,
+  formatDigestTable,
   isExcludedDirectory,
   parseCandidateLine,
   scannedPathOf,
   selectSourceFiles,
   summarizeAgreement,
+  toPosixPath,
 } from "./parse-agreement-core";
 import { chunk } from "./records";
-import { CANDIDATE_BINARY } from "./target";
+import { CANDIDATE_BINARY as CANDIDATE_BASE } from "./target";
 
 /**
  * Checks, for the seven languages the shipped adapters already parse, that the
  * candidate accepts and rejects the same files. The shipped verdict is the
  * absence of a `code_parse_error` from the shipped adapter; the candidate's is
  * `parser-gate parse`. A file only the shipped adapter accepts fails the check.
+ *
+ * Both modes digest the candidate's verdicts. `--digest` skips the shipped
+ * adapters, which need the built workers, so a target that cannot run them
+ * still produces a digest to compare with the one from the reference machine.
  */
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
 const CONFORMANCE_ROOT = join(REPO_ROOT, "test-fixtures/scanner-conformance");
 
 const DEFAULT_OUT = join(REPO_ROOT, ".tmp/parser-gate/results");
+
+/** The candidate; Windows builds carry an `.exe` suffix the shared constant lacks. */
+const CANDIDATE_BINARY = executablePath(CANDIDATE_BASE, process.platform);
 
 const SHIPPED_BATCH_SIZE = 50;
 
@@ -60,8 +72,9 @@ type Input = {
   content: string;
 };
 
-function parseArgs(argv: readonly string[]): { out: string } {
+function parseArgs(argv: readonly string[]): { out: string; digestOnly: boolean } {
   let out = DEFAULT_OUT;
+  let digestOnly = false;
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--out") {
@@ -71,11 +84,13 @@ function parseArgs(argv: readonly string[]): { out: string } {
       }
       out = resolve(value);
       index += 1;
+    } else if (arg === "--digest") {
+      digestOnly = true;
     } else {
       throw new Error(`unexpected argument ${JSON.stringify(arg)}`);
     }
   }
-  return { out };
+  return { out, digestOnly };
 }
 
 function walk(dir: string, found: string[]): void {
@@ -123,7 +138,7 @@ function collectInputs(
         mkdirSync(copies, { recursive: true });
         const copy = join(copies, `${entry.name}${suffix}`);
         copyFileSync(source, copy);
-        add(relative(REPO_ROOT, source), copy);
+        add(toPosixPath(relative(REPO_ROOT, source), sep), copy);
       }
     }
   }
@@ -188,7 +203,7 @@ function candidateAcceptances(
 }
 
 async function main(): Promise<number> {
-  const { out } = parseArgs(process.argv.slice(2));
+  const { out, digestOnly } = parseArgs(process.argv.slice(2));
   if (!existsSync(CANDIDATE_BINARY)) {
     throw new Error(
       `candidate binary not found at ${CANDIDATE_BINARY}; run \`just build-parser-gate\``,
@@ -196,24 +211,35 @@ async function main(): Promise<number> {
   }
   const repoPaths: string[] = [];
   walk(REPO_ROOT, repoPaths);
-  const relativePaths = repoPaths.map((path) => relative(REPO_ROOT, path));
+  const relativePaths = repoPaths.map((path) => toPosixPath(relative(REPO_ROOT, path), sep));
   const rows: AgreementRow[] = [];
+  const verdicts: DigestEntry[] = [];
   const unavailable: Record<string, string> = {};
   const skipped: string[] = [];
   for (const language of AGREEMENT_LANGUAGES) {
     const collected = collectInputs(language, relativePaths, out);
     skipped.push(...collected.skipped);
+    const candidate = candidateAcceptances(language, collected.inputs);
+    const accepts = (input: Input): boolean => {
+      const accepted = candidate.get(input.file);
+      if (accepted === undefined) {
+        throw new Error(`candidate gave no verdict for ${input.file}`);
+      }
+      return accepted;
+    };
+    for (const input of collected.inputs) {
+      verdicts.push({ language, path: input.path, accepted: accepts(input) });
+    }
+    if (digestOnly) {
+      continue;
+    }
     const shipped = await shippedRejections(language, collected.inputs);
     if ("unavailable" in shipped) {
       unavailable[language] = shipped.unavailable;
       continue;
     }
-    const candidate = candidateAcceptances(language, collected.inputs);
     for (const input of collected.inputs) {
-      const accepted = candidate.get(input.file);
-      if (accepted === undefined) {
-        throw new Error(`candidate gave no verdict for ${input.file}`);
-      }
+      const accepted = accepts(input);
       rows.push({
         language,
         path: input.path,
@@ -221,13 +247,27 @@ async function main(): Promise<number> {
       });
     }
   }
-  const summary = summarizeAgreement(rows);
+  const digest = computeDigest(verdicts);
   mkdirSync(out, { recursive: true });
+  if (digestOnly) {
+    writeFileSync(
+      join(out, "parse-digest.json"),
+      `${JSON.stringify({ digest, skipped }, null, 2)}\n`,
+    );
+    console.log(formatDigestTable(digest));
+    for (const path of skipped) {
+      console.log(`skipped (not UTF-8) ${path}`);
+    }
+    return 0;
+  }
+  const summary = summarizeAgreement(rows);
   writeFileSync(
     join(out, "parse-agreement.json"),
-    `${JSON.stringify({ summary, unavailable, skipped, rows }, null, 2)}\n`,
+    `${JSON.stringify({ summary, digest, unavailable, skipped, rows }, null, 2)}\n`,
   );
   console.log(formatAgreementTable(summary));
+  console.log();
+  console.log(formatDigestTable(digest));
   for (const [language, reason] of Object.entries(unavailable)) {
     console.log(`UNAVAILABLE ${language}: ${reason}`);
   }

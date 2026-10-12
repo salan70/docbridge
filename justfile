@@ -233,6 +233,10 @@ parser-gate-parse-agreement *ARGS:
 parser-gate-operational *ARGS:
     bun run scripts/parser-gate/operational.ts {{ ARGS }}
 
+# Time the candidate's parse of a corpus set and record the peak memory.
+parser-gate-corpus-timing SET *ARGS:
+    bun run scripts/parser-gate/corpus-timing.ts {{ SET }} {{ ARGS }}
+
 # Check the hand-written reproductions of the candidate's rejections.
 parser-gate-repro *ARGS:
     bun run scripts/parser-gate/repro.ts {{ ARGS }}

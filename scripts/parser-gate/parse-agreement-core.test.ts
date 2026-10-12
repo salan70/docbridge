@@ -1,16 +1,21 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 
 import {
   AGREEMENT_LANGUAGES,
   agreementFails,
   classify,
+  computeDigest,
+  executablePath,
   formatAgreementTable,
+  formatDigestTable,
   isExcludedPath,
   languageOfPath,
   parseCandidateLine,
   scannedPathOf,
   selectSourceFiles,
   summarizeAgreement,
+  toPosixPath,
 } from "./parse-agreement-core";
 
 describe("languageOfPath", () => {
@@ -119,5 +124,72 @@ describe("summarizeAgreement", () => {
       expect(table).toContain(language);
     }
     expect(table).toContain("TOTAL");
+  });
+});
+
+describe("toPosixPath", () => {
+  test("replaces the platform separator with a slash", () => {
+    expect(toPosixPath("a\\b\\c.go", "\\")).toBe("a/b/c.go");
+    expect(toPosixPath("a/b/c.go", "/")).toBe("a/b/c.go");
+  });
+});
+
+const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
+
+describe("computeDigest", () => {
+  const entries = [
+    { language: "go" as const, path: "b.go", accepted: false },
+    { language: "rust" as const, path: "a.rs", accepted: true },
+    { language: "go" as const, path: "a.go", accepted: true },
+  ];
+
+  test("hashes sorted path-tab-verdict lines per language", () => {
+    const digest = computeDigest(entries);
+    expect(digest.languages.go).toEqual({
+      files: 2,
+      accepted: 1,
+      rejected: 1,
+      sha256: sha("a.go\taccept\nb.go\treject"),
+    });
+    expect(digest.languages.rust.sha256).toBe(sha("a.rs\taccept"));
+    expect(digest.languages.python).toEqual({
+      files: 0,
+      accepted: 0,
+      rejected: 0,
+      sha256: sha(""),
+    });
+  });
+
+  test("hashes all languages' lines together in path order", () => {
+    expect(computeDigest(entries).sha256).toBe(sha("a.go\taccept\na.rs\taccept\nb.go\treject"));
+  });
+
+  test("does not depend on the input order", () => {
+    expect(computeDigest(entries.toReversed())).toEqual(computeDigest(entries));
+  });
+
+  test("orders paths by code unit, not by locale", () => {
+    const digest = computeDigest([
+      { language: "go", path: "a_b.go", accepted: true },
+      { language: "go", path: "a/b.go", accepted: true },
+      { language: "go", path: "B.go", accepted: true },
+    ]);
+    expect(digest.languages.go.sha256).toBe(sha("B.go\taccept\na/b.go\taccept\na_b.go\taccept"));
+  });
+
+  test("table has a row per language and the overall digest", () => {
+    const table = formatDigestTable(computeDigest(entries));
+    for (const language of AGREEMENT_LANGUAGES) {
+      expect(table).toContain(language);
+    }
+    expect(table).toContain("ALL");
+    expect(table).toContain(computeDigest(entries).sha256);
+  });
+});
+
+describe("executablePath", () => {
+  test("adds the .exe suffix on Windows only", () => {
+    expect(executablePath("/a/parser-gate", "win32")).toBe("/a/parser-gate.exe");
+    expect(executablePath("/a/parser-gate", "linux")).toBe("/a/parser-gate");
   });
 });

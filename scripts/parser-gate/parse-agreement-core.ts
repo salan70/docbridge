@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { EXCLUDED_SUFFIXES, LANGUAGE_SUFFIXES } from "../../src/config/code-language";
 import type { CodeLanguage } from "../../src/model/types";
 
@@ -182,4 +184,94 @@ export function formatAgreementTable(summary: AgreementSummary): string {
       .join("  ")
       .trimEnd();
   return [format(header), ...body.map(format)].join("\n");
+}
+
+/** A path with the platform's separator replaced by `/`, so a path means the same on every OS. */
+export function toPosixPath(path: string, separator: string): string {
+  return path.split(separator).join("/");
+}
+
+/** The candidate's verdict on one file; the digest holds no content, so CRLF checkouts agree. */
+export type DigestEntry = { language: AgreementLanguage; path: string; accepted: boolean };
+
+export type LanguageDigest = { files: number; accepted: number; rejected: number; sha256: string };
+
+export type ParseDigest = {
+  languages: Record<AgreementLanguage, LanguageDigest>;
+  /** The SHA-256 of every language's lines together, in path order. */
+  sha256: string;
+};
+
+function digestLine(entry: DigestEntry): string {
+  return `${entry.path}\t${entry.accepted ? "accept" : "reject"}`;
+}
+
+/** UTF-16 code unit order, which no locale changes. */
+function byPath(left: DigestEntry, right: DigestEntry): number {
+  if (left.path === right.path) {
+    return 0;
+  }
+  return left.path < right.path ? -1 : 1;
+}
+
+function sha256Of(entries: readonly DigestEntry[]): string {
+  const text = entries.toSorted(byPath).map(digestLine).join("\n");
+  return createHash("sha256").update(text).digest("hex");
+}
+
+/**
+ * The per-language and overall digests of the candidate's verdicts. A digest
+ * hashes `<path>\t<accept|reject>` lines in ascending path order, joined by LF.
+ */
+export function computeDigest(entries: readonly DigestEntry[]): ParseDigest {
+  const languages = Object.fromEntries(
+    AGREEMENT_LANGUAGES.map((language) => {
+      const own = entries.filter((entry) => entry.language === language);
+      const accepted = own.filter((entry) => entry.accepted).length;
+      return [
+        language,
+        { files: own.length, accepted, rejected: own.length - accepted, sha256: sha256Of(own) },
+      ];
+    }),
+  ) as Record<AgreementLanguage, LanguageDigest>;
+  return { languages, sha256: sha256Of(entries) };
+}
+
+export function formatDigestTable(digest: ParseDigest): string {
+  const header = ["language", "files", "accepted", "rejected", "sha256"];
+  const total = Object.values(digest.languages).reduce(
+    (sum, counts) => ({
+      files: sum.files + counts.files,
+      accepted: sum.accepted + counts.accepted,
+      rejected: sum.rejected + counts.rejected,
+    }),
+    { files: 0, accepted: 0, rejected: 0 },
+  );
+  const body = [
+    ...AGREEMENT_LANGUAGES.map((language) => [language, digest.languages[language]] as const),
+    ["ALL", { ...total, sha256: digest.sha256 }] as const,
+  ].map(([name, counts]) => [
+    name,
+    String(counts.files),
+    String(counts.accepted),
+    String(counts.rejected),
+    counts.sha256,
+  ]);
+  const widths = header.map((title, index) =>
+    Math.max(title.length, ...body.map((row) => row[index]?.length ?? 0)),
+  );
+  const format = (row: readonly string[]): string =>
+    row
+      .map((cell, index) => {
+        const width = widths[index] ?? 0;
+        return index === 0 || index === row.length - 1 ? cell.padEnd(width) : cell.padStart(width);
+      })
+      .join("  ")
+      .trimEnd();
+  return [format(header), ...body.map(format)].join("\n");
+}
+
+/** The path of a built executable: the `.exe` suffix is the platform's, not the build recipe's. */
+export function executablePath(path: string, platform: string): string {
+  return platform === "win32" ? `${path}.exe` : path;
 }
