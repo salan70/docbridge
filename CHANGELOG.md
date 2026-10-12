@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-12
+
+### Added
+
+- A language entry under `include.code` accepts an optional `exclude` array.
+  Matched files that an `exclude` pattern selects are not managed, such as
+  Flutter's `*.g.dart` and `*.freezed.dart` files.
+
 ## [0.15.0] - 2026-10-12
 
 ### Added
@@ -577,7 +585,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/salan70/docbridge/releases/tag/v0.16.0
 [0.15.0]: https://github.com/salan70/docbridge/releases/tag/v0.15.0
 [0.14.0]: https://github.com/salan70/docbridge/releases/tag/v0.14.0
 [0.13.1]: https://github.com/salan70/docbridge/releases/tag/v0.13.1

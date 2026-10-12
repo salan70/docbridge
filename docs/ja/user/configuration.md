@@ -114,8 +114,27 @@ Python、Ruby、Java のファイルは、マシンにインストールされ�
 
 ## 対象外のファイル
 
-設定に `exclude` property や glob の否定はありません。test、fixture、生成物、一般文書を
-除くには、肯定の include pattern を狭くします。
+言語 entry の `exclude` は、`patterns` に一致したファイルのうち管理対象から外すものを指定します。
+生成物を外すときに使います。Flutter の `build_runner` が出力する `*.g.dart` と
+`*.freezed.dart` が例です。
+
+```json
+{
+  "include": {
+    "code": {
+      "dart": {
+        "patterns": ["lib/**/*.dart"],
+        "exclude": ["lib/**/*.g.dart", "lib/**/*.freezed.dart"]
+      }
+    },
+    "docs": ["docs/**/*.md"]
+  }
+}
+```
+
+`exclude` の pattern は `patterns` と同じ規則に従い、言語の拡張子で終わる必要があります。
+glob の否定はないため、`patterns` に一致したファイルを外す方法は `exclude` だけです。
+test、fixture、一般文書を除くには、肯定の include pattern を狭くします。
 
 ```json
 {

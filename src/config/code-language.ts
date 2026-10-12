@@ -1,5 +1,5 @@
 import type { CodeLanguage, DocBridgeDiagnostic } from "../model/types";
-import { collectFiles } from "../shared/glob";
+import { collectFiles, matchGlob } from "../shared/glob";
 import { comparePaths } from "../shared/path-order";
 
 /**
@@ -19,6 +19,8 @@ import { comparePaths } from "../shared/path-order";
  */
 export type CodeIncludeEntry = {
   patterns: string[];
+  /** Optional patterns that remove matched files from management. */
+  exclude?: string[];
   /** Optional language-specific visibility scope; validated per adapter. */
   visibility?: string[];
 };
@@ -126,7 +128,7 @@ export function collectCodeFiles(
     if (entry === undefined) {
       continue;
     }
-    for (const relPath of collectLanguageFiles(projectRoot, language, entry.patterns)) {
+    for (const relPath of collectLanguageFiles(projectRoot, language, entry)) {
       if (seen.has(relPath)) {
         // Defensive: overlap is rejected at config load, so a repeat here would
         // only occur from concurrent edits. Keep the first owning language.
@@ -154,7 +156,7 @@ export function codeFileOwners(
     if (entry === undefined) {
       continue;
     }
-    for (const relPath of collectLanguageFiles(projectRoot, language, entry.patterns)) {
+    for (const relPath of collectLanguageFiles(projectRoot, language, entry)) {
       const existing = owners.get(relPath);
       if (existing === undefined) {
         owners.set(relPath, [language]);
@@ -166,13 +168,19 @@ export function codeFileOwners(
   return owners;
 }
 
-/** Collect the files `patterns` match, minus those `language` excludes by suffix. */
+/**
+ * Collect the files `entry.patterns` match, minus those `language` excludes by
+ * suffix and those `entry.exclude` matches.
+ */
 function collectLanguageFiles(
   projectRoot: string,
   language: CodeLanguage,
-  patterns: string[],
+  entry: CodeIncludeEntry,
 ): string[] {
-  return collectFiles(projectRoot, patterns).filter(
-    (relPath) => !hasExcludedSuffix(language, relPath),
+  const excluded = entry.exclude ?? [];
+  return collectFiles(projectRoot, entry.patterns).filter(
+    (relPath) =>
+      !hasExcludedSuffix(language, relPath) &&
+      !excluded.some((pattern) => matchGlob(pattern, relPath)),
   );
 }

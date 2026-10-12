@@ -42,6 +42,24 @@ test("collectCodeFiles drops a matched file with its language's excluded suffix"
   );
 });
 
+test("collectCodeFiles drops a matched file that an exclude pattern selects", () => {
+  withProject({ "lib/a.dart": "void a() {}\n", "lib/a.g.dart": "// generated\n" }, (root) => {
+    const files = collectCodeFiles(root, {
+      dart: { patterns: ["lib/**/*.dart"], exclude: ["lib/**/*.g.dart"] },
+    });
+    expect(files).toEqual([{ language: "dart", relPath: "lib/a.dart" }]);
+  });
+});
+
+test("codeFileOwners gives no owner to a matched file that an exclude pattern selects", () => {
+  withProject({ "lib/a.dart": "void a() {}\n", "lib/a.g.dart": "// generated\n" }, (root) => {
+    const owners = codeFileOwners(root, {
+      dart: { patterns: ["lib/**/*.dart"], exclude: ["lib/**/*.g.dart"] },
+    });
+    expect([...owners.keys()]).toEqual(["lib/a.dart"]);
+  });
+});
+
 test("collectCodeFiles claims .tsx, .mts, and .cts files as typescript but no declaration file", () => {
   withProject(
     {
