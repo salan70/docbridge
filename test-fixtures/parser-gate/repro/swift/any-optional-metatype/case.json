@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "The metatype of an optional existential, `(any Error)?.self`, as an argument.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

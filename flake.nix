@@ -32,41 +32,58 @@
         );
     in
     {
-      devShells = forAllSystems (pkgs: {
-        # `mkShellNoCC` avoids exporting `SDKROOT`/`DEVELOPER_DIR` from nixpkgs'
-        # Apple SDK on macOS. That SDK is built with an older Swift than the
-        # system toolchain and breaks `swift build` for the bundled scanner.
-        # The Rust toolchain is supplied explicitly below instead.
-        default = pkgs.mkShellNoCC {
-          packages = [
-            pkgs.actionlint
-            pkgs.bun
-            pkgs.dart
-            pkgs.deadnix
-            pkgs.go
-            # Runtime-backed scanner workers: the Java worker builds with the JDK;
-            # the Python and Ruby workers run on these interpreters; ruff formats
-            # and lints the Python worker.
-            pkgs.jdk17_headless
-            pkgs.python3
-            pkgs.ruby
-            pkgs.ruff
-            # The related-gate CI recipe test executes the documented step,
-            # which validates the gate's JSON report with jq.
-            pkgs.jq
-            pkgs.just
-            # The npm package targets the Node.js runtime; verify-dist and
-            # pack-smoke execute the built CLI with Node.
-            pkgs.nodejs
-            pkgs.nixfmt
-            pkgs.rumdl
-            (pkgs.rust-bin.fromRustupToolchainFile ./packages/rust-scanner/rust-toolchain.toml)
-            pkgs.shellcheck
-            pkgs.shfmt
-            pkgs.statix
+      devShells = forAllSystems (
+        pkgs:
+        let
+          # `mkShellNoCC` avoids exporting `SDKROOT`/`DEVELOPER_DIR` from nixpkgs'
+          # Apple SDK on macOS. That SDK is built with an older Swift than the
+          # system toolchain and breaks `swift build` for the bundled scanner.
+          # The Rust toolchain is supplied explicitly below instead.
+          shellWithRust =
+            toolchainFile: extraPackages:
+            pkgs.mkShellNoCC {
+              packages = [
+                pkgs.actionlint
+                pkgs.bun
+                pkgs.dart
+                pkgs.deadnix
+                pkgs.go
+                # Runtime-backed scanner workers: the Java worker builds with the JDK;
+                # the Python and Ruby workers run on these interpreters; ruff formats
+                # and lints the Python worker.
+                pkgs.jdk17_headless
+                pkgs.python3
+                pkgs.ruby
+                pkgs.ruff
+                # The related-gate CI recipe test executes the documented step,
+                # which validates the gate's JSON report with jq.
+                pkgs.jq
+                pkgs.just
+                # The npm package targets the Node.js runtime; verify-dist and
+                # pack-smoke execute the built CLI with Node.
+                pkgs.nodejs
+                pkgs.nixfmt
+                pkgs.rumdl
+                (pkgs.rust-bin.fromRustupToolchainFile toolchainFile)
+                pkgs.shellcheck
+                pkgs.shfmt
+                pkgs.statix
+              ]
+              ++ extraPackages;
+            };
+        in
+        {
+          default = shellWithRust ./packages/rust-scanner/rust-toolchain.toml [ ];
+          # The Phase 0 parser gate (issue #200) needs a newer Rust than the
+          # shipped Rust scanner. Its `ruby-prism-sys` dependency generates
+          # bindings with bindgen, which loads libclang; the hook points bindgen
+          # at the one from nixpkgs, because a build script linked in this shell
+          # cannot load the host's.
+          parser-gate = shellWithRust ./packages/parser-gate/rust-toolchain.toml [
+            pkgs.rustPlatform.bindgenHook
           ];
-        };
-      });
+        }
+      );
 
       formatter = forAllSystems (pkgs: pkgs.nixfmt);
     };

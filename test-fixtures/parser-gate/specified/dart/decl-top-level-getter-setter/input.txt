@@ -1,0 +1,9 @@
+String _token = '';
+
+/// @doc docs/auth.md#token
+String get token { return _token; }
+
+/// @doc docs/auth.md#set-token
+set token(String value) { _token = value; }
+
+String get label { return _token; }

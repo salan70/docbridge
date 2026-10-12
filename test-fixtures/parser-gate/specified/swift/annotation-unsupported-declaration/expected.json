@@ -1,0 +1,15 @@
+{
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "unsupported_declaration",
+      "target": "Sources/Input.swift",
+      "language": "swift",
+      "message": "Swift declaration annotated with @doc is not supported.",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 18 }
+    }
+  ]
+}

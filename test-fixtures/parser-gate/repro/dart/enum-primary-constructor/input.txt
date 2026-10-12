@@ -1,0 +1,4 @@
+enum Level(final int rank) {
+  low(1),
+  high(2);
+}

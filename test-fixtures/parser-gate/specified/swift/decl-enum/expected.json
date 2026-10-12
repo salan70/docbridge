@@ -1,0 +1,29 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "Mode",
+      "canonicalId": "Mode",
+      "endpoint": "Sources/Input.swift#Mode",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 13 },
+      "nameRange": { "start": { "line": 2, "column": 13 }, "end": { "line": 2, "column": 17 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 5, "column": 2 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 2, "column": 17 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#Mode",
+      "target": "docs/a.md#enum",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 24 } }
+    }
+  ],
+  "diagnostics": []
+}

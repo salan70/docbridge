@@ -1,0 +1,5 @@
+func scan(_ pairs: [(Kind, Kind)]) {
+    for case (.leaf(1), .node(let child)) in pairs {
+        use(child)
+    }
+}

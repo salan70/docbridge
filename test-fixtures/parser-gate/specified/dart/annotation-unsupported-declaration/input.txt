@@ -1,0 +1,5 @@
+/// @doc docs/auth.md#callback
+typedef Callback = void Function();
+
+/// @doc docs/auth.md#login
+void login() {}

@@ -1,0 +1,5 @@
+func count() {
+    for index in 0... {
+        if index > 9 { break }
+    }
+}

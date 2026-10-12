@@ -1,0 +1,70 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "shout",
+      "canonicalId": "String.shout",
+      "endpoint": "lib/input.dart#String.shout",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 9,
+        "column": 10
+      },
+      "nameRange": {
+        "start": {
+          "line": 9,
+          "column": 10
+        },
+        "end": {
+          "line": 9,
+          "column": 15
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 8,
+          "column": 3
+        },
+        "end": {
+          "line": 9,
+          "column": 32
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 8,
+          "column": 3
+        },
+        "end": {
+          "line": 9,
+          "column": 18
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "lib/input.dart#String.shout",
+      "target": "docs/str.md#shout",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 8,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 8,
+          "column": 12
+        },
+        "end": {
+          "line": 8,
+          "column": 29
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

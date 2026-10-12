@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "An `@available` attribute before a `#Preview` macro expansion declaration.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

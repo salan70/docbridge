@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "An `@_lifetime(...)` attribute on a getter and on a function.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

@@ -1,0 +1,4 @@
+open class Base {
+    open func a() {}
+    public func b() {}
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A `consume` expression as the subject of a `switch` or the condition of an `if`.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

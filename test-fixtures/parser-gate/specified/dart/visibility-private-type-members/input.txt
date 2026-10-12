@@ -1,0 +1,10 @@
+class _Impl {
+  void run() {}
+
+  _Impl();
+}
+
+class Facade {
+  /// @doc docs/api.md#run
+  void run() {}
+}

@@ -1,0 +1,3 @@
+/// @doc docs/a.md#one
+/// @doc docs/b.md#two
+public func f() {}

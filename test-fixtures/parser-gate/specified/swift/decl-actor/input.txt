@@ -1,0 +1,2 @@
+/// @doc docs/a.md#actor
+public actor Counter {}

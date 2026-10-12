@@ -1,0 +1,8 @@
+struct Ticket {
+    var done: Void = ()
+    func finish() -> Result<Void, Error> {
+        return .success(())
+    }
+    func ping() { notify(value: ()) }
+    func wipe() -> Void { return () }
+}

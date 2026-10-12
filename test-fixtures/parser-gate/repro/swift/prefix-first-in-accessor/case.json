@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "The identifier `prefix` as the first token of a computed property body.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

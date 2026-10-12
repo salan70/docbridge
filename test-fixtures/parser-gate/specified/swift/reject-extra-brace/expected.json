@@ -1,0 +1,14 @@
+{
+  "symbols": [],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "code_parse_error",
+      "target": "Sources/Input.swift",
+      "language": "swift",
+      "message": "syntax error"
+    }
+  ]
+}

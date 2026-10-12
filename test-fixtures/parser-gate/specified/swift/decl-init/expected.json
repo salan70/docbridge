@@ -1,0 +1,45 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "init",
+      "canonicalId": "AuthService.init(email:password:)",
+      "endpoint": "Sources/Input.swift#AuthService.init(email:password:)",
+      "location": { "filePath": "Sources/Input.swift", "line": 3, "column": 12 },
+      "nameRange": { "start": { "line": 3, "column": 12 }, "end": { "line": 3, "column": 16 } },
+      "declarationRange": {
+        "start": { "line": 2, "column": 5 },
+        "end": { "line": 3, "column": 52 }
+      },
+      "signatureRange": { "start": { "line": 2, "column": 5 }, "end": { "line": 3, "column": 49 } }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "AuthService",
+      "canonicalId": "AuthService",
+      "endpoint": "Sources/Input.swift#AuthService",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 14 },
+      "nameRange": { "start": { "line": 1, "column": 14 }, "end": { "line": 1, "column": 25 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 4, "column": 2 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 1, "column": 25 } }
+    }
+  ],
+  "links": [
+    {
+      "source": "Sources/Input.swift#AuthService.init(email:password:)",
+      "target": "docs/a.md#init",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 14 },
+      "targetRange": { "start": { "line": 2, "column": 14 }, "end": { "line": 2, "column": 28 } }
+    }
+  ],
+  "diagnostics": []
+}

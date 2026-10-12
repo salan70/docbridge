@@ -1,0 +1,29 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "Token",
+      "canonicalId": "Token",
+      "endpoint": "Sources/Input.swift#Token",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 15 },
+      "nameRange": { "start": { "line": 2, "column": 15 }, "end": { "line": 2, "column": 20 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 2, "column": 23 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 2, "column": 20 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#Token",
+      "target": "docs/a.md#struct",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 26 } }
+    }
+  ],
+  "diagnostics": []
+}

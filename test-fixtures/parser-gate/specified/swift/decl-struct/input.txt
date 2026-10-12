@@ -1,0 +1,2 @@
+/// @doc docs/a.md#struct
+public struct Token {}

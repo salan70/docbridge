@@ -1,0 +1,7 @@
+func poll(box: Box) async {
+    if await box.ready { return }
+    while await box.busy { await pause() }
+    if let item = await box.item { use(item) }
+    switch await box.phase { default: break }
+    if await box.limit == nil { return }
+}

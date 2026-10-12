@@ -1,0 +1,2 @@
+/// @doc docs/a.md#class
+public class Session {}

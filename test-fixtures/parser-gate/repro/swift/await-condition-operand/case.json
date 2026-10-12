@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "An `await` on a name or member path that leads the condition of an `if`, `while` or `switch`, also after `let x =` and before `==`.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

@@ -1,0 +1,6 @@
+extension _Helpers on String {
+  /// @doc docs/str.md#clean
+  String clean() { return trim(); }
+
+  String dirty() { return this; }
+}

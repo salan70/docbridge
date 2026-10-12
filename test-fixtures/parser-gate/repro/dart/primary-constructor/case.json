@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A Dart 3.13 primary constructor in a class header; the shipped analyzer 9.0.0 rejects it too.",
+  "shipped": "reject",
+  "candidate": "reject"
+}

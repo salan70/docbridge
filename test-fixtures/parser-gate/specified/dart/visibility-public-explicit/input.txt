@@ -1,0 +1,10 @@
+/// @doc docs/api.md#open
+void open() {}
+
+void close() {}
+
+void _hidden() {}
+
+int _count = 0;
+
+class _Impl {}

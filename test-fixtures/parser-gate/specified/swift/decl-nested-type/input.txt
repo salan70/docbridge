@@ -1,0 +1,6 @@
+public struct Outer {
+    public struct Inner {
+        /// @doc docs/a.md#f
+        public func f() {}
+    }
+}

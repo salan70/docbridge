@@ -1,0 +1,4 @@
+/// @doc docs/a.md#x
+public struct A {
+    public func f() {}
+}

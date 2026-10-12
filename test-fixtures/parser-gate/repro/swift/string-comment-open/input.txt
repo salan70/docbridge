@@ -1,0 +1,5 @@
+func lead() -> String {
+    return "/*"
+}
+// closes with */
+struct Marker {}

@@ -1,0 +1,9 @@
+class AuthService {
+  /// @doc docs/auth.md#new
+  AuthService();
+
+  /// @doc docs/auth.md#guest
+  AuthService.guest();
+
+  AuthService.admin() {}
+}

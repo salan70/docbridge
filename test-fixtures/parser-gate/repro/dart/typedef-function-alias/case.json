@@ -1,0 +1,7 @@
+{
+  "kind": "grammar",
+  "construct": "A function-type alias whose return type has type arguments and whose parameter list is empty, read as a variable declaration (worked around in dart.rs).",
+  "shipped": "accept",
+  "candidate": "accept",
+  "identical": true
+}

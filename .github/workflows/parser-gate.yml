@@ -1,0 +1,156 @@
+name: Parser gate
+
+on:
+  pull_request:
+    paths:
+      - "packages/parser-gate/**"
+      - "scripts/parser-gate/**"
+      - "test-fixtures/parser-gate/**"
+      - ".github/workflows/parser-gate.yml"
+      # The Nix shell the jobs run in.
+      - "flake.nix"
+      - "flake.lock"
+  workflow_dispatch:
+
+concurrency:
+  group: parser-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
+      # The gate scripts import the scanner host, which needs the locked npm
+      # dependencies.
+      - name: Install dependencies
+        run: nix develop .#parser-gate -c bun install --frozen-lockfile
+
+      - name: just parser-gate-verify
+        run: nix develop .#parser-gate -c just parser-gate-verify
+
+  # The plan's limits for cancellation and adversarial inputs are measured on
+  # this runner's target, `x86_64-unknown-linux-gnu`. The job stands apart from
+  # `verify` so that a missed limit does not hide a passing verification.
+  operational:
+    name: operational
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
+      - name: Install dependencies
+        run: nix develop .#parser-gate -c bun install --frozen-lockfile
+
+      - name: Build the candidate
+        run: nix develop .#parser-gate -c just build-parser-gate
+
+      - name: just parser-gate-operational
+        run: |
+          set -o pipefail
+          status=0
+          nix develop .#parser-gate -c just parser-gate-operational | tee "${RUNNER_TEMP}/operational.txt" || status=$?
+          {
+            echo "### Operational checks"
+            echo
+            echo '```'
+            cat "${RUNNER_TEMP}/operational.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${status}"
+
+  # Each target builds natively on its platform's host runner, so the build
+  # needs no cross toolchain. The parsers need a C compiler, and `ruby-prism-sys`
+  # also needs libclang.
+  build:
+    name: build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # `rust-toolchain.toml` is the only source of the toolchain version.
+      - name: Read the Rust version
+        id: toolchains
+        run: echo "rust=$(sed -n 's/^channel = "\(.*\)"$/\1/p' packages/parser-gate/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.toolchains.outputs.rust }}
+
+      - name: Build
+        run: cargo build --release --locked --manifest-path packages/parser-gate/Cargo.toml --target-dir .tmp/parser-gate/target
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The digest of the candidate's verdicts on the repository's source
+      # files; every target must print the same one.
+      - name: Digest the parse verdicts
+        run: |
+          set -o pipefail
+          status=0
+          bun run scripts/parser-gate/parse-agreement.ts --digest | tee "${RUNNER_TEMP}/parse-digest.txt" || status=$?
+          {
+            echo "### ${{ matrix.target }} parse digest"
+            echo
+            echo '```'
+            cat "${RUNNER_TEMP}/parse-digest.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${status}"
+
+      - name: Parse the annotated-declaration inputs
+        run: |
+          binary=.tmp/parser-gate/target/release/parser-gate
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            binary="${binary}.exe"
+          fi
+          for language in swift dart rust go java python ruby typescript javascript; do
+            input="test-fixtures/scanner-conformance/annotated-declaration/${language}/input.txt"
+            verdict="$(printf '%s\n' "${input}" | "${binary}" parse "${language}")"
+            echo "${language}: ${verdict}"
+            case "${verdict}" in
+              *'"accepted":true'*) ;;
+              *)
+                echo "::error::${language} input was not accepted"
+                exit 1
+                ;;
+            esac
+          done
+          size="$(wc -c < "${binary}" | tr -d ' ')"
+          {
+            echo "### ${{ matrix.target }}"
+            echo
+            echo "Binary size: ${size} bytes"
+          } >> "$GITHUB_STEP_SUMMARY"

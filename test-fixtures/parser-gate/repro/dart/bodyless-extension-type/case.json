@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A Dart 3.13 extension type declaration that ends in `;` in place of a body; the shipped analyzer 9.0.0 rejects it too.",
+  "shipped": "reject",
+  "candidate": "reject"
+}

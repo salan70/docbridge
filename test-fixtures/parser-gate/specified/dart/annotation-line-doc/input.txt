@@ -1,0 +1,6 @@
+/// Starts the login flow.
+///
+/// @doc docs/auth.md#login
+///
+/// Returns nothing.
+void login() {}

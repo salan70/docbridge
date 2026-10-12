@@ -1,0 +1,52 @@
+{
+  "symbols": [],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "a",
+      "canonicalId": "a()",
+      "endpoint": "Sources/Input.swift#a()",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 13 },
+      "nameRange": { "start": { "line": 1, "column": 13 }, "end": { "line": 1, "column": 14 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 1, "column": 19 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 1, "column": 16 } }
+    },
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "B",
+      "canonicalId": "B",
+      "endpoint": "Sources/Input.swift#B",
+      "location": { "filePath": "Sources/Input.swift", "line": 3, "column": 15 },
+      "nameRange": { "start": { "line": 3, "column": 15 }, "end": { "line": 3, "column": 16 } },
+      "declarationRange": {
+        "start": { "line": 3, "column": 1 },
+        "end": { "line": 5, "column": 2 }
+      },
+      "signatureRange": { "start": { "line": 3, "column": 1 }, "end": { "line": 3, "column": 16 } }
+    },
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "x",
+      "canonicalId": "B.x",
+      "endpoint": "Sources/Input.swift#B.x",
+      "location": { "filePath": "Sources/Input.swift", "line": 4, "column": 16 },
+      "nameRange": { "start": { "line": 4, "column": 16 }, "end": { "line": 4, "column": 17 } },
+      "declarationRange": {
+        "start": { "line": 4, "column": 5 },
+        "end": { "line": 4, "column": 22 }
+      },
+      "signatureRange": { "start": { "line": 4, "column": 5 }, "end": { "line": 4, "column": 22 } }
+    }
+  ],
+  "links": [],
+  "diagnostics": []
+}

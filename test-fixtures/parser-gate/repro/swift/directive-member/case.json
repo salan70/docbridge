@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A `#warning` directive in a type body.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

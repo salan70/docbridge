@@ -1,0 +1,2 @@
+/// @doc docs/a.md#protocol
+public protocol Store {}

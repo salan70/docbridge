@@ -1,0 +1,93 @@
+{
+  "symbols": [],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "limit",
+      "canonicalId": "limit",
+      "endpoint": "lib/input.dart#limit",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 1,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 1,
+          "column": 5
+        },
+        "end": {
+          "line": 1,
+          "column": 10
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 1,
+          "column": 15
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 1,
+          "column": 15
+        }
+      }
+    },
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "lib/input.dart#login",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 6
+        },
+        "end": {
+          "line": 2,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 2,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 16
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 2,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 14
+        }
+      }
+    }
+  ],
+  "links": [],
+  "diagnostics": []
+}

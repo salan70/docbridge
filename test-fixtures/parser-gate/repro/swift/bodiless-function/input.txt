@@ -1,0 +1,5 @@
+@_silgen_name("native_open")
+func nativeOpen(_ path: UnsafePointer<CChar>) -> Int32
+
+@_silgen_name("native_close")
+func nativeClose(_ fd: Int32) -> Int32

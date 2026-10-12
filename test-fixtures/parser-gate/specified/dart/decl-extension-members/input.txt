@@ -1,0 +1,6 @@
+extension StringTools on String {
+  /// @doc docs/str.md#shout
+  String shout() { return toUpperCase(); }
+
+  String whisper() { return toLowerCase(); }
+}

@@ -1,0 +1,74 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "login",
+      "canonicalId": "login",
+      "endpoint": "lib/input.dart#login",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 6
+        },
+        "end": {
+          "line": 2,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 16
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 14
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "invalid_link_target",
+      "target": "docs/auth.md",
+      "source": "lib/input.dart#login",
+      "language": "dart",
+      "message": "Link target must be a project-root-relative file path and fragment in file#fragment form.",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 1,
+        "column": 10
+      },
+      "range": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 22
+        }
+      }
+    }
+  ]
+}

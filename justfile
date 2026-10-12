@@ -8,6 +8,13 @@ swift_version := trim(read(".swift-version"))
 # different one, and `check-go-toolchain` fails on any other installed version.
 go_version := trim(replace_regex(read("packages/go-scanner/go.mod"), "(?s).*\ngo ([0-9.]+)\n.*", "$1"))
 
+# The Rust toolchain the parser gate candidate pins; `rust-toolchain.toml` is its only source.
+parser_gate_rust_version := trim(replace_regex(read("packages/parser-gate/rust-toolchain.toml"), "(?s).*channel = \"([0-9.]+)\".*", "$1"))
+
+# The candidate builds under `.tmp/`. Its nine parsers leave thousands of build
+# files, and a build directory inside the package slows every repository walk.
+parser_gate_target_dir := ".tmp/parser-gate/target"
+
 export GOTOOLCHAIN := "local"
 
 default:
@@ -189,6 +196,61 @@ build-rust-scanner:
 
 build-rust-scanner-debug:
     cargo build --manifest-path packages/rust-scanner/Cargo.toml
+
+# The parser gate candidate is built with the toolchain it pins, so a stale shell fails here.
+check-parser-gate-toolchain:
+    test "$(rustc --version | cut -d' ' -f2)" = "{{ parser_gate_rust_version }}" || { echo "rustc is not {{ parser_gate_rust_version }}; run: nix develop .#parser-gate -c just <recipe>" >&2; exit 1; }
+
+format-check-parser-gate: check-parser-gate-toolchain
+    cargo fmt --manifest-path packages/parser-gate/Cargo.toml --check
+
+lint-parser-gate: check-parser-gate-toolchain
+    cargo clippy --manifest-path packages/parser-gate/Cargo.toml --target-dir {{ parser_gate_target_dir }} --all-targets -- -D warnings
+
+test-parser-gate: check-parser-gate-toolchain
+    cargo test --manifest-path packages/parser-gate/Cargo.toml --target-dir {{ parser_gate_target_dir }}
+
+build-parser-gate: check-parser-gate-toolchain
+    cargo build --manifest-path packages/parser-gate/Cargo.toml --target-dir {{ parser_gate_target_dir }} --release
+
+# Compare the shipped workers or the candidate binary with the conformance corpus.
+parser-gate-conformance TARGET="candidate":
+    bun run scripts/parser-gate/conformance.ts {{ TARGET }}
+
+# Compare the shipped workers or the candidate binary with the specified fixtures.
+parser-gate-specified TARGET="candidate" *ARGS:
+    bun run scripts/parser-gate/specified.ts {{ TARGET }} {{ ARGS }}
+
+# Send the corpus to the shipped workers and the candidate and write records and a summary.
+parser-gate-compare SET *ARGS:
+    bun run scripts/parser-gate/compare.ts {{ SET }} {{ ARGS }}
+
+# Check that the candidate accepts and rejects the files the shipped adapters do.
+parser-gate-parse-agreement *ARGS:
+    bun run scripts/parser-gate/parse-agreement.ts {{ ARGS }}
+
+# Run the candidate on adversarial inputs and check that Swift and Dart parses cancel.
+parser-gate-operational *ARGS:
+    bun run scripts/parser-gate/operational.ts {{ ARGS }}
+
+# Time the candidate's parse of a corpus set and record the peak memory.
+parser-gate-corpus-timing SET *ARGS:
+    bun run scripts/parser-gate/corpus-timing.ts {{ SET }} {{ ARGS }}
+
+# Check the hand-written reproductions of the candidate's rejections.
+parser-gate-repro *ARGS:
+    bun run scripts/parser-gate/repro.ts {{ ARGS }}
+
+# Score the candidate's declaration-scoped output on the files it rejects whole.
+parser-gate-scope SET *ARGS:
+    bun run scripts/parser-gate/scope.ts {{ SET }} {{ ARGS }}
+
+parser-gate-fetch-corpus SET *ARGS:
+    bun run scripts/parser-gate/fetch-corpus.ts {{ SET }} {{ ARGS }}
+
+parser-gate-verify: format-check-parser-gate lint-parser-gate test-parser-gate build-parser-gate
+    just parser-gate-conformance candidate
+    just parser-gate-specified candidate
 
 test-go-scanner: check-go-toolchain
     cd packages/go-scanner && go test ./...

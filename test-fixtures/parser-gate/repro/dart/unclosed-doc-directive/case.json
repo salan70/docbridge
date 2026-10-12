@@ -1,0 +1,6 @@
+{
+  "kind": "worker",
+  "construct": "A doc directive without its closing brace in a doc comment; the shipped analyzer reports it as a parse error, and the candidate reads comments as text.",
+  "shipped": "reject",
+  "candidate": "accept"
+}

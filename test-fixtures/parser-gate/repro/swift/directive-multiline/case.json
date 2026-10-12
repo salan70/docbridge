@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A `#warning` directive whose argument list spans several lines.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

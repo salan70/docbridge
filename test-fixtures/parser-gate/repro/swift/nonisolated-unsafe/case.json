@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A `nonisolated(unsafe)` modifier on a local declaration in a function body.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

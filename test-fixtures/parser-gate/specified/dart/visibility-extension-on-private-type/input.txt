@@ -1,0 +1,10 @@
+class _Token {}
+
+extension TokenTools on _Token {
+  String show() { return ''; }
+}
+
+extension StringTools on String {
+  /// @doc docs/str.md#shout
+  String shout() { return ''; }
+}

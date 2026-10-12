@@ -1,0 +1,5 @@
+/// @doc docs/a.md#enum
+public enum Mode {
+    case fast
+    case slow
+}

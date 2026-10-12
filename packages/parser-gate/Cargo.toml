@@ -1,0 +1,29 @@
+[package]
+name = "parser-gate"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "DocBridge Phase 0 parser gate candidate (issue #200); never shipped"
+
+[profile.release]
+strip = true
+
+[[bin]]
+name = "parser-gate"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tree-sitter = "=0.25.10"
+tree-sitter-dart = "=0.2.0"
+tree-sitter-swift = "=0.7.4"
+tree-sitter-go = "=0.25.0"
+tree-sitter-java = "=0.23.5"
+syn = { version = "=2.0.119", features = ["full", "parsing"] }
+proc-macro2 = { version = "1", features = ["span-locations"] }
+ruby-prism = "=1.9.0"
+oxc_parser = "=0.153.0"
+oxc_allocator = "=0.153.0"
+oxc_span = "=0.153.0"
+ruff_python_parser = "=0.0.17"

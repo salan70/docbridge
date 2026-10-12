@@ -1,0 +1,4 @@
+/// @doc docs/a.md#login
+public func login(email: String, password: String) -> Bool {
+    return true
+}

@@ -1,0 +1,29 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "login",
+      "canonicalId": "login()",
+      "endpoint": "Sources/Input.swift#login()",
+      "location": { "filePath": "Sources/Input.swift", "line": 6, "column": 13 },
+      "nameRange": { "start": { "line": 6, "column": 13 }, "end": { "line": 6, "column": 18 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 6, "column": 23 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 6, "column": 20 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#login()",
+      "target": "docs/a.md#login",
+      "location": { "filePath": "Sources/Input.swift", "line": 4, "column": 9 },
+      "targetRange": { "start": { "line": 4, "column": 9 }, "end": { "line": 4, "column": 24 } }
+    }
+  ],
+  "diagnostics": []
+}

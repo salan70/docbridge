@@ -1,0 +1,2 @@
+int get top => 1;
+set top(int v) {}

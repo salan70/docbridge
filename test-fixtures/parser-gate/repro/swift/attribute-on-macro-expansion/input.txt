@@ -1,0 +1,6 @@
+import SwiftUI
+
+@available(iOS 17, *)
+#Preview {
+    Text("Hello")
+}

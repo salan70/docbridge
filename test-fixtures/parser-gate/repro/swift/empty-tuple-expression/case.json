@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "The empty tuple `()` as a value: a stored property default, an argument, a labeled argument, a return value.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

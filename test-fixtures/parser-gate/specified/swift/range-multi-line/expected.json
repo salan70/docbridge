@@ -1,0 +1,29 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "f",
+      "canonicalId": "f(a:b:)",
+      "endpoint": "Sources/Input.swift#f(a:b:)",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 13 },
+      "nameRange": { "start": { "line": 2, "column": 13 }, "end": { "line": 2, "column": 14 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 7, "column": 2 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 5, "column": 9 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#f(a:b:)",
+      "target": "docs/a.md#x",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 21 } }
+    }
+  ],
+  "diagnostics": []
+}

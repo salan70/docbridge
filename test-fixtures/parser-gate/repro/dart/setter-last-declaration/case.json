@@ -1,0 +1,7 @@
+{
+  "kind": "grammar",
+  "construct": "A top-level setter, or an external setter, that is the last declaration of the file, read as a function whose return type is `set` (worked around in dart.rs).",
+  "shipped": "accept",
+  "candidate": "accept",
+  "identical": true
+}

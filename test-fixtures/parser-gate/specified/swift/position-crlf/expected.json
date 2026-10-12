@@ -1,0 +1,45 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "A",
+      "canonicalId": "A",
+      "endpoint": "Sources/Input.swift#A",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 15 },
+      "nameRange": { "start": { "line": 2, "column": 15 }, "end": { "line": 2, "column": 16 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 4, "column": 2 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 2, "column": 16 } }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "f",
+      "canonicalId": "A.f()",
+      "endpoint": "Sources/Input.swift#A.f()",
+      "location": { "filePath": "Sources/Input.swift", "line": 3, "column": 17 },
+      "nameRange": { "start": { "line": 3, "column": 17 }, "end": { "line": 3, "column": 18 } },
+      "declarationRange": {
+        "start": { "line": 3, "column": 5 },
+        "end": { "line": 3, "column": 23 }
+      },
+      "signatureRange": { "start": { "line": 3, "column": 5 }, "end": { "line": 3, "column": 20 } }
+    }
+  ],
+  "links": [
+    {
+      "source": "Sources/Input.swift#A",
+      "target": "docs/a.md#x",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 21 } }
+    }
+  ],
+  "diagnostics": []
+}

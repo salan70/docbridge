@@ -1,0 +1,25 @@
+{
+  "flutter/flutter/dev/bots/test.dart": ["typedef-function-alias"],
+  "flutter/flutter/dev/bots/test/cross_imports_checker_test_utils.dart": ["typedef-function-alias"],
+  "flutter/flutter/dev/bots/utils.dart": ["typedef-function-alias"],
+  "flutter/flutter/dev/integration_tests/android_hardware_smoke_test/lib/image_drawing_canvas.dart": [
+    "typedef-function-alias"
+  ],
+  "flutter/flutter/dev/integration_tests/channels/lib/src/test_step.dart": [
+    "typedef-function-alias"
+  ],
+  "flutter/flutter/dev/integration_tests/new_gallery/lib/deferred_widget.dart": [
+    "typedef-function-alias"
+  ],
+  "flutter/flutter/engine/src/flutter/lib/web_ui/test/engine/dom_http_fetch_test.dart": [
+    "typedef-function-alias"
+  ],
+  "flutter/flutter/engine/src/flutter/lib/web_ui/test/engine/view_embedder/dom_manager_test.dart": [
+    "setter-last-declaration"
+  ],
+  "flutter/flutter/packages/flutter/lib/src/cupertino/refresh.dart": ["typedef-function-alias"],
+  "flutter/flutter/packages/flutter/lib/src/foundation/licenses.dart": ["typedef-function-alias"],
+  "flutter/flutter/packages/flutter/lib/src/material/refresh_indicator.dart": [
+    "typedef-function-alias"
+  ]
+}

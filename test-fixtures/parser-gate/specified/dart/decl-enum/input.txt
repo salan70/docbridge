@@ -1,0 +1,8 @@
+/// @doc docs/mode.md#mode
+enum Mode {
+  fast,
+  slow;
+
+  /// @doc docs/mode.md#label
+  String label() { return name; }
+}

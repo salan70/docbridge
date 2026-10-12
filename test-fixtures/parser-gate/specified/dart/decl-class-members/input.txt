@@ -1,0 +1,17 @@
+/// @doc docs/auth.md#service
+class AuthService {
+  /// @doc docs/auth.md#login
+  void login(String email) {}
+
+  void logout() {}
+
+  /// @doc docs/auth.md#token
+  String get token { return _token; }
+
+  set token(String value) { _token = value; }
+
+  /// @doc docs/auth.md#attempts
+  int attempts = 0;
+
+  String _token = '';
+}

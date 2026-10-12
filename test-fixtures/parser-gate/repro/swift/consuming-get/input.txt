@@ -1,0 +1,5 @@
+struct Box: ~Copyable {
+    var inner: Int {
+        consuming get { 1 }
+    }
+}

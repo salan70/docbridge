@@ -1,0 +1,5 @@
+func gather() async {
+    await withTaskGroup(of: (any Error)?.self) { group in
+        _ = group
+    }
+}

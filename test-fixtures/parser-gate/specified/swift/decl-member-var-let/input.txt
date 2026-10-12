@@ -1,0 +1,6 @@
+public struct Config {
+    /// @doc docs/a.md#host
+    public var host: String
+    /// @doc docs/a.md#port
+    public let port: Int
+}

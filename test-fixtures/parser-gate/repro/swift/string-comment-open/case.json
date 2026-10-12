@@ -1,0 +1,6 @@
+{
+  "kind": "grammar",
+  "construct": "A string literal that starts with `/*`, followed later by a line comment containing `*/`.",
+  "shipped": "accept",
+  "candidate": "reject"
+}

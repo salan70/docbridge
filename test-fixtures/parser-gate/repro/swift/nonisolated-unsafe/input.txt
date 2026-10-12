@@ -1,0 +1,4 @@
+func capture() {
+    nonisolated(unsafe) let handle = makeHandle()
+    use(handle)
+}
