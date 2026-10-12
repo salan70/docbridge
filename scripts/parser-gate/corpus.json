@@ -1,0 +1,230 @@
+{
+  "swift": [
+    {
+      "rank": 4,
+      "repository": "apple/container",
+      "commit": "f70ecbb926d925818a34917529e304b1177ce98c",
+      "set": "development",
+      "counted": 467,
+      "used": 467
+    },
+    {
+      "rank": 5,
+      "repository": "iina/iina",
+      "commit": "2afb9f20f6b4a049f9db066e55b4b7a457fa4e81",
+      "set": "holdout",
+      "counted": 221,
+      "used": 221
+    },
+    {
+      "rank": 6,
+      "repository": "exelban/stats",
+      "commit": "0c0e551e199938a92af963c25a15a3ca1aef7764",
+      "set": "holdout",
+      "counted": 122,
+      "used": 122
+    },
+    {
+      "rank": 7,
+      "repository": "Alamofire/Alamofire",
+      "commit": "bda9ed57d72988a3a2ada33d824583541f86eac6",
+      "set": "development",
+      "counted": 101,
+      "used": 101
+    },
+    {
+      "rank": 8,
+      "repository": "permissionlesstech/bitchat",
+      "commit": "5e9287fae1e5fea80ca741d4ea669829dc16f144",
+      "set": "development",
+      "counted": 530,
+      "used": 530
+    },
+    {
+      "rank": 9,
+      "repository": "utmapp/UTM",
+      "commit": "7eadb056ae0f91d979059544d0ddcd2d5a40be92",
+      "set": "holdout",
+      "counted": 240,
+      "used": 240
+    },
+    {
+      "rank": 12,
+      "repository": "rxhanson/Rectangle",
+      "commit": "810ee5ba6ee14bc71a8feef132228c7b62cf4c0f",
+      "set": "holdout",
+      "counted": 214,
+      "used": 214
+    },
+    {
+      "rank": 13,
+      "repository": "jordanbaird/Ice",
+      "commit": "11edd39115f3f43a83ae114b5348df6a0e1741cf",
+      "set": "development",
+      "counted": 116,
+      "used": 116
+    },
+    {
+      "rank": 15,
+      "repository": "manaflow-ai/cmux",
+      "commit": "df66cb4df7e0c8e9ff97abcb6e6a44b53f8b3605",
+      "set": "holdout",
+      "counted": 13108,
+      "used": 696
+    },
+    {
+      "rank": 16,
+      "repository": "ChartsOrg/Charts",
+      "commit": "1bad5469f57628782110b05996d4fa00473abf06",
+      "set": "holdout",
+      "counted": 205,
+      "used": 205
+    },
+    {
+      "rank": 17,
+      "repository": "airbnb/lottie-ios",
+      "commit": "1fb4d7d5b45b0e81239c0c0cab95136a10153762",
+      "set": "holdout",
+      "counted": 323,
+      "used": 323
+    },
+    {
+      "rank": 18,
+      "repository": "vorssaint/vorssaint-utils",
+      "commit": "fe24c1766d568b132c1c78c554cc422381a3a17d",
+      "set": "holdout",
+      "counted": 859,
+      "used": 696
+    },
+    {
+      "rank": 19,
+      "repository": "vapor/vapor",
+      "commit": "bf77fc69b1426dd297c78938349e0c7468be56be",
+      "set": "development",
+      "counted": 268,
+      "used": 268
+    },
+    {
+      "rank": 20,
+      "repository": "ReactiveX/RxSwift",
+      "commit": "3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84",
+      "set": "holdout",
+      "counted": 588,
+      "used": 588
+    },
+    {
+      "rank": 21,
+      "repository": "onevcat/Kingfisher",
+      "commit": "08557202ba5a412758fa09f01c4e807f2ad94036",
+      "set": "holdout",
+      "counted": 175,
+      "used": 175
+    },
+    {
+      "rank": 22,
+      "repository": "nikitabobko/AeroSpace",
+      "commit": "74a1bf17e82d70e0a21945ba04bb4f590bf19f83",
+      "set": "development",
+      "counted": 284,
+      "used": 284
+    }
+  ],
+  "dart": [
+    {
+      "rank": 1,
+      "repository": "flutter/flutter",
+      "commit": "33aadb51de4a494175c745a1d9101d9ef22ee53e",
+      "set": "development",
+      "counted": 6536,
+      "used": 1472
+    },
+    {
+      "rank": 2,
+      "repository": "localsend/localsend",
+      "commit": "14f3a87426eedffaa9d87d011132eca5501abeb8",
+      "set": "development",
+      "counted": 326,
+      "used": 326
+    },
+    {
+      "rank": 3,
+      "repository": "AppFlowy-IO/AppFlowy",
+      "commit": "5cf3a365dec0d59f64bad1ee4bb1050471a39b93",
+      "set": "holdout",
+      "counted": 1976,
+      "used": 661
+    },
+    {
+      "rank": 5,
+      "repository": "chen08209/FlClash",
+      "commit": "4b59eca853778d4e7be3de26589252889c899bc5",
+      "set": "holdout",
+      "counted": 748,
+      "used": 661
+    },
+    {
+      "rank": 6,
+      "repository": "team-spotube/spotube",
+      "commit": "69a310c78f5ceaf4eab7dfee98f187d38211c9ba",
+      "set": "development",
+      "counted": 382,
+      "used": 382
+    },
+    {
+      "rank": 7,
+      "repository": "Predidit/Kazumi",
+      "commit": "dc18be2af7636ae852cb49d0c4460e49b04b467c",
+      "set": "holdout",
+      "counted": 390,
+      "used": 390
+    },
+    {
+      "rank": 9,
+      "repository": "ente/ente",
+      "commit": "3b27b97bbda881ea8f6ab63b99a5fd675554c1cd",
+      "set": "holdout",
+      "counted": 1840,
+      "used": 661
+    },
+    {
+      "rank": 10,
+      "repository": "GopeedLab/gopeed",
+      "commit": "fa622a4063ad72939d3f031eac95b26760a4e15f",
+      "set": "development",
+      "counted": 404,
+      "used": 404
+    },
+    {
+      "rank": 14,
+      "repository": "ImranR98/Obtainium",
+      "commit": "af286fa8d31d7406d6db167e2314d376d74f7696",
+      "set": "holdout",
+      "counted": 109,
+      "used": 109
+    },
+    {
+      "rank": 27,
+      "repository": "felangel/bloc",
+      "commit": "b9be1e252ee24ffbe9f2fb629edc7624b2cfbf05",
+      "set": "holdout",
+      "counted": 606,
+      "used": 606
+    },
+    {
+      "rank": 29,
+      "repository": "jonataslaw/getx",
+      "commit": "e3c8fa04ae65ebf7ff0128dbeb2dc91d4dafa429",
+      "set": "holdout",
+      "counted": 217,
+      "used": 217
+    },
+    {
+      "rank": 31,
+      "repository": "flame-engine/flame",
+      "commit": "09ca927bc390b51e9e6e6fafdc128bebb3a5aedd",
+      "set": "development",
+      "counted": 1742,
+      "used": 1472
+    }
+  ]
+}

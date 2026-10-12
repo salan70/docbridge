@@ -8,7 +8,7 @@ import {
   firstDifference,
   formatResultLine,
   specifiedRequest,
-} from "./compare";
+} from "./result-diff";
 import { parseTarget, resolveWorkerCommand } from "./target";
 
 /**

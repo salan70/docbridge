@@ -2,7 +2,12 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createScannerWorkerAdapter, scanCodeFiles } from "../../src/scan/code/dispatch";
-import { type GateLanguage, type GateTarget, firstDifference, formatResultLine } from "./compare";
+import {
+  type GateLanguage,
+  type GateTarget,
+  firstDifference,
+  formatResultLine,
+} from "./result-diff";
 import { parseTarget, resolveWorkerCommand } from "./target";
 
 /**

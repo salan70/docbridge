@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { resolveScannerWorkerCommand } from "../../src/scan/code/worker/scanner-executable";
-import type { GateLanguage, GateTarget } from "./compare";
+import type { GateLanguage, GateTarget } from "./result-diff";
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 

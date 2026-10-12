@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { firstDifference, formatResultLine, specifiedRequest } from "./compare";
+import { firstDifference, formatResultLine, specifiedRequest } from "./result-diff";
 
 test("equal values have no difference", () => {
   expect(firstDifference({ a: [1, { b: "x" }] }, { a: [1, { b: "x" }] })).toBeUndefined();

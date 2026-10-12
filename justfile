@@ -217,6 +217,13 @@ parser-gate-conformance TARGET="candidate":
 parser-gate-specified TARGET="candidate" *ARGS:
     bun run scripts/parser-gate/specified.ts {{ TARGET }} {{ ARGS }}
 
+# Send the corpus to the shipped workers and the candidate and write records and a summary.
+parser-gate-compare SET *ARGS:
+    bun run scripts/parser-gate/compare.ts {{ SET }} {{ ARGS }}
+
+parser-gate-fetch-corpus SET *ARGS:
+    bun run scripts/parser-gate/fetch-corpus.ts {{ SET }} {{ ARGS }}
+
 parser-gate-verify: format-check-parser-gate lint-parser-gate test-parser-gate build-parser-gate
     just parser-gate-conformance candidate
     just parser-gate-specified candidate
