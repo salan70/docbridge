@@ -1,0 +1,6 @@
+/**
+ * Starts the login flow.
+ *
+ * @doc docs/a.md#login
+ */
+public func login() {}

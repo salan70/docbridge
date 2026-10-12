@@ -1,0 +1,114 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "shout",
+      "canonicalId": "String.shout",
+      "endpoint": "lib/input.dart#String.shout",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 3,
+        "column": 10
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 10
+        },
+        "end": {
+          "line": 3,
+          "column": 15
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 43
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 18
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "whisper",
+      "canonicalId": "String.whisper",
+      "endpoint": "lib/input.dart#String.whisper",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 5,
+        "column": 10
+      },
+      "nameRange": {
+        "start": {
+          "line": 5,
+          "column": 10
+        },
+        "end": {
+          "line": 5,
+          "column": 17
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 5,
+          "column": 3
+        },
+        "end": {
+          "line": 5,
+          "column": 45
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 5,
+          "column": 3
+        },
+        "end": {
+          "line": 5,
+          "column": 20
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "lib/input.dart#String.shout",
+      "target": "docs/str.md#shout",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 12
+        },
+        "end": {
+          "line": 2,
+          "column": 29
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

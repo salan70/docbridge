@@ -1,0 +1,4 @@
+/// @doc docs/a.md#one
+public func f(_ a: Int) {}
+/// @doc docs/a.md#two
+public func f(_ b: Int) {}

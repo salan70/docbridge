@@ -1,0 +1,132 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "Mode",
+      "canonicalId": "Mode",
+      "endpoint": "lib/input.dart#Mode",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 6
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 6
+        },
+        "end": {
+          "line": 2,
+          "column": 10
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 8,
+          "column": 2
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 11
+        }
+      }
+    },
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "label",
+      "canonicalId": "Mode.label",
+      "endpoint": "lib/input.dart#Mode.label",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 7,
+        "column": 10
+      },
+      "nameRange": {
+        "start": {
+          "line": 7,
+          "column": 10
+        },
+        "end": {
+          "line": 7,
+          "column": 15
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 6,
+          "column": 3
+        },
+        "end": {
+          "line": 7,
+          "column": 34
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 6,
+          "column": 3
+        },
+        "end": {
+          "line": 7,
+          "column": 18
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "lib/input.dart#Mode",
+      "target": "docs/mode.md#mode",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 1,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 27
+        }
+      }
+    },
+    {
+      "source": "lib/input.dart#Mode.label",
+      "target": "docs/mode.md#label",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 6,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 6,
+          "column": 12
+        },
+        "end": {
+          "line": 6,
+          "column": 30
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

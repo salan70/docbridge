@@ -1,0 +1,8 @@
+class AuthService extends Base {
+  /// @doc docs/auth.md#login
+  void login() {
+    run();
+  }
+
+  int attempts = 0;
+}

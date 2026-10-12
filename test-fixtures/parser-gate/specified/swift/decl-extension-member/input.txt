@@ -1,0 +1,7 @@
+public struct AuthService {}
+
+extension AuthService {
+    /// @doc docs/a.md#logout
+    public func logout() {}
+    public var token: String
+}

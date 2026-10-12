@@ -1,0 +1,6 @@
+public func a() {}
+open class B {}
+internal func c() {}
+func d() {}
+fileprivate func e() {}
+private func f() {}

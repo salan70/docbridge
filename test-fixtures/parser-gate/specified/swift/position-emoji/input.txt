@@ -1,0 +1,1 @@
+/** 😀 @doc docs/a.md#x */ public func f() {}

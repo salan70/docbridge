@@ -1,0 +1,2 @@
+/// Starts the login flow.
+void login() {}

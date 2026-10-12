@@ -1,0 +1,6 @@
+public class Base {
+    open func a() {}
+    public func b() {}
+    func c() {}
+    private func d() {}
+}

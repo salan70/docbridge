@@ -1,0 +1,50 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "maxRetries",
+      "canonicalId": "maxRetries",
+      "endpoint": "Sources/Input.swift#maxRetries",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 12 },
+      "nameRange": { "start": { "line": 2, "column": 12 }, "end": { "line": 2, "column": 22 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 2, "column": 27 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 2, "column": 27 } }
+    },
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "timeout",
+      "canonicalId": "timeout",
+      "endpoint": "Sources/Input.swift#timeout",
+      "location": { "filePath": "Sources/Input.swift", "line": 4, "column": 12 },
+      "nameRange": { "start": { "line": 4, "column": 12 }, "end": { "line": 4, "column": 19 } },
+      "declarationRange": {
+        "start": { "line": 3, "column": 1 },
+        "end": { "line": 4, "column": 24 }
+      },
+      "signatureRange": { "start": { "line": 3, "column": 1 }, "end": { "line": 4, "column": 24 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#maxRetries",
+      "target": "docs/a.md#retries",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 27 } }
+    },
+    {
+      "source": "Sources/Input.swift#timeout",
+      "target": "docs/a.md#timeout",
+      "location": { "filePath": "Sources/Input.swift", "line": 3, "column": 10 },
+      "targetRange": { "start": { "line": 3, "column": 10 }, "end": { "line": 3, "column": 27 } }
+    }
+  ],
+  "diagnostics": []
+}

@@ -1,0 +1,2 @@
+/// Starts the login flow.
+public func login() {}

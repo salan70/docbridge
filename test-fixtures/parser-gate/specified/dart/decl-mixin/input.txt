@@ -1,0 +1,7 @@
+/// @doc docs/log.md#logger
+mixin Logger {
+  /// @doc docs/log.md#log
+  void log(String message) {}
+
+  void flush() {}
+}

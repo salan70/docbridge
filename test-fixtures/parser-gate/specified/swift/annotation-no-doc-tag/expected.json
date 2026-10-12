@@ -1,0 +1,22 @@
+{
+  "symbols": [],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "login",
+      "canonicalId": "login()",
+      "endpoint": "Sources/Input.swift#login()",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 13 },
+      "nameRange": { "start": { "line": 2, "column": 13 }, "end": { "line": 2, "column": 18 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 2, "column": 23 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 2, "column": 20 } }
+    }
+  ],
+  "links": [],
+  "diagnostics": []
+}

@@ -1,0 +1,4 @@
+String icon = '😀'; void login() {}
+
+/// @doc docs/😀.md#other
+void other() {}

@@ -1,0 +1,2 @@
+/// @doc docs/a.md#login Human-readable note
+public func login() {}

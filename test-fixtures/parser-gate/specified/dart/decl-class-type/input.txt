@@ -1,0 +1,4 @@
+/// @doc docs/auth.md#service
+class AuthService {}
+
+class Session {}

@@ -1,0 +1,157 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "login",
+      "canonicalId": "AuthService.login",
+      "endpoint": "lib/input.dart#AuthService.login",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 3,
+        "column": 8
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 8
+        },
+        "end": {
+          "line": 3,
+          "column": 13
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 5,
+          "column": 4
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 16
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "AuthService",
+      "canonicalId": "AuthService",
+      "endpoint": "lib/input.dart#AuthService",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 1,
+        "column": 7
+      },
+      "nameRange": {
+        "start": {
+          "line": 1,
+          "column": 7
+        },
+        "end": {
+          "line": 1,
+          "column": 18
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 8,
+          "column": 2
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 1,
+          "column": 32
+        }
+      }
+    },
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "attempts",
+      "canonicalId": "AuthService.attempts",
+      "endpoint": "lib/input.dart#AuthService.attempts",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 7,
+        "column": 7
+      },
+      "nameRange": {
+        "start": {
+          "line": 7,
+          "column": 7
+        },
+        "end": {
+          "line": 7,
+          "column": 15
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 7,
+          "column": 3
+        },
+        "end": {
+          "line": 7,
+          "column": 20
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 7,
+          "column": 3
+        },
+        "end": {
+          "line": 7,
+          "column": 20
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "lib/input.dart#AuthService.login",
+      "target": "docs/auth.md#login",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 12
+        },
+        "end": {
+          "line": 2,
+          "column": 30
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

@@ -1,0 +1,29 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "Session",
+      "canonicalId": "Session",
+      "endpoint": "Sources/Input.swift#Session",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 14 },
+      "nameRange": { "start": { "line": 2, "column": 14 }, "end": { "line": 2, "column": 21 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 2, "column": 24 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 2, "column": 21 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#Session",
+      "target": "docs/a.md#class",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 25 } }
+    }
+  ],
+  "diagnostics": []
+}

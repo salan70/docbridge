@@ -1,0 +1,4 @@
+public class AuthService {
+    /// @doc docs/a.md#init
+    public init(email: String, password: String) {}
+}

@@ -1,0 +1,219 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "new",
+      "canonicalId": "AuthService.new",
+      "endpoint": "lib/input.dart#AuthService.new",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 3,
+        "column": 3
+      },
+      "nameRange": {
+        "start": {
+          "line": 3,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 14
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 17
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 3,
+          "column": 16
+        }
+      }
+    },
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "guest",
+      "canonicalId": "AuthService.guest",
+      "endpoint": "lib/input.dart#AuthService.guest",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 6,
+        "column": 15
+      },
+      "nameRange": {
+        "start": {
+          "line": 6,
+          "column": 15
+        },
+        "end": {
+          "line": 6,
+          "column": 20
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 5,
+          "column": 3
+        },
+        "end": {
+          "line": 6,
+          "column": 23
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 5,
+          "column": 3
+        },
+        "end": {
+          "line": 6,
+          "column": 22
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "AuthService",
+      "canonicalId": "AuthService",
+      "endpoint": "lib/input.dart#AuthService",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 1,
+        "column": 7
+      },
+      "nameRange": {
+        "start": {
+          "line": 1,
+          "column": 7
+        },
+        "end": {
+          "line": 1,
+          "column": 18
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 9,
+          "column": 2
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 1,
+          "column": 19
+        }
+      }
+    },
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "admin",
+      "canonicalId": "AuthService.admin",
+      "endpoint": "lib/input.dart#AuthService.admin",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 8,
+        "column": 15
+      },
+      "nameRange": {
+        "start": {
+          "line": 8,
+          "column": 15
+        },
+        "end": {
+          "line": 8,
+          "column": 20
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 8,
+          "column": 3
+        },
+        "end": {
+          "line": 8,
+          "column": 25
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 8,
+          "column": 3
+        },
+        "end": {
+          "line": 8,
+          "column": 23
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "lib/input.dart#AuthService.new",
+      "target": "docs/auth.md#new",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 2,
+          "column": 12
+        },
+        "end": {
+          "line": 2,
+          "column": 28
+        }
+      }
+    },
+    {
+      "source": "lib/input.dart#AuthService.guest",
+      "target": "docs/auth.md#guest",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 5,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 5,
+          "column": 12
+        },
+        "end": {
+          "line": 5,
+          "column": 30
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

@@ -1,0 +1,4 @@
+/// @doc docs/a.md#retries
+public var maxRetries: Int
+/// @doc docs/a.md#timeout
+public let timeout: Int

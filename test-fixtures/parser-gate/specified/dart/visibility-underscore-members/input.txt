@@ -1,0 +1,12 @@
+class AuthService {
+  /// @doc docs/auth.md#login
+  void login() {}
+
+  void _refresh() {}
+
+  AuthService._internal();
+
+  int _attempts = 0;
+
+  String get _secret { return ''; }
+}

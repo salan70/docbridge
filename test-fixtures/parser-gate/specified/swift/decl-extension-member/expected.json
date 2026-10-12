@@ -1,0 +1,60 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "logout",
+      "canonicalId": "AuthService.logout()",
+      "endpoint": "Sources/Input.swift#AuthService.logout()",
+      "location": { "filePath": "Sources/Input.swift", "line": 5, "column": 17 },
+      "nameRange": { "start": { "line": 5, "column": 17 }, "end": { "line": 5, "column": 23 } },
+      "declarationRange": {
+        "start": { "line": 4, "column": 5 },
+        "end": { "line": 5, "column": 28 }
+      },
+      "signatureRange": { "start": { "line": 4, "column": 5 }, "end": { "line": 5, "column": 25 } }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "AuthService",
+      "canonicalId": "AuthService",
+      "endpoint": "Sources/Input.swift#AuthService",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 15 },
+      "nameRange": { "start": { "line": 1, "column": 15 }, "end": { "line": 1, "column": 26 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 1, "column": 29 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 1, "column": 26 } }
+    },
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "token",
+      "canonicalId": "AuthService.token",
+      "endpoint": "Sources/Input.swift#AuthService.token",
+      "location": { "filePath": "Sources/Input.swift", "line": 6, "column": 16 },
+      "nameRange": { "start": { "line": 6, "column": 16 }, "end": { "line": 6, "column": 21 } },
+      "declarationRange": {
+        "start": { "line": 6, "column": 5 },
+        "end": { "line": 6, "column": 29 }
+      },
+      "signatureRange": { "start": { "line": 6, "column": 5 }, "end": { "line": 6, "column": 29 } }
+    }
+  ],
+  "links": [
+    {
+      "source": "Sources/Input.swift#AuthService.logout()",
+      "target": "docs/a.md#logout",
+      "location": { "filePath": "Sources/Input.swift", "line": 4, "column": 14 },
+      "targetRange": { "start": { "line": 4, "column": 14 }, "end": { "line": 4, "column": 30 } }
+    }
+  ],
+  "diagnostics": []
+}

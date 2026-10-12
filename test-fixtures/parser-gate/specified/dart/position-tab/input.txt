@@ -1,0 +1,6 @@
+class AuthService {
+	/// @doc docs/auth.md#login
+	void login() {}
+
+	void	logout() {}
+}

@@ -1,0 +1,4 @@
+public struct Auth {
+    /// @doc docs/a.md#refresh
+    public func refresh(_ token: String) {}
+}

@@ -1,0 +1,6 @@
+/// @doc docs/limits.md#max-retries
+const int maxRetries = 3;
+
+var counter = 0;
+
+final String greeting = 'hi';

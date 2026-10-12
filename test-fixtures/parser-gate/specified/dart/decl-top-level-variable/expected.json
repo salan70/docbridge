@@ -1,0 +1,157 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "maxRetries",
+      "canonicalId": "maxRetries",
+      "endpoint": "lib/input.dart#maxRetries",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 2,
+        "column": 11
+      },
+      "nameRange": {
+        "start": {
+          "line": 2,
+          "column": 11
+        },
+        "end": {
+          "line": 2,
+          "column": 21
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 26
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "line": 2,
+          "column": 26
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "counter",
+      "canonicalId": "counter",
+      "endpoint": "lib/input.dart#counter",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 4,
+        "column": 5
+      },
+      "nameRange": {
+        "start": {
+          "line": 4,
+          "column": 5
+        },
+        "end": {
+          "line": 4,
+          "column": 12
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 17
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "line": 4,
+          "column": 17
+        }
+      }
+    },
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "greeting",
+      "canonicalId": "greeting",
+      "endpoint": "lib/input.dart#greeting",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 6,
+        "column": 14
+      },
+      "nameRange": {
+        "start": {
+          "line": 6,
+          "column": 14
+        },
+        "end": {
+          "line": 6,
+          "column": 22
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "line": 6,
+          "column": 30
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "line": 6,
+          "column": 30
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "lib/input.dart#maxRetries",
+      "target": "docs/limits.md#max-retries",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 1,
+        "column": 10
+      },
+      "targetRange": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 36
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

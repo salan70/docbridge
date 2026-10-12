@@ -1,0 +1,114 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "run",
+      "canonicalId": "Facade.run",
+      "endpoint": "lib/input.dart#Facade.run",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 9,
+        "column": 8
+      },
+      "nameRange": {
+        "start": {
+          "line": 9,
+          "column": 8
+        },
+        "end": {
+          "line": 9,
+          "column": 11
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 8,
+          "column": 3
+        },
+        "end": {
+          "line": 9,
+          "column": 16
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 8,
+          "column": 3
+        },
+        "end": {
+          "line": 9,
+          "column": 14
+        }
+      }
+    }
+  ],
+  "undocumentedSymbols": [
+    {
+      "kind": "code",
+      "language": "dart",
+      "filePath": "lib/input.dart",
+      "symbolName": "Facade",
+      "canonicalId": "Facade",
+      "endpoint": "lib/input.dart#Facade",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 7,
+        "column": 7
+      },
+      "nameRange": {
+        "start": {
+          "line": 7,
+          "column": 7
+        },
+        "end": {
+          "line": 7,
+          "column": 13
+        }
+      },
+      "declarationRange": {
+        "start": {
+          "line": 7,
+          "column": 1
+        },
+        "end": {
+          "line": 10,
+          "column": 2
+        }
+      },
+      "signatureRange": {
+        "start": {
+          "line": 7,
+          "column": 1
+        },
+        "end": {
+          "line": 7,
+          "column": 14
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "lib/input.dart#Facade.run",
+      "target": "docs/api.md#run",
+      "location": {
+        "filePath": "lib/input.dart",
+        "line": 8,
+        "column": 12
+      },
+      "targetRange": {
+        "start": {
+          "line": 8,
+          "column": 12
+        },
+        "end": {
+          "line": 8,
+          "column": 27
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

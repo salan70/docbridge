@@ -1,0 +1,40 @@
+{
+  "symbols": [
+    {
+      "kind": "code",
+      "language": "swift",
+      "filePath": "Sources/Input.swift",
+      "symbolName": "f",
+      "canonicalId": "f()",
+      "endpoint": "Sources/Input.swift#f()",
+      "location": { "filePath": "Sources/Input.swift", "line": 3, "column": 13 },
+      "nameRange": { "start": { "line": 3, "column": 13 }, "end": { "line": 3, "column": 14 } },
+      "declarationRange": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 3, "column": 19 }
+      },
+      "signatureRange": { "start": { "line": 1, "column": 1 }, "end": { "line": 3, "column": 16 } }
+    }
+  ],
+  "undocumentedSymbols": [],
+  "links": [
+    {
+      "source": "Sources/Input.swift#f()",
+      "target": "docs/a.md#x",
+      "location": { "filePath": "Sources/Input.swift", "line": 1, "column": 10 },
+      "targetRange": { "start": { "line": 1, "column": 10 }, "end": { "line": 1, "column": 21 } }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "duplicate_link",
+      "target": "docs/a.md#x",
+      "language": "swift",
+      "source": "Sources/Input.swift#f()",
+      "message": "Duplicate @doc link from Sources/Input.swift#f() to docs/a.md#x.",
+      "location": { "filePath": "Sources/Input.swift", "line": 2, "column": 10 },
+      "range": { "start": { "line": 2, "column": 10 }, "end": { "line": 2, "column": 21 } }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+public func a() {}
+
+public struct B {
+    public var x: Int
+}
