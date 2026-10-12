@@ -219,11 +219,13 @@ Committed fixtures live under `test-fixtures/parser-gate/`.
   - end-exclusive ranges of one-line, multi-line, and end-of-file
     declarations, including a file without a final newline.
 - Injected annotations, generated at run time: in each corpus file, the runner
-  takes the symbols the shipped worker reports as undocumented and whose
-  preceding line is blank or ends in `{`. It picks the one with the lowest
-  SHA-256 of its canonical ID and inserts `/// @doc docs/gate.md#injected`
-  above it, at the same indentation. The expected result follows from the
-  insertion alone: exactly one link, on that symbol, located at the inserted
+  takes the symbols the shipped worker reports as undocumented in the default
+  configuration. A symbol qualifies when the line before its name is blank,
+  ends in `{`, or does not exist, and no other reported symbol is named on its
+  line. The runner picks the one with the lowest SHA-256 of its canonical ID
+  and inserts `/// @doc docs/gate.md#injected` above it, at the same
+  indentation. The expected result follows from the insertion alone: one link
+  more than the unmodified file, on that symbol, located at the inserted
   target.
 - Malformed files, generated at run time: for the 500 files of each set with
   the lowest path hash, three mutations at hash-chosen positions: delete one
