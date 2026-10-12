@@ -7,6 +7,9 @@ on:
       - "scripts/parser-gate/**"
       - "test-fixtures/parser-gate/**"
       - ".github/workflows/parser-gate.yml"
+      # The Nix shell the jobs run in.
+      - "flake.nix"
+      - "flake.lock"
   workflow_dispatch:
 
 concurrency:
