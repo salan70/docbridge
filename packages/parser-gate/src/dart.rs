@@ -93,15 +93,22 @@ pub fn scan_file(
     };
     let mut errors = Vec::new();
     let mut kept = Vec::new();
+    let mut reported = Vec::new();
     for declaration in collector.declarations {
         if !syntax::is_dropped(&declaration.span, &regions) {
             kept.push(declaration);
+            continue;
+        }
+        // Declarators of one node share its span; report the node once, at
+        // its first declarator.
+        if reported.contains(&declaration.span) {
             continue;
         }
         let region = regions
             .iter()
             .find(|region| region.span == declaration.span && !declaration.unsupported);
         if let Some(region) = region {
+            reported.push(declaration.span.clone());
             let position = collector.lines.position(region.error_start);
             errors.push(diagnostic(
                 "code_parse_error",
@@ -1099,6 +1106,12 @@ mod tests {
         assert_eq!(rejected_ids(&response), ["lib/a.dart#b"]);
         let location = response.diagnostics[0].location.as_ref().expect("location");
         assert_eq!(location.line, 3);
+    }
+
+    #[test]
+    fn one_rejected_declaration_yields_one_diagnostic() {
+        let response = declaration_scope("int a = , b = 2;\nvoid f() {}\n");
+        assert_eq!(rejected_ids(&response), ["lib/a.dart#a"]);
     }
 
     #[test]

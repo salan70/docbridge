@@ -492,15 +492,17 @@ fn scope_items(scope: Node) -> Vec<Item> {
     items
 }
 
-/// The end of a function or initializer signature: the last token before a
-/// generic `where` clause or the body.
+/// The end of a function or initializer signature: the last token that is not
+/// a comment before a generic `where` clause or the body.
 fn signature_end(node: Node) -> usize {
     let mut end = node.start_byte();
     for child in children(node) {
         if matches!(child.kind(), "type_constraints" | "function_body") {
             break;
         }
-        end = child.end_byte();
+        if !matches!(child.kind(), "comment" | "multiline_comment") {
+            end = child.end_byte();
+        }
     }
     end
 }
@@ -865,6 +867,30 @@ public struct S { /// @doc a.md#same
         let response = scan(source, None);
         assert!(response.links.is_empty());
         assert_eq!(ids(&response.undocumented_symbols), ["S", "S.f()", "S.g()"]);
+    }
+
+    fn signature_end_of(source: &str) -> (usize, usize) {
+        let response = scan(source, None);
+        let symbol = &response.undocumented_symbols[0];
+        let range = symbol.signature_range.as_ref().expect("range");
+        (range.end.line, range.end.column)
+    }
+
+    #[test]
+    fn the_signature_ends_before_a_comment_that_precedes_the_body() {
+        assert_eq!(signature_end_of("public func f() /* note */ {}\n"), (1, 16));
+        assert_eq!(signature_end_of("public func g() // note\n{}\n"), (1, 16));
+        assert_eq!(
+            signature_end_of("/// doc\npublic func h() /// tail\n{}\n"),
+            (2, 16)
+        );
+        assert_eq!(signature_end_of("public init() /* note */ {}\n"), (1, 14));
+    }
+
+    #[test]
+    fn one_rejected_declaration_yields_one_diagnostic() {
+        let response = declaration_scope("public var a = , b = 2\npublic func f() {}\n");
+        assert_eq!(rejected_ids(&response), ["Sources/A.swift#a"]);
     }
 
     #[test]

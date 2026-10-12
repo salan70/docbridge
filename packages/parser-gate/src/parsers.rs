@@ -164,9 +164,11 @@ pub fn parse_cancellable(
     grammar: &TreeSitterLanguage,
     content: &str,
     cancel: &AtomicBool,
+    started: &AtomicBool,
 ) -> Option<Tree> {
     let mut parser = Parser::new();
     parser.set_language(grammar).ok()?;
+    started.store(true, Ordering::Release);
     let mut callback = |_: &tree_sitter::ParseState| cancel.load(Ordering::Relaxed);
     let bytes = content.as_bytes();
     parser.parse_with_options(
@@ -271,9 +273,26 @@ mod tests {
         let content = "let x = 1\n".repeat(2_000_000);
         let cancel = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&cancel);
-        let worker = thread::spawn(move || parse_cancellable(&grammar, &content, &flag));
+        let started = Arc::new(AtomicBool::new(false));
+        let began = Arc::clone(&started);
+        let worker = thread::spawn(move || parse_cancellable(&grammar, &content, &flag, &began));
+        while !started.load(std::sync::atomic::Ordering::Acquire) {
+            thread::yield_now();
+        }
         thread::sleep(Duration::from_millis(20));
         cancel.store(true, std::sync::atomic::Ordering::Relaxed);
         assert!(worker.join().expect("worker finishes").is_none());
+    }
+
+    #[test]
+    fn a_small_parse_still_raises_the_started_mark() {
+        let grammar = Language::Swift
+            .tree_sitter()
+            .expect("swift uses tree-sitter");
+        let cancel = AtomicBool::new(false);
+        let started = AtomicBool::new(false);
+        let tree = parse_cancellable(&grammar, "let x = 1\n", &cancel, &started);
+        assert!(tree.is_some());
+        assert!(started.load(std::sync::atomic::Ordering::Acquire));
     }
 }

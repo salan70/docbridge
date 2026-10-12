@@ -169,11 +169,18 @@ fn run_cancel(language: &str, path: &str) {
         _ => usage_error(&format!("cannot read {path} as UTF-8")),
     };
     let cancel = Arc::new(AtomicBool::new(false));
+    let started = Arc::new(AtomicBool::new(false));
     let flag = Arc::clone(&cancel);
+    let began = Arc::clone(&started);
     let worker = thread::spawn(move || {
-        let tree = parsers::parse_cancellable(&grammar, &content, &flag);
+        let tree = parsers::parse_cancellable(&grammar, &content, &flag, &began);
+        // A failed set_language never raises the mark; release the waiter.
+        began.store(true, Ordering::Release);
         (tree.is_none(), Instant::now())
     });
+    while !started.load(Ordering::Acquire) && !worker.is_finished() {
+        thread::yield_now();
+    }
     thread::sleep(Duration::from_millis(50));
     let requested = Instant::now();
     cancel.store(true, Ordering::Relaxed);

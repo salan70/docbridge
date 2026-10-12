@@ -46,5 +46,7 @@ from analogy with other languages rather than from a Swift rule:
 - Diagnostic messages are not specified; the expectations use the shipped
   wording. `code_parse_error` is compared by `code` alone.
 - `signatureRange` ends at the last token before a body's `{`, with no
-  trailing space, and covers a stored `var` or `let` entirely.
+  trailing space, and covers a stored `var` or `let` entirely. A comment
+  between the last token and the body is not part of the range
+  (`range-signature-before-comment`).
 - A leading byte order mark counts as one UTF-16 code unit of line 1.
