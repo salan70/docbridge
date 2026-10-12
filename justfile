@@ -11,6 +11,10 @@ go_version := trim(replace_regex(read("packages/go-scanner/go.mod"), "(?s).*\ngo
 # The Rust toolchain the parser gate candidate pins; `rust-toolchain.toml` is its only source.
 parser_gate_rust_version := trim(replace_regex(read("packages/parser-gate/rust-toolchain.toml"), "(?s).*channel = \"([0-9.]+)\".*", "$1"))
 
+# The candidate builds under `.tmp/`. Its nine parsers leave thousands of build
+# files, and a build directory inside the package slows every repository walk.
+parser_gate_target_dir := ".tmp/parser-gate/target"
+
 export GOTOOLCHAIN := "local"
 
 default:
@@ -201,13 +205,13 @@ format-check-parser-gate: check-parser-gate-toolchain
     cargo fmt --manifest-path packages/parser-gate/Cargo.toml --check
 
 lint-parser-gate: check-parser-gate-toolchain
-    cargo clippy --manifest-path packages/parser-gate/Cargo.toml --all-targets -- -D warnings
+    cargo clippy --manifest-path packages/parser-gate/Cargo.toml --target-dir {{ parser_gate_target_dir }} --all-targets -- -D warnings
 
 test-parser-gate: check-parser-gate-toolchain
-    cargo test --manifest-path packages/parser-gate/Cargo.toml
+    cargo test --manifest-path packages/parser-gate/Cargo.toml --target-dir {{ parser_gate_target_dir }}
 
 build-parser-gate: check-parser-gate-toolchain
-    cargo build --manifest-path packages/parser-gate/Cargo.toml --release
+    cargo build --manifest-path packages/parser-gate/Cargo.toml --target-dir {{ parser_gate_target_dir }} --release
 
 # Compare the shipped workers or the candidate binary with the conformance corpus.
 parser-gate-conformance TARGET="candidate":

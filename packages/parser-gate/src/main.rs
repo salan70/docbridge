@@ -3,9 +3,12 @@
 //! `scan` speaks the schemaVersion 1 worker protocol on stdin and stdout.
 //! `parse <language>` reads file paths from stdin and reports whether each one
 //! parses without syntax errors, with the parse time.
+//! `cancel <language> <path>` starts a tree-sitter parse, requests its
+//! cancellation after 50 ms, and reports how long the parse took to stop.
 
 mod dart;
 mod models;
+mod parsers;
 mod position;
 mod swift;
 mod syntax;
@@ -13,10 +16,13 @@ mod syntax;
 use std::fs;
 use std::io::{self, BufRead, Read, Write};
 use std::process::exit;
-use std::time::Instant;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use models::{WorkerFile, WorkerFileResponse, WorkerRequest, WorkerResponse};
-use position::PositionConverter;
+use parsers::Language;
 use serde_json::json;
 
 type ScanFile = fn(&WorkerFile, Option<&[String]>) -> WorkerFileResponse;
@@ -43,8 +49,18 @@ fn main() {
         .as_slice()
     {
         ["scan"] => run_scan(),
-        ["parse", language] => run_parse(language),
-        _ => usage_error("usage: parser-gate scan | parser-gate parse <swift|dart>"),
+        ["parse", language] => run_parse(language, None),
+        ["parse", language, "--stack-mb", megabytes] => {
+            let Some(megabytes) = megabytes.parse::<usize>().ok().filter(|&n| n > 0) else {
+                usage_error(&format!("invalid --stack-mb: {megabytes}"));
+            };
+            run_parse(language, Some(megabytes));
+        }
+        ["cancel", language, path] => run_cancel(language, path),
+        _ => usage_error(
+            "usage: parser-gate scan | parser-gate parse <language> [--stack-mb N] \
+             | parser-gate cancel <swift|dart> <path>",
+        ),
     }
 }
 
@@ -79,12 +95,28 @@ fn run_scan() {
     }
 }
 
-fn run_parse(language: &str) {
-    let language = match language {
-        "swift" => tree_sitter_swift::LANGUAGE.into(),
-        "dart" => tree_sitter_dart::LANGUAGE.into(),
-        other => usage_error(&format!("unsupported language: {other}")),
+fn run_parse(language: &str, stack_mb: Option<usize>) {
+    let Some(language) = Language::from_name(language) else {
+        usage_error(&format!("unsupported language: {language}"));
     };
+    let Some(megabytes) = stack_mb else {
+        parse_paths(language);
+        return;
+    };
+    let worker = thread::Builder::new()
+        .stack_size(megabytes * 1024 * 1024)
+        .spawn(move || parse_paths(language));
+    match worker {
+        Ok(handle) => {
+            if handle.join().is_err() {
+                exit(1);
+            }
+        }
+        Err(error) => usage_error(&format!("failed to start the parse thread: {error}")),
+    }
+}
+
+fn parse_paths(language: Language) {
     let stdout = io::stdout();
     let mut out = stdout.lock();
     for line in io::stdin().lock().lines() {
@@ -96,7 +128,7 @@ fn run_parse(language: &str) {
             continue;
         }
         let record = match fs::read(&path).map(String::from_utf8) {
-            Ok(Ok(content)) => parse_record(&language, &path, &content),
+            Ok(Ok(content)) => parse_record(language, &path, &content),
             _ => json!({ "path": path, "unreadable": true }),
         };
         if let Err(error) = writeln!(out, "{record}") {
@@ -105,19 +137,47 @@ fn run_parse(language: &str) {
     }
 }
 
-fn parse_record(language: &tree_sitter::Language, path: &str, content: &str) -> serde_json::Value {
+fn parse_record(language: Language, path: &str, content: &str) -> serde_json::Value {
     let started = Instant::now();
-    let tree = syntax::parse(language, content);
+    let error = parsers::first_error(language, path, content);
     let micros = started.elapsed().as_micros() as u64;
-    let error = tree.as_ref().and_then(syntax::first_error);
-    let location = error.map(|node| {
-        let position = PositionConverter::new(content).position(node.start_byte());
-        json!({ "line": position.line, "column": position.column })
-    });
+    let location = error
+        .as_ref()
+        .map(|position| json!({ "line": position.line, "column": position.column }));
     json!({
         "path": path,
-        "accepted": tree.is_some() && error.is_none(),
+        "accepted": error.is_none(),
         "error": location,
         "micros": micros,
     })
+}
+
+fn run_cancel(language: &str, path: &str) {
+    let Some(grammar) = Language::from_name(language)
+        .filter(|language| matches!(language, Language::Swift | Language::Dart))
+        .and_then(Language::tree_sitter)
+    else {
+        usage_error(&format!("cancel supports swift and dart, not {language}"));
+    };
+    let content = match fs::read(path).map(String::from_utf8) {
+        Ok(Ok(content)) => content,
+        _ => usage_error(&format!("cannot read {path} as UTF-8")),
+    };
+    let cancel = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&cancel);
+    let worker = thread::spawn(move || {
+        let tree = parsers::parse_cancellable(&grammar, &content, &flag);
+        (tree.is_none(), Instant::now())
+    });
+    thread::sleep(Duration::from_millis(50));
+    let requested = Instant::now();
+    cancel.store(true, Ordering::Relaxed);
+    let (cancelled, finished) = worker.join().expect("the parse thread does not panic");
+    let report = if finished < requested {
+        json!({ "cancelled": false, "latencyMicros": 0 })
+    } else {
+        let latency = finished.duration_since(requested).as_micros() as u64;
+        json!({ "cancelled": cancelled, "latencyMicros": latency })
+    };
+    println!("{report}");
 }

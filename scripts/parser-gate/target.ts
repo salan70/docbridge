@@ -6,7 +6,8 @@ import type { GateLanguage, GateTarget } from "./result-diff";
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
-export const CANDIDATE_BINARY = join(REPO_ROOT, "packages/parser-gate/target/release/parser-gate");
+/** Where `just build-parser-gate` puts the candidate; see `parser_gate_target_dir` in the justfile. */
+export const CANDIDATE_BINARY = join(REPO_ROOT, ".tmp/parser-gate/target/release/parser-gate");
 
 export function parseTarget(value: string | undefined): GateTarget {
   if (value === "shipped" || value === "candidate") {
