@@ -31,6 +31,9 @@ const DEFAULT_OUT = join(REPO_ROOT, ".tmp/parser-gate/results");
 
 const TIMEOUT_MS = 10_000;
 
+/** For the rerun that records how long an input over the bound takes. */
+const UNBOUNDED_TIMEOUT_MS = 120_000;
+
 const RETRY_STACK_MB = 1024;
 
 const CANCEL_RUNS = 20;
@@ -75,13 +78,14 @@ function parseArgs(argv: readonly string[]): OperationalArgs {
 function runParse(
   language: OperationalLanguage,
   file: string,
-  stackMb: number | undefined,
+  limits: { stackMb?: number; timeoutMs: number },
 ): { result: RunResult; micros: number } {
+  const { stackMb, timeoutMs } = limits;
   const args = ["parse", language, ...(stackMb === undefined ? [] : ["--stack-mb", `${stackMb}`])];
   const run = spawnSync(CANDIDATE_BINARY, args, {
     input: `${file}\n`,
     encoding: "utf8",
-    timeout: TIMEOUT_MS,
+    timeout: timeoutMs,
     killSignal: "SIGKILL",
     maxBuffer: 1 << 24,
   });
@@ -151,14 +155,22 @@ function main(): number {
       const file = join(dir, inputFileName(language, input.name));
       writeFileSync(file, input.generate());
       sizes[`${language}/${input.name}`] = statSync(file).size;
-      const first = runParse(language, file, undefined);
-      const retry = first.result === "crash" ? runParse(language, file, RETRY_STACK_MB) : undefined;
+      const first = runParse(language, file, { timeoutMs: TIMEOUT_MS });
+      const retry =
+        first.result === "crash"
+          ? runParse(language, file, { stackMb: RETRY_STACK_MB, timeoutMs: TIMEOUT_MS })
+          : undefined;
+      const unbounded =
+        first.result === "timeout"
+          ? runParse(language, file, { timeoutMs: UNBOUNDED_TIMEOUT_MS })
+          : undefined;
       const entry: InputEntry = {
         language,
         name: input.name,
         ...(input.note === undefined ? {} : { note: input.note }),
         ...first,
         ...(retry === undefined ? {} : { retry }),
+        ...(unbounded === undefined ? {} : { unbounded }),
       };
       entries.push(entry);
       console.error(`${language}/${input.name}: ${entry.result}`);

@@ -352,6 +352,9 @@ check passes when that run ends within the bound. The report records both
 results. A migration then has to parse on a thread with such a stack or bound
 the nesting depth.
 
+An input that misses the 10 s bound is run once more under a 120 s limit. That
+run records how long the parse takes and does not change the result.
+
 ## Declaration-scoped rejection
 
 `scan --scope declaration` drops only the smallest supported declaration that

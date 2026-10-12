@@ -135,6 +135,15 @@ describe("finalResult and operationalFails", () => {
     expect(operationalFails([entry("accepted")], [{ ...passing, pass: false }])).toBe(true);
     expect(operationalFails([entry("rejected")], [passing])).toBe(false);
   });
+
+  test("a timeout still fails when the unbounded rerun finishes", () => {
+    const timedOut = {
+      ...entry("timeout"),
+      unbounded: { result: "accepted" as const, micros: 14 },
+    };
+    expect(finalResult(timedOut)).toBe("timeout");
+    expect(operationalFails([timedOut], [passing])).toBe(true);
+  });
 });
 
 describe("cancelVerdict", () => {
@@ -169,5 +178,22 @@ describe("formatOperationalTable", () => {
     expect(table).toContain("crash");
     expect(table).toContain("accepted");
     expect(table).toContain("cancel swift");
+  });
+
+  test("shows the time of the rerun that follows a timeout", () => {
+    const table = formatOperationalTable(
+      [
+        {
+          language: "swift",
+          name: "repeated-declarations",
+          result: "timeout",
+          micros: 0,
+          unbounded: { result: "accepted", micros: 14_200_000 },
+        },
+      ],
+      [],
+    );
+    expect(table).toContain("timeout");
+    expect(table).toContain("accepted (14200000)");
   });
 });

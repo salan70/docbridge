@@ -279,6 +279,11 @@ export type InputEntry = {
   micros: number;
   /** The rerun with a 1024 MiB stack, made only after a crash. */
   retry?: { result: RunResult; micros: number };
+  /**
+   * The rerun under a much longer limit, made only after a timeout. It records
+   * how far over the bound the input is; the entry stays a timeout.
+   */
+  unbounded?: { result: RunResult; micros: number };
 };
 
 export function finalResult(entry: Pick<InputEntry, "result" | "retry">): RunResult {
@@ -323,24 +328,37 @@ export function operationalFails(
   return unusable || cancels.some((cancel) => !cancel.pass);
 }
 
+function rerun(run: { result: RunResult; micros: number } | undefined): string {
+  return run === undefined ? "-" : `${run.result} (${run.micros})`;
+}
+
 export function formatOperationalTable(
   entries: readonly InputEntry[],
   cancels: readonly CancelEntry[],
 ): string {
-  const header = ["language", "input", "result", "micros", "with 1024 MiB stack"];
+  const header = [
+    "language",
+    "input",
+    "result",
+    "micros",
+    "with 1024 MiB stack",
+    "without the time bound",
+  ];
   const rows = [
     ...entries.map((entry) => [
       entry.language,
       entry.name,
       entry.result,
       String(entry.micros),
-      entry.retry === undefined ? "-" : `${entry.retry.result} (${entry.retry.micros})`,
+      rerun(entry.retry),
+      rerun(entry.unbounded),
     ]),
     ...cancels.map((cancel) => [
       `cancel ${cancel.language}`,
       `${cancel.cancelled}/${cancel.runs} cancelled`,
       cancel.pass ? "pass" : "FAIL",
       String(cancel.maxLatencyMicros),
+      "-",
       "-",
     ]),
   ];
