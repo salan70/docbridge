@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-12
+
+### Added
+
+- A language entry under `include.code` accepts an optional `exclude` array.
+  Matched files that an `exclude` pattern selects are not managed, such as
+  Flutter's `*.g.dart` and `*.freezed.dart` files.
+
+## [0.15.0] - 2026-10-12
+
+### Added
+
+- `doc_anchor_not_found` suggests the closest anchor in the same Markdown file
+  with `Did you mean`, for both `@doc` annotations and link manifest entries.
+  Anchors in other doc files are not suggested, and no suggestion is added when
+  no anchor is close enough.
+
+## [0.14.0] - 2026-10-08
+
+### Changed
+
+- A heading anchor keeps `_`, as GitHub's heading slugs do. Before, `_` became
+  `-`, so `### title_definitions` gave `#title-definitions`; it now gives
+  `#title_definitions`. A link written with the old `-` form now produces
+  `doc_anchor_not_found`; change it to match the heading, such as
+  `#title_definitions`.
+
 ## [0.13.1] - 2026-10-06
 
 ### Fixed
@@ -558,7 +585,10 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/salan70/docbridge/releases/tag/v0.16.0
+[0.15.0]: https://github.com/salan70/docbridge/releases/tag/v0.15.0
+[0.14.0]: https://github.com/salan70/docbridge/releases/tag/v0.14.0
 [0.13.1]: https://github.com/salan70/docbridge/releases/tag/v0.13.1
 [0.13.0]: https://github.com/salan70/docbridge/releases/tag/v0.13.0
 [0.12.0]: https://github.com/salan70/docbridge/releases/tag/v0.12.0

@@ -162,13 +162,14 @@ function stripClosingHashes(text: string): string {
 /**
  * Generate a heading anchor using the v0.1 rules:
  * - JavaScript `toLowerCase()`
- * - runs of whitespace and punctuation become a single `-`
+ * - runs of whitespace and punctuation other than `_` become a single `-`
+ * - `_` is kept, as GitHub's heading slugs do
  * - leading and trailing `-` are removed
  * - Unicode letters and numbers are preserved
  */
 function toAnchor(headingText: string): string {
   const lowered = headingText.toLowerCase();
-  const replaced = lowered.replace(/[^\p{L}\p{N}]+/gu, "-");
+  const replaced = lowered.replace(/[^\p{L}\p{N}_]+/gu, "-");
   return replaced.replace(/^-+/, "").replace(/-+$/, "");
 }
 
