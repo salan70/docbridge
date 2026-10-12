@@ -154,10 +154,29 @@ impl<'a> Collector<'a> {
                 let signature_end = self.body_start(node, node);
                 let shape = self.shape(node, node);
                 let symbol_name = self.text(name).to_string();
-                let canonical_id = setter_suffixed(&symbol_name, signature.kind());
+                // `set` cannot name a type, so a function it types is a setter
+                // the grammar failed to recognize.
+                let setter = signature.kind() == "setter_signature"
+                    || signature
+                        .child_by_field_name("return_type")
+                        .is_some_and(|return_type| self.text(return_type) == "set");
+                let canonical_id = if setter {
+                    format!("{symbol_name}=")
+                } else {
+                    symbol_name.clone()
+                };
                 self.record(&shape, name, symbol_name, canonical_id, signature_end);
             }
             "top_level_variable_declaration" | "external_variable_declaration" => {
+                // `typedef` cannot name a type, so a variable it types is an
+                // alias such as `typedef A = Future<void> Function();`.
+                if children(node)
+                    .iter()
+                    .any(|child| child.kind() == "type" && self.text(*child) == "typedef")
+                {
+                    self.mark_unsupported_if_annotated(node);
+                    return;
+                }
                 let shape = self.shape(node, node);
                 for name in variable_names(node) {
                     let symbol_name = self.text(name).to_string();
@@ -916,6 +935,25 @@ mod tests {
         let response = scan(source, None);
         assert_eq!(response.links.len(), 1);
         assert_eq!(response.links[0].target, "docs/a.md#block");
+    }
+
+    #[test]
+    fn a_setter_the_grammar_reads_as_a_function_is_still_a_setter() {
+        // As the last declaration of the file, the grammar gives the setter
+        // the return type `set`.
+        let response = scan("int get top => 1;\nset top(int v) {}\n", None);
+        assert_eq!(ids(&response.undocumented_symbols), ["top", "top="]);
+    }
+
+    #[test]
+    fn a_function_type_alias_the_grammar_reads_as_a_variable_is_an_alias() {
+        let source = "typedef Callback = Future<void> Function();\nint a = 1;\n";
+        let response = scan(source, None);
+        assert_eq!(ids(&response.undocumented_symbols), ["a"]);
+        assert!(response.diagnostics.is_empty());
+
+        let annotated = format!("/// @doc docs/a.md#t\n{source}");
+        assert_eq!(codes(&scan(&annotated, None)), ["unsupported_declaration"]);
     }
 
     #[test]

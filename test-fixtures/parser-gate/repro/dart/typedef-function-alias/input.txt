@@ -1,0 +1,1 @@
+typedef Callback = Future<void> Function();
