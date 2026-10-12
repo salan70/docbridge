@@ -1,5 +1,5 @@
 import { collectErroredFiles, pluralize } from "../model/diagnostics";
-import { filePathOf } from "../model/endpoint";
+import { filePathOf, fragmentOf } from "../model/endpoint";
 import type { CodeScanResult } from "../model/scan-result";
 import type { MarkdownScanResult } from "../model/scan-result";
 import type {
@@ -8,6 +8,7 @@ import type {
   LinkAnnotation,
   DocBridgeDiagnostic,
 } from "../model/types";
+import { nearestMatch } from "../shared/suggest";
 
 type ResolveInput = {
   /** One per scanned code file, including files that hit a parse error. */
@@ -43,12 +44,18 @@ export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
   const docFilePaths = new Set(input.docFiles.map((file) => file.filePath));
   const codeFilePaths = new Set(input.codeFiles.map((file) => file.filePath));
 
-  // Anchors present per doc file, keyed by their full `file#anchor` endpoint.
+  // Anchors present per doc file, keyed by their full `file#anchor` endpoint,
+  // and grouped by file so a missing anchor can be matched against its siblings.
   const docAnchorEndpoints = new Set<string>();
+  const docAnchorsByFile = new Map<string, string[]>();
   for (const file of input.docFiles) {
     for (const anchor of file.anchors) {
       docAnchorEndpoints.add(anchor.endpoint);
     }
+    docAnchorsByFile.set(
+      file.filePath,
+      file.anchors.map((anchor) => anchor.anchor),
+    );
   }
 
   // All directed links, used to find matching backlinks. A pair `code -> doc`
@@ -109,7 +116,11 @@ export function resolveLinks(input: ResolveInput): DocBridgeDiagnostic[] {
             "doc_anchor_not_found",
             link.source,
             docEndpoint,
-            `Doc anchor ${docEndpoint} referenced by ${link.source} does not exist.`,
+            withAnchorSuggestion(
+              `Doc anchor ${docEndpoint} referenced by ${link.source} does not exist.`,
+              docEndpoint,
+              docAnchorsByFile,
+            ),
             link,
           ),
         );
@@ -341,6 +352,22 @@ function unlinkedDocSectionDiagnostic(
     diagnostic.range = anchor.headingTextRange;
   }
   return diagnostic;
+}
+
+/**
+ * Append a `Did you mean` hint naming the nearest anchor in the same doc file.
+ * Anchors in other doc files are not candidates.
+ */
+function withAnchorSuggestion(
+  message: string,
+  docEndpoint: string,
+  docAnchorsByFile: Map<string, string[]>,
+): string {
+  const docFilePath = filePathOf(docEndpoint);
+  const suggestion = nearestMatch(fragmentOf(docEndpoint), docAnchorsByFile.get(docFilePath) ?? []);
+  return suggestion === undefined
+    ? message
+    : `${message} Did you mean \`${docFilePath}#${suggestion}\`?`;
 }
 
 function pairKey(source: string, target: string): string {

@@ -172,7 +172,10 @@ export class Project {
         if (hasExcludedSuffix(language, relPath)) {
           continue;
         }
-        if (entry.patterns.some((pattern) => matchGlob(pattern, relPath))) {
+        if (
+          entry.patterns.some((pattern) => matchGlob(pattern, relPath)) &&
+          !(entry.exclude ?? []).some((pattern) => matchGlob(pattern, relPath))
+        ) {
           seen.add(relPath);
           all.push({ language, relPath });
         }

@@ -60,6 +60,31 @@ describe(Project, () => {
     expect(project.state.contentByFile.has("src/auth/unsaved.d.ts")).toBe(false);
     expect(project.state.diagnostics).toEqual([]);
   });
+
+  test("an open buffer that an exclude pattern selects is not scanned", async () => {
+    const root = makeProject({
+      "docbridge.config.json": JSON.stringify({
+        include: {
+          code: {
+            typescript: { patterns: ["src/**/*.ts"], exclude: ["src/**/*.gen.ts"] },
+          },
+          docs: ["docs/**/*.md"],
+        },
+      }),
+      "docs/auth.md": "# Auth\n",
+    });
+    try {
+      const project = new Project(root);
+      project.setOverlay("src/unsaved.gen.ts", "export const generated = 1;\n");
+      project.setOverlay("src/unsaved.ts", "export const kept = 1;\n");
+      await project.resolveAsync().promise;
+
+      expect(project.state.contentByFile.has("src/unsaved.gen.ts")).toBe(false);
+      expect(project.state.contentByFile.has("src/unsaved.ts")).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 const BOTH_FILES = ["src/auth/login.ts", "src/auth/session.ts"];
