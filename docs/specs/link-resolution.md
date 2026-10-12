@@ -17,7 +17,8 @@ Supported heading behavior:
 - optional closing `#` sequence
 - Unicode letters and numbers are preserved
 - JavaScript `toLowerCase()` is used
-- whitespace and punctuation runs become `-`
+- runs of whitespace and punctuation other than `_` become `-`
+- `_` is kept, as GitHub's heading slugs do
 - leading and trailing `-` are removed
 
 Setext headings are unsupported.
