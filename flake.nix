@@ -40,7 +40,7 @@
           # system toolchain and breaks `swift build` for the bundled scanner.
           # The Rust toolchain is supplied explicitly below instead.
           shellWithRust =
-            toolchainFile:
+            toolchainFile: extraPackages:
             pkgs.mkShellNoCC {
               packages = [
                 pkgs.actionlint
@@ -68,14 +68,20 @@
                 pkgs.shellcheck
                 pkgs.shfmt
                 pkgs.statix
-              ];
+              ]
+              ++ extraPackages;
             };
         in
         {
-          default = shellWithRust ./packages/rust-scanner/rust-toolchain.toml;
+          default = shellWithRust ./packages/rust-scanner/rust-toolchain.toml [ ];
           # The Phase 0 parser gate (issue #200) needs a newer Rust than the
-          # shipped Rust scanner; this shell differs only in that toolchain.
-          parser-gate = shellWithRust ./packages/parser-gate/rust-toolchain.toml;
+          # shipped Rust scanner. Its `ruby-prism-sys` dependency generates
+          # bindings with bindgen, which loads libclang; the hook points bindgen
+          # at the one from nixpkgs, because a build script linked in this shell
+          # cannot load the host's.
+          parser-gate = shellWithRust ./packages/parser-gate/rust-toolchain.toml [
+            pkgs.rustPlatform.bindgenHook
+          ];
         }
       );
 
