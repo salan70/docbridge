@@ -32,6 +32,36 @@
         );
     in
     {
+      # The vNext CLI, built from Rust source. Only the Cargo workspace is
+      # copied into the build so unrelated repository changes do not rebuild it.
+      packages = forAllSystems (pkgs: rec {
+        docbridge = pkgs.rustPlatform.buildRustPackage {
+          pname = "docbridge";
+          inherit ((nixpkgs.lib.importTOML ./crates/docbridge/Cargo.toml).package) version;
+          src = nixpkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = nixpkgs.lib.fileset.unions [
+              ./Cargo.toml
+              ./Cargo.lock
+              ./crates
+            ];
+          };
+          cargoLock.lockFile = ./Cargo.lock;
+          cargoBuildFlags = [
+            "--package"
+            "docbridge"
+          ];
+          cargoTestFlags = [ "--workspace" ];
+          meta = {
+            description = "Keep Markdown design docs and the code they describe linked";
+            homepage = "https://github.com/salan70/docbridge";
+            license = nixpkgs.lib.licenses.mit;
+            mainProgram = "docbridge";
+          };
+        };
+        default = docbridge;
+      });
+
       devShells = forAllSystems (pkgs: {
         # `mkShellNoCC` avoids exporting `SDKROOT`/`DEVELOPER_DIR` from nixpkgs'
         # Apple SDK on macOS. That SDK is built with an older Swift than the
