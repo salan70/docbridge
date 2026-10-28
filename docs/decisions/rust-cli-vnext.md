@@ -1,0 +1,7 @@
+# Rust CLI vNext direction
+
+The user approved a new direction in [#208](https://github.com/salan70/docbridge/issues/208): a native Rust single-binary CLI with file-level code links declared in Markdown, structural validation, and offline guides. Semantic agreement remains a separate review. The CLI removes language parsers, LSP and editor integrations, bidirectional annotations, manifests, and backward compatibility. The [vNext contracts](../specs/vnext-contracts.md) are approved; production signing keys, publication and Nixpkgs submission remain separate decisions.
+
+This direction prospectively supersedes the applicability of the earlier decision to retain the TypeScript core for the old product. It does not revise that decision's assessment of the evidence available at the time. The Rust evaluations [#172](https://github.com/salan70/docbridge/issues/172) and [#177](https://github.com/salan70/docbridge/issues/177) and parser evaluations [#200](https://github.com/salan70/docbridge/issues/200), [#201](https://github.com/salan70/docbridge/issues/201), and [#202](https://github.com/salan70/docbridge/issues/202) remain historical results, with their original scope and conclusions.
+
+The new direction changes the product's scope and constraints rather than reinterpreting those experiments. Migration requires deliberate review and conversion of existing project assets; no automatic migration or compatibility layer is planned.
