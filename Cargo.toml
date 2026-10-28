@@ -1,0 +1,5 @@
+[workspace]
+resolver = "2"
+members = ["crates/docbridge", "crates/docbridge-update"]
+# Legacy scanner packages keep their own manifests until the vNext cutover removes them.
+exclude = ["packages/rust-scanner", "examples/rust"]
