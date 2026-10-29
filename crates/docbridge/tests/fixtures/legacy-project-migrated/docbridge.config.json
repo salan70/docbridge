@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "paths": ["src"],
+      "extensions": [".ts"]
+    },
+    "docs": ["docs"]
+  },
+  "exclude": {}
+}
