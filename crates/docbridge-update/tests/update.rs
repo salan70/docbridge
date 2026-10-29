@@ -617,13 +617,26 @@ fn running_native_binary_survives_update_and_later_cleanup() {
     let source = std::env::current_exe().unwrap();
     fs::copy(&source, &options.executable).unwrap();
     write_install_receipt(&options.executable).unwrap();
-    // Reuse a valid native image without modifying its platform code signature.
-    let bytes = fs::read(source).unwrap();
-    let client = signed_release("2.0.0", &options.target, &bytes);
+    let old_bytes = fs::read(source).unwrap();
+    // macOS must retain identical bytes to preserve the ad hoc code signature.
+    #[cfg(target_os = "macos")]
+    let new_bytes = old_bytes.clone();
+    #[cfg(not(target_os = "macos"))]
+    let new_bytes = {
+        let mut new_bytes = old_bytes.clone();
+        new_bytes.extend_from_slice(b"docbridge-new-image-marker");
+        assert_ne!(old_bytes, new_bytes);
+        new_bytes
+    };
+    let client = signed_release("2.0.0", &options.target, &new_bytes);
     let mut old_child = running_process::RunningProcess::start(&options.executable, "old");
     let out = run_with(&options, &client, &keys, &NativeFileOps);
     assert_eq!(out.status, Status::Updated, "{}", out.stderr);
-    assert_eq!(fs::read(&options.executable).unwrap(), bytes);
+    assert_eq!(fs::read(&options.executable).unwrap(), new_bytes);
+    assert_eq!(
+        fs::read(recovery_path(&options.executable).join("old-binary")).unwrap(),
+        old_bytes
+    );
     old_child.ping();
     let mut new_child = running_process::RunningProcess::start(&options.executable, "new");
     new_child.ping();
@@ -631,9 +644,9 @@ fn running_native_binary_survives_update_and_later_cleanup() {
     #[cfg(windows)]
     {
         let old = recovery_path(&options.executable).join("running-binary");
-        assert_eq!(fs::read(&old).unwrap(), bytes);
+        assert_eq!(fs::read(&old).unwrap(), old_bytes);
         let error = cleanup(&options.executable).unwrap_err();
-        assert!(error.contains("deferred cleanup"), "{error}");
+        assert!(error.contains("running-binary"), "{error}");
         assert!(old.exists(), "the live PE image must remain available");
         assert!(recovery_path(&options.executable)
             .join("journal.json")
