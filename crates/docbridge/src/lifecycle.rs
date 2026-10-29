@@ -379,7 +379,7 @@ impl fmt::Display for RemovalPlan {
     }
 }
 pub fn uninstall_guidance() -> &'static str {
-    "The CLI is not removed. Check installation provenance first: Homebrew: brew uninstall docbridge; Cargo: cargo uninstall docbridge; npm: npm uninstall -g docbridge (only for an npm installation). Nix profile: inspect nix profile list, then nix profile remove <verified-entry>; declarative Nix/Home Manager: remove the declared package and rebuild the owning configuration. Standalone: remove only the verified installed executable manually. Unknown provenance: consult docbridge docs before choosing a method.\n"
+    "The CLI is not removed. Remove it the way it was installed: downloaded executable: delete the file; Nix: inspect nix profile list, then nix profile remove <verified-entry>; cargo install: cargo uninstall docbridge.\n"
 }
 fn under(path: &str, dir: &str) -> bool {
     path.strip_prefix(dir)
@@ -975,6 +975,16 @@ mod tests {
             .iter()
             .map(|c| c["state"].as_str().unwrap().to_string())
             .collect()
+    }
+    #[test]
+    fn uninstall_guidance_names_only_supported_channels() {
+        let guidance = uninstall_guidance();
+        for expected in ["delete", "nix profile remove", "cargo uninstall docbridge"] {
+            assert!(guidance.contains(expected), "{expected}: {guidance}");
+        }
+        for removed in ["brew", "Homebrew", "npm"] {
+            assert!(!guidance.contains(removed), "{removed}: {guidance}");
+        }
     }
     #[test]
     fn invalid_parent_fails_preflight_without_changes() {

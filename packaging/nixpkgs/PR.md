@@ -24,8 +24,6 @@ leaves stale.
 - Runs the upstream workspace tests (`cargoTestFlags = [ "--workspace" ]`).
 - The CLI has no `--version` flag, so `versionCheckHook` is not used; the
   install check runs `docbridge --help` and `docbridge docs list`.
-- `docbridge upgrade` detects `/nix/store` installations and points users to Nix
-  instead of replacing the binary.
 - Upstream release notes:
   <https://github.com/salan70/docbridge/blob/v0.17.0/CHANGELOG.md>.
 - Maintainer: <maintainer handle>, added to `maintainers/maintainer-list.nix`

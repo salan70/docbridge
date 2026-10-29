@@ -63,8 +63,7 @@ Run additional checks when the affected area requires them:
 | Linked counterparts | `just links <path> --include-content`        |
 
 CI runs `just verify`, then builds, tests, and smoke-runs the five release
-targets and signs them with a throwaway key; see
-[Releasing](releasing.md#dry-run).
+targets; see [Releasing](releasing.md).
 
 If a command must be run outside an activated shell, prefix it with
 `nix develop -c`.
@@ -119,7 +118,6 @@ Issues own problems and acceptance criteria; PRs own delivered results and verif
 | `docs/contributing/README.md`       | Contributor workflow and documentation policy      |
 | `docs/contributing/architecture.md` | Module responsibilities and dependencies           |
 | `docs/contributing/releasing.md`    | Detailed release operations and pending work       |
-| `crates/docbridge-update/README.md` | Signed format, installer API, receipts, recovery   |
 
 Embedded guides link only to each other by filename because `docbridge docs` prints them without a checkout.
 They have no active `@code` annotations and stay outside `include.docs`.
@@ -140,6 +138,5 @@ Avoid content-existence tests that merely freeze wording.
 Put behavior tests at crate boundaries in `crates/<crate>/tests/*.rs`; reserve module-local tests for private helpers inaccessible there.
 Use temporary scratch projects for small inputs; larger copied fixtures belong in `tests/fixtures/<name>/`.
 Deliberately invalid CLI fixtures are excluded from Markdown lint and formatting.
-Release tool tests in `crates/docbridge-release/tests/` use stub tools and never touch GitHub, the network, or real keys.
 On Windows, the agent fixtures in `cargo test --workspace --locked` require Developer Mode or symbolic link creation privileges; they are not skipped.
 Host tests do not establish native Windows validation or minimum OS support.

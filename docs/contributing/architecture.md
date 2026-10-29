@@ -5,15 +5,10 @@ direction their dependencies may point.
 
 ## Crates
 
-| Crate                      | Owns                                                                                           | Workspace deps     |
-| -------------------------- | ---------------------------------------------------------------------------------------------- | ------------------ |
-| `crates/docbridge`         | The `docbridge` executable and its library: commands, project scanning, queries, and lifecycle | `docbridge-update` |
-| `crates/docbridge-update`  | Verified self-update of a standalone executable: release format, signatures, replacement       | none               |
-| `crates/docbridge-release` | The unpublished maintainer tool that signs and verifies a release asset set                    | `docbridge-update` |
-| `crates/xtask`             | Unpublished repository gates, smoke checks, and release version maintenance                    | none               |
-
-`docbridge-update` never depends on the CLI, so the release tool verifies a
-release with exactly the code that `docbridge upgrade` runs.
+| Crate              | Owns                                                                                           | Workspace deps |
+| ------------------ | ---------------------------------------------------------------------------------------------- | -------------- |
+| `crates/docbridge` | The `docbridge` executable and its library: commands, project scanning, queries, and lifecycle | none           |
+| `crates/xtask`     | Unpublished repository gates, smoke checks, and release version maintenance                    | none           |
 
 <!-- @code crates/docbridge/src/cli.rs -->
 <!-- @code crates/docbridge/src/main.rs -->
@@ -54,15 +49,13 @@ and the text rendering of a graph.
 <!-- @code crates/docbridge/src/lifecycle.rs -->
 <!-- @code crates/docbridge/src/cli_lifecycle.rs -->
 <!-- @code crates/docbridge/src/docs.rs -->
-<!-- @code crates/docbridge/src/cli_upgrade.rs -->
 
-## Lifecycle, guides, and upgrade
+## Lifecycle and guides
 
 - `lifecycle.rs` implements `init` and `deinit`; `cli_lifecycle.rs` adapts it
   to the command line.
 - `docs.rs` embeds the guides under `crates/docbridge/guides/` and serves
   `docbridge docs`.
-- `cli_upgrade.rs` adapts `docbridge-update` to the `upgrade` command.
 
 <!-- @code crates/xtask/src/main.rs -->
 <!-- @code crates/xtask/src/gates.rs -->
@@ -72,6 +65,5 @@ and the text rendering of a graph.
 ## Repository automation
 
 `xtask` owns `agent-gate`, `publisher-gate`, `smoke`, `release-label`, and
-`release-bump`. Version maintenance names exactly four manifests: `docbridge`,
-`docbridge-update`, `docbridge-release`, and `xtask`. Only the product CLI and
-update library are published.
+`release-bump`. Version maintenance names exactly two manifests: `docbridge`
+and `xtask`. Only the product CLI is published.

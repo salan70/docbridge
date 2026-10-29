@@ -33,7 +33,6 @@ impl Runner for Fake {
             5 => (0, "The program starts here.", ""),
             6 => (0, "src/extra.rs", ""),
             7 => (1, "", ""),
-            8 => (1, "", "install provenance"),
             _ => panic!("unexpected command"),
         };
         Ok(Reply {
@@ -98,24 +97,23 @@ fn smoke_preserves_exit_content_json_and_cleanup_contracts() {
     fs::write(&bin, "").unwrap();
     let mut f = fake();
     assert!(check(&bin, &mut f).is_ok());
-    assert_eq!(f.calls.len(), 9);
+    assert_eq!(f.calls.len(), 8);
     assert_eq!(f.calls[0], ["--help"]);
     assert_eq!(f.calls[1], ["docs", "list"]);
     assert_eq!(f.calls[2], ["docs", "show", "no-such-guide"]);
-    assert_eq!(f.calls[8], ["upgrade", "--check"]);
     assert!(!f.scratch.exists());
 }
 #[test]
 fn smoke_rejects_each_wrong_exit_and_missing_output() {
     let d = tempfile::tempdir().unwrap();
     let bin = d.path().join("docbridge");
-    for n in 0..9 {
+    for n in 0..8 {
         let mut f = fake();
         f.fail = Some(n);
         assert!(check(&bin, &mut f).unwrap_err().contains("expected exit"));
         assert!(!f.scratch.exists());
     }
-    for n in [1, 4, 5, 6, 8] {
+    for n in [1, 4, 5, 6] {
         let mut f = fake();
         f.corrupt = Some(n);
         assert!(check(&bin, &mut f).is_err());

@@ -8,10 +8,10 @@ Removal targets are preflighted before writes, with originals retained in a pers
 
 `deinit` never removes the CLI itself. Its plan ends with uninstall guidance; check how DocBridge was installed first, then use the matching method.
 
-- Standalone binary installed with an installation receipt: delete the executable, its adjacent `<exe>.docbridge-receipt.json`, and any `<exe>.docbridge-update/` recovery directory. Inspect that directory before deleting it; it can hold backups from an interrupted upgrade. Remove only the verified installed executable.
+- Downloaded executable: delete the file. Remove only the verified installed executable.
 - Nix profile: run `nix profile list`, then `nix profile remove <verified-entry>`.
 - Declarative Nix or Home Manager: remove the declared package from the flake or Home Manager configuration and rebuild the owning configuration. `deinit` and these instructions never edit Nix-managed files; make that change yourself.
-- Homebrew: `brew uninstall docbridge`. Cargo: `cargo uninstall docbridge`.
+- Cargo: `cargo uninstall docbridge`.
 - Legacy npm installation: `npm uninstall -g docbridge`. This is separate from the standalone binary; run it only if DocBridge was installed through npm.
 - Unknown provenance: run `docbridge docs` and choose a method after confirming how the executable got there.
 

@@ -299,9 +299,7 @@ fn help_and_command_guide_agree() {
     let help = run(&temp_dir("help"), &["--help"]);
     assert_eq!(help.status.code(), Some(0));
     let help = text(&help.stdout);
-    let commands = [
-        "validate", "links", "unlinked", "init", "deinit", "docs", "upgrade",
-    ];
+    let commands = ["validate", "links", "unlinked", "init", "deinit", "docs"];
     let guide = fs::read_to_string(crate_dir().join("guides/commands.md")).unwrap();
     let spec = fs::read_to_string(crate_dir().join("../../docs/specs/vnext-contracts.md")).unwrap();
     let syntax = section(&spec, "## Commands", "## Output model");
@@ -350,7 +348,6 @@ fn documented_exit_codes_hold_through_the_binary() {
     assert_eq!(code(&migrated, &["links", "--bogus"]), Some(3));
     assert_eq!(code(&migrated, &["unlinked", "--bogus"]), Some(3));
     assert_eq!(code(&migrated, &["deinit", "--bogus"]), Some(3));
-    assert_eq!(code(&migrated, &["upgrade", "--bogus"]), Some(3));
     assert_eq!(code(&migrated, &["docs", "show", "no-such-guide"]), Some(3));
     assert_eq!(code(&migrated, &["no-such-command"]), Some(3));
     // ... except validate argument errors, which exit 1.

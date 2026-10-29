@@ -5,12 +5,7 @@ use std::{
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
-const MANIFESTS: [&str; 4] = [
-    "crates/docbridge/Cargo.toml",
-    "crates/docbridge-update/Cargo.toml",
-    "crates/docbridge-release/Cargo.toml",
-    "crates/xtask/Cargo.toml",
-];
+const MANIFESTS: [&str; 2] = ["crates/docbridge/Cargo.toml", "crates/xtask/Cargo.toml"];
 fn version(text: &str) -> Result<String, String> {
     let mut package = false;
     for line in text.lines() {

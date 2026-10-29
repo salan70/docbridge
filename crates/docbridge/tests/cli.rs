@@ -412,42 +412,12 @@ fn invalid_annotations_do_not_cover_unlinked_regions_and_empty_documents_are_not
 }
 
 #[test]
-fn all_seven_commands_are_visible_in_help() {
+fn all_six_commands_are_visible_in_help() {
     let p = Project::new();
     let help = String::from_utf8(p.run(&["--help"]).stdout).unwrap();
-    for command in [
-        "validate", "links", "unlinked", "init", "deinit", "docs", "upgrade",
-    ] {
+    for command in ["validate", "links", "unlinked", "init", "deinit", "docs"] {
         assert!(help.contains(command));
     }
-}
-
-#[test]
-fn upgrade_refuses_unknown_provenance_without_writes() {
-    let p = Project::new();
-    for args in [
-        &["upgrade", "--check"][..],
-        &["upgrade", "--dry-run"],
-        &["upgrade", "--yes"],
-        &["upgrade"],
-    ] {
-        let o = p.run(args);
-        assert_eq!(o.status.code(), Some(1), "{args:?}");
-        let stderr = String::from_utf8(o.stderr).unwrap();
-        assert!(stderr.contains("install provenance"), "{args:?}: {stderr}");
-    }
-    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_docbridge"));
-    assert!(!docbridge_update::recovery_path(&exe).exists());
-    assert!(!docbridge_update::lock_path(&exe).exists());
-}
-
-#[test]
-fn upgrade_usage() {
-    let p = Project::new();
-    let help = p.run(&["upgrade", "--help"]);
-    assert_eq!(help.status.code(), Some(0));
-    assert!(String::from_utf8(help.stdout).unwrap().contains("--check"));
-    assert_eq!(p.run(&["upgrade", "--bogus"]).status.code(), Some(3));
 }
 
 #[test]
