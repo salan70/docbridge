@@ -136,6 +136,26 @@ admin, from the checkout root. Pending: not run yet.
 Build the maintainer tool with `cargo build --locked -p docbridge-release --target-dir .tmp/rust-vnext` first.
 When invoking it outside the checkout, pass `--root /path/to/checkout` to `keygen`.
 
+On Unix, staging and activation reject group- or other-writable checkout paths,
+including the read-only activation operation. A common `umask 002` produces
+directories with mode 0775 and files with mode 0664, which are rejected.
+The checked paths are the checkout root, `crates`, `crates/docbridge-update`,
+`crates/docbridge-update/keys`, and `crates/docbridge-update/keys/trusted-keys.txt`.
+From a checkout you own, remove those write permissions with:
+
+```sh
+chmod go-w . crates crates/docbridge-update crates/docbridge-update/keys \
+  crates/docbridge-update/keys/trusted-keys.txt
+```
+
+If you do not own the paths, use a controlled private checkout instead.
+The checkout and its ancestor directories must also be nonsymlink directories;
+the trusted keys path must be a nonsymlink regular file.
+Use an absolute physical checkout path without `..` components. On macOS, use
+the path reported by `pwd -P` or a path under `/private/tmp`, not the
+symlinked `/tmp` path. Permission-bit checks apply only on Unix; nonsymlink
+checks also apply on Windows.
+
 ```sh
 .tmp/rust-vnext/debug/docbridge-release keygen --role primary --key-id docbridge-2026-primary
 mkdir -m 0700 /path/to/private-local-directory
@@ -153,6 +173,10 @@ mkdir -m 0700 /path/to/private-local-directory
   is discarded; remove the new line from `trusted-keys.txt` and run again.
 - `--role backup` exclusively creates a new file with mode 0600 in a private local directory with mode 0700, then appends the public entry.
   The directory must not be a symlink.
+  If writing the seed succeeds but appending the public entry fails, the seed
+  file may remain without a registered public entry. Inspect `trusted-keys.txt`
+  before cleanup. Do not overwrite or retry the same existing path; securely
+  remove an unregistered seed before explicitly making a fresh attempt.
   Transfer the file to offline storage using appropriate secret-handling procedures, then securely remove other copies.
   It is never uploaded.
   FAT and exFAT filesystems may report permissions as 0777 and can be refused.
@@ -162,8 +186,8 @@ mkdir -m 0700 /path/to/private-local-directory
   `DOCBRIDGE_RELEASE_KEY_ID`. It asks you to type the key ID first. It never
   modifies or deletes a secret. If it fails between the two variables, the
   `sign` job refuses the mismatched pair until you run it again.
-- The private key is never printed, traced (the script turns off `xtrace`
-  even under `bash -x`), or passed as an argument.
+- The Rust tool does not print or log the seed or pass it as an argument.
+  `gh secret set` receives it only through standard input.
 - Commit `trusted-keys.txt` in a reviewed pull request. The CLI trusts the keys
   only from the first release built with it. The compiled key file is rejected
   if it contains a public key of a deterministic test fixture.
