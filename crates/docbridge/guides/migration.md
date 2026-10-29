@@ -1,6 +1,6 @@
 # Migration
 
-vNext has no backward compatibility, automatic conversion, or migrate command. An AI agent or human must interpret the old links and review the result. Keep a backup (for example, a Git branch) and review changes before removing old assets. Run every command from the project root.
+vNext has no backward compatibility, automatic conversion, or migrate command. An AI agent or human must interpret the old links and review the result. Keep a backup (for example, a Git branch) and review changes before removing old assets.
 
 Legacy forms that vNext rejects with an error:
 

@@ -5,9 +5,6 @@ Markdown sections declare file-level links to code; the CLI validates their stru
 Semantic agreement between linked text and code remains a separate review.
 The CLI has no language parsers, LSP or editor integration, in-code annotations, link manifests, or backward compatibility with the npm package; migration is a deliberate manual conversion without a compatibility layer.
 
-These contracts are binding.
-Internal module layout, algorithms, and crate selection remain implementation decisions.
-
 <!-- @code crates/docbridge/src/cli.rs -->
 <!-- @code crates/docbridge/src/main.rs -->
 
@@ -23,13 +20,11 @@ docbridge docs [list | show <name>]
 docbridge upgrade [--check] [--dry-run] [--yes]
 ```
 
-- `validate` checks configuration and Markdown link annotations. `--json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
+- `validate --json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
 - `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
-- `unlinked` lists code files and Markdown regions that no annotation covers.
-- `init`, `deinit`, `docs`, and `upgrade` manage project assets, embedded guides, and verified updates. Exit codes are listed below.
 - Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward.
-- Commands are registered in one place, `crates/docbridge/src/cli.rs` (the `Command` enum and the `HELP` text). `lifecycle` (`init`, `deinit`) and `upgrade` are dispatched to their own modules. A new command must be added to the enum, the parser, `HELP`, and the embedded guides.
-- The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, and `lsp` commands, and the `--gate` and `--audit` flags, were removed at the cutover (#215) without aliases. They are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands.
+- A new command must be added to the `Command` enum, the parser, and `HELP` in `crates/docbridge/src/cli.rs`, and to the embedded guides.
+- The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, and `lsp` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands.
 
 <!-- @code crates/docbridge/src/output.rs -->
 <!-- @code crates/docbridge/src/query.rs -->
@@ -61,14 +56,14 @@ type Node = {
 };
 ```
 
-IDs and ordering are deterministic and root-relative. `complete` is false when any diagnostic exists or when a managed file could not be read, so a clean-looking result is never reported for an incomplete scan. Diagnostic codes are listed in [Diagnostics](#diagnostics).
+IDs and ordering are deterministic and root-relative. `complete` is false when any diagnostic exists or when a managed file could not be read, so a clean-looking result is never reported for an incomplete scan.
 
 <!-- @code crates/docbridge/src/output.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
 
 ## Diagnostics
 
-The CLI reports flat diagnostics in `validate --json`, `links --json`, and `unlinked --json`:
+Diagnostics in `validate --json`, `links --json`, and `unlinked --json`:
 
 ```ts
 type QueryDiagnostic = {
@@ -92,7 +87,7 @@ type QueryDiagnostic = {
 | `read-metadata`  | File metadata could not be read                                                       |
 | `usage`          | Invalid CLI arguments (with `--json`, reported as a diagnostic)                       |
 
-Any diagnostic makes the result incomplete (`complete: false`). `validate` exits 1 for errors; `links` exits 2 when usable results remain next to diagnostics. See [Exit codes and query output](#exit-codes-and-query-output).
+Any diagnostic makes the result incomplete. Exit codes: [Exit codes and query output](#exit-codes-and-query-output).
 
 <!-- @code crates/docbridge/src/config.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
@@ -122,7 +117,7 @@ Any diagnostic makes the result incomplete (`complete: false`). `validate` exits
 | links with both usable results and inconsistencies                                                           |         2 |
 | Invalid CLI arguments or unknown docs guide                                                                  |         3 |
 
-Per-command notes for the commands that do not query the graph:
+Other commands:
 
 | Command   | 0                                                                                             | 1                                                                                                                                            | 3                                     |
 | --------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -130,16 +125,14 @@ Per-command notes for the commands that do not query the graph:
 | `docs`    | Overview, `list`, `show <name>`, `--help`                                                     | Not used                                                                                                                                     | Unknown guide or invalid usage        |
 
 - Exception: preserve the confirmed `validate` contract strictly; its argument errors also return 1. Exit code 3 applies to usage errors in the other commands.
-- Plain nonexistent file selectors are errors; a valid glob matching nothing succeeds with an empty graph.
-- A nonexistent section, invalid selector among several selectors, or unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
+- A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
 - Warnings and errors go to stderr, leaving stdout valid JSON when requested.
-- `validate --json` returns diagnostics and summary. Query JSON includes `nodes`, `edges`, `diagnostics`, and a `complete` flag. IDs and ordering are deterministic and root-relative.
 - `links` retrieves direct edges only. A selected node can show all of its direct neighbors; neighbors do not trigger another traversal.
 - With content requested, the graph retains every selected/referenced section node. Unique overlapping source ranges are merged into content blocks; nodes reference their own start/end lines in those blocks. This exposes all requested text without repeating overlapping parent/child content. Text output labels a child whose content is already present in the displayed parent.
-- Code content is the complete file. Markdown content begins at the requested heading and includes descendants until the next same-or-higher heading. Text is never summarized or truncated.
+- Code content is the complete file. Markdown content begins at the requested heading and includes descendants until the next same-or-higher heading.
 - stdin contains one selector per line. Blank lines are ignored; repeated selectors are deduplicated before deciding whether the effective request is single-target or multiple-target.
 - Text output with content uses separate `Links` and `Contents` sections. Treat LF and CRLF as line breaks while preserving the stored content bytes in content output.
-- `unlinked` reports meaningful pre-heading or headingless content as a separate document region. A linked parent covers all descendants. When only a child is linked, report the parent's uncovered region without including the covered child as an unlinked item. Invalid links do not make an incomplete scan look complete.
+- `unlinked` reports meaningful pre-heading or headingless content as a separate document region. A linked parent covers all descendants. When only a child is linked, report the parent's uncovered region without including the covered child as an unlinked item.
 - When an unlinked section and its descendants are all unlinked, report the topmost region with descendants nested under it. A section whose only annotations are invalid is not counted as successfully linked; its diagnostics remain visible.
 
 <!-- @code crates/docbridge/src/lifecycle.rs -->
@@ -155,10 +148,10 @@ Per-command notes for the commands that do not query the graph:
 - deinit shows a complete removal plan and requires interactive confirmation. Noninteractive input without confirmation fails without changes; no new deinit `--yes` or `--root` flag is added in the initial version.
 - deinit removes recognizable DocBridge annotation lines outside examples and ordinary comments, preserving malformed lookalikes for manual review. It removes only owned unchanged skill files; modified or unowned files are reported and preserved. The displayed config removal requires confirmation even if the config was edited.
 - Preflight removal targets before writes, retain enough original content for recovery, and report failure explicitly if removal or recovery cannot finish. Do not claim a partial removal succeeded completely.
-- Use temporary-file rewrites and atomic replacement per file. Keep a persistent, private recovery directory for originals until removal finishes; if interrupted, identify changed and untouched files and the recovery path. Never overwrite or delete a pre-existing recovery directory.
-- Without `--root`, commands that require project configuration use the current directory only; do not search upward. deinit displays the resolved root in its confirmation. Managed annotation targets must match discovered paths exactly, independent of filesystem case folding. Always avoid Git metadata during discovery; other hidden paths follow the explicit configuration.
+- Rewrite files atomically via temporary files. Keep a persistent, private recovery directory for originals until removal finishes; if interrupted, identify changed and untouched files and the recovery path. Never overwrite or delete a pre-existing recovery directory.
+- deinit displays the resolved root in its confirmation. Managed annotation targets must match discovered paths exactly, independent of filesystem case folding. Always avoid Git metadata during discovery; other hidden paths follow the explicit configuration.
 - Noninteractive init or upgrade without `--yes` may inspect or dry-run, but must not perform writes or replacement.
-- Bare `docs` shows a short getting-started entry and available guides. `docs list` lists guide names; `docs show <name>` displays one guide. Guides and the distributable skill are English initially.
+- Guides and the distributable skill are English.
 
 <!-- @code crates/docbridge-update/src/lib.rs -->
 <!-- @code crates/docbridge-update/src/install.rs -->
@@ -166,16 +159,12 @@ Per-command notes for the commands that do not query the graph:
 
 ## Signing and release preparation
 
-- The executable verifies a signed manifest binding schema version, release version, target, filename, SHA-256, and key ID. It may bundle multiple trusted Ed25519 public keys. Verify the manifest with the identified trusted key before assets can replace the installed binary.
-- The signed version must match the selected release tag and be newer than the running version. Reject replay, downgrade, and version/target mismatch before replacement.
-- Production keys follow the Decisions section: the private key is held only in the protected `release` environment, and the binary trusts a compiled-in primary and an offline backup public key. Until the maintainer provisions them, test and verify with test-only keys; do not invent a production key or weaken verification to make release tests pass.
-- Unknown install provenance never triggers self-replacement. Managed installations receive commands appropriate to their package manager; detection does not depend on the current directory.
-- Positive standalone identification requires a receipt created by the documented standalone installation procedure, bound to the executable path and installed hash. Known managed installation locations take precedence over such a receipt. Direct downloads without a receipt receive installation/update guidance instead of self-replacement.
-- `upgrade --check` and `--dry-run` never replace the executable. A newer stable version is reported without treating availability itself as a command failure. Failed verification remains an error.
-- Download and verify in the executable's directory, retain the old executable as a recoverable backup, and replace using platform-appropriate atomic operations. On Windows, safely rename the running binary aside before moving the verified replacement into place and defer safe cleanup. Restore on failure where possible; any restoration failure reports the recovery paths instead of claiming success.
-- Prepare Linux x64/ARM64 as static musl builds for portability, macOS x64/ARM64, and Windows x64. Document actual supported OS/toolchain requirements rather than claiming untested minimum versions.
-- A maintainer invokes production releases manually; merging a pull request publishes nothing. Preparatory internal PRs use the repository's non-releasing path; the final user-facing cutover must satisfy versioning and release-label checks. No production publishing, npm/Marketplace removal, or Nixpkgs submission is performed merely to close an issue.
-- Nixpkgs packaging is built from Rust source. Prepare and verify the package and submission material; record any external approval or acceptance that remains outstanding instead of closing it as completed.
+- The executable verifies a signed manifest with a trusted compiled-in Ed25519 key before any asset can replace the installed binary. The signed version must match the selected release tag and be newer than the running version. Format, receipts, replacement, and recovery: [`docbridge-update`](../../crates/docbridge-update/README.md).
+- Until the maintainer provisions production keys, test with test-only keys; never invent a production key or weaken verification to make release tests pass.
+- Unknown install provenance never triggers self-replacement. Known managed installation locations take precedence over a standalone receipt.
+- `upgrade --check` and `--dry-run` never replace the executable. A newer version is not a command failure; failed verification is.
+- Targets: Linux x64/ARM64 (static musl), macOS x64/ARM64, Windows x64. Document actual supported OS requirements rather than untested minimums.
+- Merging a pull request publishes nothing; a maintainer dispatches production releases. No npm/Marketplace removal or Nixpkgs submission happens merely to close an issue ([Releasing](../contributing/releasing.md)).
 
 <!-- @code crates/docbridge/src/docs.rs -->
 <!-- @code crates/docbridge/src/lifecycle.rs -->
@@ -190,8 +179,7 @@ Per-command notes for the commands that do not query the graph:
 Recorded by the maintainer on 2026-10-29:
 
 - The production signing key lives in a protected `release` GitHub Actions environment secret that requires reviewer approval. The executable compiles in a primary public key and an offline backup public key.
-- The first vNext version is 0.17.0.
-- After release, deprecate the legacy npm package. Never unpublish it.
+- After release, deprecate the legacy npm package; never unpublish it.
 - Nixpkgs material is prepared in this repository, and the maintainer submits it.
 
 ## Open items

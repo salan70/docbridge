@@ -1,100 +1,34 @@
 ---
 name: git-workflow
-description: DocBridge git workflow rules and procedures — branch naming, PR-based integration, merge commits, AI agent autonomy gates, and per-PR releases. Use when branching, committing, pushing, opening or merging a PR, or choosing a PR's release label.
+description: DocBridge git workflow — branching, PR-based integration, merge commits, and agent approval gates. Use when branching, committing, pushing, opening or merging a PR, or choosing a PR's release label.
 ---
 
 # git-workflow
 
-DocBridge integrates every change through a pull request. `main` is protected and
-cannot be pushed to directly. Follow these rules for all git work.
-
-## Invariants
-
-- No direct pushes to `main`. Every change lands through a PR. GitHub enforces
-  this for everyone, including administrators.
-- Merge method is **Create a merge commit**. PR boundaries stay visible in
-  `main` history; use `git log --first-parent main` for a PR-level view.
-- The `ci` and `release-label` checks must pass before a PR can merge.
-- Commit messages follow
-  [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests):
-  `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated
-  changes split into separate commits.
+- No direct pushes to `main`; never bypass branch protection or the required
+  `ci` and `release-label` checks.
+- Agents may branch, commit, push, and open PRs. **Merging a PR requires
+  explicit human approval** and uses **Create a merge commit**
+  (`git log --first-parent main` for the PR view).
+- Only a maintainer publishes a release, by dispatching Release vNext.
+- Branch, commit, and PR conventions:
+  [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests).
 
 ## Standard change flow
 
-1. Branch from a freshly fetched `main`, named per
-   [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests):
+1. Branch from a freshly fetched `main`:
    `git fetch origin && git switch --no-track -c <branch> origin/main`. This
    works even while another worktree holds `main`.
-2. Implement test-first. Follow [test conventions](../../../docs/contributing/README.md#test-conventions).
-3. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
-   `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
-   result. Commit in focused, logical commits. The `pre-commit` hook runs
-   `just verify` over the working tree, not only the staged snapshot. Before
-   committing, review the linked counterparts of each changed file or section
-   with `just links <path> --include-content`. If `git config core.hooksPath`
-   is unset, run `just install-git-hooks` first.
-4. Write the PR body using the writing rules in `AGENTS.md`, push with
-   `git push -u origin <branch>`, and open a PR using the repository template.
-   Title, body, and issue linking follow
+2. Choose the release label and run the bump per
    [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests).
-   Add exactly one `release:` label. Documentation ownership follows
-   [Documentation](../../../docs/contributing/README.md#documentation).
-5. Wait for CI and the `release-label` check to pass.
-6. Once CI is green and a human has explicitly approved the merge, merge with
-   **Create a merge commit**.
-7. After merge, run `git fetch --prune origin` and confirm that
+3. Before committing, review the linked counterparts of each changed file or
+   section with `just links <path> --include-content`. The `pre-commit` hook
+   runs `just verify` over the working tree, not only the staged snapshot. If
+   `git config core.hooksPath` is unset, run `just setup`.
+4. Push with `git push -u origin <branch>` and open the PR with the template and
+   exactly one `release:` label.
+5. After merge, run `git fetch --prune origin` and confirm that
    `git merge-base --is-ancestor <branch> origin/main` succeeds. Then leave the
    branch: remove a linked worktree with `git worktree remove <path>`, or in
    the main checkout switch to `main`, or to `--detach origin/main` while
-   another worktree holds `main`. Delete the branch with `git branch -D <branch>`;
-   the ancestry check has already shown that every commit on it merged.
-
-## AI agent autonomy gates
-
-Agents may create branches, commit, push, and open PRs. **Merging a PR requires
-explicit human approval.** Only a maintainer publishes a release, by
-dispatching Release vNext.
-Never push to `main` directly or try to bypass its protection.
-
-Agent instructions require human merge approval; local tool prompts are not a
-security boundary. GitHub branch protection and required checks remain the
-enforced integration controls. Never bypass them.
-
-## Releases (per PR)
-
-Versioning follows SemVer. During `0.x`, new features and breaking changes bump
-the minor version; `major` is reserved for 1.0. SemVer build metadata (`+build`)
-is not a release kind.
-
-Every PR carries exactly one release label:
-
-| Label            | Use when                                        | Version and CHANGELOG in the PR        |
-| ---------------- | ----------------------------------------------- | -------------------------------------- |
-| `release: none`  | No user-facing change (docs, CI, refactor, ...) | Unchanged; `## [Unreleased]` unchanged |
-| `release: patch` | User-facing fix                                 | `just release-bump patch`              |
-| `release: minor` | New feature, or a breaking change during `0.x`  | `just release-bump minor`              |
-| `release: major` | Breaking change after 1.0                       | `just release-bump major`              |
-
-For a releasing PR, add the user-facing entries under `## [Unreleased]`
-following Keep a Changelog, then run `just release-bump <kind>`
-(`xtask release-bump`). It rolls `## [Unreleased]` into
-`## [X.Y.Z] - <date>`, sets `version` in the four explicit crate manifests
-(`crates/docbridge`, `crates/docbridge-update`, `crates/docbridge-release`, and `crates/xtask`),
-and updates `Cargo.lock`.
-
-The required `release-label` check (`.github/workflows/release-label.yml`,
-`xtask release-label`) compares the PR head with the base branch
-tip. It fails when the label is missing or duplicated, when the versions are
-not the label's next version, or when the CHANGELOG is not rolled. It reruns
-when labels change; `just check-release-label "release: patch"` runs it
-locally against `origin/main`.
-
-If `main` gains another release before the PR merges, update the branch,
-restore `main`'s versions and CHANGELOG sections, and run
-`just release-bump <kind>` again.
-
-Merging a releasing PR publishes nothing. A maintainer releases the merged
-version by dispatching Release vNext. Publishing, recovery, branch protection,
-and one-time setup are maintainer concerns documented in
-[Releasing](../../../docs/contributing/releasing.md).
+   another worktree holds `main`. Delete the branch with `git branch -D <branch>`.

@@ -1,15 +1,14 @@
 # Releasing
 
-Maintainer reference for how a version is released and how the repository is
-configured for it. Contributor rules for release labels and version bumps live in
+Maintainer reference for releasing a version and the repository configuration it
+needs. Per-PR release labels and version bumps are in
 [Contributor guide](README.md#git-and-pull-requests).
 
 ## Branch protection
 
 `main` is protected as follows:
 
-- Require a pull request before merging, with `0` required approvals (solo
-  project; self-approval is not possible on personal repositories).
+- Require a pull request before merging, with `0` required approvals.
 - Require the `ci` and `release-label` status checks to pass.
 - Require branches to be up to date before merging.
 - Allow only **Create a merge commit**; disable squash and rebase merges, and do
@@ -18,49 +17,32 @@ configured for it. Contributor rules for release labels and version bumps live i
 - Apply to administrators with no bypass. To recover from a stuck state, an
   admin temporarily relaxes protection instead of force-pushing.
 
-## One-time setup
-
-- Create the four `release:` labels and make `release-label` a required status
-  check on `main`.
-- Never record credential values in git, logs, or issue comments.
-- The npm Trusted Publisher configured for `release-publish.yml` has no
-  workflow left to authorize after the cutover. The maintainer can remove it
-  from the npm `docbridge` package settings.
+Never record credential values in git, logs, or issue comments.
 
 ## vNext release (manual)
 
 The Rust CLI is released only by a maintainer dispatching **Release vNext**
 (`release-vnext.yml`). Nothing publishes on merge. The asset format is the contract in
-[`crates/docbridge-update/README.md`](../../crates/docbridge-update/README.md#distribution-format):
-one raw executable per target, `docbridge-manifest.json`, and its detached
-Ed25519 signature `docbridge-manifest.sig`. The workflow also attaches an
-unsigned `SHA256SUMS` for manual downloads; the upgrade verifier never trusts
-it.
-
-The [maintainer decisions](../specs/vnext-contracts.md#decisions) set key custody,
-the first version, npm handling, and Nixpkgs submission responsibility.
+[`crates/docbridge-update/README.md`](../../crates/docbridge-update/README.md#distribution-format).
+The workflow also attaches an unsigned `SHA256SUMS` for manual downloads; the
+upgrade verifier never trusts it. Key custody, npm handling,
+and Nixpkgs responsibility are set by the
+[maintainer decisions](../specs/vnext-contracts.md#decisions).
 
 ### Cutover order
 
-The legacy npm publisher (`release-publish.yml`) also created `vX.Y.Z` tags and
-GitHub releases and marked them latest, and `docbridge upgrade` reads the latest
-release. The cutover runs in this order:
+Release mode of **Release vNext** first runs `publisher-gate` (`xtask`) and
+refuses to start while any other workflow runs `npm publish` or creates or edits
+GitHub releases; `just lint-actions` runs the same check. Remaining steps:
 
-1. Done: legacy releases stayed below `0.17.0` (the last is `0.16.0`).
-2. Done (#215): the legacy publisher is retired, so no workflow other than
-   `release-vnext.yml` runs `npm publish` or creates or edits GitHub releases.
-   Release mode of **Release vNext** runs
-   `cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows` first and
-   refuses to start while any other workflow publishes; `just lint-actions`
-   runs the same check in `just verify` and CI.
-3. Pending: provision the keys and dispatch the first vNext release
-   (`0.17.0`) as described below.
-4. Pending: deprecate the npm package.
+1. Provision the keys (below) and dispatch the first vNext release (`0.17.0`).
+2. Deprecate the npm package (step 7 of [Releasing](#releasing)). Also remove
+   the npm Trusted Publisher configured for `release-publish.yml` from the npm
+   `docbridge` package settings.
 
-**Pending: key provisioning.** The maintainer has not generated the keys yet.
-`crates/docbridge-update/keys/trusted-keys.txt` is empty, so
-`compiled_trusted_keys()` trusts nothing. A release run then fails closed
-before signing and publishes nothing.
+**Pending: key provisioning.** `crates/docbridge-update/keys/trusted-keys.txt`
+is empty, so `compiled_trusted_keys()` trusts nothing and a release run fails
+closed before signing.
 
 <!-- @code crates/docbridge-release/src/main.rs -->
 <!-- @code crates/docbridge-release/src/lib.rs -->
@@ -87,30 +69,18 @@ docbridge-release dry-run --artifacts DIR --out DIR --version VERSION
 - The private key is a 32-byte Ed25519 seed written as 64 hex characters. It
   is read only from a file or an environment variable, never from arguments.
 - `sign` requires exactly the five executables named by `filename(target)` in
-  the artifacts directory and a new output directory. It signs the manifest,
-  writes the complete set, and verifies it before succeeding.
+  the artifacts directory and a new output directory. It verifies the set
+  before succeeding.
 - `verify` requires exactly the eight release assets, checks `SHA256SUMS`, and
   runs `docbridge_update::plan_with` for every target as the `vX.Y.Z` release.
-  That checks the key ID, signature, version/tag binding, filenames, and each
-  executable's SHA-256.
-- `public-key` prints the public half of a key.
-- `trusted-keys` prints the key IDs compiled into this build.
 - `tag check` requires an absent tag or a lightweight tag at exactly the supplied commit; lookup failures and annotated tags fail closed.
 - `tag ensure` applies the same checks and creates only an absent tag through GitHub, using `GITHUB_REPOSITORY` and the caller's origin.
-  Production publication remains a separate, manually authorized workflow operation.
-
-`cargo test --package docbridge-release` covers genuine sets and the rejection
-of tampered executables, tampered manifests, other keys, unknown key IDs,
-wrong versions, missing or wrong targets, missing signatures, and incomplete
-sets.
 
 ### Dry run
 
 The `release-dry-run` CI job, and **Release vNext** in its default `dry-run`
-mode, run `docbridge-release dry-run --artifacts DIR --out DIR --version VERSION` on the five built binaries. It
-generates an in-memory throwaway key inside the job, signs, verifies, and checks that a
-tampered executable and the compiled (still empty) trust are rejected. It
-creates no tag or release and uses no secret.
+mode, run `docbridge-release dry-run` on the five built binaries with an
+in-memory throwaway key. It creates no tag or release and uses no secret.
 
 ### Required configuration
 
@@ -131,30 +101,24 @@ creates no tag or release and uses no secret.
 
 ### Provisioning the keys
 
-The maintainer runs this once, locally, with `gh` authenticated as a repository
-admin, from the checkout root. Pending: not run yet.
-Build the maintainer tool with `cargo build --locked -p docbridge-release --target-dir .tmp/rust-vnext` first.
-When invoking it outside the checkout, pass `--root /path/to/checkout` to `keygen`.
+Pending: not run yet. The maintainer runs this once, locally, from the checkout
+root with `gh` authenticated as a repository admin. Build the tool first with
+`cargo build --locked -p docbridge-release --target-dir .tmp/rust-vnext`. Outside
+the checkout, pass `--root /path/to/checkout` to `keygen`.
 
-On Unix, staging and activation reject group- or other-writable checkout paths,
-including the read-only activation operation. A common `umask 002` produces
-directories with mode 0775 and files with mode 0664, which are rejected.
-The checked paths are the checkout root, `crates`, `crates/docbridge-update`,
-`crates/docbridge-update/keys`, and `crates/docbridge-update/keys/trusted-keys.txt`.
-From a checkout you own, remove those write permissions with:
+On Unix, staging and activation (including the read-only activation check)
+reject group- or other-writable paths, so a common `umask 002` fails. From a
+checkout you own, run:
 
 ```sh
 chmod go-w . crates crates/docbridge-update crates/docbridge-update/keys \
   crates/docbridge-update/keys/trusted-keys.txt
 ```
 
-If you do not own the paths, use a controlled private checkout instead.
-The checkout and its ancestor directories must also be nonsymlink directories;
-the trusted keys path must be a nonsymlink regular file.
-Use an absolute physical checkout path without `..` components. On macOS, use
-the path reported by `pwd -P` or a path under `/private/tmp`, not the
-symlinked `/tmp` path. Permission-bit checks apply only on Unix; nonsymlink
-checks also apply on Windows.
+If you do not own the paths, use a controlled private checkout. The checkout and
+its ancestors must be nonsymlink directories, and `trusted-keys.txt` a
+nonsymlink regular file. Use an absolute physical path without `..`; on macOS,
+the `pwd -P` path or a path under `/private/tmp`, not `/tmp`.
 
 ```sh
 .tmp/rust-vnext/debug/docbridge-release keygen --role primary --key-id docbridge-2026-primary
@@ -165,32 +129,26 @@ mkdir -m 0700 /path/to/private-local-directory
 .tmp/rust-vnext/debug/docbridge-release keygen --activate --key-id docbridge-2026-primary
 ```
 
-- `--role primary` stages a key. It refuses an existing secret of that name or
-  a failed secret listing. It appends `<key-id> <public-key>` to
-  `trusted-keys.txt` first. Then it pipes the seed from memory to
+- `--role primary` stages a key: it appends `<key-id> <public-key>` to
+  `trusted-keys.txt`, then pipes the seed from memory to
   `gh secret set DOCBRIDGE_RELEASE_SIGNING_KEY_<ID> --env release`. It never
-  changes the active key ID or any other secret. If the upload fails, the seed
-  is discarded; remove the new line from `trusted-keys.txt` and run again.
-- `--role backup` exclusively creates a new file with mode 0600 in a private local directory with mode 0700, then appends the public entry.
-  The directory must not be a symlink.
-  If writing the seed succeeds but appending the public entry fails, the seed
-  file may remain without a registered public entry. Inspect `trusted-keys.txt`
-  before cleanup. Do not overwrite or retry the same existing path; securely
-  remove an unregistered seed before explicitly making a fresh attempt.
-  Transfer the file to offline storage using appropriate secret-handling procedures, then securely remove other copies.
-  It is never uploaded.
-  FAT and exFAT filesystems may report permissions as 0777 and can be refused.
-  Native Windows private backup export currently fails closed because private ACL creation is not implemented.
-- `--activate` checks that the key ID is in `trusted-keys.txt` and that its
-  secret exists. Then it sets `DOCBRIDGE_RELEASE_KEY_SECRET` and
-  `DOCBRIDGE_RELEASE_KEY_ID`. It asks you to type the key ID first. It never
-  modifies or deletes a secret. If it fails between the two variables, the
-  `sign` job refuses the mismatched pair until you run it again.
-- The Rust tool does not print or log the seed or pass it as an argument.
-  `gh secret set` receives it only through standard input.
+  changes the active key ID or any other secret. If the upload fails, remove the
+  new line from `trusted-keys.txt` and run again.
+- `--role backup` exclusively creates a new 0600 file in a private 0700
+  directory (not a symlink), then appends the public entry. The seed is never
+  uploaded. If the public entry fails to append, the seed file may remain
+  unregistered: inspect `trusted-keys.txt`, securely remove the unregistered
+  seed, and do not retry the same path. Move the file to offline storage and
+  securely remove other copies. FAT and exFAT filesystems can be refused;
+  native Windows backup export fails closed.
+- `--activate` asks you to type the key ID, checks that it is in
+  `trusted-keys.txt` and that its secret exists, then sets
+  `DOCBRIDGE_RELEASE_KEY_SECRET` and `DOCBRIDGE_RELEASE_KEY_ID`. If it fails
+  between the two variables, the `sign` job refuses the mismatched pair until
+  you run it again.
 - Commit `trusted-keys.txt` in a reviewed pull request. The CLI trusts the keys
-  only from the first release built with it. The compiled key file is rejected
-  if it contains a public key of a deterministic test fixture.
+  only from the first release built with it. A key file containing a
+  deterministic test-fixture public key is rejected.
 
 ### Releasing
 
@@ -200,25 +158,21 @@ mkdir -m 0700 /path/to/private-local-directory
 2. Dispatch **Release vNext** from `main` with mode `release` and that version,
    then approve the `release` environment deployment.
 3. `prepare` refuses a ref other than `main`, a version that differs from the
-   crate, any other workflow that still publishes (see
-   [Cutover order](#cutover-order)), and a `vX.Y.Z` tag that exists at another
-   commit. A failed tag lookup is an error, not "absent".
+   crate, any other workflow that still publishes, and a `vX.Y.Z` tag at
+   another commit. A failed tag lookup is an error, not "absent".
 4. `build` builds and smoke-tests the five targets (Linux as static musl).
-5. `sign` runs in the `release` environment. It fails if the key ID, the
-   secret name, or the secret is missing, if the secret name does not belong
-   to the key ID, or if the compiled keys do not include both keys. It signs
-   once and verifies against the compiled keys.
-6. `publish` refuses an existing release or draft for the tag, and a tag at
-   another commit. It creates a **draft** release with every asset,
-   re-downloads all assets of the draft, and verifies the complete set against
-   the compiled keys. Then it creates the `vX.Y.Z` tag at the dispatched
-   commit, or confirms that an existing tag points exactly at it. GitHub
-   publishes a draft on an existing tag and ignores the draft's target, so a
-   tag that appeared meanwhile at another commit, an annotated tag, or a failed
+5. `sign` runs in the `release` environment and fails on a missing key ID,
+   secret name, or secret, a secret name that does not belong to the key ID, or
+   compiled keys that lack both keys.
+6. `publish` refuses an existing release or draft for the tag. It creates a
+   **draft** with every asset, re-downloads and verifies the complete set
+   against the compiled keys, then creates the `vX.Y.Z` tag at the dispatched
+   commit or confirms an existing tag points exactly at it. GitHub ignores a
+   draft's target, so a tag at another commit, an annotated tag, or a failed
    lookup stops the run. Only then does it publish the draft, mark it latest,
    and check the tag again.
-7. After the first vNext release, deprecate the npm package. Run this once,
-   from an npm account that owns `docbridge`. Never run `npm unpublish`.
+7. After the first vNext release, deprecate the npm package once, from an npm
+   account that owns `docbridge`. Never run `npm unpublish`.
 
    ```sh
    npm deprecate docbridge "docbridge on npm is replaced by the native DocBridge CLI; install it as described at https://github.com/salan70/docbridge#install"
@@ -226,34 +180,29 @@ mkdir -m 0700 /path/to/private-local-directory
 
 ### Recovering from a partial failure
 
-Every failure before the final step leaves at most a draft release, and the
-upgrade client ignores drafts. There is never a published incomplete set.
+A failure before the final step leaves at most a draft release, which the
+upgrade client ignores.
 
 - Failure in `prepare`, `build`, or `sign`: nothing was created. Fix the cause
   and dispatch again.
-- Failure in `publish` before the final step: open the draft, then delete it
-  with `gh release delete vX.Y.Z --yes`. Dispatch again from the same commit.
-  A tag that the run already created points at that commit, and the next run
-  accepts it. To release a different commit, delete that tag first. Do not
-  repair a draft by hand; the next run refuses any existing draft for the tag.
-- Failure of the final publish call itself: check whether the release is
-  published. If it is, download its assets with
-  `gh release download vX.Y.Z --dir assets` and run
-  `docbridge-release verify --compiled-keys --dir assets --version X.Y.Z`.
-  If it is still a draft, delete it and dispatch again.
+- Failure in `publish` before the final step: delete the draft with
+  `gh release delete vX.Y.Z --yes` and dispatch again from the same commit. A
+  tag the run already created points at that commit and is accepted. To release
+  a different commit, delete that tag first. Do not repair a draft by hand.
+- Failure of the final publish call: check whether the release is published.
+  If it is, run `gh release download vX.Y.Z --dir assets` and
+  `docbridge-release verify --compiled-keys --dir assets --version X.Y.Z`. If
+  it is still a draft, delete it and dispatch again.
 - A published release later found wrong: do not delete or edit its assets.
-  Release a higher version. The verifier rejects downgrades, so clients that
-  already updated stay safe.
+  Release a higher version; the verifier rejects downgrades.
 
 ### Key rotation
 
 The CLI accepts any key in `compiled_trusted_keys()`, selected by the
-manifest's `key_id`. It always ships a primary and a backup key.
+manifest's `key_id`, and always ships a primary and a backup key.
 
 - Planned rotation:
-  1. Stage the new key with `docbridge-release keygen --role primary`. The
-     active key, key ID, and secret are unchanged, and the previous seed stays
-     in its own secret.
+  1. Stage the new key with `docbridge-release keygen --role primary`.
   2. Merge `trusted-keys.txt` and publish a transition release, still signed
      with the current primary key.
   3. After clients update, run `docbridge-release keygen --activate` with the
@@ -270,16 +219,11 @@ manifest's `key_id`. It always ships a primary and a backup key.
 
 ## Nixpkgs packaging (pending)
 
-**Pending: the first vNext release and the maintainer's submission.** No
-Nixpkgs pull request exists, and nothing has been accepted.
-
-The official flake output `.#docbridge` builds the CLI from this repository's
-Rust source and `Cargo.lock`. The draft
-[`packaging/nixpkgs/package.nix`](../../packaging/nixpkgs/package.nix)
-builds the same workspace from the `v0.17.0` GitHub source for
-`pkgs/by-name/do/docbridge/package.nix`. It never reuses the published
-binaries. `src.hash` and `cargoHash` are `lib.fakeHash` placeholders until a
-tag exists. To check the draft against the working tree:
+**Pending: the first vNext release and the maintainer's submission.** The draft
+[`packaging/nixpkgs/package.nix`](../../packaging/nixpkgs/package.nix) builds
+from the `v0.17.0` GitHub source; `src.hash` and `cargoHash` are
+`lib.fakeHash` placeholders until a tag exists. To check it against the working
+tree:
 
 ```sh
 nix build --no-link --impure --expr '
@@ -305,13 +249,10 @@ Submission checklist:
       `meta.maintainers`.
 - [ ] `nixpkgs-review` passes on supported Darwin and Linux systems.
 - [ ] The maintainer opens the pull request against `NixOS/nixpkgs` from
-      their own account. It adds `pkgs/by-name/do/docbridge/package.nix`, with
-      the body from
+      their own account, following
       [`packaging/nixpkgs/PR.md`](../../packaging/nixpkgs/PR.md).
 - [ ] After acceptance, update the installation guidance to the Nixpkgs
       attribute and record the merged pull request here.
 
-Updates: bump `version`, refresh both hashes, and rebuild on each vNext
-release, through `nix-update docbridge` or by hand. A Nix installation is
-managed. `docbridge upgrade` does not replace it and points to Nix instead.
-`docbridge deinit` lists Nix profile and declarative removal steps.
+On each vNext release, bump `version`, refresh both hashes, and rebuild, through
+`nix-update docbridge` or by hand.
