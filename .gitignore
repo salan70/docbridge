@@ -4,7 +4,8 @@
 .DS_Store
 *.log
 
-# Machine-specific editor settings; keep local.
+# Machine-specific settings; keep local.
+.envrc.local
 .vscode/
 
 # Worktrees the Claude Code Agent tool creates inside the checkout.
