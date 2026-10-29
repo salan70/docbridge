@@ -1,58 +1,33 @@
+mod common;
+
+use common::Project;
 use serde_json::{json, Value};
 use std::{
     fs,
     io::Write,
-    path::PathBuf,
-    process::{Command, Output, Stdio},
+    process::{Command, Stdio},
 };
 
-struct Project(PathBuf);
-impl Project {
-    fn new() -> Self {
-        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-        let path = std::env::temp_dir().join(format!(
-            "docbridge-query-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        ));
-        fs::create_dir_all(&path).unwrap();
-        let p = Self(path);
-        p.write("docbridge.config.json", r#"{"include":{"code":{"paths":["src"],"extensions":[".rs"]},"docs":["docs"]},"exclude":{"code":["**/*.test.rs"]}}"#);
-        p
-    }
-    fn write(&self, path: &str, text: &str) {
-        let p = self.0.join(path);
-        fs::create_dir_all(p.parent().unwrap()).unwrap();
-        fs::write(p, text).unwrap();
-    }
-    fn run(&self, args: &[&str]) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_docbridge"))
-            .current_dir(&self.0)
-            .args(args)
-            .output()
-            .unwrap()
-    }
-    fn json(&self, args: &[&str]) -> (Output, Value) {
-        let o = self.run(args);
-        let v = serde_json::from_slice(&o.stdout).unwrap_or_else(|_| {
-            panic!(
-                "stdout {:?}, stderr {:?}",
-                String::from_utf8_lossy(&o.stdout),
-                String::from_utf8_lossy(&o.stderr)
-            )
-        });
-        (o, v)
-    }
+/// A project with the configuration most tests share.
+fn project() -> Project {
+    let p = Project::new();
+    p.write("docbridge.config.json", r#"{"include":{"code":{"paths":["src"],"extensions":[".rs"]},"docs":["docs"]},"exclude":{"code":["**/*.test.rs"]}}"#);
+    p
 }
-impl Drop for Project {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
-    }
+
+#[cfg(unix)]
+fn codes(value: &Value) -> Vec<String> {
+    value["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| d["code"].as_str().unwrap().to_owned())
+        .collect()
 }
 
 #[test]
 fn validates_required_exact_configuration_and_usage_exit_codes() {
-    let p = Project::new();
+    let p = project();
     assert_eq!(p.run(&["validate"]).status.code(), Some(0));
     assert_eq!(p.run(&["validate", "--audit"]).status.code(), Some(3));
     assert_eq!(p.run(&["validate", "--root"]).status.code(), Some(3));
@@ -69,13 +44,13 @@ fn validates_required_exact_configuration_and_usage_exit_codes() {
     assert_eq!(o.status.code(), Some(1));
     assert!(!v["diagnostics"].as_array().unwrap().is_empty());
     assert!(v["summary"].is_object());
-    fs::remove_file(p.0.join("docbridge.config.json")).unwrap();
+    fs::remove_file(p.join("docbridge.config.json")).unwrap();
     assert_eq!(p.run(&["validate"]).status.code(), Some(1));
 }
 
 #[test]
 fn links_have_hierarchical_unicode_collision_ids_and_direct_edges() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a\n");
     p.write("src/b.rs", "b\n");
     p.write("docs/a.md", "<!-- @code src/a.rs -->\n# 日本_語\n<!-- @code src/b.rs -->\n### Child\n### Child\n### Child-2\n# !!!\n## Leaf\n");
@@ -107,7 +82,7 @@ fn links_have_hierarchical_unicode_collision_ids_and_direct_edges() {
 
 #[test]
 fn partial_links_keep_valid_json_and_empty_globs_succeed() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "ok");
     p.write(
         "docs/a.md",
@@ -118,7 +93,7 @@ fn partial_links_keep_valid_json_and_empty_globs_succeed() {
     assert_eq!(v["complete"], false);
     assert!(!o.stderr.is_empty());
     assert_eq!(p.run(&["links", "missing.rs"]).status.code(), Some(1));
-    let clean = Project::new();
+    let clean = project();
     let (o, v) = clean.json(&["links", "none/**/*.rs", "--json"]);
     assert!(o.status.success());
     assert_eq!(v["nodes"], json!([]));
@@ -126,7 +101,7 @@ fn partial_links_keep_valid_json_and_empty_globs_succeed() {
 
 #[test]
 fn content_is_merged_without_losing_section_references_or_crlf() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "entire\r\nfile\r\n");
     let md = "# Parent\r\nbody\r\n## Child\r\nchild body\r\n";
     p.write("docs/a.md", md);
@@ -154,11 +129,11 @@ fn content_is_merged_without_losing_section_references_or_crlf() {
 
 #[test]
 fn stdin_deduplicates_and_root_is_explicit() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
     p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
     let mut child = Command::new(env!("CARGO_BIN_EXE_docbridge"))
-        .current_dir(&p.0)
+        .current_dir(&*p)
         .args(["links", "--stdin", "--json"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -174,17 +149,17 @@ fn stdin_deduplicates_and_root_is_explicit() {
     assert!(o.status.success());
     let v: Value = serde_json::from_slice(&o.stdout).unwrap();
     assert_eq!(v["nodes"].as_array().unwrap().len(), 2);
-    fs::create_dir_all(p.0.join("nested")).unwrap();
+    fs::create_dir_all(p.join("nested")).unwrap();
     let o = Command::new(env!("CARGO_BIN_EXE_docbridge"))
-        .current_dir(p.0.join("nested"))
+        .current_dir(p.join("nested"))
         .arg("validate")
         .output()
         .unwrap();
     assert_eq!(o.status.code(), Some(1));
     let o = Command::new(env!("CARGO_BIN_EXE_docbridge"))
-        .current_dir(p.0.join("nested"))
+        .current_dir(p.join("nested"))
         .args(["validate", "--root"])
-        .arg(&p.0)
+        .arg(&*p)
         .output()
         .unwrap();
     assert!(o.status.success());
@@ -192,7 +167,7 @@ fn stdin_deduplicates_and_root_is_explicit() {
 
 #[test]
 fn unlinked_respects_parent_coverage_and_preserves_uncovered_regions() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
     p.write("src/free.rs", "free");
     p.write("docs/a.md", "Preamble\n# Parent\nparent body\n<!-- @code src/a.rs -->\n## Child\ncovered\n# Free\n## Nested\ntext\n");
@@ -215,7 +190,7 @@ fn unlinked_respects_parent_coverage_and_preserves_uncovered_regions() {
 
 #[test]
 fn discovery_honors_case_exclusion_git_and_rejects_binary() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
     p.write("src/no.test.rs", "excluded");
     p.write("src/UP.RS", "uppercase");
@@ -226,17 +201,17 @@ fn discovery_honors_case_exclusion_git_and_rejects_binary() {
     assert!(!s.contains("no.test"));
     assert!(!s.contains("UP.RS"));
     assert!(!s.contains("internal"));
-    fs::write(p.0.join("src/b.rs"), b"a\0b").unwrap();
+    fs::write(p.join("src/b.rs"), b"a\0b").unwrap();
     let (o, v) = p.json(&["unlinked", "--json"]);
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(v["complete"], false);
-    fs::write(p.0.join("src/b.rs"), [255]).unwrap();
+    fs::write(p.join("src/b.rs"), [255]).unwrap();
     assert_eq!(p.run(&["validate"]).status.code(), Some(1));
 }
 
 #[test]
 fn invalid_targets_and_duplicate_links_fail_validation() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
     p.write("src/no.test.rs", "excluded");
     for target in [
@@ -264,11 +239,11 @@ fn invalid_targets_and_duplicate_links_fail_validation() {
 #[test]
 fn symlink_files_and_ancestors_are_never_followed() {
     use std::os::unix::fs::symlink;
-    let p = Project::new();
-    let outside = Project::new();
+    let p = project();
+    let outside = project();
     outside.write("secret.rs", "secret");
-    fs::create_dir_all(p.0.join("src")).unwrap();
-    symlink(&outside.0, p.0.join("src/linked")).unwrap();
+    fs::create_dir_all(p.join("src")).unwrap();
+    symlink(&*outside, p.join("src/linked")).unwrap();
     let (o, v) = p.json(&["unlinked", "--json"]);
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(v["complete"], false);
@@ -277,7 +252,7 @@ fn symlink_files_and_ancestors_are_never_followed() {
 
 #[test]
 fn uncovered_parent_ranges_exclude_linked_child_subtrees() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
     p.write("docs/a.md", "# Parent\nbody\n<!-- @code src/a.rs -->\n## Linked\ncovered\n### Covered\ncovered too\n## Free\nfree\n");
     let (_, v) = p.json(&["unlinked", "--json"]);
@@ -296,7 +271,7 @@ fn uncovered_parent_ranges_exclude_linked_child_subtrees() {
 
 #[test]
 fn json_usage_errors_and_invalid_selectors_stay_structured() {
-    let p = Project::new();
+    let p = project();
     let (o, v) = p.json(&["validate", "--json", "--audit"]);
     assert_eq!(o.status.code(), Some(3));
     assert!(v["summary"].is_object());
@@ -312,7 +287,7 @@ fn json_usage_errors_and_invalid_selectors_stay_structured() {
 
 #[test]
 fn required_nested_config_fields_and_unsupported_globs_are_rejected() {
-    let p = Project::new();
+    let p = project();
     for config in [
         r#"{}"#,
         r#"{"include":{"code":{"paths":[],"extensions":[]},"docs":[],"extra":[]}}"#,
@@ -335,7 +310,7 @@ fn required_nested_config_fields_and_unsupported_globs_are_rejected() {
 
 #[test]
 fn stdin_empty_selection_and_deterministic_content_are_not_whole_project() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
     p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
     let a = p.run(&["links", "--include-content", "--json"]);
@@ -350,10 +325,10 @@ fn stdin_empty_selection_and_deterministic_content_are_not_whole_project() {
 #[test]
 fn excluded_symlinks_and_git_metadata_do_not_make_scans_incomplete() {
     use std::os::unix::fs::symlink;
-    let p = Project::new();
-    fs::create_dir_all(p.0.join("src/.git")).unwrap();
-    symlink("/nonexistent", p.0.join("src/excluded.test.rs")).unwrap();
-    symlink("/nonexistent", p.0.join("src/.git/secret.rs")).unwrap();
+    let p = project();
+    fs::create_dir_all(p.join("src/.git")).unwrap();
+    symlink("/nonexistent", p.join("src/excluded.test.rs")).unwrap();
+    symlink("/nonexistent", p.join("src/.git/secret.rs")).unwrap();
     assert!(p.run(&["validate"]).status.success());
 }
 
@@ -361,19 +336,19 @@ fn excluded_symlinks_and_git_metadata_do_not_make_scans_incomplete() {
 #[test]
 fn unreadable_managed_files_are_incomplete_and_safety_api_is_shared() {
     use std::os::unix::fs::{symlink, PermissionsExt};
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
-    let root = fs::canonicalize(&p.0).unwrap();
+    let root = fs::canonicalize(&*p).unwrap();
     assert_eq!(
         docbridge::project::read_text(&root, "src/a.rs").unwrap(),
         "a"
     );
-    fs::set_permissions(p.0.join("src/a.rs"), fs::Permissions::from_mode(0o0)).unwrap();
+    fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o0)).unwrap();
     let (o, v) = p.json(&["links", "--json"]);
-    fs::set_permissions(p.0.join("src/a.rs"), fs::Permissions::from_mode(0o600)).unwrap();
+    fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o600)).unwrap();
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(v["complete"], false);
-    symlink(p.0.join("src"), p.0.join("alias")).unwrap();
+    symlink(p.join("src"), p.join("alias")).unwrap();
     assert!(docbridge::project::read_text(&root, "alias/a.rs").is_err());
     assert!(docbridge::project::read_text(&root, "../outside").is_err());
     assert!(docbridge::project::read_text(&root, "src/A.rs").is_err());
@@ -381,7 +356,7 @@ fn unreadable_managed_files_are_incomplete_and_safety_api_is_shared() {
 
 #[test]
 fn dot_discovery_supports_hidden_files_but_never_git() {
-    let p = Project::new();
+    let p = project();
     p.write(
         "docbridge.config.json",
         r#"{"include":{"code":{"paths":["."],"extensions":[".rs"]},"docs":["."]}}"#,
@@ -397,7 +372,7 @@ fn dot_discovery_supports_hidden_files_but_never_git() {
 
 #[test]
 fn invalid_annotations_do_not_cover_unlinked_regions_and_empty_documents_are_not_regions() {
-    let p = Project::new();
+    let p = project();
     p.write("docs/blank.md", " \n<!-- ordinary comment -->\n");
     p.write("docs/plain.md", "Headingless body\n");
     p.write(
@@ -415,7 +390,7 @@ fn invalid_annotations_do_not_cover_unlinked_regions_and_empty_documents_are_not
 
 #[test]
 fn all_six_commands_are_visible_in_help() {
-    let p = Project::new();
+    let p = project();
     let help = String::from_utf8(p.run(&["--help"]).stdout).unwrap();
     for command in ["validate", "links", "unlinked", "init", "deinit", "docs"] {
         assert!(help.contains(command));
@@ -425,7 +400,6 @@ fn all_six_commands_are_visible_in_help() {
 #[test]
 fn embedded_docs_work_without_project_configuration_or_guide_files() {
     let p = Project::new();
-    fs::remove_file(p.0.join("docbridge.config.json")).unwrap();
     let overview = p.run(&["docs"]);
     assert_eq!(overview.status.code(), Some(0));
     assert!(overview.stderr.is_empty());
@@ -447,7 +421,7 @@ fn embedded_docs_work_without_project_configuration_or_guide_files() {
 
 #[test]
 fn embedded_docs_reject_unknown_guides_and_invalid_arguments() {
-    let p = Project::new();
+    let p = project();
     for args in [
         vec!["docs", "show", "unknown"],
         vec!["docs", "show"],
@@ -463,8 +437,8 @@ fn embedded_docs_reject_unknown_guides_and_invalid_arguments() {
 
 #[test]
 fn lifecycle_inspection_never_writes_and_init_yes_respects_root() {
-    let p = Project::new();
-    let selected = p.0.join("selected");
+    let p = project();
+    let selected = p.join("selected");
     fs::create_dir_all(selected.join("src")).unwrap();
     fs::write(selected.join("src/example.rs"), "fn example() {}\n").unwrap();
     for args in [
@@ -481,12 +455,12 @@ fn lifecycle_inspection_never_writes_and_init_yes_respects_root() {
     assert!(selected.join("docbridge.config.json").is_file());
     assert!(selected.join(".agents/skills/docbridge/SKILL.md").is_file());
     assert!(selected.join(".claude/skills/docbridge/SKILL.md").is_file());
-    assert!(!p.0.join(".agents").exists());
+    assert!(!p.join(".agents").exists());
 }
 
 #[test]
 fn deinit_requires_confirmation_and_rejects_unapproved_flags() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "fn a() {}\n");
     p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\nBody\n");
     assert_eq!(p.run(&["init", "--yes"]).status.code(), Some(0));
@@ -499,21 +473,21 @@ fn deinit_requires_confirmation_and_rejects_unapproved_flags() {
     for args in [vec!["deinit", "--yes"], vec!["deinit", "--root", "."]] {
         assert_eq!(p.run(&args).status.code(), Some(3));
     }
-    assert!(p.0.join("docbridge.config.json").exists());
-    assert!(fs::read_to_string(p.0.join("docs/a.md"))
+    assert!(p.join("docbridge.config.json").exists());
+    assert!(fs::read_to_string(p.join("docs/a.md"))
         .unwrap()
         .contains("@code"));
 }
 
 #[test]
 fn deinit_applies_only_after_the_exact_plan_is_confirmed() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "fn a() {}\n");
     p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\nBody\n");
-    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p.0).unwrap();
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p).unwrap();
     let mut confirmed = false;
     let result = docbridge::cli::dispatch_with_confirmation(invocation, "", |plan| {
-        assert!(p.0.join("docbridge.config.json").exists());
+        assert!(p.join("docbridge.config.json").exists());
         assert!(plan.contains("docs/a.md"));
         assert!(plan.contains("docbridge.config.json"));
         confirmed = true;
@@ -521,9 +495,9 @@ fn deinit_applies_only_after_the_exact_plan_is_confirmed() {
     });
     assert!(confirmed);
     assert_eq!(result.exit_code, 0, "{}", result.stderr);
-    assert!(!p.0.join("docbridge.config.json").exists());
+    assert!(!p.join("docbridge.config.json").exists());
     assert_eq!(
-        fs::read_to_string(p.0.join("docs/a.md")).unwrap(),
+        fs::read_to_string(p.join("docs/a.md")).unwrap(),
         "# A\nBody\n"
     );
 }
@@ -533,9 +507,9 @@ fn deinit_applies_only_after_the_exact_plan_is_confirmed() {
 #[test]
 fn unmanaged_non_utf8_names_do_not_poison_managed_discovery() {
     use std::{ffi::OsString, os::unix::ffi::OsStringExt};
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "a");
-    fs::write(p.0.join(OsString::from_vec(vec![255])), "unmanaged").unwrap();
+    fs::write(p.join(OsString::from_vec(vec![255])), "unmanaged").unwrap();
     assert!(p.run(&["validate"]).status.success());
 }
 
@@ -544,11 +518,10 @@ fn unmanaged_non_utf8_names_do_not_poison_managed_discovery() {
 fn configuration_symlinks_are_rejected_without_reading_the_target() {
     use std::os::unix::fs::symlink;
     let p = Project::new();
-    let outside = Project::new();
-    fs::remove_file(p.0.join("docbridge.config.json")).unwrap();
+    let outside = project();
     symlink(
-        outside.0.join("docbridge.config.json"),
-        p.0.join("docbridge.config.json"),
+        outside.join("docbridge.config.json"),
+        p.join("docbridge.config.json"),
     )
     .unwrap();
     assert_eq!(p.run(&["validate"]).status.code(), Some(1));
@@ -556,7 +529,7 @@ fn configuration_symlinks_are_rejected_without_reading_the_target() {
 
 #[test]
 fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code() {
-    let p = Project::new();
+    let p = project();
     p.write("src/internal space.rs", "full file\n");
     p.write("src/b.rs", "b\n");
     p.write("docs/a.md", "<!-- @code src/internal space.rs -->\n# A\n");
@@ -577,7 +550,7 @@ fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code()
 
 #[test]
 fn headingless_indented_code_examples_are_meaningful_unlinked_content() {
-    let p = Project::new();
+    let p = project();
     p.write("docs/example.md", "    <!-- example -->\n");
     let (o, v) = p.json(&["unlinked", "--json"]);
     assert!(o.status.success());
@@ -586,7 +559,7 @@ fn headingless_indented_code_examples_are_meaningful_unlinked_content() {
 
 #[test]
 fn annotations_inside_html_blocks_are_not_links() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "fn a() {}\n");
     p.write(
         "docs/a.md",
@@ -601,13 +574,13 @@ fn annotations_inside_html_blocks_are_not_links() {
 
 #[test]
 fn deinit_with_unterminated_html_block_annotation_exits_incomplete() {
-    let p = Project::new();
+    let p = project();
     p.write("src/a.rs", "fn a() {}\n");
     p.write(
         "docs/a.md",
         "<!-- @code src/a.rs -->\n# A\n<pre>\n<!-- @code src/a.rs -->\n",
     );
-    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p.0).unwrap();
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p).unwrap();
     let result = docbridge::cli::dispatch_with_confirmation(invocation, "", |plan| {
         assert!(plan.contains("docs/a.md:4 (inside an unterminated HTML block, review manually)"));
         true
@@ -615,9 +588,75 @@ fn deinit_with_unterminated_html_block_annotation_exits_incomplete() {
     assert_eq!(result.exit_code, 1);
     assert!(!result.stdout.contains("Removal complete."));
     assert!(result.stderr.contains("docs/a.md:4"), "{}", result.stderr);
-    assert!(!p.0.join("docbridge.config.json").exists());
+    assert!(!p.join("docbridge.config.json").exists());
     assert_eq!(
-        fs::read_to_string(p.0.join("docs/a.md")).unwrap(),
+        fs::read_to_string(p.join("docs/a.md")).unwrap(),
         "# A\n<pre>\n<!-- @code src/a.rs -->\n"
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn symlink_cycle_in_managed_path_terminates_and_is_reported() {
+    let project = Project::new();
+    project.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["src"],"extensions":[".rs"]},"docs":["docs"]}}"#,
+    );
+    project.write("src/a.rs", "a\n");
+    project.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    // A directory symlink pointing to an ancestor inside a managed path.
+    std::os::unix::fs::symlink("..", project.join("docs/loop")).unwrap();
+    std::os::unix::fs::symlink("../src", project.join("src/self")).unwrap();
+
+    let (output, value) = project.json(&["validate", "--json"]);
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(value["summary"]["complete"], false);
+    assert!(codes(&value).contains(&"unsafe-path".to_owned()));
+
+    let (output, value) = project.json(&["unlinked", "--json"]);
+    assert_ne!(output.status.code(), Some(0));
+    assert_eq!(value["complete"], false);
+    assert!(codes(&value).contains(&"unsafe-path".to_owned()));
+}
+
+#[test]
+fn include_docs_has_no_implicit_exclude() {
+    let project = Project::new();
+    project.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["src"],"extensions":[".rs"]},"docs":["docs"]},"exclude":{"code":["**/internal/**","docs/**"]}}"#,
+    );
+    project.write("src/a.rs", "a\n");
+    project.write(
+        "docs/internal/guide.md",
+        "<!-- @code src/a.rs -->\n# Guide\n",
+    );
+
+    let (output, value) = project.json(&["links", "docs/internal/guide.md", "--json"]);
+    assert_eq!(output.status.code(), Some(0), "{value}");
+    assert_eq!(value["complete"], true);
+    let nodes = value["nodes"].as_array().unwrap();
+    assert!(nodes.iter().any(|n| n["path"] == "docs/internal/guide.md"));
+    assert!(nodes.iter().any(|n| n["path"] == "src/a.rs"));
+}
+
+#[cfg(unix)]
+#[test]
+fn discovery_prunes_unmanaged_subtrees_before_io() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let p = Project::new();
+    p.write("packages/a/src/a.rs", "a");
+    p.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["packages/*/src"],"extensions":[".rs"]},"docs":[]}}"#,
+    );
+    let unmanaged = p.join("packages/a/unmanaged");
+    fs::create_dir_all(&unmanaged).unwrap();
+    symlink("/nonexistent", unmanaged.join("link")).unwrap();
+    fs::set_permissions(&unmanaged, fs::Permissions::from_mode(0o0)).unwrap();
+    let (o, v) = p.json(&["unlinked", "--json"]);
+    fs::set_permissions(&unmanaged, fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(o.status.success(), "{v}");
+    assert!(v.to_string().contains("packages/a/src/a.rs"));
 }

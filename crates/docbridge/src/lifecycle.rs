@@ -750,8 +750,8 @@ mod tests {
     }
     #[test]
     fn invalid_parent_fails_preflight_without_changes() {
-        let root = std::env::temp_dir().join(format!("docbridge-apply-test-{}", unique()));
-        fs::create_dir(&root).unwrap();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
         fs::write(root.join("first"), b"original").unwrap();
         // A file used as a parent directory is rejected during preflight.
         fs::write(root.join("blocker"), b"block").unwrap();
@@ -767,10 +767,9 @@ mod tests {
                 after: Some(b"new".to_vec()),
             }),
         ];
-        let error = apply(&root, &steps).unwrap_err();
+        let error = apply(root, &steps).unwrap_err();
         assert!(error.contains("not a directory"), "{error}");
         assert_eq!(fs::read(root.join("first")).unwrap(), b"original");
-        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn only_exact_temporary_file_names_are_recognized() {
