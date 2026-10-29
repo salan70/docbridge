@@ -2,7 +2,11 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "embeddedLanguageFormatting": "auto",
   "endOfLine": "lf",
-  "ignorePatterns": [".claude/settings.local.json", "test-fixtures/diagnostics/**"],
+  "ignorePatterns": [
+    ".claude/settings.local.json",
+    "test-fixtures/diagnostics/**",
+    "crates/docbridge/tests/fixtures/**"
+  ],
   "insertFinalNewline": true,
   "printWidth": 100,
   "proseWrap": "preserve",

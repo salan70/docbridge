@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+docbridge check || exit $?
+git diff --cached --name-only | docbridge related --stdin --gate || true
