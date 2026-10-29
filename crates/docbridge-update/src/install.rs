@@ -404,9 +404,15 @@ fn ordinary_permissions(from: &Path, to: &Path) -> Result<(), String> {
         fs::Permissions::from_mode(perms.mode() & 0o777)
     };
     fs::set_permissions(to, perms).map_err(|e| e.to_string())?;
-    File::open(to)
-        .and_then(|f| f.sync_all())
-        .map_err(|e| e.to_string())
+    // Windows FlushFileBuffers needs a writable handle; Unix can fsync a read-only one,
+    // which also works when the copied mode lacks owner write.
+    let file = if cfg!(windows) {
+        OpenOptions::new().write(true).open(to)
+    } else {
+        File::open(to)
+    };
+    file.and_then(|f| f.sync_all())
+        .map_err(|e| format!("sync {}: {e}", to.display()))
 }
 /// Installer-only opt-in. Refuses to overwrite an existing receipt or managed install.
 pub fn write_install_receipt(path: &Path) -> Result<(), String> {
