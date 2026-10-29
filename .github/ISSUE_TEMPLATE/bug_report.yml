@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for reproducible incorrect behavior or a regression. See the [contributor workflow](https://github.com/salan70/docbridge/blob/main/CONTRIBUTING.md#git-and-pull-requests).
+        Use this form for reproducible incorrect behavior or a regression. See the [contributor workflow](https://github.com/salan70/docbridge/blob/main/docs/CONTRIBUTING.md#git-and-pull-requests).
   - type: checkboxes
     id: existing-issues
     attributes:

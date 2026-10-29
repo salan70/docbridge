@@ -57,7 +57,7 @@ automation, migration, and removal (`deinit`).
 ## Contributing
 
 Repository setup, tests, and pull-request policy are in
-[CONTRIBUTING.md](CONTRIBUTING.md). It also owns documentation and writing policy.
+[CONTRIBUTING.md](docs/CONTRIBUTING.md). It also owns documentation and writing policy.
 
 DocBridge is not a documentation generator. It makes the relationship between
 maintained prose and implementation explicit, navigable, and machine-readable.

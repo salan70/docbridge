@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Follow the [contributor workflow](https://github.com/salan70/docbridge/blob/main/CONTRIBUTING.md#git-and-pull-requests) and [documentation guidance](https://github.com/salan70/docbridge/blob/main/CONTRIBUTING.md#documentation). Use the bug report form for reproducible incorrect behavior.
+        Follow the [contributor workflow](https://github.com/salan70/docbridge/blob/main/docs/CONTRIBUTING.md#git-and-pull-requests) and [documentation guidance](https://github.com/salan70/docbridge/blob/main/docs/CONTRIBUTING.md#documentation). Use the bug report form for reproducible incorrect behavior.
   - type: checkboxes
     id: existing-issues
     attributes:
@@ -49,7 +49,7 @@ body:
     id: acceptance-verification
     attributes:
       label: Acceptance and verification
-      description: List observable completion conditions and the commands or inspections that verify them. See CONTRIBUTING.md#verification.
+      description: List observable completion conditions and the commands or inspections that verify them. See docs/CONTRIBUTING.md#verification.
     validations:
       required: true
   - type: textarea

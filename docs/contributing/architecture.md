@@ -69,5 +69,5 @@ types, their JSON serialization, and the text rendering of a graph.
 
 ## Verification
 
-Behavior is tested at each crate boundary; see [Verification](../../CONTRIBUTING.md#verification). Clippy
+Behavior is tested at each crate boundary; see [Verification](../CONTRIBUTING.md#verification). Clippy
 runs with `-D warnings` over every target through `just lint`.

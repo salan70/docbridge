@@ -61,11 +61,21 @@ cargo run -p docbridge -- docs show linking
 `just validate`, `just links`, and `just unlinked` run the matching commands on
 this repository.
 
-Coding agents read `AGENTS.md`. For the distributable `docbridge` skill, `docbridge init --claude`
-installs it as a managed copy in both trees, with an ownership record. Its text
-is embedded in `crates/docbridge/src/lifecycle.rs`; after changing it, reinstall
-both copies with `cargo run -p docbridge -- init --force --claude --yes`. Keep
-skill bodies tool-neutral. `just lint-ai-assets` enforces this layout.
+Coding agents read `AGENTS.md`. This repository keeps exactly two canonical
+skills, `docbridge` and `git-workflow`, in `.agents/skills/`.
+The whole `.claude/skills` directory is a symlink to `../.agents/skills`, so both
+agent paths share one physical tree. `just lint-ai-assets` enforces this layout.
+On Windows, a checkout with `core.symlinks=false` produces a text file instead
+of the alias and fails this gate. Enable Git symlink checkout with the required
+OS permissions and check out the alias again; there is no silent copy fallback.
+
+The product's `docbridge init --claude` behavior remains separate: it installs
+managed copies for consumer projects. Do not run `init --force --claude` in
+this repository: the product rejects write paths through symlinks.
+After changing the distributable skill embedded in
+`crates/docbridge/src/lifecycle.rs`, regenerate only the canonical copy with
+`cargo run -p docbridge -- init --force --yes`; retain the whole-directory alias.
+Keep skill bodies tool-neutral.
 
 ## Issues
 
@@ -130,7 +140,7 @@ Run additional checks when the affected area requires them:
 
 CI runs `just verify`, then builds, tests, and smoke-runs the five release
 targets and signs them with a throwaway key; see
-[Releasing](docs/contributing/releasing.md#dry-run).
+[Releasing](contributing/releasing.md#dry-run).
 
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.
@@ -159,7 +169,7 @@ Without an issue, state the problem solved.
 Every PR requires exactly one label: `release: none`, `release: patch`, `release: minor`, or `release: major`.
 A releasing label requires `just release-bump <kind>` and its version/CHANGELOG changes in the same PR.
 The required `release-label` check enforces this; a maintainer separately dispatches Release vNext.
-See [release operations](docs/contributing/releasing.md) for publication and key management.
+See [release operations](contributing/releasing.md) for publication and key management.
 
 ## Documentation
 
@@ -175,7 +185,7 @@ Review prose for supported, necessary claims, clear terms, descriptive links, an
 | `README.md`                         | Installation, readiness, and routes to guides    |
 | `crates/docbridge/guides/`          | Canonical offline user tasks                     |
 | `docs/specs/vnext-contracts.md`     | Single developer behavior contract               |
-| `CONTRIBUTING.md`                   | Contributor workflow and documentation policy    |
+| `docs/CONTRIBUTING.md`              | Contributor workflow and documentation policy    |
 | `docs/contributing/architecture.md` | Module responsibilities and dependencies         |
 | `docs/contributing/releasing.md`    | Detailed release operations and pending work     |
 | `crates/docbridge-update/README.md` | Signed format, installer API, receipts, recovery |
@@ -192,7 +202,16 @@ Historical CHANGELOG links remain unchanged even when their targets have retired
 
 ### Test conventions
 
-Write logic tests before implementation.
+Write a regression test before a bug fix or logic change and observe its failure
+for the expected reason before implementing the smallest passing change.
+Refactor only while green. Behavior-preserving refactors need no new failing
+test when coverage exists; otherwise add a characterization test first.
+Test one externally visible behavior per test, preferring public interfaces.
+Never delete, skip, or weaken tests to pass; explain corrections to wrong tests.
+Avoid content-existence tests that merely freeze wording. Keep setup and
+literals local to each test when that improves readability.
+Iterate with focused checks, finish integration with `just verify`, and report
+the observed RED, GREEN, and commands actually run.
 Put behavior tests at crate boundaries in `crates/<crate>/tests/*.rs`; reserve module-local tests for private helpers inaccessible there.
 CLI tests invoke the built binary or library and assert output, exit codes, and JSON shape.
 Use temporary scratch projects for small inputs; larger copied fixtures belong in `tests/fixtures/<name>/`.
@@ -204,8 +223,8 @@ Host tests do not establish native Windows validation or minimum OS support.
 
 ## References
 
-- [Architecture](docs/contributing/architecture.md)
-- [Release operations](docs/contributing/releasing.md)
-- [Public contracts](docs/specs/vnext-contracts.md)
-- [User guides](crates/docbridge/guides/)
-- [Agent instructions](AGENTS.md)
+- [Architecture](contributing/architecture.md)
+- [Release operations](contributing/releasing.md)
+- [Public contracts](specs/vnext-contracts.md)
+- [User guides](../crates/docbridge/guides/)
+- [Agent instructions](../AGENTS.md)

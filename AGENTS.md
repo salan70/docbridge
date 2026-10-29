@@ -1,10 +1,10 @@
 # AGENTS.md
 
 Shared rules for every coding agent in this repository.
-Contributor procedures are owned by [CONTRIBUTING.md](CONTRIBUTING.md):
-[Verification](CONTRIBUTING.md#verification),
-[Git and pull requests](CONTRIBUTING.md#git-and-pull-requests), and
-[Documentation](CONTRIBUTING.md#documentation).
+Contributor procedures are owned by [CONTRIBUTING.md](docs/CONTRIBUTING.md):
+[Verification](docs/CONTRIBUTING.md#verification),
+[Git and pull requests](docs/CONTRIBUTING.md#git-and-pull-requests), and
+[Documentation](docs/CONTRIBUTING.md#documentation).
 
 ## Environment
 
@@ -20,7 +20,12 @@ Contributor procedures are owned by [CONTRIBUTING.md](CONTRIBUTING.md):
 
 ## Rules
 
-- Logic changes are test-first; follow the `tdd` skill.
+- Logic changes are test-first: write a regression test, observe the expected
+  failure before implementation, make the smallest passing change, and refactor
+  only while green. Never skip or weaken tests to pass. For uncovered
+  behavior-preserving refactors, add characterization coverage first.
+  Follow [test conventions](docs/CONTRIBUTING.md#test-conventions) and report
+  observed RED/GREEN results.
 - Run `just verify` on changed work before you report completion.
 - Fix the underlying code instead of weakening a quality gate. Get explicit
   user approval for each specific exception before you add a lint or formatter

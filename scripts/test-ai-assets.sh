@@ -6,11 +6,13 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 fixture="$scratch/repo"
 mkdir -p "$fixture/.agents/skills"
-for name in docbridge tdd git-workflow; do
+for name in docbridge git-workflow; do
   cp -R "$repo/.agents/skills/$name" "$fixture/.agents/skills/$name"
 done
 cp "$repo/AGENTS.md" "$fixture/AGENTS.md"
-cp "$repo/CONTRIBUTING.md" "$fixture/CONTRIBUTING.md"
+mkdir -p "$fixture/docs" "$fixture/.claude"
+cp "$repo/docs/CONTRIBUTING.md" "$fixture/docs/CONTRIBUTING.md"
+ln -s ../.agents/skills "$fixture/.claude/skills"
 expect() {
   local expected="$1"
   local actual=0
@@ -22,33 +24,43 @@ expect() {
   fi
 }
 expect 0
-mv "$fixture/.agents/skills/tdd" "$scratch/tdd"
+mv "$fixture/.agents/skills/git-workflow" "$scratch/git-workflow"
 expect 1
-ln -s "$scratch/tdd" "$fixture/.agents/skills/tdd"
+ln -s "$scratch/git-workflow" "$fixture/.agents/skills/git-workflow"
 expect 1
-rm "$fixture/.agents/skills/tdd"
-mv "$scratch/tdd" "$fixture/.agents/skills/tdd"
+rm "$fixture/.agents/skills/git-workflow"
+mv "$scratch/git-workflow" "$fixture/.agents/skills/git-workflow"
 mkdir "$fixture/.agents/skills/obsolete"
 expect 1
 rmdir "$fixture/.agents/skills/obsolete"
-mkdir -p "$fixture/.claude/skills"
-ln -s ../../.agents/skills/tdd "$fixture/.claude/skills/tdd"
+rm "$fixture/.claude/skills"
 expect 1
-rm "$fixture/.claude/skills/tdd"
-rmdir "$fixture/.claude/skills"
+printf '../.agents/skills\n' >"$fixture/.claude/skills"
+expect 1
+rm "$fixture/.claude/skills"
+cp -R "$fixture/.agents/skills" "$fixture/.claude/skills"
+expect 1
+rm -r "$fixture/.claude/skills"
+for target in "$fixture/.agents/skills" ../.agents/skills/ ../outside ../../outside; do
+  ln -s "$target" "$fixture/.claude/skills"
+  expect 1
+  rm "$fixture/.claude/skills"
+done
+ln -s ../.agents/skills "$fixture/.claude/skills"
+expect 0
 touch "$fixture/CLAUDE.md"
 expect 1
 rm "$fixture/CLAUDE.md"
 mv "$fixture/.agents/skills/docbridge/.docbridge-owned.json" "$scratch/owned.json"
 expect 1
 mv "$scratch/owned.json" "$fixture/.agents/skills/docbridge/.docbridge-owned.json"
-mv "$fixture/CONTRIBUTING.md" "$scratch/contributing.md"
+mv "$fixture/docs/CONTRIBUTING.md" "$scratch/contributing.md"
 expect 1
-mv "$scratch/contributing.md" "$fixture/CONTRIBUTING.md"
+mv "$scratch/contributing.md" "$fixture/docs/CONTRIBUTING.md"
 cp "$fixture/AGENTS.md" "$scratch/agents.md"
 printf '# Agent rules\n' >"$fixture/AGENTS.md"
 expect 1
 cp "$scratch/agents.md" "$fixture/AGENTS.md"
-printf '\nSee docs/contributing/testing.md\n' >>"$fixture/.agents/skills/tdd/SKILL.md"
+printf '\nSee docs/contributing/testing.md\n' >>"$fixture/.agents/skills/git-workflow/SKILL.md"
 expect 1
 echo "Agent asset regression checks passed."
