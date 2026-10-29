@@ -21,6 +21,7 @@ the `Command` enum, the `HELP` text, exit codes, and dispatch.
 
 <!-- @code crates/docbridge/src/config.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
+<!-- @code crates/docbridge/src/paths.rs -->
 <!-- @code crates/docbridge/src/markdown.rs -->
 <!-- @code crates/docbridge/src/model.rs -->
 
@@ -28,6 +29,9 @@ the `Command` enum, the `HELP` text, exit codes, and dispatch.
 
 - `config.rs` loads and validates `docbridge.config.json`, rejecting unknown
   keys.
+- `paths.rs` holds the path safety that discovery and the lifecycle share: it
+  never follows symlinks or reparse points and requires each existing path
+  component to match its directory entry exactly.
 - `project.rs` discovers the managed files under the selected root without
   following symlinks, parses each Markdown file, assigns section IDs, and
   resolves annotation targets.

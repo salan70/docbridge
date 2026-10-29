@@ -35,7 +35,7 @@ impl Config {
         let path = root.join("docbridge.config.json");
         let metadata =
             fs::symlink_metadata(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        if crate::project::is_symlink(&metadata) || !metadata.is_file() {
+        if crate::paths::is_link(&metadata) || !metadata.is_file() {
             return Err("configuration must be a regular file, not a symlink".into());
         }
         let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;

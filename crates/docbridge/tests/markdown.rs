@@ -1,4 +1,7 @@
-use docbridge::{markdown::html_block_annotations, model::DiagnosticKind, parse};
+use docbridge::{
+    markdown::{html_block_annotations, parse},
+    model::DiagnosticKind,
+};
 
 #[test]
 fn tracks_another_comment_after_a_multiline_comment_closes() {

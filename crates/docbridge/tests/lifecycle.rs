@@ -89,20 +89,6 @@ fn stale_plan_cannot_partially_remove() {
     assert!(p.join(".agents/skills/docbridge/SKILL.md").exists());
 }
 #[test]
-fn old_recovery_is_preserved_and_blocks_further_mutation() {
-    let p = initialized();
-    fs::create_dir(p.join(".docbridge-recovery-old")).unwrap();
-    fs::write(p.join(".docbridge-recovery-old/original"), "backup").unwrap();
-    let plan = plan_deinit(&p).unwrap();
-    assert!(plan.to_string().contains("unfinished recovery"));
-    assert_eq!(apply_deinit(&plan).code, 1);
-    assert!(p.join("docbridge.config.json").exists());
-    assert_eq!(
-        fs::read_to_string(p.join(".docbridge-recovery-old/original")).unwrap(),
-        "backup"
-    );
-}
-#[test]
 fn force_changes_only_owned_skill_and_preserves_extras() {
     let p = initialized();
     fs::write(p.join(".agents/skills/docbridge/SKILL.md"), "edited").unwrap();
@@ -202,17 +188,292 @@ fn out_of_scope_symlinks_are_not_followed() {
 }
 #[cfg(unix)]
 #[test]
-fn read_only_parent_is_rejected_before_any_removal() {
+fn deinit_rerun_finishes_after_partial_failure() {
     use std::os::unix::fs::PermissionsExt;
     let p = initialized();
+    fs::write(p.join("guide.md"), "<!-- @code src/a.rs -->\n# Guide\n").unwrap();
     let dir = p.join(".agents/skills/docbridge");
     let plan = plan_deinit(&p).unwrap();
     fs::set_permissions(&dir, fs::Permissions::from_mode(0o500)).unwrap();
-    let result = apply_deinit(&plan);
+    let failed = apply_deinit(&plan);
     fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
-    assert_eq!(result.code, 1);
-    assert!(result.stderr.contains("read-only"));
+    assert_eq!(failed.code, 1);
+    assert!(
+        failed.stderr.contains("Changed: guide.md\n"),
+        "{}",
+        failed.stderr
+    );
+    assert!(
+        failed
+            .stderr
+            .contains("Not changed: .agents/skills/docbridge/SKILL.md, "),
+        "{}",
+        failed.stderr
+    );
     assert!(p.join("docbridge.config.json").exists());
+    assert!(!p.read_dir().unwrap().any(|e| e
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .starts_with(".docbridge-")));
+    let rerun = deinit(&p);
+    assert_eq!(rerun.code, 0, "{}", rerun.stderr);
+    assert_eq!(fs::read_to_string(p.join("guide.md")).unwrap(), "# Guide\n");
+    assert!(!p.join("docbridge.config.json").exists());
+    assert!(!p.join(".agents/skills/docbridge").exists());
+    assert!(!p.join(".claude/skills/docbridge").exists());
+}
+#[cfg(unix)]
+#[test]
+fn deinit_rerun_removes_skill_directories_after_late_failure() {
+    use std::os::unix::fs::PermissionsExt;
+    let p = initialized();
+    let plan = plan_deinit(&p).unwrap();
+    // Only the configuration, removed last, lives directly in the root.
+    fs::set_permissions(&p, fs::Permissions::from_mode(0o500)).unwrap();
+    let failed = apply_deinit(&plan);
+    fs::set_permissions(&p, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(failed.code, 1);
+    assert!(
+        failed
+            .stderr
+            .contains("Not changed: docbridge.config.json\n"),
+        "{}",
+        failed.stderr
+    );
+    assert!(!p
+        .join(".agents/skills/docbridge/.docbridge-owned.json")
+        .exists());
+    let rerun = deinit(&p);
+    assert_eq!(rerun.code, 0, "{}", rerun.stderr);
+    assert!(!p.join("docbridge.config.json").exists());
+    assert!(!p.join(".agents/skills/docbridge").exists());
+    assert!(!p.join(".claude/skills/docbridge").exists());
+}
+#[cfg(unix)]
+#[test]
+fn init_rerun_finishes_after_partial_failure() {
+    use std::os::unix::fs::PermissionsExt;
+    let p = root();
+    let dir = p.join(".agents/skills/docbridge");
+    fs::create_dir_all(&dir).unwrap();
+    let options = InitOptions {
+        yes: true,
+        ..Default::default()
+    };
+    fs::set_permissions(&dir, fs::Permissions::from_mode(0o500)).unwrap();
+    let failed = init(&p, &options);
+    fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(failed.code, 1);
+    assert!(
+        failed.stderr.contains("Changed: docbridge.config.json\n"),
+        "{}",
+        failed.stderr
+    );
+    assert!(failed.stderr.contains("Not changed: "), "{}", failed.stderr);
+    let rerun = init(&p, &options);
+    assert_eq!(rerun.code, 0, "{}", rerun.stderr);
+    assert!(dir.join("SKILL.md").is_file());
+    assert!(dir.join(".docbridge-owned.json").is_file());
+    assert_eq!(deinit(&p).code, 0);
+    assert!(!dir.exists());
+}
+#[test]
+fn init_rerun_removes_leftover_temporary_file_from_interrupted_write() {
+    let p = root();
+    let dir = p.join(".agents/skills/docbridge");
+    fs::create_dir_all(&dir).unwrap();
+    // The first run stopped after creating the ownership record's temporary
+    // file and before renaming it.
+    let leftover = ".docbridge-tmp-4242-1761700000000000000-0";
+    fs::write(dir.join(leftover), "{\"SKILL.md\":").unwrap();
+    let rerun = init(
+        &p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(rerun.code, 0, "{}", rerun.stderr);
+    assert!(
+        rerun
+            .stdout
+            .contains(&format!(".agents/skills/docbridge/{leftover}")),
+        "{}",
+        rerun.stdout
+    );
+    assert!(!dir.join(leftover).exists());
+    assert!(dir.join("SKILL.md").is_file());
+    assert!(dir.join(".docbridge-owned.json").is_file());
+}
+#[test]
+fn deinit_removes_leftover_temporary_files() {
+    let p = initialized();
+    let agents = p.join(".agents/skills/docbridge");
+    let claude = p.join(".claude/skills/docbridge");
+    fs::write(agents.join(".docbridge-tmp-1-2-3"), "partial").unwrap();
+    // An interrupted init left only a temporary file in this directory.
+    fs::remove_file(claude.join("SKILL.md")).unwrap();
+    fs::remove_file(claude.join(".docbridge-owned.json")).unwrap();
+    fs::write(claude.join(".docbridge-tmp-4-5-6"), "partial").unwrap();
+    let plan = plan_deinit(&p).unwrap();
+    assert!(
+        plan.to_string()
+            .contains("Remove: .agents/skills/docbridge/.docbridge-tmp-1-2-3\n"),
+        "{plan}"
+    );
+    let result = apply_deinit(&plan);
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(!agents.exists());
+    assert!(!claude.exists());
+}
+#[test]
+fn temporary_file_lookalikes_remain_user_content() {
+    let names = [
+        ".docbridge-tmp-notes",
+        ".docbridge-tmp-1-2",
+        ".docbridge-tmp-1-2-3.md",
+    ];
+    let p = initialized();
+    let dir = p.join(".agents/skills/docbridge");
+    for name in names {
+        fs::write(dir.join(name), "mine").unwrap();
+    }
+    assert_eq!(deinit(&p).code, 0);
+    let again = init(
+        &p,
+        &InitOptions {
+            yes: true,
+            force: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(again.code, 1, "{}", again.stdout);
+    assert!(
+        again.stderr.contains("unmanaged skill conflict"),
+        "{}",
+        again.stderr
+    );
+    for name in names {
+        assert_eq!(fs::read_to_string(dir.join(name)).unwrap(), "mine");
+    }
+}
+#[test]
+fn temporary_name_directory_remains_user_content() {
+    let p = initialized();
+    let dir = p.join(".agents/skills/docbridge/.docbridge-tmp-7-8-9");
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("notes.md"), "mine").unwrap();
+    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(fs::read_to_string(dir.join("notes.md")).unwrap(), "mine");
+}
+#[test]
+fn recorded_file_with_temporary_name_follows_its_ownership_hash() {
+    let name = ".docbridge-tmp-1-2-3";
+    let remove = format!("Remove: .agents/skills/docbridge/{name}\n");
+    let unedited = initialized();
+    add_owned(&unedited.join(".agents/skills/docbridge"), name, "owned");
+    let plan = plan_deinit(&unedited).unwrap();
+    assert_eq!(plan.to_string().matches(&remove).count(), 1, "{plan}");
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert!(!unedited.join(".agents/skills/docbridge").exists());
+
+    let edited = initialized();
+    let file = edited.join(".agents/skills/docbridge").join(name);
+    add_owned(&edited.join(".agents/skills/docbridge"), name, "owned");
+    fs::write(&file, "my edits").unwrap();
+    let reinit = init(
+        &edited,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(reinit.code, 0, "{}", reinit.stderr);
+    assert_eq!(fs::read_to_string(&file).unwrap(), "my edits");
+    let plan = plan_deinit(&edited).unwrap();
+    assert!(!plan.to_string().contains(&remove), "{plan}");
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert_eq!(fs::read_to_string(&file).unwrap(), "my edits");
+}
+/// Write `content` to `name` under the skill directory `dir` and record it as owned.
+fn add_owned(dir: &std::path::Path, name: &str, content: &str) {
+    use sha2::{Digest, Sha256};
+    let path = dir.join(name);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, content).unwrap();
+    let marker = dir.join(".docbridge-owned.json");
+    let mut record: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_slice(&fs::read(&marker).unwrap()).unwrap();
+    record.insert(name.into(), format!("{:x}", Sha256::digest(content)).into());
+    fs::write(&marker, serde_json::to_vec(&record).unwrap()).unwrap();
+}
+#[cfg(unix)]
+#[test]
+fn deinit_rerun_removes_nested_owned_directories_after_late_failure() {
+    use std::os::unix::fs::PermissionsExt;
+    let p = initialized();
+    let dir = p.join(".agents/skills/docbridge");
+    add_owned(&dir, "support/helper.md", "helper");
+    let plan = plan_deinit(&p).unwrap();
+    // Only the configuration, removed last, lives directly in the root.
+    fs::set_permissions(&p, fs::Permissions::from_mode(0o500)).unwrap();
+    let failed = apply_deinit(&plan);
+    fs::set_permissions(&p, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(failed.code, 1);
+    assert!(
+        failed
+            .stderr
+            .contains("Not changed: docbridge.config.json\n"),
+        "{}",
+        failed.stderr
+    );
+    let rerun = deinit(&p);
+    assert_eq!(rerun.code, 0, "{}", rerun.stderr);
+    assert!(!dir.exists());
+    let again = init(
+        &p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(again.code, 0, "{}", again.stderr);
+}
+#[test]
+fn deinit_removes_owned_directories_whose_files_are_already_gone() {
+    let p = initialized();
+    let dir = p.join(".agents/skills/docbridge");
+    add_owned(&dir, "support/deep/helper.md", "helper");
+    // A run stopped after removing the file and before its directories.
+    fs::remove_file(dir.join("support/deep/helper.md")).unwrap();
+    let result = deinit(&p);
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(!dir.exists());
+}
+#[cfg(unix)]
+#[test]
+fn failed_directory_removal_is_reported_and_rerun_finishes() {
+    use std::os::unix::fs::PermissionsExt;
+    let p = initialized();
+    let skills = p.join(".claude/skills");
+    let plan = plan_deinit(&p).unwrap();
+    // The skill directory's files can be removed, but not the directory.
+    fs::set_permissions(&skills, fs::Permissions::from_mode(0o500)).unwrap();
+    let failed = apply_deinit(&plan);
+    fs::set_permissions(&skills, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(failed.code, 1, "{}", failed.stdout);
+    assert!(
+        failed
+            .stderr
+            .contains("Not changed: .claude/skills/docbridge, docbridge.config.json\n"),
+        "{}",
+        failed.stderr
+    );
+    let rerun = deinit(&p);
+    assert_eq!(rerun.code, 0, "{}", rerun.stderr);
+    assert!(!p.join(".claude/skills/docbridge").exists());
+    assert!(!p.join("docbridge.config.json").exists());
 }
 #[test]
 fn dry_run_and_existing_config() {
@@ -304,8 +565,8 @@ fn deinit_keeps_skill_directory_with_user_files() {
 }
 #[cfg(unix)]
 #[test]
-fn rewrite_preserves_permissions_and_new_files_use_defaults() {
-    use std::os::unix::fs::PermissionsExt;
+fn rewrite_replaces_atomically_preserving_permissions_and_new_files_use_defaults() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
     let p = initialized();
     let mode = |path: std::path::PathBuf| fs::metadata(path).unwrap().permissions().mode() & 0o777;
     fs::write(p.join("reference"), "x").unwrap();
@@ -317,9 +578,19 @@ fn rewrite_preserves_permissions_and_new_files_use_defaults() {
     );
     fs::write(p.join("guide.md"), "<!-- @code src/a.rs -->\n# Guide\n").unwrap();
     fs::set_permissions(p.join("guide.md"), fs::Permissions::from_mode(0o755)).unwrap();
+    // A hard link keeps the original inode, so an in-place write would show through it.
+    fs::hard_link(p.join("guide.md"), p.join("guide.link")).unwrap();
     assert_eq!(deinit(&p).code, 0);
     assert_eq!(fs::read_to_string(p.join("guide.md")).unwrap(), "# Guide\n");
     assert_eq!(mode(p.join("guide.md")), 0o755);
+    assert_eq!(
+        fs::read_to_string(p.join("guide.link")).unwrap(),
+        "<!-- @code src/a.rs -->\n# Guide\n"
+    );
+    assert_ne!(
+        fs::metadata(p.join("guide.md")).unwrap().ino(),
+        fs::metadata(p.join("guide.link")).unwrap().ino()
+    );
 }
 #[cfg(unix)]
 #[test]

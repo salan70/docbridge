@@ -6,7 +6,6 @@ pub mod lifecycle;
 pub mod markdown;
 pub mod model;
 pub mod output;
+mod paths;
 pub mod project;
 pub mod query;
-
-pub use markdown::parse;

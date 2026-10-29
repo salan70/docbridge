@@ -15,6 +15,6 @@ These are the six vNext commands. Without `--root`, commands requiring project c
 
 `unlinked` treats a linked parent as covering all descendants. When only a child is linked, the uncovered parent region excludes that child and the annotation lines attached to it. Fully unlinked descendants are grouped under their topmost unlinked region; meaningful pre-heading or headingless content is a separate region. Invalid links do not count as coverage or make an incomplete scan complete. The CLI checks structure, not semantic agreement. See [Automation](automation.md).
 
-Success exits 0, validation, configuration, I/O and incomplete scans exit 1, partial `links` exits 2, and invalid arguments exit 3 except `validate` argument errors, which exit 1. Safety: `init` and `deinit` make no writes without confirmation, either an interactive prompt or `--yes`; `--dry-run` never writes.
+Success exits 0, validation, configuration, I/O and incomplete scans exit 1, partial `links` exits 2, and invalid arguments exit 3 for every command. Safety: `init` and `deinit` make no writes without confirmation, either an interactive prompt or `--yes`; `--dry-run` never writes. Each file changes atomically; if a run fails partway, it lists the files that changed and those that did not, and running the same command again finishes the rest.
 
 The CLI does not update itself; update it through its installation method. Release targets are static Linux x64 and ARM64 musl, macOS x64 and ARM64, and Windows x64. Publication is pending.

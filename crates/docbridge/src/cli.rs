@@ -94,11 +94,6 @@ impl Invocation {
             invocation.extra_args = args[1..].to_vec();
             return Ok(invocation);
         }
-        let usage_code = if invocation.command == Command::Validate {
-            1
-        } else {
-            3
-        };
         let mut args = args.iter().skip(1);
         let mut positional = false;
         while let Some(arg) = args.next() {
@@ -116,7 +111,7 @@ impl Invocation {
                         let root = args
                             .next()
                             .filter(|s| !s.starts_with('-'))
-                            .ok_or_else(|| failure(usage_code, "--root requires a directory"))?;
+                            .ok_or_else(|| failure(3, "--root requires a directory"))?;
                         invocation.root = cwd.join(root);
                         continue;
                     }
@@ -133,24 +128,17 @@ impl Invocation {
                         continue;
                     }
                     value if value.starts_with('-') => {
-                        return Err(failure(usage_code, format!("unknown argument: {value}")))
+                        return Err(failure(3, format!("unknown argument: {value}")))
                     }
                     _ => {}
                 }
             }
             if invocation.command != Command::Links {
-                return Err(failure(usage_code, format!("unexpected argument: {arg}")));
+                return Err(failure(3, format!("unexpected argument: {arg}")));
             }
             invocation.selectors.push(arg.clone());
         }
         Ok(invocation)
-    }
-}
-
-pub fn run(args: &[String], cwd: &Path, stdin: &str) -> Response {
-    match Invocation::parse(args, cwd) {
-        Ok(invocation) => dispatch(invocation, stdin),
-        Err(response) => response,
     }
 }
 
@@ -271,10 +259,6 @@ pub fn dispatch_with_confirmation(
         stderr: diagnostic_text(&graph.diagnostics),
         exit_code,
     }
-}
-
-pub fn dispatch(invocation: Invocation, stdin: &str) -> Response {
-    dispatch_with_confirmation(invocation, stdin, |_| false)
 }
 
 fn embedded_docs(args: &[String]) -> Response {
