@@ -1,54 +1,43 @@
 # Repository Self-Audit
 
-This document is the policy for DocBridge's own link graph. It does not change
-the public meaning of `docbridge check --audit`. Adopters still see every
-in-scope `undocumented_symbol` and `unlinked_doc_section` warning, and so does
-`just audit` here. No gate compares the warnings against a recorded set; apply
-this policy when a change adds or removes a contract.
+This document is the policy for DocBridge's own links. `docbridge.config.json`
+manages the Rust sources under `crates/` and the Markdown under `docs/specs/`,
+`docs/contributing/`, and `crates/docbridge-update/`. `just validate` must
+pass; `just verify` and CI run it.
 
 ## What must participate
 
-A relationship belongs in the graph when both sides describe the same contract:
+A link belongs in the graph when the section states a contract that the file
+implements:
 
-- Normative behavior in `docs/specs/`.
-- Task-oriented behavior in `docs/user/` (packaged user documents stay in
-  `include.docs`; see #90).
-- One primary exported production contract per concern under each `src/`
-  layer and entrypoint. See [Module architecture](architecture.md).
+- Normative behavior in `docs/specs/`, linked to the modules that implement
+  it.
+- Design and maintainer references, such as
+  [Module architecture](architecture.md), [Releasing](releasing.md), and the
+  update crate's README, linked to the code they describe.
 
-The existing dogfooding style is intentional: annotate the orchestration or
-entry symbol (`resolveLinks`, `loadConfig`, `run`, `Server`), not every helper
-type beside it.
+Links address whole files, so link the section to the module that owns the
+behavior, not to every file that touches it.
 
 ## Reviewed intentional gaps
 
-These in-scope endpoints are expected to appear in `check --audit`. They are
-not missing contracts:
+`just unlinked` lists the code files and Markdown regions that no link covers.
+These are expected and are not missing contracts:
 
-- Helpers, path/range/syntax utilities, scanner-worker plumbing, and shared
-  type aliases that are not themselves a public contract.
-- Test helpers and fixtures (`*.test-support.ts`, `test-support.ts`,
-  `src/lsp/fixtures.ts`).
-- Additional exports in a module whose primary contract is already linked.
-- Overviews, tutorials, catalogs, workflow prose, and headings whose parent is
-  already bridged.
+- Tests under `crates/*/tests/`, and small entry modules such as `lib.rs` that
+  only re-export.
+- Contributor process documents (writing, commits, pull requests) and
+  overviews whose subject is not code.
+- The embedded user guides under `crates/docbridge/guides/`. They ship inside
+  the CLI and are printed by `docbridge docs`, so they carry no annotations
+  and stay outside `include.docs`.
 
-Zero audit warnings is not a goal. False or low-value links are worse than a
+Zero unlinked items is not a goal. False or low-value links are worse than a
 reviewed gap.
 
-`*.test.ts` files match `src/**/*.ts` and would appear if they exported a
-supported declaration. They currently export nothing. Narrowing
-`docbridge.config.json` to hide them would be an exclusion and needs separate
-maintainer approval.
+## Semantic review
 
-## Native scanner specifications
-
-Swift, Dart, Rust, Go, Python, Ruby, and Java scanning headings stay
-unlinked. Their implementations live in `packages/*-scanner`, which are
-outside `include.code`. The in-scope TypeScript worker helper is the same
-adapter factory for every language, so pointing those headings at it would be
-a false relationship. Expanding `include.code` to the worker packages needs
-separate maintainer approval.
-
-JavaScript Scanning is linked instead, because the in-process TypeScript
-scanner implements it.
+`docbridge validate` checks structure, not meaning. When a change touches a
+linked file or section, run `just links <path> --include-content` and confirm
+that each counterpart still agrees, or update it in the same pull request. The
+pull request template's "Linked counterparts" section records the result.

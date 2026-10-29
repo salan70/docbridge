@@ -1,11 +1,10 @@
 {
-  "$schema": "./schemas/docbridge.schema.json",
   "include": {
     "code": {
-      "typescript": {
-        "patterns": ["src/**/*.ts"]
-      }
+      "paths": ["crates"],
+      "extensions": [".rs"]
     },
-    "docs": ["docs/specs/**/*.md", "docs/user/**/*.md"]
-  }
+    "docs": ["docs/specs", "docs/contributing", "crates/docbridge-update"]
+  },
+  "exclude": {}
 }

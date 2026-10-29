@@ -288,9 +288,9 @@ fn help_and_command_guide_agree() {
     let guide = fs::read_to_string(crate_dir().join("guides/commands.md")).unwrap();
     let spec = fs::read_to_string(crate_dir().join("../../docs/specs/cli.md")).unwrap();
     let syntax = spec
-        .split("### vNext commands")
+        .split("\n## Commands\n")
         .nth(1)
-        .and_then(|s| s.split("### vNext output model").next())
+        .and_then(|s| s.split("\n## Output model\n").next())
         .expect("spec syntax section");
     for command in commands {
         assert!(

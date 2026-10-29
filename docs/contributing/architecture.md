@@ -1,68 +1,73 @@
 # Module Architecture
 
-This document maps the directories under `src/` and fixes the direction their
-dependencies may point. Use it when you add a module and need to decide where it
-belongs.
+This document maps the crates and modules of the Cargo workspace and the
+direction their dependencies may point. Use it when you add a module and need
+to decide where it belongs.
 
-## Layers
+## Crates
 
-A module may import only the layers listed for its directory, including its
-own. Nothing below may import a layer above it.
+| Crate                      | Owns                                                                                           | Workspace deps     |
+| -------------------------- | ---------------------------------------------------------------------------------------------- | ------------------ |
+| `crates/docbridge`         | The `docbridge` executable and its library: commands, project scanning, queries, and lifecycle | `docbridge-update` |
+| `crates/docbridge-update`  | Verified self-update of a standalone executable: release format, signatures, replacement       | none               |
+| `crates/docbridge-release` | The unpublished maintainer tool that signs and verifies a release asset set                    | `docbridge-update` |
 
-| Directory     | Owns                                                                             | May import                           |
-| ------------- | -------------------------------------------------------------------------------- | ------------------------------------ |
-| `src/model/`  | Endpoints, links, diagnostics, scan results, and link manifest types; no I/O     | `model`                              |
-| `src/shared/` | Small utilities: globbing, path order, package root, suggestions, source ranges  | `model`, `shared`                    |
-| `src/config/` | Configuration, link manifest loading, language metadata, and managed-file lookup | `model`, `shared`, `config`          |
-| `src/scan/`   | Markdown scanning and code scanning through each language adapter                | `model`, `shared`, `config`, `scan`  |
-| `src/link/`   | Link resolution, the link graph, and applying manifest links to scan results     | `model`, `shared`, `link`            |
-| `src/query/`  | The `check`, `related`, `context`, and `graph` workflows over a scanned project  | every layer above, and `query`       |
-| `src/setup/`  | Initialization, skill installation, npm registry access, and update guidance     | `model`, `shared`, `config`, `setup` |
+`docbridge-update` never depends on the CLI, so the release tool verifies a
+release with exactly the code that `docbridge upgrade` runs.
 
-`src/link/` depends on the scan result types in `src/model/`, never on a
-scanner. `src/query/` is where configuration, scanning, and link resolution are
-combined.
+<!-- @code crates/docbridge/src/cli.rs -->
+<!-- @code crates/docbridge/src/main.rs -->
 
-## Entrypoints
+## Entry point and commands
 
-`src/cli/` owns argument parsing, command dispatch, process exit codes, and
-terminal output. `src/lsp/` owns the language server: transport, document state,
-hover, navigation, and diagnostics. Both may import any layer; only `src/cli/`
-imports `src/setup/`.
+`main.rs` reads the process arguments, stdin, and the terminal confirmation,
+and delegates everything else to the library. `cli.rs` owns argument parsing,
+the `Command` enum, the `HELP` text, exit codes, and dispatch. Every command is
+registered there.
 
-The two entrypoints are otherwise peers, with one edge between them:
-`src/cli/index.ts` dispatches the `lsp` subcommand, so it imports
-`src/lsp/server.ts`. Nothing under `src/lsp/` imports `src/cli/`.
+<!-- @code crates/docbridge/src/config.rs -->
+<!-- @code crates/docbridge/src/project.rs -->
+<!-- @code crates/docbridge/src/markdown.rs -->
+<!-- @code crates/docbridge/src/model.rs -->
 
-The analysis layers, `src/model/` through `src/query/`, return data. Terminal
-text for `check`, `related`, `context`, and `graph` is produced in
-`src/cli/render/`, so the language server and scripts can reuse the same
-results without a formatter in between.
+## Project model
 
-`src/cli/index.ts` is the executable entrypoint. It starts the process,
-dispatches subcommands, and owns `CliRuntime`. Command modules must not import
-it; the shared write and read seams live in `src/cli/io.ts` instead.
+- `config.rs` loads and validates `docbridge.config.json`, rejecting unknown
+  keys.
+- `project.rs` discovers the managed files under the selected root without
+  following symlinks, parses each Markdown file, assigns section IDs, and
+  resolves annotation targets. It reports read, path, annotation, and link
+  diagnostics.
+- `markdown.rs` turns one Markdown file into sections and attached
+  annotations, skipping fenced code, HTML comments, and raw HTML blocks.
+  `model.rs` holds the types it returns.
 
-## Code scanning
+These modules perform no output formatting.
 
-Code scanning is split so that a caller pays only for what it uses:
+<!-- @code crates/docbridge/src/query.rs -->
+<!-- @code crates/docbridge/src/output.rs -->
 
-- `config/code-language.ts` holds language metadata and managed-file
-  collection. Configuration validation and repository discovery depend on it
-  without loading any parser or worker.
-- `scan/code/dispatch.ts` binds each language to its adapter and dispatches
-  scans. Importing it is what loads the TypeScript parser and the worker
-  protocol. Callers can replace an adapter for one scan by argument.
-- `scan/code/worker/scanner-executable.ts` finds the scanner worker binary for
-  a source checkout or an installed package, and restores its executable bit.
+## Queries and output
 
-`shared/package-root.ts` resolves the package directory that ships
-`templates/skills`. The `docs` command, the setup commands, and scanner
-discovery all need that path. Scanner discovery derives its source and dist
-roots from it, so no module depends on its own depth below `src/`.
+`query.rs` builds the `links` and `unlinked` graphs from a scanned project,
+including merged content blocks. `output.rs` defines the graph and diagnostic
+types, their JSON serialization, and the text rendering of a graph.
+
+<!-- @code crates/docbridge/src/lifecycle.rs -->
+<!-- @code crates/docbridge/src/cli_lifecycle.rs -->
+<!-- @code crates/docbridge/src/docs.rs -->
+<!-- @code crates/docbridge/src/cli_upgrade.rs -->
+
+## Lifecycle, guides, and upgrade
+
+- `lifecycle.rs` implements `init` and `deinit`: the embedded Skill and its
+  ownership record, the removal plan, and atomic rewrites with a recovery
+  directory. `cli_lifecycle.rs` adapts it to the command line.
+- `docs.rs` embeds the guides under `crates/docbridge/guides/` with
+  `include_str!` and serves `docbridge docs`.
+- `cli_upgrade.rs` adapts `docbridge-update` to the `upgrade` command.
 
 ## Verification
 
-`src/module-boundaries.test.ts` asserts these rules against the real import
-graph, counting type-only imports. A misplaced module fails that test, so
-rerun `just test` after moving one.
+Behavior is tested at each crate boundary; see [Testing](testing.md). Clippy
+runs with `-D warnings` over every target through `just lint`.

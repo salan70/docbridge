@@ -4,6 +4,9 @@ Independent Rust 1.83 library for the approved #213 signed standalone updater.
 The parent CLI owns argument parsing, presentation, executable discovery, and interactive confirmation.
 This crate never writes project settings or Skills.
 
+<!-- @code crates/docbridge/src/cli_upgrade.rs -->
+<!-- @code crates/docbridge-update/src/lib.rs -->
+
 ## CLI integration
 
 Interactive upgrades use the two-phase API, so the confirmation is bound to one verified version and one set of bytes:
@@ -67,6 +70,9 @@ The parent may call `run_with` using its own compiled key map.
 Never load trust keys or release URLs from CLI arguments, project settings, or environment variables.
 No production key was invented; deterministic private signing keys exist only in integration-test code.
 
+<!-- @code crates/docbridge-update/src/lib.rs -->
+<!-- @code crates/docbridge-update/src/network.rs -->
+
 ## Distribution format
 
 The production client uses only the latest stable release at `https://api.github.com/repos/salan70/docbridge/releases/latest`.
@@ -118,6 +124,8 @@ The manifest has no expiry or timestamp: an attacker able to serve old, validly 
 | `x86_64-unknown-linux-musl`  | `docbridge-x86_64-unknown-linux-musl`  |
 | `x86_64-pc-windows-msvc`     | `docbridge-x86_64-pc-windows-msvc.exe` |
 
+<!-- @code crates/docbridge-update/src/install.rs -->
+
 ## Standalone installation receipt
 
 The standalone installation procedure is:
@@ -145,6 +153,8 @@ The canonical executable path and current executable hash must both match.
 The executable itself must be a regular nonsymlink file.
 Known canonical managed locations (Nix/Guix, Homebrew, system package directories, npm node_modules, MacPorts, Snap, and common Windows package locations) always override a receipt.
 Detection is independent of the current working directory and returns package-manager guidance.
+
+<!-- @code crates/docbridge-update/src/install.rs -->
 
 ## Replacement and recovery
 
