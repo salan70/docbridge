@@ -1,4 +1,0 @@
-/** @doc docs/auth.md#login */
-export function login() {}
-
-export function logout() {}

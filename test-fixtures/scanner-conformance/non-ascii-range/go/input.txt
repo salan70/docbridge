@@ -1,5 +1,0 @@
-package auth
-
-// ログイン 😀
-// @doc docs/ログイン😀.md#login
-func Login() string { return "😀" }

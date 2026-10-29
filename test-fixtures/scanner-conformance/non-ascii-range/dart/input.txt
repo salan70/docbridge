@@ -1,3 +1,0 @@
-/// ログイン 😀
-/// @doc docs/ログイン😀.md#login
-String login() { return "😀"; }
