@@ -251,6 +251,7 @@ fn deinit(p: &std::path::Path) -> Outcome {
     let plan = plan_deinit(p).unwrap();
     apply_deinit(&plan)
 }
+#[cfg(unix)]
 fn write_config(p: &std::path::Path, docs: &str) {
     fs::write(
         p.join("docbridge.config.json"),
