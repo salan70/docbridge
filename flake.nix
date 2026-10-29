@@ -38,7 +38,7 @@
       packages = forAllSystems (pkgs: rec {
         docbridge = pkgs.rustPlatform.buildRustPackage {
           pname = "docbridge";
-          inherit ((nixpkgs.lib.importTOML ./crates/docbridge/Cargo.toml).package) version;
+          inherit ((nixpkgs.lib.importTOML ./Cargo.toml).workspace.package) version;
           src = nixpkgs.lib.fileset.toSource {
             root = ./.;
             fileset = nixpkgs.lib.fileset.unions [

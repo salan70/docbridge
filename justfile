@@ -97,17 +97,10 @@ build:
 smoke: build
     cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- smoke {{ target_dir }}/release/docbridge
 
-# Apply a release bump inside a pull request: roll CHANGELOG [Unreleased] into
-# the new version and set it in the two versioned crate manifests. The `release: <kind>`
-# label on the pull request must name the same kind.
-release-bump KIND:
-    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- release-bump {{ KIND }}
-
-# Check release labels and the change against origin/main, as the required
-# `release-label` check does: `just check-release-label "release: patch"`.
-[positional-arguments]
-check-release-label +LABELS:
-    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- release-label origin/main "$@"
+# Prepare a release pull request: set the workspace version and roll CHANGELOG
+# [Unreleased] into `## [VERSION] - <today, UTC>`.
+release VERSION:
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- release {{ VERSION }} "$(date -u +%F)"
 
 flake-check:
     nix flake check

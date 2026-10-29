@@ -64,6 +64,6 @@ and the text rendering of a graph.
 
 ## Repository automation
 
-`xtask` owns `agent-gate`, `publisher-gate`, `smoke`, `release-label`, and
-`release-bump`. Version maintenance names exactly two manifests: `docbridge`
-and `xtask`. Only the product CLI is published.
+`xtask` owns `agent-gate`, `publisher-gate`, `smoke`, and `release`. Both
+crates inherit the root `Cargo.toml` `[workspace.package]` version, the only
+version `release` sets. Only the product CLI is published.

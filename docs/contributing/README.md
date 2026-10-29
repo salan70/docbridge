@@ -55,12 +55,11 @@ just smoke
 
 Run additional checks when the affected area requires them:
 
-| Area                | Commands                                     |
-| ------------------- | -------------------------------------------- |
-| Nix package         | `nix build .#docbridge`, `just flake-check`  |
-| Release label       | `just check-release-label "release: <kind>"` |
-| Repository coverage | `just unlinked`                              |
-| Linked counterparts | `just links <path> --include-content`        |
+| Area                | Commands                                    |
+| ------------------- | ------------------------------------------- |
+| Nix package         | `nix build .#docbridge`, `just flake-check` |
+| Repository coverage | `just unlinked`                             |
+| Linked counterparts | `just links <path> --include-content`       |
 
 CI runs `just verify`, then builds, tests, and smoke-runs the five release
 targets; see [Releasing](releasing.md).
@@ -84,22 +83,14 @@ Breaking changes use `!` after the type/scope and a `BREAKING CHANGE:` footer.
 
 Use the PR template.
 
-Every PR requires exactly one release label. During `0.x`, new features and
-breaking changes bump the minor version; `major` is reserved for 1.0.
+A PR with a user-facing change adds its entry under `## [Unreleased]` in
+`CHANGELOG.md`; other PRs leave versions and the CHANGELOG unchanged.
 
-| Label            | Use when                                        | Bump                                                    |
-| ---------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| `release: none`  | No user-facing change (docs, CI, refactor, ...) | Versions and CHANGELOG `## [Unreleased]` stay unchanged |
-| `release: patch` | User-facing fix                                 | `just release-bump patch`                               |
-| `release: minor` | New feature, or a breaking change during `0.x`  | `just release-bump minor`                               |
-| `release: major` | Breaking change after 1.0                       | `just release-bump major`                               |
-
-For a releasing PR, add the entries under `## [Unreleased]`, then run
-`just release-bump <kind>` in the same PR. The required `release-label` check
-enforces this; `just check-release-label "release: <kind>"` runs it locally.
-If `main` gains another release before the PR merges, update the branch,
-restore `main`'s versions and CHANGELOG sections, and rerun the bump.
-Merging publishes nothing; a maintainer dispatches Release vNext, see
+A release is one PR that runs `just release X.Y.Z`. It sets the workspace
+version in the root `Cargo.toml` and rolls `## [Unreleased]` into
+`## [X.Y.Z] - <date>`. During `0.x`, new features and breaking changes bump the
+minor version; `major` is reserved for 1.0. Merging publishes nothing; after
+the release PR merges, a maintainer dispatches Release vNext, see
 [release operations](releasing.md).
 
 ## Documentation

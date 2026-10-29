@@ -4,7 +4,8 @@ name: Release vNext
 # dispatches it. It is the only workflow that publishes releases.
 #
 # It requires main, no other workflow that publishes releases or npm packages,
-# a version equal to crates/docbridge/Cargo.toml, no release or draft for it,
+# a version equal to the docbridge package version (`cargo metadata`, inherited
+# from the root Cargo.toml `[workspace.package]`), no release or draft for it,
 # and a `v<version>` tag that is absent or already at this commit. It builds the
 # five targets, writes SHA256SUMS, attests build provenance for the executables,
 # uploads everything to a DRAFT release, re-downloads and checks the draft's
@@ -17,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version X.Y.Z (must equal crates/docbridge/Cargo.toml)
+        description: Release version X.Y.Z (must equal the workspace version in Cargo.toml)
         required: true
 
 concurrency:
@@ -53,13 +54,13 @@ jobs:
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
-          crate="$(sed -n 's/^version = "\(.*\)"$/\1/p' crates/docbridge/Cargo.toml | head -n 1)"
+          crate="$(cargo metadata --no-deps --locked --format-version 1 | jq -r '.packages[] | select(.name == "docbridge") | .version')"
           if ! [[ "$INPUT_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "::error::version must be X.Y.Z without a leading v, prerelease, or build metadata"
             exit 1
           fi
           if [ "$INPUT_VERSION" != "$crate" ]; then
-            echo "::error::crates/docbridge/Cargo.toml has version $crate, not $INPUT_VERSION"
+            echo "::error::the docbridge package has version $crate, not $INPUT_VERSION"
             exit 1
           fi
           cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows
