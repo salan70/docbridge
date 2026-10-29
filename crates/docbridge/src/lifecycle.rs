@@ -611,6 +611,8 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
     }
     Ok(plan)
 }
+/// Element name (`pre`/`code` only), closing flag and open attribute quote.
+type OpenTag = (Option<&'static [u8]>, bool, Option<u8>);
 fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack.windows(needle.len()).position(|w| w == needle)
 }
@@ -621,7 +623,10 @@ fn raw_html_code_lines(text: &str) -> BTreeSet<usize> {
     let mut protected = BTreeSet::new();
     let mut fence: Option<(u8, usize)> = None;
     let mut comment = false;
-    let mut depth = 0usize;
+    // Open `pre`/`code` elements; only the matching close tag pops one.
+    let mut stack: Vec<&'static [u8]> = Vec::new();
+    // Tag being scanned (possibly across lines): element name, closing flag, open quote.
+    let mut tag: Option<OpenTag> = None;
     for (index, raw) in text.split_inclusive('\n').enumerate() {
         let line = raw.trim_end_matches(['\n', '\r']);
         let trimmed = line.trim_start_matches(' ');
@@ -638,7 +643,7 @@ fn raw_html_code_lines(text: &str) -> BTreeSet<usize> {
             }
             continue;
         }
-        if depth == 0 && !comment {
+        if stack.is_empty() && !comment && tag.is_none() {
             if indentation <= 3
                 && (marker == b'`' || marker == b'~')
                 && run >= 3
@@ -651,11 +656,34 @@ fn raw_html_code_lines(text: &str) -> BTreeSet<usize> {
                 continue;
             }
         }
-        let inside = depth > 0;
+        let inside = !stack.is_empty();
         let lower = line.to_ascii_lowercase();
         let bytes = lower.as_bytes();
         let mut i = 0;
         while i < bytes.len() {
+            if let Some((name, closing, quote)) = tag {
+                let byte = bytes[i];
+                tag = match (quote, byte) {
+                    (Some(q), b) if b == q => Some((name, closing, None)),
+                    (Some(_), _) => tag,
+                    (None, b'"' | b'\'') => Some((name, closing, Some(byte))),
+                    (None, b'>') => {
+                        if let Some(name) = name {
+                            if closing {
+                                if stack.last() == Some(&name) {
+                                    stack.pop();
+                                }
+                            } else if bytes[i - 1] != b'/' {
+                                stack.push(name);
+                            }
+                        }
+                        None
+                    }
+                    _ => tag,
+                };
+                i += 1;
+                continue;
+            }
             if comment {
                 match find(&bytes[i..], b"-->") {
                     Some(end) => {
@@ -671,7 +699,7 @@ fn raw_html_code_lines(text: &str) -> BTreeSet<usize> {
                 i += 4;
                 continue;
             }
-            if bytes[i] == b'`' && depth == 0 {
+            if bytes[i] == b'`' && stack.is_empty() {
                 let ticks = bytes[i..].iter().take_while(|&&b| b == b'`').count();
                 let closing = vec![b'`'; ticks];
                 i += ticks + find(&bytes[i + ticks..], &closing).map_or(0, |e| e + ticks);
@@ -680,24 +708,29 @@ fn raw_html_code_lines(text: &str) -> BTreeSet<usize> {
             if bytes[i] == b'<' {
                 let closing = bytes.get(i + 1) == Some(&b'/');
                 let start = i + 1 + usize::from(closing);
-                for tag in [&b"pre"[..], b"code"] {
-                    if bytes[start..].starts_with(tag)
-                        && matches!(
-                            bytes.get(start + tag.len()),
-                            None | Some(b'>' | b' ' | b'\t' | b'/')
-                        )
-                    {
-                        if closing {
-                            depth = depth.saturating_sub(1);
-                        } else {
-                            depth += 1;
-                        }
-                    }
+                if bytes.get(start).is_some_and(u8::is_ascii_alphabetic) {
+                    let len = bytes[start..]
+                        .iter()
+                        .take_while(|b| b.is_ascii_alphanumeric() || **b == b'-')
+                        .count();
+                    let word = &bytes[start..start + len];
+                    let name = [&b"pre"[..], b"code"].into_iter().find(|t| *t == word).map(
+                        |t| -> &'static [u8] {
+                            if t == b"pre" {
+                                b"pre"
+                            } else {
+                                b"code"
+                            }
+                        },
+                    );
+                    tag = Some((name, closing, None));
+                    i = start + len;
+                    continue;
                 }
             }
             i += 1;
         }
-        if inside || depth > 0 {
+        if inside || !stack.is_empty() {
             protected.insert(index + 1);
         }
     }
@@ -1216,5 +1249,32 @@ mod tests {
         let text = "`<pre>`\n<!-- <code> -->\na\n<Code data-x=\"1\">\nb\n</CODE>\n<preview>\nc\n```\n<pre>\n```\nd\n";
         let lines: Vec<_> = raw_html_code_lines(text).into_iter().collect();
         assert_eq!(lines, vec![4, 5, 6]);
+    }
+    fn deinit_removed(text: &str) -> Vec<String> {
+        let lines = raw_html_code_lines(text);
+        text.lines()
+            .enumerate()
+            .filter(|(i, l)| l.contains("@code") && !lines.contains(&(i + 1)))
+            .map(|(_, l)| l.to_string())
+            .collect()
+    }
+    #[test]
+    fn quoted_attribute_tag_text_does_not_close_pre() {
+        for quote in ['"', '\''] {
+            let text = format!(
+                "<pre title={quote}</pre>{quote}>\n<!-- @code a.rs -->\n</pre>\n<!-- @code b.rs -->\n"
+            );
+            assert_eq!(deinit_removed(&text), vec!["<!-- @code b.rs -->"]);
+        }
+    }
+    #[test]
+    fn unmatched_close_tag_does_not_close_pre() {
+        let text = "<pre>\n</code>\n<!-- @code a.rs -->\n</pre>\n<!-- @code b.rs -->\n";
+        assert_eq!(deinit_removed(text), vec!["<!-- @code b.rs -->"]);
+    }
+    #[test]
+    fn real_annotation_after_closed_pre_is_removable() {
+        let text = "<pre><code>x</code></pre>\n<!-- @code a.rs -->\n";
+        assert_eq!(deinit_removed(text), vec!["<!-- @code a.rs -->"]);
     }
 }
