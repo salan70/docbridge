@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Follow the [contributor workflow](https://github.com/salan70/docbridge/blob/main/docs/contributing/README.md#git-and-pull-requests) and [documentation guidance](https://github.com/salan70/docbridge/blob/main/docs/contributing/README.md#documentation). Use the bug report form for reproducible incorrect behavior.
+        Use the bug report form for reproducible incorrect behavior. See the [documentation guidance](https://github.com/salan70/docbridge/blob/main/docs/contributing/README.md#documentation).
   - type: checkboxes
     id: existing-issues
     attributes:

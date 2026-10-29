@@ -1,8 +1,6 @@
 # Nixpkgs pull request draft
 
 Pending: the first vNext release `v0.17.0` and the maintainer's submission.
-The maintainer opens this pull request against `NixOS/nixpkgs` from their own
-account. Nobody has opened or accepted it yet.
 
 - Branch: `docbridge-init`, based on `master`.
 - File: `pkgs/by-name/do/docbridge/package.nix`, copied from
@@ -10,8 +8,7 @@ account. Nobody has opened or accepted it yet.
 - Commit message and pull request title: `docbridge: init at 0.17.0`.
 
 Replace the `<...>` placeholders, then paste everything below the line as the
-pull request body. Keep the Nixpkgs template checkboxes and tick only what you
-actually ran.
+pull request body. Tick only what you actually ran.
 
 ---
 
@@ -22,12 +19,11 @@ CLI that keeps Markdown design docs and the code they describe linked. It
 validates `@doc` / `@code` annotations and reports which counterparts a change
 leaves stale.
 
-- Built from the tagged Rust source with the upstream `Cargo.lock`. It does
-  not reuse the release binaries.
+- Built from the tagged Rust source with the upstream `Cargo.lock`, not the
+  release binaries.
 - Runs the upstream workspace tests (`cargoTestFlags = [ "--workspace" ]`).
-- The install check runs `docbridge --help` and the offline `docbridge docs list`.
-  The CLI has no `--version` flag, so `versionCheckHook` is not used.
-- The CLI needs no language runtime.
+- The CLI has no `--version` flag, so `versionCheckHook` is not used; the
+  install check runs `docbridge --help` and `docbridge docs list`.
 - `docbridge upgrade` detects `/nix/store` installations and points users to Nix
   instead of replacing the binary.
 - Upstream release notes:

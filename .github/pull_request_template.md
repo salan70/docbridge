@@ -1,22 +1,20 @@
 ## Summary
 
-<!-- Describe the delivered result in no more than three bullets. -->
-<!-- With an issue, link it below instead of repeating its background or acceptance criteria. Without one, also state the problem this pull request solves. -->
+<!-- At most three bullets. Without an issue, state the problem solved. -->
 
 ## Issue
 
-<!-- Write Closes #NN as plain text below. Do not wrap it in backticks or a code fence; GitHub will not auto-close the issue otherwise. Delete this section when no issue exists. -->
+<!-- Plain-text `Closes #NN` outside code so GitHub closes it. Delete this section without an issue. -->
 
 - Closes #
 
 ## Release
 
-<!-- Add exactly one label: release: none, release: patch, release: minor, or release: major. -->
-<!-- For patch, minor, or major, run just release-bump <kind> in this pull request. Merging publishes nothing; a maintainer dispatches Release vNext. -->
+<!-- Exactly one `release:` label; see docs/contributing/README.md#git-and-pull-requests. -->
 
 ## Verification
 
-<!-- List only commands or external checks actually run and their result. -->
+<!-- Only checks actually run. -->
 
 - [ ] `just verify`
 - [ ] `just smoke`
@@ -24,8 +22,8 @@
 
 ## Review notes
 
-<!-- Keep only decisions or deviations not captured by the issue, remaining risks, or areas that need focused review. Delete this section if empty. -->
+<!-- Only decisions, deviations, or risks not in the issue. Delete if empty. -->
 
 ## Linked counterparts
 
-<!-- For each changed file or section, list the counterparts that just links <path> reports and either the update or the content-based reason it remains unchanged. -->
+<!-- Counterparts reported by `just links <path>`, and the update or the reason each stays unchanged. -->
