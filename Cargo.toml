@@ -3,6 +3,7 @@ resolver = "2"
 members = ["crates/docbridge", "crates/xtask"]
 
 [workspace.package]
+version = "0.17.0"
 edition = "2021"
 rust-version = "1.83"
 publish = false

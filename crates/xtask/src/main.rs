@@ -32,7 +32,7 @@ fn execute(
     runner: &mut impl Runner,
 ) -> Result<String, (i32, String)> {
     let usage = || {
-        (2, "usage: xtask agent-gate [ROOT] | publisher-gate DIR | smoke PATH | release-label BASE_REF LABEL... | release-bump <patch|minor|major>".into())
+        (2, "usage: xtask agent-gate [ROOT] | publisher-gate DIR | smoke PATH | release X.Y.Z YYYY-MM-DD".into())
     };
     let result = match args.first().map(String::as_str) {
         Some("agent-gate") if args.len() <= 2 => gates::agent(
@@ -43,14 +43,7 @@ fn execute(
         ),
         Some("publisher-gate") if args.len() == 2 => gates::publisher(&root.join(&args[1])),
         Some("smoke") if args.len() == 2 => smoke::check(&root.join(&args[1]), runner),
-        Some("release-label") if args.len() >= 2 => {
-            release::label(root, &args[1], &args[2..], runner)
-        }
-        Some("release-bump")
-            if args.len() == 2 && ["patch", "minor", "major"].contains(&args[1].as_str()) =>
-        {
-            release::bump(root, &args[1], runner)
-        }
+        Some("release") if args.len() == 3 => release::prepare(root, &args[1], &args[2], runner),
         _ => return Err(usage()),
     };
     result.map_err(|e| (1, e))

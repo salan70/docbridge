@@ -8,10 +8,6 @@
 
 - Closes #
 
-## Release
-
-<!-- Exactly one `release:` label; see docs/contributing/README.md#git-and-pull-requests. -->
-
 ## Verification
 
 <!-- Only checks actually run. -->

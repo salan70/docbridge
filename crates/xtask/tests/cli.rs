@@ -6,9 +6,9 @@ fn invalid_usage_exits_two() {
         vec!["agent-gate", "a", "b"],
         vec!["publisher-gate"],
         vec!["smoke"],
-        vec!["release-label"],
-        vec!["release-bump", "build"],
-        vec!["release-bump", "patch", "extra"],
+        vec!["release"],
+        vec!["release", "0.18.0"],
+        vec!["release", "0.18.0", "2026-10-29", "extra"],
     ] {
         let out = std::process::Command::new(env!("CARGO_BIN_EXE_xtask"))
             .args(&args)

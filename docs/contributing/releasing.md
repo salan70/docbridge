@@ -1,7 +1,7 @@
 # Releasing
 
 Maintainer reference for releasing a version and the repository configuration it
-needs. Per-PR release labels and version bumps are in
+needs. CHANGELOG entries and the release pull request are in
 [Contributor guide](README.md#git-and-pull-requests).
 
 ## Branch protection
@@ -9,7 +9,7 @@ needs. Per-PR release labels and version bumps are in
 `main` is protected as follows:
 
 - Require a pull request before merging, with `0` required approvals.
-- Require the `ci` and `release-label` status checks to pass.
+- Require the `ci` status check to pass.
 - Require branches to be up to date before merging.
 - Allow only **Create a merge commit**; disable squash and rebase merges, and do
   not enable "Require linear history".
@@ -47,12 +47,11 @@ is needed.
 
 ### Releasing
 
-1. Merge a pull request that sets `crates/docbridge/Cargo.toml` to the new
-   version.
+1. Merge the release pull request made with `just release X.Y.Z`.
 2. Dispatch **Release vNext** from `main` with that version, then approve the
    `release` environment deployment.
 3. `prepare` refuses a ref other than `main`, a version that differs from the
-   crate, and any other workflow that still publishes. `build` builds and
+   workspace version, and any other workflow that still publishes. `build` builds and
    smoke-tests the five targets (Linux as static musl).
 4. `publish` refuses an existing release or draft for the tag and a `vX.Y.Z`
    tag at another commit, an annotated tag, or a failed tag lookup. It writes
