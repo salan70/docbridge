@@ -16,17 +16,17 @@ cannot be pushed to directly. Follow these rules for all git work.
   `main` history; use `git log --first-parent main` for a PR-level view.
 - The `ci` and `release-label` checks must pass before a PR can merge.
 - Commit messages follow
-  [docs/contributing/commits.md](../../../docs/contributing/commits.md):
+  [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests):
   `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated
   changes split into separate commits.
 
 ## Standard change flow
 
 1. Branch from a freshly fetched `main`, named per
-   [pull-requests.md](../../../docs/contributing/pull-requests.md):
+   [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests):
    `git fetch origin && git switch --no-track -c <branch> origin/main`. This
    works even while another worktree holds `main`.
-2. Implement test-first. For logic changes, use the `tdd` skill.
+2. Implement test-first. Follow [test conventions](../../../docs/contributing/README.md#test-conventions).
 3. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
    `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
    result. Commit in focused, logical commits. The `pre-commit` hook runs
@@ -34,14 +34,12 @@ cannot be pushed to directly. Follow these rules for all git work.
    committing, review the linked counterparts of each changed file or section
    with `just links <path> --include-content`. If `git config core.hooksPath`
    is unset, run `just install-git-hooks` first.
-4. Write the PR body with the `concise-writing` skill, push with
+4. Write the PR body using the writing rules in `AGENTS.md`, push with
    `git push -u origin <branch>`, and open a PR using the repository template.
    Title, body, and issue linking follow
-   [pull-requests.md](../../../docs/contributing/pull-requests.md). Add exactly
-   one `release:` label. When the PR lands a plan's final slice, archive the
-   plan in the same PR as
-   [writing.md](../../../docs/contributing/writing.md#implementation-plans)
-   describes.
+   [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests).
+   Add exactly one `release:` label. Documentation ownership follows
+   [Documentation](../../../docs/contributing/README.md#documentation).
 5. Wait for CI and the `release-label` check to pass.
 6. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.
@@ -59,11 +57,9 @@ explicit human approval.** Only a maintainer publishes a release, by
 dispatching Release vNext.
 Never push to `main` directly or try to bypass its protection.
 
-`gh pr merge` asks for approval through `.claude/settings.json` and
-`.codex/rules/docbridge.rules`. Neither is a security boundary: Codex applies
-its rule only to a command that runs outside the sandbox, its automatic
-approval reviewer can approve the prompt, and `gh api` can merge without
-matching either rule.
+Agent instructions require human merge approval; local tool prompts are not a
+security boundary. GitHub branch protection and required checks remain the
+enforced integration controls. Never bypass them.
 
 ## Releases (per PR)
 

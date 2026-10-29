@@ -33,7 +33,7 @@
     in
     {
       # The CLI, built from Rust source. Only the Cargo workspace, and the CLI
-      # specification that a test compares with `--help`, are copied into the
+      # public contract used by CLI tests, are copied into the
       # build so unrelated repository changes do not rebuild it.
       packages = forAllSystems (pkgs: rec {
         docbridge = pkgs.rustPlatform.buildRustPackage {
@@ -45,7 +45,7 @@
               ./Cargo.toml
               ./Cargo.lock
               ./crates
-              ./docs/specs/cli.md
+              ./docs/specs/vnext-contracts.md
             ];
           };
           cargoLock.lockFile = ./Cargo.lock;

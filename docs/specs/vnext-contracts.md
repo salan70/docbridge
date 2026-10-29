@@ -1,9 +1,98 @@
 # vNext public contracts
 
-The user accepted these resolutions of the open questions in #209–#215 on 2026-10-29.
-The original confirmed requirements remain binding.
-The maintainer decided production key custody, the first vNext version, legacy npm handling, and Nixpkgs submission on 2026-10-29 (see Decisions); actually generating keys, publishing, and submitting remain manual maintainer steps.
+DocBridge is a native Rust single-binary CLI ([#208](https://github.com/salan70/docbridge/issues/208)).
+Markdown sections declare file-level links to code; the CLI validates their structure and ships offline guides.
+Semantic agreement between linked text and code remains a separate review.
+The CLI has no language parsers, LSP or editor integration, in-code annotations, link manifests, or backward compatibility with the npm package; migration is a deliberate manual conversion without a compatibility layer.
+
+These contracts are binding.
 Internal module layout, algorithms, and crate selection remain implementation decisions.
+
+<!-- @code crates/docbridge/src/cli.rs -->
+<!-- @code crates/docbridge/src/main.rs -->
+
+## Commands
+
+```sh
+docbridge validate [--root <directory>] [--json]
+docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [selectors...]
+docbridge unlinked [--root <directory>] [--json]
+docbridge init [--root <directory>] [--dry-run] [--yes] [--force] [--claude]
+docbridge deinit [--dry-run]
+docbridge docs [list | show <name>]
+docbridge upgrade [--check] [--dry-run] [--yes]
+```
+
+- `validate` checks configuration and Markdown link annotations. `--json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
+- `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
+- `unlinked` lists code files and Markdown regions that no annotation covers.
+- `init`, `deinit`, `docs`, and `upgrade` manage project assets, embedded guides, and verified updates. Exit codes are listed below.
+- Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward.
+- Commands are registered in one place, `crates/docbridge/src/cli.rs` (the `Command` enum and the `HELP` text). `lifecycle` (`init`, `deinit`) and `upgrade` are dispatched to their own modules. A new command must be added to the enum, the parser, `HELP`, and the embedded guides.
+- The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, and `lsp` commands, and the `--gate` and `--audit` flags, were removed at the cutover (#215) without aliases. They are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands.
+
+<!-- @code crates/docbridge/src/output.rs -->
+<!-- @code crates/docbridge/src/query.rs -->
+
+## Output model
+
+When invoked with `--json`, query commands (`links`, `unlinked`) print one JSON object with this shape; without `--json` they print text:
+
+```ts
+type Graph = {
+  nodes: Node[];
+  edges: { source: string; target: string }[];
+  diagnostics: { code: string; path: string; line?: number; message: string }[];
+  complete: boolean;
+  contents?: { id: string; path: string; start_line: number; end_line: number; text: string }[];
+};
+type Node = {
+  id: string; // root-relative path, or path#parent/child for a section
+  kind: "code" | "section";
+  path: string;
+  title?: string;
+  level?: number;
+  parents: string[];
+  line: number;
+  end_line: number;
+  content?: { block: string; start_line: number; end_line: number };
+  children?: Node[];
+  regions?: { start_line: number; end_line: number }[]; // unlinked Markdown regions
+};
+```
+
+IDs and ordering are deterministic and root-relative. `complete` is false when any diagnostic exists or when a managed file could not be read, so a clean-looking result is never reported for an incomplete scan. Diagnostic codes are listed in [Diagnostics](#diagnostics).
+
+<!-- @code crates/docbridge/src/output.rs -->
+<!-- @code crates/docbridge/src/project.rs -->
+
+## Diagnostics
+
+The CLI reports flat diagnostics in `validate --json`, `links --json`, and `unlinked --json`:
+
+```ts
+type QueryDiagnostic = {
+  code: string;
+  path: string; // root-relative; empty when no file applies
+  line?: number;
+  message: string;
+};
+```
+
+| Code             | Meaning                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `configuration`  | Missing, unreadable, or invalid `docbridge.config.json`, including unknown keys       |
+| `annotation`     | An annotation is interrupted by other content or has no heading to attach to          |
+| `link`           | An annotation target is missing, not a managed path, or not a code file               |
+| `selector`       | A `links` selector is invalid or names a file or section that does not exist          |
+| `invalid-path`   | A managed path is not valid UTF-8 or violates the managed-path rules                  |
+| `unsafe-path`    | A symlink or reparse point lies inside a managed path; it is reported, never followed |
+| `read-directory` | A managed directory could not be read                                                 |
+| `read-file`      | A managed file is unreadable, not UTF-8, or binary                                    |
+| `read-metadata`  | File metadata could not be read                                                       |
+| `usage`          | Invalid CLI arguments (with `--json`, reported as a diagnostic)                       |
+
+Any diagnostic makes the result incomplete (`complete: false`). `validate` exits 1 for errors; `links` exits 2 when usable results remain next to diagnostics. See [Exit codes and query output](#exit-codes-and-query-output).
 
 <!-- @code crates/docbridge/src/config.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
@@ -85,7 +174,7 @@ Per-command notes for the commands that do not query the graph:
 - `upgrade --check` and `--dry-run` never replace the executable. A newer stable version is reported without treating availability itself as a command failure. Failed verification remains an error.
 - Download and verify in the executable's directory, retain the old executable as a recoverable backup, and replace using platform-appropriate atomic operations. On Windows, safely rename the running binary aside before moving the verified replacement into place and defer safe cleanup. Restore on failure where possible; any restoration failure reports the recovery paths instead of claiming success.
 - Prepare Linux x64/ARM64 as static musl builds for portability, macOS x64/ARM64, and Windows x64. Document actual supported OS/toolchain requirements rather than claiming untested minimum versions.
-- Keep production release invocation manual during cutover. Preparatory internal PRs use the repository's non-releasing path; the final user-facing cutover must satisfy versioning and release-label checks. No production publishing, npm/Marketplace removal, or Nixpkgs submission is performed merely to close an issue.
+- A maintainer invokes production releases manually; merging a pull request publishes nothing. Preparatory internal PRs use the repository's non-releasing path; the final user-facing cutover must satisfy versioning and release-label checks. No production publishing, npm/Marketplace removal, or Nixpkgs submission is performed merely to close an issue.
 - Nixpkgs packaging is built from Rust source. Prepare and verify the package and submission material; record any external approval or acceptance that remains outstanding instead of closing it as completed.
 
 <!-- @code crates/docbridge/src/docs.rs -->
@@ -110,9 +199,3 @@ Recorded by the maintainer on 2026-10-29:
 - macOS signing and notarization.
 - The Windows distribution format.
 - Minimum supported OS versions for each target.
-
-## Merge intent
-
-The user's current request authorizes merging completed implementation PRs when checks and the required cross-family reviews pass.
-Use merge commits and do not bypass branch protection.
-Any production publication or external operation that remains undecided is reported separately and is not implied by a successful implementation merge.

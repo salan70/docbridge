@@ -1,9 +1,9 @@
 [package]
 name = "docbridge-release"
 version = "0.17.0"
-edition = "2021"
-rust-version = "1.83"
-publish = false
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 description = "Maintainer tool that signs and verifies the vNext release asset set"
 
 [dependencies]

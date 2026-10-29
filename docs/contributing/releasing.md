@@ -1,19 +1,8 @@
 # Releasing
 
 Maintainer reference for how a version is released and how the repository is
-configured for it. The per-PR rules that contributors and agents follow
-(release labels and `just release-bump`) live in the
-[git-workflow skill](../../.agents/skills/git-workflow/SKILL.md#releases-per-pr).
-
-## Versions and labels
-
-Every pull request carries one `release:` label. A releasing label means the
-pull request sets the next version in every crate manifest and rolls the
-CHANGELOG (`just release-bump <kind>`). The required `release-label` check
-(`.github/workflows/release-label.yml`, `scripts/check-release-label.sh`)
-enforces that. Merging publishes nothing: a maintainer releases a merged
-version by dispatching **Release vNext** as described in
-[vNext release (manual)](#vnext-release-manual).
+configured for it. Contributor rules for release labels and version bumps live in
+[Contributor guide](README.md#git-and-pull-requests).
 
 ## Branch protection
 
@@ -48,16 +37,8 @@ Ed25519 signature `docbridge-manifest.sig`. The workflow also attaches an
 unsigned `SHA256SUMS` for manual downloads; the upgrade verifier never trusts
 it.
 
-Maintainer decisions:
-
-- Key custody: each primary private key is its own
-  `DOCBRIDGE_RELEASE_SIGNING_KEY_<ID>` secret of a protected `release`
-  environment that requires reviewer approval. A backup private key is kept
-  offline by the maintainer. The CLI compiles in both public keys.
-- The first vNext version is `0.17.0`.
-- After that release, the npm `docbridge` package is deprecated, never
-  unpublished.
-- The maintainer submits the Nixpkgs package from their own account.
+The [maintainer decisions](../specs/vnext-contracts.md#decisions) set key custody,
+the first version, npm handling, and Nixpkgs submission responsibility.
 
 ### Cutover order
 
@@ -268,7 +249,7 @@ nix build --no-link --impure --expr '
   (pkgs.callPackage ./packaging/nixpkgs/package.nix { }).overrideAttrs (_: {
     src = lib.fileset.toSource {
       root = ./.;
-      fileset = lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./crates ./docs/specs/cli.md ];
+      fileset = lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./crates ./docs/specs/vnext-contracts.md ];
     };
     cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
   })'

@@ -1,6 +1,5 @@
 # DocBridge
 
-[![Japanese README](https://img.shields.io/badge/README-%E6%97%A5%E6%9C%AC%E8%AA%9E-blue)](docs/ja/README.md)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/salan70/docbridge)
 
 DocBridge keeps Markdown documentation and the code files that implement it
@@ -37,49 +36,6 @@ compatibility layer. Follow the Migration guide:
 `docbridge docs show migration`, or
 [`crates/docbridge/guides/migration.md`](crates/docbridge/guides/migration.md).
 
-## Link the first section
-
-In the project root, let DocBridge propose a configuration and install the
-agent Skill, then review what it wrote:
-
-```sh
-docbridge init
-```
-
-The configuration selects code directories and extensions and documentation
-directories:
-
-```json
-{
-  "include": {
-    "code": { "paths": ["src"], "extensions": [".ts"] },
-    "docs": ["docs"]
-  },
-  "exclude": {}
-}
-```
-
-Link a section to the file that implements it by placing the annotation
-directly before its heading in `docs/auth.md`:
-
-```md
-<!-- @code src/auth.ts -->
-
-## Login Flow
-```
-
-Then validate the links and review them:
-
-```sh
-docbridge validate
-docbridge links docs/auth.md --include-content
-docbridge unlinked
-```
-
-`validate` exits `0` when configuration and links are valid and `1` otherwise.
-Structural validity does not prove that the code and the prose agree; review
-the linked content, or have an agent review it.
-
 ## Guides
 
 The CLI ships its English guides, so they work offline and match the installed
@@ -94,16 +50,14 @@ Their sources are in [`crates/docbridge/guides/`](crates/docbridge/guides/):
 getting started, configuration, linking, commands, troubleshooting,
 automation, migration, and removal (`deinit`).
 
-- [Documentation hub](docs/README.md) — specifications and contributor
-  references
+- [Public contracts](docs/specs/vnext-contracts.md) — developer behavior contract
+- [Release readiness and operations](docs/contributing/releasing.md) — production keys, publication, and Nixpkgs remain pending
 - [Changelog](CHANGELOG.md) — release history
-- [日本語ドキュメント](docs/ja/README.md)
 
 ## Contributing
 
 Repository setup, tests, and pull-request policy are in
-[CONTRIBUTING.md](CONTRIBUTING.md). Documentation ownership and writing rules
-are in [Documentation Guidelines](docs/contributing/documentation.md).
+[Contributor guide](docs/contributing/README.md). It also owns documentation and writing policy.
 
 DocBridge is not a documentation generator. It makes the relationship between
 maintained prose and implementation explicit, navigable, and machine-readable.

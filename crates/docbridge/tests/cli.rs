@@ -412,7 +412,7 @@ fn invalid_annotations_do_not_cover_unlinked_regions_and_empty_documents_are_not
 }
 
 #[test]
-fn all_seven_commands_are_visible_and_pending_handlers_are_explicitly_not_ready() {
+fn all_seven_commands_are_visible_in_help() {
     let p = Project::new();
     let help = String::from_utf8(p.run(&["--help"]).stdout).unwrap();
     for command in [

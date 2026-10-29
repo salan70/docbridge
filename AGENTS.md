@@ -1,7 +1,10 @@
 # AGENTS.md
 
-Shared rules for every coding agent in this repository. Claude Code reads them
-through the `@AGENTS.md` import in `CLAUDE.md`.
+Shared rules for every coding agent in this repository.
+Contributor procedures are owned by [Contributor guide](docs/contributing/README.md):
+[Verification](docs/contributing/README.md#verification),
+[Git and pull requests](docs/contributing/README.md#git-and-pull-requests), and
+[Documentation](docs/contributing/README.md#documentation).
 
 ## Environment
 
@@ -17,15 +20,20 @@ through the `@AGENTS.md` import in `CLAUDE.md`.
 
 ## Rules
 
-- Logic changes are test-first; follow the `tdd` skill.
+- Logic changes are test-first: write a regression test, observe the expected
+  failure before implementation, make the smallest passing change, and refactor
+  only while green. Never skip or weaken tests to pass. For uncovered
+  behavior-preserving refactors, add characterization coverage first.
+  Follow [test conventions](docs/contributing/README.md#test-conventions) and report
+  observed RED/GREEN results.
 - Run `just verify` on changed work before you report completion.
 - Fix the underlying code instead of weakening a quality gate. Get explicit
   user approval for each specific exception before you add a lint or formatter
   suppression, disable or downgrade a rule, expand an ignore or exclusion, or
   raise a complexity, size, depth, or parameter limit.
 - Write deliverables in English, including documentation, code comments,
-  commits, and pull requests. Use Japanese only for content marked as Japanese,
-  such as files under `docs/ja/`.
+  commits, and pull requests. Use Japanese only for content explicitly marked
+  as Japanese.
 - Agents may branch, commit, push, and open pull requests through the
   `git-workflow` skill. **Merging a pull request requires explicit human
   approval.** Releases are published only when a maintainer dispatches
@@ -39,3 +47,17 @@ Talk with the user in the user's language. Favor accuracy and concise reasoning
 over reassurance, and state opinions, risks, weak assumptions, and tradeoffs
 plainly. When you report completion, list the skills and the MCP servers or
 tools you used, or `None` for each.
+
+## Writing and review
+
+- Lead with the result, evidence, and next action. Link to the source of truth
+  instead of repeating it; follow the repository's issue and PR templates.
+- Preserve safety boundaries, compatibility, failure behavior, and observed
+  verification results. Never invent facts to fill a template.
+- Review concrete failure modes, regressions, contracts, and security risks;
+  verify behavior-dependent findings and anchor them to the responsible line.
+- Evaluate review suggestions on their merits, reproduce defects before fixing
+  them, and explain either the verified fix or the reason for no change.
+- When review feedback requires a scope, security, or compatibility decision,
+  ask the user. When authorized to handle GitHub feedback, reply to and resolve
+  each thread after addressing it; do not approve unresolved findings.
