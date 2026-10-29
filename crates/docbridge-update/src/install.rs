@@ -403,16 +403,18 @@ fn ordinary_permissions(from: &Path, to: &Path) -> Result<(), String> {
         use std::os::unix::fs::PermissionsExt;
         fs::Permissions::from_mode(perms.mode() & 0o777)
     };
-    fs::set_permissions(to, perms).map_err(|e| e.to_string())?;
-    // Windows FlushFileBuffers needs a writable handle; Unix can fsync a read-only one,
-    // which also works when the copied mode lacks owner write.
+    // Open before applying the copied permissions: a read-only attribute would refuse a
+    // later write open on Windows, whose FlushFileBuffers needs a writable handle. Unix
+    // can fchmod and fsync a read-only handle, which also works without owner write.
     let file = if cfg!(windows) {
         OpenOptions::new().write(true).open(to)
     } else {
         File::open(to)
-    };
-    file.and_then(|f| f.sync_all())
-        .map_err(|e| format!("sync {}: {e}", to.display()))
+    }
+    .map_err(|e| format!("open {}: {e}", to.display()))?;
+    file.set_permissions(perms)
+        .and_then(|()| file.sync_all())
+        .map_err(|e| format!("permissions/sync {}: {e}", to.display()))
 }
 /// Installer-only opt-in. Refuses to overwrite an existing receipt or managed install.
 pub fn write_install_receipt(path: &Path) -> Result<(), String> {
@@ -429,8 +431,22 @@ pub fn write_install_receipt(path: &Path) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     sync_dir(parent)
 }
+/// Removes a regular file. On Windows `DeleteFileW` refuses read-only files, and recovery
+/// copies inherit the executable's attributes, so clear the flag first (never through a link).
+fn remove_regular(path: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    if let Ok(meta) = fs::symlink_metadata(path) {
+        if meta.file_type().is_file() && meta.permissions().readonly() {
+            let mut perms = meta.permissions();
+            #[allow(clippy::permissions_set_readonly_false)]
+            perms.set_readonly(false);
+            fs::set_permissions(path, perms)?;
+        }
+    }
+    fs::remove_file(path)
+}
 fn remove_if_present(path: &Path) -> Result<(), String> {
-    match fs::remove_file(path) {
+    match remove_regular(path) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(format!("remove {}: {e}", path.display())),
@@ -716,8 +732,7 @@ fn remove_entries(exe: &Path, dir: &Path, journal: &Journal) -> Result<(), Strin
     // Keep the journal until all binary backups (including Windows locked files) are removed.
     entries.sort_by_key(|p| p.file_name().is_some_and(|n| n == JOURNAL));
     for entry in entries {
-        fs::remove_file(&entry)
-            .map_err(|e| format!("deferred cleanup {}: {e}", entry.display()))?;
+        remove_regular(&entry).map_err(|e| format!("deferred cleanup {}: {e}", entry.display()))?;
     }
     fs::remove_dir(dir).map_err(|e| e.to_string())?;
     sync_dir(exe.parent().ok_or("missing parent")?)
@@ -854,6 +869,35 @@ mod tests {
             b"earlier backup"
         );
         assert_eq!(fs::read(&exe).unwrap(), b"new binary");
+    }
+
+    #[test]
+    fn read_only_executable_upgrades_and_cleans_up() {
+        let tmp = tempfile::tempdir().unwrap();
+        let exe = fs::canonicalize(tmp.path()).unwrap().join("docbridge");
+        fs::write(&exe, b"old binary").unwrap();
+        let mut perms = fs::metadata(&exe).unwrap().permissions();
+        perms.set_readonly(true);
+        fs::set_permissions(&exe, perms).unwrap();
+        write_install_receipt(&exe).unwrap();
+
+        replace(&exe, b"new binary", &NativeFileOps).unwrap();
+        assert_eq!(fs::read(&exe).unwrap(), b"new binary");
+        assert!(fs::metadata(&exe).unwrap().permissions().readonly());
+        let dir = recovery_path(&exe);
+        assert!(fs::metadata(dir.join("old-binary"))
+            .unwrap()
+            .permissions()
+            .readonly());
+
+        // Windows refuses to delete read-only files unless the flag is cleared first.
+        tidy(&exe).unwrap();
+        assert!(!dir.exists());
+
+        let mut perms = fs::metadata(&exe).unwrap().permissions();
+        #[allow(clippy::permissions_set_readonly_false)]
+        perms.set_readonly(false);
+        fs::set_permissions(&exe, perms).unwrap();
     }
 
     #[cfg(windows)]
