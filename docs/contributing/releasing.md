@@ -231,9 +231,10 @@ upgrade client ignores drafts. There is never a published incomplete set.
   accepts it. To release a different commit, delete that tag first. Do not
   repair a draft by hand; the next run refuses any existing draft for the tag.
 - Failure of the final publish call itself: check whether the release is
-  published. If it is, run
-  `docbridge-release verify --compiled-keys` on its downloaded assets. If it is
-  still a draft, delete it and dispatch again.
+  published. If it is, download its assets with
+  `gh release download vX.Y.Z --dir assets` and run
+  `docbridge-release verify --compiled-keys --dir assets --version X.Y.Z`.
+  If it is still a draft, delete it and dispatch again.
 - A published release later found wrong: do not delete or edit its assets.
   Release a higher version. The verifier rejects downgrades, so clients that
   already updated stay safe.

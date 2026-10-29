@@ -32,20 +32,28 @@ pub fn checked_compiled_trusted_keys() -> Result<TrustedKeys, String> {
 }
 /// Seeds of the deterministic test-only Ed25519 keys used by the `docbridge-update`
 /// and `docbridge-release` tests. Their public keys are refused as production keys.
-pub const TEST_FIXTURE_SEEDS: [[u8; 32]; 4] = [[42; 32], [7; 32], [9; 32], TEST_SCRIPT_SEED];
+pub const TEST_FIXTURE_SEEDS: [[u8; 32]; 5] =
+    [[42; 32], [7; 32], [9; 32], [1; 32], TEST_SCRIPT_SEED];
 /// The seed the release-script tests feed through a stubbed `od`.
 const TEST_SCRIPT_SEED: [u8; 32] = [
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
     0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 ];
 /// Whether `public` is the public half of a deterministic test fixture key.
+/// Keys from any uniform seed (`[n; 32]`) count as fixtures too, since such
+/// seeds are trivially guessable and commonly appear in tests.
 pub fn is_test_fixture_key(public: &[u8; 32]) -> bool {
-    TEST_FIXTURE_SEEDS.iter().any(|seed| {
-        &ed25519_dalek::SigningKey::from_bytes(seed)
-            .verifying_key()
-            .to_bytes()
-            == public
-    })
+    let uniform = (0..=u8::MAX).map(|byte| [byte; 32]);
+    TEST_FIXTURE_SEEDS
+        .iter()
+        .copied()
+        .chain(uniform)
+        .any(|seed| {
+            &ed25519_dalek::SigningKey::from_bytes(&seed)
+                .verifying_key()
+                .to_bytes()
+                == public
+        })
 }
 /// Parses the compiled key file: blank lines and `#` comments are ignored, every
 /// other line is `<key-id> <64 lowercase hex Ed25519 public key>`. Key IDs and
@@ -483,8 +491,9 @@ pub(crate) fn valid_hash(value: &str) -> bool {
 #[cfg(test)]
 mod trusted_key_file_tests {
     use super::*;
-    /// Public key of the seed `[1; 32]`, which is not a registered test fixture.
-    const KEY: &str = "8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c";
+    /// A valid public key whose seed was generated once and discarded, so no
+    /// published secret can sign for it.
+    const KEY: &str = "d3e141aeb1ea31d0c1847a237a9d30efb656ee91079435b8a098b3f1a35b52a1";
 
     #[test]
     fn compiled_key_file_is_well_formed() {
@@ -532,6 +541,16 @@ mod trusted_key_file_tests {
             }
         }
         assert!(!is_test_fixture_key(&hex_key(KEY)));
+    }
+    #[test]
+    fn keys_from_uniform_seeds_are_refused() {
+        for byte in 0..=u8::MAX {
+            let seed = [byte; 32];
+            let public = ed25519_dalek::SigningKey::from_bytes(&seed)
+                .verifying_key()
+                .to_bytes();
+            assert!(is_test_fixture_key(&public), "seed [{byte}; 32]");
+        }
     }
     #[test]
     fn key_file_parsing_is_strict() {

@@ -405,7 +405,12 @@ fn every_test_seed_is_a_registered_fixture() {
     // Built at runtime so this test's own source does not match.
     let needle = ["from_bytes(&", "["].concat();
     let mut seeds = Vec::new();
-    for dir in ["docbridge-release/tests", "docbridge-update/tests"] {
+    for dir in [
+        "docbridge-release/src",
+        "docbridge-release/tests",
+        "docbridge-update/src",
+        "docbridge-update/tests",
+    ] {
         for entry in fs::read_dir(crates.join(dir)).unwrap() {
             let text = fs::read_to_string(entry.unwrap().path()).unwrap();
             for part in text.split(needle.as_str()).skip(1) {
