@@ -55,6 +55,70 @@ jobs:
       - name: just typecheck-extension
         run: nix develop -c just typecheck-extension
 
+  # The vNext Rust CLI on the five release platforms. Each host builds and
+  # tests natively, then smoke-runs the release binary, which needs no
+  # language runtime.
+  rust-vnext:
+    name: rust-vnext (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - platform: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+          - platform: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - platform: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+          - platform: windows-x64
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.83.0
+          components: rustfmt, clippy
+          targets: ${{ matrix.target }}
+      # Linux releases are static musl binaries; ring's C code needs musl-gcc.
+      - name: Install musl tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes musl-tools
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Lint
+        run: cargo clippy --workspace --locked --target-dir .tmp/rust-vnext --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace --locked --target-dir .tmp/rust-vnext
+      - name: Build release binary
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            target="${{ matrix.target }}"
+            export "CC_${target//-/_}=musl-gcc"
+            target_env="$(tr '[:lower:]-' '[:upper:]_' <<<"$target")"
+            export "CARGO_TARGET_${target_env}_LINKER=musl-gcc"
+          fi
+          cargo build --package docbridge --release --locked --target ${{ matrix.target }} --target-dir .tmp/rust-vnext
+      - name: Check static linkage
+        if: runner.os == 'Linux'
+        run: |
+          bin=".tmp/rust-vnext/${{ matrix.target }}/release/docbridge"
+          file "$bin"
+          file "$bin" | grep -Eq 'static(-pie)? linked|statically linked'
+          ! ldd "$bin" 2>/dev/null | grep -q '=>'
+      - name: Smoke-run the release binary
+        shell: bash
+        run: scripts/smoke-vnext.sh .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
+
   test-dist:
     name: test-dist
     runs-on: ubuntu-22.04
@@ -311,20 +375,22 @@ jobs:
         run: bun run scripts/smoke-packed-package.ts tarball/docbridge-*.tgz --runtime-workers-only
 
   # Preserve the branch-protection check name while the expensive work runs in
-  # parallel. This job succeeds only when both required workloads succeed.
+  # parallel. This job succeeds only when all required workloads succeed.
   ci:
     name: ci
     if: always()
-    needs: [quality, test-dist]
+    needs: [quality, test-dist, rust-vnext]
     runs-on: ubuntu-latest
     steps:
       - name: Require all CI workloads
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TEST_DIST_RESULT: ${{ needs.test-dist.result }}
+          RUST_VNEXT_RESULT: ${{ needs.rust-vnext.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_DIST_RESULT" = success
+          test "$RUST_VNEXT_RESULT" = success
 
   # Informational, never required for merge: runs `docbridge related --gate`
   # over the PR's whole change set and maintains one sticky comment so the

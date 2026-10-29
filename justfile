@@ -62,7 +62,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-go format-check-python format-check-shell format-check-nix
+format-check: format-check-ox format-check-swift format-check-dart format-check-rust format-check-vnext format-check-go format-check-python format-check-shell format-check-nix
 
 format-check-ox:
     bun run oxfmt --check .
@@ -76,6 +76,9 @@ format-check-dart:
 format-check-rust:
     cargo fmt --manifest-path packages/rust-scanner/Cargo.toml -- --check
 
+format-check-vnext:
+    cargo fmt --all -- --check
+
 # `gofmt -l` exits 0 even when files differ, so fail on any listed path.
 format-check-go: check-go-toolchain
     test -z "$(gofmt -l packages/go-scanner examples/go | tee /dev/stderr)"
@@ -87,7 +90,7 @@ format-check-nix:
     nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
-lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-go lint-python lint-java lint-shell lint-nix lint-actions
+lint: lint-ox lint-markdown format-check-swift lint-dart lint-rust lint-vnext lint-go lint-python lint-java lint-shell lint-nix lint-actions
 
 lint-ox:
     bun run oxlint . --deny-warnings
@@ -100,6 +103,9 @@ lint-dart:
 
 lint-rust:
     cargo clippy --manifest-path packages/rust-scanner/Cargo.toml --all-targets -- -D warnings
+
+lint-vnext:
+    cargo clippy --workspace --locked --target-dir .tmp/rust-vnext --all-targets -- -D warnings
 
 lint-go: check-go-toolchain
     cd packages/go-scanner && go vet ./...
@@ -119,7 +125,7 @@ lint-fix:
     bun run oxlint . --fix --deny-warnings
 
 # Offline, read-only common gate shared by the pre-commit hook and CI.
-verify: format-check lint check typecheck typecheck-extension test test-python-scanner test-ruby-scanner test-java-scanner
+verify: format-check lint check typecheck typecheck-extension test test-vnext test-python-scanner test-ruby-scanner test-java-scanner
 
 check:
     bun run src/cli/index.ts check
@@ -159,6 +165,9 @@ context:
 
 test:
     bun test
+
+test-vnext:
+    cargo test --workspace --locked --target-dir .tmp/rust-vnext
 
 test-swift-scanner:
     swift test --package-path packages/swift-scanner

@@ -1,0 +1,13 @@
+[package]
+name = "docbridge"
+version = "0.0.0"
+edition = "2021"
+publish = false
+rust-version = "1.83"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+docbridge-update = { path = "../docbridge-update" }
+
