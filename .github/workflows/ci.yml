@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # The offline repository gate, `just verify`: formatting and lint checks, the
-  # workspace tests on Linux x64, and `docbridge validate` on this repository.
+  # The offline repository gate, `just verify`, on Linux x64; see
+  # docs/contributing/README.md#verification.
   quality:
     name: quality
     runs-on: ubuntu-24.04

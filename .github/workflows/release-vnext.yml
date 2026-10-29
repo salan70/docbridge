@@ -1,18 +1,7 @@
 name: Release vNext
 
-# Manual release of the DocBridge CLI. It never runs on its own: a maintainer
-# dispatches it. It is the only workflow that publishes releases.
-#
-# It requires main, a version equal to the docbridge package version
-# (`cargo metadata`, inherited from the root Cargo.toml `[workspace.package]`),
-# no release or draft for it, and a `v<version>` tag that is absent or already
-# at this commit. It builds the five targets (native.yml), writes SHA256SUMS,
-# attests build provenance for the executables, uploads everything to a DRAFT
-# release, re-downloads and checks the draft's assets against SHA256SUMS,
-# creates the tag at this commit, and only then publishes it. Any failure
-# leaves at most a draft and a tag at this commit.
-#
-# See docs/contributing/releasing.md#releasing.
+# Manual release of the DocBridge CLI. What it checks and publishes, and how to
+# recover from a failure: docs/contributing/releasing.md#vnext-release-manual.
 
 on:
   workflow_dispatch:
