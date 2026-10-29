@@ -119,7 +119,7 @@ dependencies = [
 
 [[package]]
 name = "docbridge"
-version = "0.0.0"
+version = "0.17.0"
 dependencies = [
  "docbridge-update",
  "serde",
@@ -129,7 +129,7 @@ dependencies = [
 
 [[package]]
 name = "docbridge-release"
-version = "0.1.0"
+version = "0.17.0"
 dependencies = [
  "docbridge-update",
  "ed25519-dalek",
@@ -143,7 +143,7 @@ dependencies = [
 
 [[package]]
 name = "docbridge-update"
-version = "0.1.0"
+version = "0.17.0"
 dependencies = [
  "ed25519-dalek",
  "hex",

@@ -1,6 +1,6 @@
 [package]
 name = "docbridge"
-version = "0.0.0"
+version = "0.17.0"
 edition = "2021"
 publish = false
 rust-version = "1.83"
