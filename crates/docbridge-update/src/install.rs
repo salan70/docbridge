@@ -347,6 +347,7 @@ fn sync_dir(path: &Path) -> Result<(), String> {
     Ok(())
 }
 fn private_dir(path: &Path) -> Result<(), String> {
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut builder = fs::DirBuilder::new();
     #[cfg(unix)]
     {
