@@ -16,8 +16,48 @@ use std::{
 
 /// Populate only from compiled, maintainer-approved keys, never user input.
 pub type TrustedKeys = BTreeMap<String, [u8; 32]>;
+/// Checked-in production public keys (`keys/trusted-keys.txt`), compiled in.
+const TRUSTED_KEYS_FILE: &str = include_str!("../keys/trusted-keys.txt");
+/// The maintainer-approved production keys compiled into this build. Empty until
+/// keys are added to `keys/trusted-keys.txt`; a malformed file also yields no keys,
+/// so verification fails closed.
 pub fn compiled_trusted_keys() -> TrustedKeys {
-    BTreeMap::new()
+    parse_trusted_keys(TRUSTED_KEYS_FILE).unwrap_or_default()
+}
+/// Parses the compiled key file: blank lines and `#` comments are ignored, every
+/// other line is `<key-id> <64 lowercase hex Ed25519 public key>`. Key IDs and
+/// keys must be unique. Only used for the compiled-in file.
+fn parse_trusted_keys(text: &str) -> Result<TrustedKeys, String> {
+    let mut keys = TrustedKeys::new();
+    for (number, line) in text.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        let [id, public] = fields[..] else {
+            return Err(format!(
+                "line {}: expected `<key-id> <public-key>`",
+                number + 1
+            ));
+        };
+        let valid_id = id.len() <= 64
+            && id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b));
+        let mut key = [0u8; 32];
+        if !valid_id
+            || !valid_hash(public)
+            || hex::decode_to_slice(public, &mut key).is_err()
+            || VerifyingKey::from_bytes(&key).is_err()
+        {
+            return Err(format!("line {}: invalid key id or public key", number + 1));
+        }
+        if keys.values().any(|k| k == &key) || keys.insert(id.into(), key).is_some() {
+            return Err(format!("line {}: duplicate key id or key", number + 1));
+        }
+    }
+    Ok(keys)
 }
 pub const TARGETS: [&str; 5] = [
     "aarch64-apple-darwin",
@@ -409,4 +449,36 @@ pub(crate) fn valid_hash(value: &str) -> bool {
         && value
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+#[cfg(test)]
+mod trusted_key_file_tests {
+    use super::*;
+    const KEY: &str = "197f6b23e16c8532c6abc838facd5ea789be0c76b2920334039bfa8b3d368d61";
+
+    #[test]
+    fn compiled_key_file_is_well_formed() {
+        let keys = parse_trusted_keys(TRUSTED_KEYS_FILE).expect("keys/trusted-keys.txt");
+        assert_eq!(compiled_trusted_keys(), keys);
+        // Primary and backup are added together, never just one.
+        assert!(
+            keys.is_empty() || keys.len() >= 2,
+            "add a primary and a backup key"
+        );
+    }
+    #[test]
+    fn key_file_parsing_is_strict() {
+        let keys = parse_trusted_keys(&format!("# c\n\nprimary-1 {KEY}\n")).unwrap();
+        assert_eq!(keys.len(), 1);
+        for bad in [
+            format!("primary-1 {KEY} extra"),
+            format!("primary-1 {}", KEY.to_uppercase()),
+            format!("bad/id {KEY}"),
+            "primary-1 00".to_string(),
+            format!("a {KEY}\na {KEY}"),
+            format!("a {KEY}\nb {KEY}"),
+        ] {
+            assert!(parse_trusted_keys(&bad).is_err(), "{bad}");
+        }
+    }
 }

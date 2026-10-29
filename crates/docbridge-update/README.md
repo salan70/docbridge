@@ -60,7 +60,9 @@ These are trusted application interfaces, not CLI or environment overrides.
 Production uses `OfficialClient`, `NativeFileOps`, and compiled maintainer-approved `TrustedKeys`.
 
 **Production key provisioning is pending.**
-`compiled_trusted_keys()` intentionally returns an empty map, so `run` refuses a newer release until a maintainer-approved public key is compiled in.
+`compiled_trusted_keys()` returns the keys in the checked-in `keys/trusted-keys.txt` (`<key-id> <64 lowercase hex public key>` per line), compiled in with `include_str!`.
+The file is empty until the maintainer adds the primary and backup keys with `scripts/release-keygen.sh`, so `run` refuses every newer release until then.
+A malformed file yields no keys (fail closed), and the crate's tests reject it.
 The parent may call `run_with` using its own compiled key map.
 Never load trust keys or release URLs from CLI arguments, project settings, or environment variables.
 No production key was invented; deterministic private signing keys exist only in integration-test code.
@@ -194,7 +196,7 @@ Integration tests use temp directories, binary byte fixtures, and test-only Ed25
 All five release target bindings are exercised on the host.
 Windows-specific rename-aside/deferred-cleanup tests are gated by `cfg(windows)` and require execution on Windows before claiming native Windows validation.
 No minimum OS version or cross-platform runtime execution is claimed by host-only tests.
-Production distribution signatures still require CI/delivery integration and maintainer key provisioning.
+The `docbridge-release` crate signs and verifies release asset sets with this verifier, and CI exercises it with a throwaway key; production signatures still require maintainer key provisioning (see `docs/contributing/releasing.md`).
 
 Ed25519 uses maintained `ed25519-dalek` 2.2, and SHA256 uses RustCrypto `sha2`.
 Direct `url` and `tempfile` pins, plus the `Cargo.lock` entries for the transitive `base64ct` 1.6.0 and `zeroize` 1.8.1, keep this independent crate buildable with Rust 1.83 (`--locked`) without changing any other crate's toolchain.
