@@ -118,6 +118,48 @@ jobs:
       - name: Smoke-run the release binary
         shell: bash
         run: scripts/smoke-vnext.sh .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
+      # Stage the binary under its release asset name for the signing dry run.
+      - name: Stage the release asset
+        shell: bash
+        run: |
+          ext=""
+          if [[ "$RUNNER_OS" == Windows ]]; then ext=".exe"; fi
+          mkdir -p .tmp/release-asset
+          cp ".tmp/rust-vnext/${{ matrix.target }}/release/docbridge${ext}" ".tmp/release-asset/docbridge-${{ matrix.target }}${ext}"
+      - name: Upload the release asset
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docbridge-${{ matrix.target }}
+          path: .tmp/release-asset/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Signs the five binaries from rust-vnext with a throwaway key generated in the
+  # job and verifies the complete asset set through the upgrade verifier. No
+  # release is created and no production key is used.
+  release-dry-run:
+    name: release-dry-run
+    needs: rust-vnext
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.83.0
+      - name: Download the release assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: docbridge-*
+          path: .tmp/release-artifacts
+          merge-multiple: true
+      - name: Build the release tool
+        run: cargo build --package docbridge-release --locked --target-dir .tmp/rust-vnext
+      - name: Sign and verify with a throwaway key
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"$/\1/p' crates/docbridge/Cargo.toml | head -n 1)"
+          scripts/release-vnext-dry-run.sh .tmp/rust-vnext/debug/docbridge-release \
+            .tmp/release-artifacts .tmp/release-signed "$version"
 
   test-dist:
     name: test-dist
@@ -379,7 +421,7 @@ jobs:
   ci:
     name: ci
     if: always()
-    needs: [quality, test-dist, rust-vnext]
+    needs: [quality, test-dist, rust-vnext, release-dry-run]
     runs-on: ubuntu-latest
     steps:
       - name: Require all CI workloads
@@ -387,10 +429,12 @@ jobs:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TEST_DIST_RESULT: ${{ needs.test-dist.result }}
           RUST_VNEXT_RESULT: ${{ needs.rust-vnext.result }}
+          RELEASE_DRY_RUN_RESULT: ${{ needs.release-dry-run.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_DIST_RESULT" = success
           test "$RUST_VNEXT_RESULT" = success
+          test "$RELEASE_DRY_RUN_RESULT" = success
 
   # Informational, never required for merge: runs `docbridge related --gate`
   # over the PR's whole change set and maintains one sticky comment so the

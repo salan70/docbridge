@@ -433,7 +433,8 @@ fn official_client_rejects_arbitrary_asset_urls_before_network() {
             .unwrap_err()
             .contains("untrusted"));
     }
-    assert!(compiled_trusted_keys().is_empty());
+    // Production keys come only from the checked-in file; test keys are never trusted.
+    assert!(!compiled_trusted_keys().contains_key("test-only"));
 }
 
 #[test]

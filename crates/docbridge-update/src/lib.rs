@@ -16,8 +16,85 @@ use std::{
 
 /// Populate only from compiled, maintainer-approved keys, never user input.
 pub type TrustedKeys = BTreeMap<String, [u8; 32]>;
+/// Checked-in production public keys (`keys/trusted-keys.txt`), compiled in.
+const TRUSTED_KEYS_FILE: &str = include_str!("../keys/trusted-keys.txt");
+/// The maintainer-approved production keys compiled into this build. Empty until
+/// keys are added to `keys/trusted-keys.txt`; a malformed file also yields no keys,
+/// so verification fails closed.
 pub fn compiled_trusted_keys() -> TrustedKeys {
-    BTreeMap::new()
+    checked_compiled_trusted_keys().unwrap_or_default()
+}
+/// Like [`compiled_trusted_keys`], but reports why the compiled file is rejected
+/// instead of failing closed silently. Release tooling uses this.
+pub fn checked_compiled_trusted_keys() -> Result<TrustedKeys, String> {
+    parse_trusted_keys(TRUSTED_KEYS_FILE)
+        .map_err(|e| format!("keys/trusted-keys.txt is rejected: {e}"))
+}
+/// Seeds of the deterministic test-only Ed25519 keys used by the `docbridge-update`
+/// and `docbridge-release` tests. Their public keys are refused as production keys.
+pub const TEST_FIXTURE_SEEDS: [[u8; 32]; 5] =
+    [[42; 32], [7; 32], [9; 32], [1; 32], TEST_SCRIPT_SEED];
+/// The seed the release-script tests feed through a stubbed `od`.
+const TEST_SCRIPT_SEED: [u8; 32] = [
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
+];
+/// Whether `public` is the public half of a deterministic test fixture key.
+/// Keys from any uniform seed (`[n; 32]`) count as fixtures too, since such
+/// seeds are trivially guessable and commonly appear in tests.
+pub fn is_test_fixture_key(public: &[u8; 32]) -> bool {
+    let uniform = (0..=u8::MAX).map(|byte| [byte; 32]);
+    TEST_FIXTURE_SEEDS
+        .iter()
+        .copied()
+        .chain(uniform)
+        .any(|seed| {
+            &ed25519_dalek::SigningKey::from_bytes(&seed)
+                .verifying_key()
+                .to_bytes()
+                == public
+        })
+}
+/// Parses the compiled key file: blank lines and `#` comments are ignored, every
+/// other line is `<key-id> <64 lowercase hex Ed25519 public key>`. Key IDs and
+/// keys must be unique. Only used for the compiled-in file.
+fn parse_trusted_keys(text: &str) -> Result<TrustedKeys, String> {
+    let mut keys = TrustedKeys::new();
+    for (number, line) in text.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        let [id, public] = fields[..] else {
+            return Err(format!(
+                "line {}: expected `<key-id> <public-key>`",
+                number + 1
+            ));
+        };
+        let valid_id = id.len() <= 64
+            && id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b));
+        let mut key = [0u8; 32];
+        if !valid_id
+            || !valid_hash(public)
+            || hex::decode_to_slice(public, &mut key).is_err()
+            || VerifyingKey::from_bytes(&key).is_err()
+        {
+            return Err(format!("line {}: invalid key id or public key", number + 1));
+        }
+        if is_test_fixture_key(&key) {
+            return Err(format!(
+                "line {}: {id} is a deterministic test fixture key",
+                number + 1
+            ));
+        }
+        if keys.values().any(|k| k == &key) || keys.insert(id.into(), key).is_some() {
+            return Err(format!("line {}: duplicate key id or key", number + 1));
+        }
+    }
+    Ok(keys)
 }
 pub const TARGETS: [&str; 5] = [
     "aarch64-apple-darwin",
@@ -409,4 +486,85 @@ pub(crate) fn valid_hash(value: &str) -> bool {
         && value
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+#[cfg(test)]
+mod trusted_key_file_tests {
+    use super::*;
+    /// A valid public key whose seed was generated once and discarded, so no
+    /// published secret can sign for it.
+    const KEY: &str = "d3e141aeb1ea31d0c1847a237a9d30efb656ee91079435b8a098b3f1a35b52a1";
+
+    #[test]
+    fn compiled_key_file_is_well_formed() {
+        let keys = parse_trusted_keys(TRUSTED_KEYS_FILE).expect("keys/trusted-keys.txt");
+        assert_eq!(compiled_trusted_keys(), keys);
+        // Primary and backup are added together, never just one.
+        assert!(
+            keys.is_empty() || keys.len() >= 2,
+            "add a primary and a backup key"
+        );
+    }
+    fn fixture_public_keys() -> Vec<[u8; 32]> {
+        TEST_FIXTURE_SEEDS
+            .iter()
+            .map(|seed| {
+                ed25519_dalek::SigningKey::from_bytes(seed)
+                    .verifying_key()
+                    .to_bytes()
+            })
+            .collect()
+    }
+    fn hex_key(text: &str) -> [u8; 32] {
+        let mut key = [0u8; 32];
+        hex::decode_to_slice(text, &mut key).unwrap();
+        key
+    }
+    #[test]
+    fn compiled_keys_exclude_every_test_fixture_key_value() {
+        let fixtures = fixture_public_keys();
+        let checked = parse_trusted_keys(TRUSTED_KEYS_FILE).expect("keys/trusted-keys.txt");
+        for (id, key) in checked.iter().chain(compiled_trusted_keys().iter()) {
+            assert!(
+                !fixtures.contains(key),
+                "{id} is a deterministic test fixture key"
+            );
+        }
+    }
+    #[test]
+    fn key_file_rejects_test_fixture_keys_under_any_id() {
+        for fixture in fixture_public_keys() {
+            assert!(is_test_fixture_key(&fixture));
+            for id in ["primary-1", "docbridge-2026-backup", "x"] {
+                let text = format!("{id} {}\n", hex::encode(fixture));
+                assert!(parse_trusted_keys(&text).is_err(), "{text}");
+            }
+        }
+        assert!(!is_test_fixture_key(&hex_key(KEY)));
+    }
+    #[test]
+    fn keys_from_uniform_seeds_are_refused() {
+        for byte in 0..=u8::MAX {
+            let seed = [byte; 32];
+            let public = ed25519_dalek::SigningKey::from_bytes(&seed)
+                .verifying_key()
+                .to_bytes();
+            assert!(is_test_fixture_key(&public), "seed [{byte}; 32]");
+        }
+    }
+    #[test]
+    fn key_file_parsing_is_strict() {
+        let keys = parse_trusted_keys(&format!("# c\n\nprimary-1 {KEY}\n")).unwrap();
+        assert_eq!(keys.len(), 1);
+        for bad in [
+            format!("primary-1 {KEY} extra"),
+            format!("primary-1 {}", KEY.to_uppercase()),
+            format!("bad/id {KEY}"),
+            "primary-1 00".to_string(),
+            format!("a {KEY}\na {KEY}"),
+            format!("a {KEY}\nb {KEY}"),
+        ] {
+            assert!(parse_trusted_keys(&bad).is_err(), "{bad}");
+        }
+    }
 }

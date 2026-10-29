@@ -75,6 +75,12 @@ jobs:
           else
             version="$(node -p "require('./package.json').version")"
           fi
+          # v0.17.0 and later belong to the vNext release (release-vnext.yml); this
+          # legacy npm publisher must never take one of those tags or releases.
+          if [ "$(printf '%s\n' 0.17.0 "$version" | sort -V | head -n 1)" = 0.17.0 ]; then
+            echo "::error::v${version} is reserved for the vNext release; the legacy npm publisher stops at 0.16.x"
+            exit 1
+          fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
