@@ -30,10 +30,10 @@ cannot be pushed to directly. Follow these rules for all git work.
 3. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
    `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
    result. Commit in focused, logical commits. The `pre-commit` hook runs
-   `just verify` over the working tree, not only the staged snapshot, then
-   lists linked counterparts that were not staged; act on each as the report
-   says. If `git config core.hooksPath` is unset, run `just install-git-hooks`
-   first.
+   `just verify` over the working tree, not only the staged snapshot. Before
+   committing, review the linked counterparts of each changed file or section
+   with `just links <path> --include-content`. If `git config core.hooksPath`
+   is unset, run `just install-git-hooks` first.
 4. Write the PR body with the `concise-writing` skill, push with
    `git push -u origin <branch>`, and open a PR using the repository template.
    Title, body, and issue linking follow
@@ -55,7 +55,8 @@ cannot be pushed to directly. Follow these rules for all git work.
 ## AI agent autonomy gates
 
 Agents may create branches, commit, push, and open PRs. **Merging a PR requires
-explicit human approval**; merging a releasing PR also publishes the release.
+explicit human approval.** Only a maintainer publishes a release, by
+dispatching Release vNext.
 Never push to `main` directly or try to bypass its protection.
 
 `gh pr merge` asks for approval through `.claude/settings.json` and
@@ -80,22 +81,24 @@ Every PR carries exactly one release label:
 | `release: major` | Breaking change after 1.0                       | `just release-bump major`              |
 
 For a releasing PR, add the user-facing entries under `## [Unreleased]`
-following Keep a Changelog, then run `just release-bump <kind>`. It sets
-`version` in every versioned manifest (`package.json` and
-`editors/vscode/package.json`, which the VSIX packaging contract keeps equal)
-through `scripts/set-release-version.ts`, and rolls `## [Unreleased]` into
-`## [X.Y.Z] - <date>` through `.github/scripts/roll-changelog.mjs`.
+following Keep a Changelog, then run `just release-bump <kind>`
+(`scripts/release-bump.sh`). It rolls `## [Unreleased]` into
+`## [X.Y.Z] - <date>`, sets `version` in every crate manifest
+(`crates/docbridge`, `crates/docbridge-update`, and `crates/docbridge-release`),
+and updates `Cargo.lock`.
 
 The required `release-label` check (`.github/workflows/release-label.yml`,
-`scripts/release-label.ts`) compares the PR head with the base branch tip. It
-fails when the label is missing or duplicated, when the versions are not the
-label's next version, or when the CHANGELOG is not rolled. It reruns when labels
-change; `just check-release-label '["release: patch"]'` runs it locally.
+`scripts/check-release-label.sh`) compares the PR head with the base branch
+tip. It fails when the label is missing or duplicated, when the versions are
+not the label's next version, or when the CHANGELOG is not rolled. It reruns
+when labels change; `just check-release-label "release: patch"` runs it
+locally against `origin/main`.
 
 If `main` gains another release before the PR merges, update the branch,
 restore `main`'s versions and CHANGELOG sections, and run
 `just release-bump <kind>` again.
 
-Merging a releasing PR publishes it. Publishing, recovery, branch protection,
+Merging a releasing PR publishes nothing. A maintainer releases the merged
+version by dispatching Release vNext. Publishing, recovery, branch protection,
 and one-time setup are maintainer concerns documented in
 [Releasing](../../../docs/contributing/releasing.md).

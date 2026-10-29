@@ -20,7 +20,7 @@ body:
     attributes:
       label: Location and audience
       description: Identify the affected page or section and the reader who needs it.
-      placeholder: docs/specs/cli.md#check-command; CLI integrators
+      placeholder: docs/specs/cli.md#commands; CLI integrators
     validations:
       required: true
   - type: textarea
