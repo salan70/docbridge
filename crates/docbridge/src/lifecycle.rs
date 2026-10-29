@@ -994,9 +994,11 @@ mod tests {
                 after: Some(b"new".to_vec()),
             },
         ];
-        // Abort with ENOTDIR and leave the first target unchanged.
+        // Abort (ENOTDIR on Unix; Windows words it differently) and leave the first target unchanged.
         let error = transact(&root, &changes).unwrap_err();
-        assert!(error.contains("Not a directory") || error.contains("not a directory"));
+        if cfg!(unix) {
+            assert!(error.contains("Not a directory") || error.contains("not a directory"));
+        }
         assert_eq!(fs::read(root.join("first")).unwrap(), b"original");
         fs::remove_dir_all(root).unwrap();
     }
