@@ -2,12 +2,18 @@
 
 vNext has no backward compatibility, automatic conversion, or migrate command. An AI agent or human must interpret the old links and review the result. Keep a backup (for example, a Git branch) and review changes before removing old assets. Run every command from the project root.
 
-Legacy forms that vNext rejects, and that this guide removes:
+Legacy forms that vNext rejects with an error:
 
 - `docbridge.config.json` with `$schema`, language-keyed `include.code.<language>.patterns`, or any other unknown key.
-- `@doc` annotations in code comments, and `docbridge.links.json` Manifest entries.
 - `@code path#Symbol` annotations in Markdown. Links address files, so the target must be `path`.
 - The commands `check`, `related`, `context`, `graph`, and `lsp`, and any `--gate` or `--audit` flags.
+
+Legacy assets that vNext silently ignores, and that this guide still removes:
+
+- `@doc` annotations in code comments.
+- `docbridge.links.json` Manifest entries.
+
+Warning: `docbridge validate` cannot detect a relationship that survives only in an ignored asset. It exits 0 even if every `@doc` and Manifest entry is left unconverted, and those relationships are then lost without any diagnostic. Do the inventory (step 1) and conversion (step 4) explicitly, and compare `docbridge links --json` with your inventory before deleting the old assets.
 
 ## Steps
 

@@ -10,8 +10,8 @@ The Rust vNext CLI (`crates/docbridge`) replaces the legacy TypeScript CLI at cu
 docbridge validate [--root <directory>] [--json]
 docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [selectors...]
 docbridge unlinked [--root <directory>] [--json]
-docbridge init [--claude] [--yes]
-docbridge deinit
+docbridge init [--root <directory>] [--dry-run] [--yes] [--force] [--claude]
+docbridge deinit [--dry-run]
 docbridge docs [list | show <name>]
 docbridge upgrade [--check] [--dry-run] [--yes]
 ```
@@ -26,7 +26,7 @@ docbridge upgrade [--check] [--dry-run] [--yes]
 
 ### vNext output model
 
-Query commands (`links`, `unlinked`) print one JSON object with this shape:
+When invoked with `--json`, query commands (`links`, `unlinked`) print one JSON object with this shape; without `--json` they print text:
 
 ```ts
 type Graph = {
