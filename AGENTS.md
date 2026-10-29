@@ -1,7 +1,10 @@
 # AGENTS.md
 
-Shared rules for every coding agent in this repository. Claude Code reads them
-through the `@AGENTS.md` import in `CLAUDE.md`.
+Shared rules for every coding agent in this repository.
+Contributor procedures are owned by [CONTRIBUTING.md](CONTRIBUTING.md):
+[Verification](CONTRIBUTING.md#verification),
+[Git and pull requests](CONTRIBUTING.md#git-and-pull-requests), and
+[Documentation](CONTRIBUTING.md#documentation).
 
 ## Environment
 
@@ -39,3 +42,17 @@ Talk with the user in the user's language. Favor accuracy and concise reasoning
 over reassurance, and state opinions, risks, weak assumptions, and tradeoffs
 plainly. When you report completion, list the skills and the MCP servers or
 tools you used, or `None` for each.
+
+## Writing and review
+
+- Lead with the result, evidence, and next action. Link to the source of truth
+  instead of repeating it; follow the repository's issue and PR templates.
+- Preserve safety boundaries, compatibility, failure behavior, and observed
+  verification results. Never invent facts to fill a template.
+- Review concrete failure modes, regressions, contracts, and security risks;
+  verify behavior-dependent findings and anchor them to the responsible line.
+- Evaluate review suggestions on their merits, reproduce defects before fixing
+  them, and explain either the verified fix or the reason for no change.
+- When review feedback requires a scope, security, or compatibility decision,
+  ask the user. When authorized to handle GitHub feedback, reply to and resolve
+  each thread after addressing it; do not approve unresolved findings.

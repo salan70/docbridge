@@ -16,14 +16,14 @@ cannot be pushed to directly. Follow these rules for all git work.
   `main` history; use `git log --first-parent main` for a PR-level view.
 - The `ci` and `release-label` checks must pass before a PR can merge.
 - Commit messages follow
-  [docs/contributing/commits.md](../../../docs/contributing/commits.md):
+  [CONTRIBUTING.md#git-and-pull-requests](../../../CONTRIBUTING.md#git-and-pull-requests):
   `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated
   changes split into separate commits.
 
 ## Standard change flow
 
 1. Branch from a freshly fetched `main`, named per
-   [pull-requests.md](../../../docs/contributing/pull-requests.md):
+   [CONTRIBUTING.md#git-and-pull-requests](../../../CONTRIBUTING.md#git-and-pull-requests):
    `git fetch origin && git switch --no-track -c <branch> origin/main`. This
    works even while another worktree holds `main`.
 2. Implement test-first. For logic changes, use the `tdd` skill.
@@ -34,14 +34,12 @@ cannot be pushed to directly. Follow these rules for all git work.
    committing, review the linked counterparts of each changed file or section
    with `just links <path> --include-content`. If `git config core.hooksPath`
    is unset, run `just install-git-hooks` first.
-4. Write the PR body with the `concise-writing` skill, push with
+4. Write the PR body using the writing rules in `AGENTS.md`, push with
    `git push -u origin <branch>`, and open a PR using the repository template.
    Title, body, and issue linking follow
-   [pull-requests.md](../../../docs/contributing/pull-requests.md). Add exactly
-   one `release:` label. When the PR lands a plan's final slice, archive the
-   plan in the same PR as
-   [writing.md](../../../docs/contributing/writing.md#implementation-plans)
-   describes.
+   [CONTRIBUTING.md#git-and-pull-requests](../../../CONTRIBUTING.md#git-and-pull-requests).
+   Add exactly one `release:` label. Documentation ownership follows
+   [CONTRIBUTING.md#documentation](../../../CONTRIBUTING.md#documentation).
 5. Wait for CI and the `release-label` check to pass.
 6. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.

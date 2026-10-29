@@ -206,7 +206,7 @@ Integration tests use temp directories, binary byte fixtures, and test-only Ed25
 All five release target bindings are exercised on the host.
 Windows-specific rename-aside/deferred-cleanup tests are gated by `cfg(windows)` and require execution on Windows before claiming native Windows validation.
 No minimum OS version or cross-platform runtime execution is claimed by host-only tests.
-The `docbridge-release` crate signs and verifies release asset sets with this verifier, and CI exercises it with a throwaway key; production signatures still require maintainer key provisioning (see `docs/contributing/releasing.md`).
+The `docbridge-release` crate signs and verifies release asset sets with this verifier, and CI exercises it with a throwaway key; production signatures still require maintainer key provisioning (see [release operations](../../docs/contributing/releasing.md)).
 
 Ed25519 uses maintained `ed25519-dalek` 2.2, and SHA256 uses RustCrypto `sha2`.
 Direct `url` and `tempfile` pins, plus the `Cargo.lock` entries for the transitive `base64ct` 1.6.0 and `zeroize` 1.8.1, keep this independent crate buildable with Rust 1.83 (`--locked`) without changing any other crate's toolchain.

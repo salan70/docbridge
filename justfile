@@ -66,9 +66,10 @@ lint-actions:
     actionlint
     scripts/check-legacy-publisher-retired.sh .github/workflows
 
-# Fail when the Claude and Codex skill trees have drifted apart.
+# Check the canonical agent assets and their contributor references.
 lint-ai-assets:
     scripts/check-ai-assets.sh
+    bash scripts/test-ai-assets.sh
 
 test:
     cargo test --workspace --locked --target-dir {{ target_dir }}

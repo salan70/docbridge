@@ -303,7 +303,7 @@ fn help_and_command_guide_agree() {
         "validate", "links", "unlinked", "init", "deinit", "docs", "upgrade",
     ];
     let guide = fs::read_to_string(crate_dir().join("guides/commands.md")).unwrap();
-    let spec = fs::read_to_string(crate_dir().join("../../docs/specs/cli.md")).unwrap();
+    let spec = fs::read_to_string(crate_dir().join("../../docs/specs/vnext-contracts.md")).unwrap();
     let syntax = section(&spec, "## Commands", "## Output model");
     for command in commands {
         assert!(

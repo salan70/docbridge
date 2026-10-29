@@ -37,7 +37,7 @@ t-wada style Red-Green-Refactor.
 ## DocBridge specifics
 
 - Place tests and fixtures as
-  [docs/contributing/testing.md](../../../docs/contributing/testing.md)
+  [CONTRIBUTING.md#verification](../../../CONTRIBUTING.md#verification)
   describes.
 - Markdown parsing changes use small inline Markdown that makes the
   annotation contract obvious.
