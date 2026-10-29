@@ -6,12 +6,16 @@ name: Release vNext
 #
 # dry-run (default): builds the five targets, signs them with a throwaway key
 #   generated in the job, and verifies the complete asset set. Creates nothing.
-# release: requires main, a version equal to crates/docbridge/Cargo.toml, no
-#   existing tag or release for it, and the DOCBRIDGE_RELEASE_SIGNING_KEY secret
-#   plus the DOCBRIDGE_RELEASE_KEY_ID variable in the `release` environment.
-#   It signs once, verifies against the keys compiled into this commit, uploads
-#   everything to a DRAFT release, re-downloads and verifies the draft's complete
-#   asset set, and only then publishes it. Any failure leaves at most a draft.
+# release: requires main, a retired legacy publisher (no other workflow
+#   publishes releases or npm packages), a version equal to
+#   crates/docbridge/Cargo.toml, no release for it, a `v<version>` tag that is
+#   absent or already at this commit, and in the `release` environment the
+#   DOCBRIDGE_RELEASE_KEY_ID and DOCBRIDGE_RELEASE_KEY_SECRET variables naming the
+#   active key and its per-key secret. It signs once, verifies against the keys
+#   compiled into this commit, uploads everything to a DRAFT release, re-downloads
+#   and verifies the draft's complete asset set, creates the tag at this commit,
+#   and only then publishes it. Any failure leaves at most a draft and a tag at
+#   this commit.
 #
 # See docs/contributing/releasing.md#vnext-release-manual.
 
@@ -63,15 +67,18 @@ jobs:
               echo "::error::crates/docbridge/Cargo.toml has version $crate, not $INPUT_VERSION"
               exit 1
             fi
-            if [ -n "$(git ls-remote --tags origin "refs/tags/v${INPUT_VERSION}")" ]; then
-              echo "::error::tag v${INPUT_VERSION} already exists"
-              exit 1
-            fi
+            scripts/check-legacy-publisher-retired.sh .github/workflows
             version="$INPUT_VERSION"
           else
             version="$crate"
           fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+      # The tag must be absent or already at this commit; a failed lookup fails.
+      - name: Check the release tag
+        if: inputs.mode == 'release'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: scripts/release-vnext-tag.sh check "$VERSION" "$GITHUB_SHA"
 
   build:
     name: build (${{ matrix.platform }})
@@ -188,19 +195,28 @@ jobs:
           merge-multiple: true
       - name: Build the release tool
         run: cargo build --package docbridge-release --release --locked --target-dir .tmp/rust-vnext
-      # Fails closed: a missing secret or key ID stops the release before signing.
+      # Fails closed: a missing key ID, secret name, or secret, or a secret name
+      # that does not belong to the key ID, stops the release before signing. Each
+      # key has its own secret (scripts/release-keygen.sh), so staging a new key
+      # never replaces the active one.
       - name: Sign the asset set
         env:
-          DOCBRIDGE_RELEASE_SIGNING_KEY: ${{ secrets.DOCBRIDGE_RELEASE_SIGNING_KEY }}
+          DOCBRIDGE_RELEASE_SIGNING_KEY: ${{ secrets[vars.DOCBRIDGE_RELEASE_KEY_SECRET] }}
           KEY_ID: ${{ vars.DOCBRIDGE_RELEASE_KEY_ID }}
+          KEY_SECRET: ${{ vars.DOCBRIDGE_RELEASE_KEY_SECRET }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          if [ -z "$DOCBRIDGE_RELEASE_SIGNING_KEY" ]; then
-            echo "::error::DOCBRIDGE_RELEASE_SIGNING_KEY is not set in the release environment"
+          if [ -z "$KEY_ID" ] || [ -z "$KEY_SECRET" ]; then
+            echo "::error::DOCBRIDGE_RELEASE_KEY_ID and DOCBRIDGE_RELEASE_KEY_SECRET must be set in the release environment"
             exit 1
           fi
-          if [ -z "$KEY_ID" ]; then
-            echo "::error::DOCBRIDGE_RELEASE_KEY_ID is not set in the release environment"
+          expected="DOCBRIDGE_RELEASE_SIGNING_KEY_$(printf '%s' "$KEY_ID" | tr 'a-z.-' 'A-Z__')"
+          if [ "$KEY_SECRET" != "$expected" ]; then
+            echo "::error::DOCBRIDGE_RELEASE_KEY_SECRET is ${KEY_SECRET}, not ${expected}; run scripts/release-keygen.sh --activate again"
+            exit 1
+          fi
+          if [ -z "$DOCBRIDGE_RELEASE_SIGNING_KEY" ]; then
+            echo "::error::secret ${KEY_SECRET} is not set in the release environment"
             exit 1
           fi
           # The released CLI must trust a primary and an offline backup key, and
@@ -255,8 +271,9 @@ jobs:
         with:
           name: release-signed
           path: .tmp/release-signed
-      - name: Refuse an existing release or draft for the tag
+      - name: Refuse an existing release or draft, or a tag elsewhere
         run: |
+          scripts/release-vnext-tag.sh check "$VERSION" "$GITHUB_SHA"
           existing="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
             --jq ".[] | select(.tag_name == \"v${VERSION}\") | .id")"
           if [ -n "$existing" ]; then
@@ -296,10 +313,15 @@ jobs:
       # with the compiled trusted keys.
       - name: Verify the complete draft asset set
         run: .tmp/rust-vnext/release/docbridge-release verify --dir .tmp/release-redownload --version "$VERSION" --compiled-keys
-      - name: Publish the verified draft
+      # GitHub publishes a draft on an existing tag and ignores its target commit,
+      # so the tag is created here at this commit, or must already point at it.
+      # Annotated tags and lookup failures fail closed.
+      - name: Publish the verified draft at this commit
         env:
           RELEASE_ID: ${{ steps.draft.outputs.id }}
         run: |
+          scripts/release-vnext-tag.sh ensure "$VERSION" "$GITHUB_SHA"
           gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             -F draft=false -f make_latest=true >/dev/null
+          scripts/release-vnext-tag.sh check "$VERSION" "$GITHUB_SHA"
           echo "Published v${VERSION}"

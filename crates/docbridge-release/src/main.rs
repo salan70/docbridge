@@ -4,9 +4,10 @@ use docbridge_release::{
     parse_public_key, parse_signing_key, public_key_hex, sign_release, validate_key_id,
     verify_release, SignRequest,
 };
-use docbridge_update::{compiled_trusted_keys, TrustedKeys};
+use docbridge_update::{checked_compiled_trusted_keys, TrustedKeys};
 use ed25519_dalek::SigningKey;
 use std::{collections::BTreeMap, path::PathBuf, process::ExitCode};
+use zeroize::Zeroizing;
 
 const USAGE: &str = "\
 usage:
@@ -85,7 +86,7 @@ fn run(args: Vec<String>) -> Result<String, String> {
                 return Err("--compiled-keys given twice".into());
             }
             let keys: TrustedKeys = match (compiled, take("--key-id"), take("--public-key")) {
-                (true, None, None) => compiled_trusted_keys(),
+                (true, None, None) => checked_compiled_trusted_keys()?,
                 (false, Some(id), Some(public)) => {
                     validate_key_id(&id)?;
                     BTreeMap::from([(id, parse_public_key(&public)?)])
@@ -110,7 +111,7 @@ fn run(args: Vec<String>) -> Result<String, String> {
         "trusted-keys" => {
             no_switches(&switches)?;
             let mut ids = String::new();
-            for id in compiled_trusted_keys().keys() {
+            for id in checked_compiled_trusted_keys()?.keys() {
                 ids.push_str(id);
                 ids.push('\n');
             }
@@ -158,8 +159,9 @@ fn signing_key(file: Option<String>, env: Option<String>) -> Result<SigningKey, 
         (Some(path), None) => {
             std::fs::read(&path).map_err(|e| format!("read signing key file {path}: {e}"))?
         }
-        (None, Some(name)) => match std::env::var(&name) {
-            Ok(value) if !value.trim().is_empty() => value.into_bytes(),
+        (None, Some(name)) => match std::env::var(&name).map(Zeroizing::new) {
+            // Moved out, not copied; the emptied wrapper and a blank value are zeroized.
+            Ok(mut value) if !value.trim().is_empty() => std::mem::take(&mut *value).into_bytes(),
             _ => {
                 return Err(format!(
                     "signing key environment variable {name} is unset or empty"

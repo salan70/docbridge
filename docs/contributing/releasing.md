@@ -69,14 +69,32 @@ it.
 
 Maintainer decisions:
 
-- Key custody: the primary private key is the `DOCBRIDGE_RELEASE_SIGNING_KEY`
-  secret of a protected `release` environment that requires reviewer approval.
-  A backup private key is kept offline by the maintainer. The CLI compiles in
-  both public keys.
+- Key custody: each primary private key is its own
+  `DOCBRIDGE_RELEASE_SIGNING_KEY_<ID>` secret of a protected `release`
+  environment that requires reviewer approval. A backup private key is kept
+  offline by the maintainer. The CLI compiles in both public keys.
 - The first vNext version is `0.17.0`.
 - After that release, the npm `docbridge` package is deprecated, never
   unpublished.
 - The maintainer submits the Nixpkgs package from their own account.
+
+### Cutover order
+
+The legacy npm publisher (`release-publish.yml`) also creates `vX.Y.Z` tags and
+GitHub releases and marks them latest, and `docbridge upgrade` reads the latest
+release. Two guards keep the two publishers apart, so do the cutover in this
+order:
+
+1. Legacy releases stay below `0.17.0`. `release-publish.yml` refuses any
+   version from `0.17.0` up, so it can never take the first vNext tag.
+2. Retire the legacy publisher (#215) so that no workflow other than
+   `release-vnext.yml` runs `npm publish` or creates or edits GitHub releases.
+   Release mode of **Release vNext** runs
+   `scripts/check-legacy-publisher-retired.sh .github/workflows` first and
+   refuses to start while any other workflow still publishes.
+3. Provision the keys and dispatch the first vNext release (`0.17.0`) as
+   described below.
+4. Deprecate the npm package.
 
 **Pending: key provisioning.** The maintainer has not generated the keys yet.
 `crates/docbridge-update/keys/trusted-keys.txt` is empty, so
@@ -125,9 +143,12 @@ creates no tag or release and uses no secret.
 
 - A GitHub environment named `release`, restricted to `main`, with required
   reviewers.
-- The secret `DOCBRIDGE_RELEASE_SIGNING_KEY` in that environment: the primary
-  private seed as 64 hex characters.
-- The environment variable `DOCBRIDGE_RELEASE_KEY_ID`: the primary key ID.
+- One secret per primary key in that environment, named
+  `DOCBRIDGE_RELEASE_SIGNING_KEY_<ID>` (the key ID upper-cased, with `.` and
+  `-` as `_`): the private seed as 64 hex characters.
+- The environment variables `DOCBRIDGE_RELEASE_KEY_ID` (the active key ID) and
+  `DOCBRIDGE_RELEASE_KEY_SECRET` (the name of its secret). The `sign` job
+  refuses a secret name that does not belong to the key ID.
 - `crates/docbridge-update/keys/trusted-keys.txt` in the released commit, with
   the primary and backup public keys. The `sign` job refuses fewer than two
   compiled keys or a key ID that is not among them.
@@ -141,18 +162,29 @@ admin. Pending: not run yet.
 scripts/release-keygen.sh --role primary --key-id docbridge-2026-primary
 scripts/release-keygen.sh --role backup --key-id docbridge-2026-backup \
   --backup-out /path/to/offline-media/docbridge-2026-backup.key
+# After the pull request with trusted-keys.txt is merged:
+scripts/release-keygen.sh --activate --key-id docbridge-2026-primary
 ```
 
-- `primary` generates a seed in memory and pipes it to
-  `gh secret set DOCBRIDGE_RELEASE_SIGNING_KEY --env release`. It also sets
-  `DOCBRIDGE_RELEASE_KEY_ID`. It asks you to type the key ID before replacing
-  the secret.
-- `backup` writes the seed to a new file with mode 0600. Move that file to
-  offline storage and delete every other copy. It is never uploaded.
-- The private key is never printed or passed as an argument. Each run appends
-  only `<key-id> <public-key>` to `trusted-keys.txt`.
+- `--role primary` stages a key. It refuses an existing secret of that name or
+  a failed secret listing. It appends `<key-id> <public-key>` to
+  `trusted-keys.txt` first. Then it pipes the seed from memory to
+  `gh secret set DOCBRIDGE_RELEASE_SIGNING_KEY_<ID> --env release`. It never
+  changes the active key ID or any other secret. If the upload fails, the seed
+  is discarded; remove the new line from `trusted-keys.txt` and run again.
+- `--role backup` writes the seed to a new file with mode 0600, then appends
+  the public entry. Move that file to offline storage and delete every other
+  copy. It is never uploaded.
+- `--activate` checks that the key ID is in `trusted-keys.txt` and that its
+  secret exists. Then it sets `DOCBRIDGE_RELEASE_KEY_SECRET` and
+  `DOCBRIDGE_RELEASE_KEY_ID`. It asks you to type the key ID first. It never
+  modifies or deletes a secret. If it fails between the two variables, the
+  `sign` job refuses the mismatched pair until you run it again.
+- The private key is never printed, traced (the script turns off `xtrace`
+  even under `bash -x`), or passed as an argument.
 - Commit `trusted-keys.txt` in a reviewed pull request. The CLI trusts the keys
-  only from the first release built with it.
+  only from the first release built with it. The compiled key file is rejected
+  if it contains a public key of a deterministic test fixture.
 
 ### Releasing
 
@@ -161,16 +193,24 @@ scripts/release-keygen.sh --role backup --key-id docbridge-2026-backup \
    already be merged.
 2. Dispatch **Release vNext** from `main` with mode `release` and that version,
    then approve the `release` environment deployment.
-3. `prepare` refuses a version that differs from the crate, a tag that exists,
-   or a ref other than `main`.
+3. `prepare` refuses a ref other than `main`, a version that differs from the
+   crate, any other workflow that still publishes (see
+   [Cutover order](#cutover-order)), and a `vX.Y.Z` tag that exists at another
+   commit. A failed tag lookup is an error, not "absent".
 4. `build` builds and smoke-tests the five targets (Linux as static musl).
-5. `sign` runs in the `release` environment. It fails if the secret or the
-   key ID is missing, or if the compiled keys do not include both keys. It
-   signs once and verifies against the compiled keys.
-6. `publish` refuses an existing release or draft for the tag, then creates a
-   **draft** release with every asset. It re-downloads all assets of the draft
-   and verifies the complete set against the compiled keys. Only then does it
-   publish the draft and mark it latest.
+5. `sign` runs in the `release` environment. It fails if the key ID, the
+   secret name, or the secret is missing, if the secret name does not belong
+   to the key ID, or if the compiled keys do not include both keys. It signs
+   once and verifies against the compiled keys.
+6. `publish` refuses an existing release or draft for the tag, and a tag at
+   another commit. It creates a **draft** release with every asset,
+   re-downloads all assets of the draft, and verifies the complete set against
+   the compiled keys. Then it creates the `vX.Y.Z` tag at the dispatched
+   commit, or confirms that an existing tag points exactly at it. GitHub
+   publishes a draft on an existing tag and ignores the draft's target, so a
+   tag that appeared meanwhile at another commit, an annotated tag, or a failed
+   lookup stops the run. Only then does it publish the draft, mark it latest,
+   and check the tag again.
 7. After the first vNext release, deprecate the npm package. Run this once,
    from an npm account that owns `docbridge`. Never run `npm unpublish`.
 
@@ -186,9 +226,10 @@ upgrade client ignores drafts. There is never a published incomplete set.
 - Failure in `prepare`, `build`, or `sign`: nothing was created. Fix the cause
   and dispatch again.
 - Failure in `publish` before the final step: open the draft, then delete it
-  with `gh release delete vX.Y.Z --yes`. A draft does not create the tag, so no
-  tag remains. Dispatch again. Do not repair a draft by hand; the next run
-  refuses any existing draft for the tag.
+  with `gh release delete vX.Y.Z --yes`. Dispatch again from the same commit.
+  A tag that the run already created points at that commit, and the next run
+  accepts it. To release a different commit, delete that tag first. Do not
+  repair a draft by hand; the next run refuses any existing draft for the tag.
 - Failure of the final publish call itself: check whether the release is
   published. If it is, run
   `docbridge-release verify --compiled-keys` on its downloaded assets. If it is
@@ -202,15 +243,23 @@ upgrade client ignores drafts. There is never a published incomplete set.
 The CLI accepts any key in `compiled_trusted_keys()`, selected by the
 manifest's `key_id`. It always ships a primary and a backup key.
 
-- Planned rotation: add a new key with `scripts/release-keygen.sh` and release
-  once while still signing with the current primary key. After clients update,
-  make the new key the primary in the `release` environment. Remove the
-  retired key in a later release.
+- Planned rotation:
+  1. Stage the new key with `scripts/release-keygen.sh --role primary`. The
+     active key, key ID, and secret are unchanged, and the previous seed stays
+     in its own secret.
+  2. Merge `trusted-keys.txt` and publish a transition release, still signed
+     with the current primary key.
+  3. After clients update, run `scripts/release-keygen.sh --activate` with the
+     new key ID. To roll back, activate the previous ID again.
+  4. Remove the retired key from `trusted-keys.txt` in a later release, then
+     delete its secret with `gh secret delete`.
 - Lost or compromised primary key: remove it from `trusted-keys.txt` right
-  away. Load the offline backup seed into `DOCBRIDGE_RELEASE_SIGNING_KEY`, set
-  `DOCBRIDGE_RELEASE_KEY_ID` to the backup ID, and release. Generate a new
-  backup key in the same pull request. Clients older than that release still
-  trust the removed key until they update.
+  away and delete its secret. Store the offline backup seed as the secret
+  `DOCBRIDGE_RELEASE_SIGNING_KEY_<BACKUP_ID>` with
+  `gh secret set ... --env release < backup.key`, run
+  `scripts/release-keygen.sh --activate` with the backup ID, and release.
+  Generate a new backup key in the same pull request. Clients older than that
+  release still trust the removed key until they update.
 
 ## Nixpkgs packaging (pending)
 

@@ -396,3 +396,37 @@ fn cli_lists_only_compiled_key_ids() {
     assert_eq!(ids, compiled.keys().map(String::as_str).collect::<Vec<_>>());
     assert!(!ids.contains(&KEY_ID));
 }
+
+/// Every deterministic seed used by the release and update tests is a registered
+/// fixture, so `docbridge_update` refuses its public key as a production key.
+#[test]
+fn every_test_seed_is_a_registered_fixture() {
+    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+    // Built at runtime so this test's own source does not match.
+    let needle = ["from_bytes(&", "["].concat();
+    let mut seeds = Vec::new();
+    for dir in ["docbridge-release/tests", "docbridge-update/tests"] {
+        for entry in fs::read_dir(crates.join(dir)).unwrap() {
+            let text = fs::read_to_string(entry.unwrap().path()).unwrap();
+            for part in text.split(needle.as_str()).skip(1) {
+                let (byte, rest) = part.split_once(';').unwrap();
+                assert!(rest.trim_start().starts_with("32]"), "{part}");
+                seeds.push([byte.trim().parse::<u8>().unwrap(); 32]);
+            }
+        }
+    }
+    let seed_bytes = hex::decode(SEED_HEX).unwrap();
+    seeds.push(seed_bytes.try_into().unwrap());
+    assert!(seeds.len() >= 4);
+    for seed in seeds {
+        assert!(
+            docbridge_update::TEST_FIXTURE_SEEDS.contains(&seed),
+            "{seed:?}"
+        );
+        let public = SigningKey::from_bytes(&seed).verifying_key().to_bytes();
+        assert!(docbridge_update::is_test_fixture_key(&public));
+        assert!(!docbridge_update::compiled_trusted_keys()
+            .values()
+            .any(|k| k == &public));
+    }
+}

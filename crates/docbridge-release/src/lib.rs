@@ -19,6 +19,7 @@ use std::{
     io::Read,
     path::Path,
 };
+use zeroize::Zeroizing;
 
 pub const MANIFEST: &str = "docbridge-manifest.json";
 pub const SIGNATURE: &str = "docbridge-manifest.sig";
@@ -65,22 +66,18 @@ pub fn validate_key_id(key_id: &str) -> Result<(), String> {
     }
 }
 /// Parses a private Ed25519 seed: exactly 64 hex characters, surrounding whitespace
-/// ignored. The input buffer is zeroed before returning.
-pub fn parse_signing_key(mut text: Vec<u8>) -> Result<SigningKey, String> {
-    let result = (|| {
-        let trimmed = std::str::from_utf8(&text)
-            .map_err(|_| "signing key is not UTF-8 hex".to_string())?
-            .trim();
-        let mut seed = [0u8; 32];
-        if trimmed.len() != 64 || hex::decode_to_slice(trimmed, &mut seed).is_err() {
-            return Err("signing key must be 64 hex characters (a 32-byte Ed25519 seed)".into());
-        }
-        let key = SigningKey::from_bytes(&seed);
-        seed.fill(0);
-        Ok(key)
-    })();
-    text.fill(0);
-    result
+/// ignored. The input buffer and the decoded seed are zeroized on every return
+/// path, including malformed input.
+pub fn parse_signing_key(text: Vec<u8>) -> Result<SigningKey, String> {
+    let text = Zeroizing::new(text);
+    let trimmed = std::str::from_utf8(&text)
+        .map_err(|_| "signing key is not UTF-8 hex".to_string())?
+        .trim();
+    let mut seed = Zeroizing::new([0u8; 32]);
+    if trimmed.len() != 64 || hex::decode_to_slice(trimmed, &mut *seed).is_err() {
+        return Err("signing key must be 64 hex characters (a 32-byte Ed25519 seed)".into());
+    }
+    Ok(SigningKey::from_bytes(&seed))
 }
 pub fn parse_public_key(text: &str) -> Result<[u8; 32], String> {
     let mut key = [0u8; 32];
