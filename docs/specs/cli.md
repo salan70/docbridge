@@ -1,5 +1,62 @@
 # CLI
 
+## vNext CLI
+
+The Rust vNext CLI (`crates/docbridge`) replaces the legacy TypeScript CLI at cutover (#215). Its public contracts are fixed in [vNext public contracts](vnext-contracts.md); this section describes the command surface and the output model.
+
+### vNext commands
+
+```sh
+docbridge validate [--root <directory>] [--json]
+docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [selectors...]
+docbridge unlinked [--root <directory>] [--json]
+docbridge init [--claude] [--yes]
+docbridge deinit
+docbridge docs [list | show <name>]
+docbridge upgrade [--check] [--dry-run] [--yes]
+```
+
+- `validate` checks configuration and Markdown link annotations. `--json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
+- `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
+- `unlinked` lists code files and Markdown regions that no annotation covers.
+- `init`, `deinit`, `docs`, and `upgrade` manage project assets, embedded guides, and verified updates. Exit codes are listed in the contracts document.
+- Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward.
+- Commands are registered in one place, `crates/docbridge/src/cli.rs` (the `Command` enum and the `HELP` text). `lifecycle` (`init`, `deinit`) and `upgrade` are dispatched to their own modules. A new command must be added to the enum, the parser, `HELP`, and the embedded guides.
+- The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, and `lsp` commands do not exist in vNext. The migration guide (`docbridge docs show migration`) maps them to the new commands.
+
+### vNext output model
+
+Query commands (`links`, `unlinked`) print one JSON object with this shape:
+
+```ts
+type Graph = {
+  nodes: Node[];
+  edges: { source: string; target: string }[];
+  diagnostics: { code: string; path: string; line?: number; message: string }[];
+  complete: boolean;
+  contents?: { id: string; path: string; start_line: number; end_line: number; text: string }[];
+};
+type Node = {
+  id: string; // root-relative path, or path#parent/child for a section
+  kind: "code" | "section";
+  path: string;
+  title?: string;
+  level?: number;
+  parents: string[];
+  line: number;
+  end_line: number;
+  content?: { block: string; start_line: number; end_line: number };
+  children?: Node[];
+  regions?: { start_line: number; end_line: number }[]; // unlinked Markdown regions
+};
+```
+
+IDs and ordering are deterministic and root-relative. `complete` is false when any diagnostic exists or when a managed file could not be read, so a clean-looking result is never reported for an incomplete scan. Diagnostic codes are listed in [Diagnostics](diagnostics.md#vnext-diagnostics).
+
+## Legacy CLI (removed at cutover, #215)
+
+The sections below describe the still-shipping legacy TypeScript CLI. Source annotations in `src/` link to them until the cutover removes both.
+
 DocBridge provides the `check`, `related`, `context`, `graph`, `docs`, `init`,
 `init-with-agent`, `upgrade`, and `lsp` commands.
 

@@ -25,6 +25,13 @@ Internal module layout, algorithms, and crate selection remain implementation de
 | links with both usable results and inconsistencies                                                           |         2 |
 | Invalid CLI arguments or unknown docs guide                                                                  |         3 |
 
+Per-command notes for the commands that do not query the graph:
+
+| Command   | 0                                                                                             | 1                                                                                                                                            | 3                                     |
+| --------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `upgrade` | Updated, update available (`--check`/`--dry-run`), already current, or declined interactively | Verification, provenance, network, lock, or recovery failure; confirmation required without a terminal and without `--yes` (nothing written) | Unknown argument or other usage error |
+| `docs`    | Overview, `list`, `show <name>`, `--help`                                                     | Not used                                                                                                                                     | Unknown guide or invalid usage        |
+
 - Exception: preserve the confirmed `validate` contract strictly; its argument errors also return 1. Exit code 3 applies to usage errors in the other commands.
 - Plain nonexistent file selectors are errors; a valid glob matching nothing succeeds with an empty graph.
 - A nonexistent section, invalid selector among several selectors, or unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
@@ -64,6 +71,18 @@ Internal module layout, algorithms, and crate selection remain implementation de
 - Prepare Linux x64/ARM64 as static musl builds for portability, macOS x64/ARM64, and Windows x64. Document actual supported OS/toolchain requirements rather than claiming untested minimum versions.
 - Keep production release invocation manual during cutover. Preparatory internal PRs use the repository's non-releasing path; the final user-facing cutover must satisfy versioning and release-label checks. No production publishing, npm/Marketplace removal, or Nixpkgs submission is performed merely to close an issue.
 - Nixpkgs packaging is built from Rust source. Prepare and verify the package and submission material; record any external approval or acceptance that remains outstanding instead of closing it as completed.
+
+## Skill and guide split
+
+- The distributable Skill stays thin: it states when to use DocBridge and points to `docbridge docs`.
+- The embedded guides are the source of detail (commands, migration, deinit). Do not duplicate guide content in the Skill.
+
+## Open items
+
+- Production signing key custody, rotation/revocation, and the trusted public key.
+- The first vNext release version.
+- Deprecation of the legacy npm package.
+- Nixpkgs submission and its external acceptance.
 
 ## Merge intent
 
