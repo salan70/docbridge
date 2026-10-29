@@ -128,6 +128,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "docbridge-release"
+version = "0.1.0"
+dependencies = [
+ "docbridge-update",
+ "ed25519-dalek",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "docbridge-update"
 version = "0.1.0"
 dependencies = [
