@@ -76,7 +76,6 @@
         default = pkgs.mkShellNoCC {
           packages = [
             pkgs.actionlint
-            pkgs.deadnix
             pkgs.just
             pkgs.nixfmt
             # Formats Markdown, JSON, and YAML.
@@ -84,8 +83,6 @@
             pkgs.rumdl
             (pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
             pkgs.shellcheck
-            pkgs.shfmt
-            pkgs.statix
           ];
         };
       });

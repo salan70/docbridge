@@ -1,7 +1,5 @@
 use std::{path::Path, process::Command};
-mod gates;
 mod release;
-mod smoke;
 
 struct Reply {
     code: i32,
@@ -31,22 +29,12 @@ fn execute(
     root: &Path,
     runner: &mut impl Runner,
 ) -> Result<String, (i32, String)> {
-    let usage = || {
-        (2, "usage: xtask agent-gate [ROOT] | publisher-gate DIR | smoke PATH | release X.Y.Z YYYY-MM-DD".into())
-    };
-    let result = match args.first().map(String::as_str) {
-        Some("agent-gate") if args.len() <= 2 => gates::agent(
-            &args
-                .get(1)
-                .map(|s| root.join(s))
-                .unwrap_or_else(|| root.into()),
-        ),
-        Some("publisher-gate") if args.len() == 2 => gates::publisher(&root.join(&args[1])),
-        Some("smoke") if args.len() == 2 => smoke::check(&root.join(&args[1]), runner),
-        Some("release") if args.len() == 3 => release::prepare(root, &args[1], &args[2], runner),
-        _ => return Err(usage()),
-    };
-    result.map_err(|e| (1, e))
+    match args.first().map(String::as_str) {
+        Some("release") if args.len() == 3 => {
+            release::prepare(root, &args[1], &args[2], runner).map_err(|e| (1, e))
+        }
+        _ => Err((2, "usage: xtask release X.Y.Z YYYY-MM-DD".into())),
+    }
 }
 fn main() {
     let args = std::env::args().skip(1).collect::<Vec<_>>();

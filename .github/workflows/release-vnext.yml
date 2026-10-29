@@ -3,14 +3,14 @@ name: Release vNext
 # Manual release of the DocBridge CLI. It never runs on its own: a maintainer
 # dispatches it. It is the only workflow that publishes releases.
 #
-# It requires main, no other workflow that publishes releases or npm packages,
-# a version equal to the docbridge package version (`cargo metadata`, inherited
-# from the root Cargo.toml `[workspace.package]`), no release or draft for it,
-# and a `v<version>` tag that is absent or already at this commit. It builds the
-# five targets, writes SHA256SUMS, attests build provenance for the executables,
-# uploads everything to a DRAFT release, re-downloads and checks the draft's
-# assets against SHA256SUMS, creates the tag at this commit, and only then
-# publishes it. Any failure leaves at most a draft and a tag at this commit.
+# It requires main, a version equal to the docbridge package version
+# (`cargo metadata`, inherited from the root Cargo.toml `[workspace.package]`),
+# no release or draft for it, and a `v<version>` tag that is absent or already
+# at this commit. It builds the five targets (native.yml), writes SHA256SUMS,
+# attests build provenance for the executables, uploads everything to a DRAFT
+# release, re-downloads and checks the draft's assets against SHA256SUMS,
+# creates the tag at this commit, and only then publishes it. Any failure
+# leaves at most a draft and a tag at this commit.
 #
 # See docs/contributing/releasing.md#releasing.
 
@@ -63,78 +63,16 @@ jobs:
             echo "::error::the docbridge package has version $crate, not $INPUT_VERSION"
             exit 1
           fi
-          cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows
           echo "version=${INPUT_VERSION}" >> "$GITHUB_OUTPUT"
 
   build:
-    name: build (${{ matrix.platform }})
+    name: build
     needs: prepare
-    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - platform: linux-x64
-            os: ubuntu-24.04
-            target: x86_64-unknown-linux-musl
-          - platform: linux-arm64
-            os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-musl
-          - platform: macos-arm64
-            os: macos-15
-            target: aarch64-apple-darwin
-          - platform: macos-x64
-            os: macos-15-intel
-            target: x86_64-apple-darwin
-          - platform: windows-x64
-            os: windows-2025
-            target: x86_64-pc-windows-msvc
-    steps:
-      - name: Enable Windows symlink checkout
-        if: runner.os == 'Windows'
-        run: git config --global core.symlinks true
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Require the canonical skill symlink
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          if [[ ! -L .claude/skills ]]; then
-            echo "::error::Windows checkout requires symlink creation privileges for .claude/skills; enable Developer Mode or grant Create symbolic links"
-            exit 1
-          fi
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.83.0
-          targets: ${{ matrix.target }}
-      - name: Build release binary
-        run: cargo build --package docbridge --release --locked --target ${{ matrix.target }} --target-dir .tmp/rust-vnext
-      - name: Check static linkage
-        if: runner.os == 'Linux'
-        run: |
-          bin=".tmp/rust-vnext/${{ matrix.target }}/release/docbridge"
-          file "$bin"
-          file "$bin" | grep -Eq 'static(-pie)? linked|statically linked'
-          ! ldd "$bin" 2>/dev/null | grep -q '=>'
-      - name: Smoke-run the release binary
-        shell: bash
-        run: cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- smoke .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
-      - name: Stage the release asset
-        shell: bash
-        run: |
-          ext=""
-          if [[ "$RUNNER_OS" == Windows ]]; then ext=".exe"; fi
-          mkdir -p .tmp/release-asset
-          cp ".tmp/rust-vnext/${{ matrix.target }}/release/docbridge${ext}" ".tmp/release-asset/docbridge-${{ matrix.target }}${ext}"
-      - name: Upload the release asset
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: docbridge-${{ matrix.target }}
-          path: .tmp/release-asset/
-          if-no-files-found: error
-          retention-days: 7
+    uses: ./.github/workflows/native.yml
+    with:
+      upload: true
 
   publish:
     name: publish (draft, verify, un-draft)

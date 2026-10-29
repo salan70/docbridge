@@ -1,0 +1,95 @@
+name: Native
+
+# The CLI on the five release targets, shared by CI and Release vNext. Each host
+# builds the release binary natively, checks that the Linux binaries are
+# statically linked (musl), and smoke-runs the binary, which needs no language
+# runtime. `check` adds clippy and the workspace tests; `upload` stages the
+# binary as the artifact `docbridge-<target>`.
+
+on:
+  workflow_call:
+    inputs:
+      check:
+        description: Run clippy and the workspace tests before the release build
+        type: boolean
+        default: false
+      upload:
+        description: Upload the release binary as the artifact docbridge-<target>
+        type: boolean
+        default: false
+
+jobs:
+  native:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            exe: ""
+          - platform: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            exe: ""
+          - platform: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+            exe: ""
+          - platform: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+            exe: ""
+          - platform: windows-x64
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+            exe: .exe
+    env:
+      BIN: .tmp/rust-vnext/${{ matrix.target }}/release/docbridge${{ matrix.exe }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.83.0
+          components: clippy
+          targets: ${{ matrix.target }}
+      - name: Lint
+        if: inputs.check
+        run: cargo clippy --workspace --locked --target-dir .tmp/rust-vnext --all-targets -- -D warnings
+      # CI's quality job already runs the workspace tests on Linux x64.
+      - name: Test
+        if: inputs.check && matrix.platform != 'linux-x64'
+        run: cargo test --workspace --locked --target-dir .tmp/rust-vnext
+      - name: Build release binary
+        run: cargo build --package docbridge --release --locked --target ${{ matrix.target }} --target-dir .tmp/rust-vnext
+      - name: Check static linkage
+        if: runner.os == 'Linux'
+        run: |
+          file "$BIN"
+          file "$BIN" | grep -Eq 'static(-pie)? linked|statically linked'
+          ! ldd "$BIN" 2>/dev/null | grep -q '=>'
+      - name: Smoke-run the release binary
+        shell: bash
+        run: |
+          "$BIN" --help >/dev/null
+          "$BIN" docs list
+          "$BIN" validate --root .
+      - name: Stage the release asset
+        if: inputs.upload
+        shell: bash
+        run: |
+          mkdir -p .tmp/release-asset
+          cp "$BIN" ".tmp/release-asset/docbridge-${{ matrix.target }}${{ matrix.exe }}"
+      - name: Upload the release asset
+        if: inputs.upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docbridge-${{ matrix.target }}
+          path: .tmp/release-asset/
+          if-no-files-found: error
+          retention-days: 7

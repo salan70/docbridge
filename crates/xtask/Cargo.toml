@@ -7,7 +7,6 @@ publish.workspace = true
 description = "Repository-only development and maintenance tasks"
 
 [dependencies]
-serde_json = "1.0"
 tempfile = "=3.15.0"
 
 [dev-dependencies]
