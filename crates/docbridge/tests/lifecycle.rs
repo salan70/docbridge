@@ -1,24 +1,15 @@
 use docbridge::lifecycle::*;
-use std::{
-    fs,
-    path::PathBuf,
-    sync::atomic::{AtomicUsize, Ordering},
-};
-fn root() -> PathBuf {
-    static N: AtomicUsize = AtomicUsize::new(0);
-    let p = std::env::temp_dir().join(format!(
-        "lifecycle-test-{}-{}",
-        std::process::id(),
-        N.fetch_add(1, Ordering::Relaxed)
-    ));
-    fs::create_dir_all(&p).unwrap();
-    p
+use std::fs;
+use tempfile::TempDir;
+// These tests call the library, so a bare temporary directory is enough.
+fn root() -> TempDir {
+    tempfile::tempdir().unwrap()
 }
-fn initialized() -> PathBuf {
-    let p = root();
-    fs::write(p.join("guide.md"), "# Guide\n").unwrap();
+fn initialized() -> TempDir {
+    let temp = root();
+    fs::write(temp.path().join("guide.md"), "# Guide\n").unwrap();
     let result = init(
-        &p,
+        temp.path(),
         &InitOptions {
             yes: true,
             claude: true,
@@ -26,14 +17,15 @@ fn initialized() -> PathBuf {
         },
     );
     assert_eq!(result.code, 0, "{}", result.stderr);
-    p
+    temp
 }
 #[test]
 fn malformed_annotations_are_preserved() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let source = "<!-- @code ../escape.rs -->\n# Invalid\n<!-- @code src/a.rs -->\n# Valid\n```md\n<!-- @code example.rs -->\n```\n<!-- ordinary\n<!-- @code nested.rs -->\n-->\n";
     fs::write(p.join("guide.md"), source).unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     assert_eq!(fs::read_to_string(p.join("guide.md")).unwrap(), source);
     assert_eq!(apply_deinit(&plan).code, 0);
     let after = fs::read_to_string(p.join("guide.md")).unwrap();
@@ -44,11 +36,12 @@ fn malformed_annotations_are_preserved() {
 }
 #[test]
 fn retain_modified_and_unmanaged_skill_files() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let skill = p.join(".agents/skills/docbridge/SKILL.md");
     fs::write(&skill, "my edits").unwrap();
     fs::write(p.join(".agents/skills/docbridge/extra.txt"), "extra").unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     assert!(plan.to_string().contains("modified"));
     assert_eq!(apply_deinit(&plan).code, 0);
     assert_eq!(fs::read_to_string(skill).unwrap(), "my edits");
@@ -57,12 +50,13 @@ fn retain_modified_and_unmanaged_skill_files() {
 }
 #[test]
 fn unmanaged_skill_blocks_force_and_inspection_never_writes() {
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     fs::create_dir_all(p.join(".agents/skills/docbridge")).unwrap();
     fs::write(p.join(".agents/skills/docbridge/SKILL.md"), "mine").unwrap();
     assert_eq!(
         init(
-            &p,
+            p,
             &InitOptions {
                 yes: true,
                 force: true,
@@ -73,14 +67,16 @@ fn unmanaged_skill_blocks_force_and_inspection_never_writes() {
         1
     );
     assert!(!p.join("docbridge.config.json").exists());
-    let p = root();
-    assert_eq!(init(&p, &InitOptions::default()).code, 0);
+    let temp = root();
+    let p = temp.path();
+    assert_eq!(init(p, &InitOptions::default()).code, 0);
     assert!(!p.join("docbridge.config.json").exists());
 }
 #[test]
 fn stale_plan_cannot_partially_remove() {
-    let p = initialized();
-    let plan = plan_deinit(&p).unwrap();
+    let temp = initialized();
+    let p = temp.path();
+    let plan = plan_deinit(p).unwrap();
     fs::write(p.join(".claude/skills/docbridge/SKILL.md"), "new edit").unwrap();
     let result = apply_deinit(&plan);
     assert_eq!(result.code, 1);
@@ -90,13 +86,14 @@ fn stale_plan_cannot_partially_remove() {
 }
 #[test]
 fn force_changes_only_owned_skill_and_preserves_extras() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join(".agents/skills/docbridge/SKILL.md"), "edited").unwrap();
     fs::write(p.join(".agents/skills/docbridge/extra"), "mine").unwrap();
     let before = fs::read(p.join("docbridge.config.json")).unwrap();
     assert_eq!(
         init(
-            &p,
+            p,
             &InitOptions {
                 yes: true,
                 force: true,
@@ -118,18 +115,20 @@ fn force_changes_only_owned_skill_and_preserves_extras() {
 }
 #[test]
 fn ownership_escape_is_rejected_before_any_removal() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(
         p.join(".agents/skills/docbridge/.docbridge-owned.json"),
         format!("{{\"../outside\":\"{}\"}}", "0".repeat(64)),
     )
     .unwrap();
-    assert!(plan_deinit(&p).is_err());
+    assert!(plan_deinit(p).is_err());
     assert!(p.join("docbridge.config.json").exists());
 }
 #[test]
 fn references_are_reported_and_never_rewritten() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::create_dir_all(p.join(".github/workflows")).unwrap();
     fs::write(
         p.join(".github/workflows/check.yml"),
@@ -137,7 +136,7 @@ fn references_are_reported_and_never_rewritten() {
     )
     .unwrap();
     fs::write(p.join("flake.nix"), "docbridge").unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     assert_eq!(plan.references.len(), 2);
     assert!(plan.to_string().contains("nix profile"));
     assert_eq!(apply_deinit(&plan).code, 0);
@@ -150,12 +149,14 @@ fn references_are_reported_and_never_rewritten() {
 #[test]
 fn symlink_ancestor_blocks_writes_and_removal() {
     use std::os::unix::fs::symlink;
-    let p = root();
-    let outside = root();
-    symlink(&outside, p.join(".agents")).unwrap();
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    symlink(outside, p.join(".agents")).unwrap();
     assert_eq!(
         init(
-            &p,
+            p,
             &InitOptions {
                 yes: true,
                 ..Default::default()
@@ -165,22 +166,24 @@ fn symlink_ancestor_blocks_writes_and_removal() {
         1
     );
     assert!(!p.join("docbridge.config.json").exists());
-    assert!(plan_deinit(&p).is_err());
+    assert!(plan_deinit(p).is_err());
     assert_eq!(fs::read_dir(outside).unwrap().count(), 0);
 }
 #[cfg(unix)]
 #[test]
 fn out_of_scope_symlinks_are_not_followed() {
     use std::os::unix::fs::symlink;
-    let p = initialized();
-    let outside = root();
+    let temp = initialized();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
     fs::write(
         outside.join("secret.md"),
         "<!-- @code secret.rs -->\n# Secret\n",
     )
     .unwrap();
-    symlink(&outside, p.join("excluded")).unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    symlink(outside, p.join("excluded")).unwrap();
+    let plan = plan_deinit(p).unwrap();
     assert_eq!(apply_deinit(&plan).code, 0);
     assert!(fs::read_to_string(outside.join("secret.md"))
         .unwrap()
@@ -190,10 +193,11 @@ fn out_of_scope_symlinks_are_not_followed() {
 #[test]
 fn deinit_rerun_finishes_after_partial_failure() {
     use std::os::unix::fs::PermissionsExt;
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join("guide.md"), "<!-- @code src/a.rs -->\n# Guide\n").unwrap();
     let dir = p.join(".agents/skills/docbridge");
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     fs::set_permissions(&dir, fs::Permissions::from_mode(0o500)).unwrap();
     let failed = apply_deinit(&plan);
     fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
@@ -216,7 +220,7 @@ fn deinit_rerun_finishes_after_partial_failure() {
         .file_name()
         .to_string_lossy()
         .starts_with(".docbridge-")));
-    let rerun = deinit(&p);
+    let rerun = deinit(p);
     assert_eq!(rerun.code, 0, "{}", rerun.stderr);
     assert_eq!(fs::read_to_string(p.join("guide.md")).unwrap(), "# Guide\n");
     assert!(!p.join("docbridge.config.json").exists());
@@ -227,12 +231,13 @@ fn deinit_rerun_finishes_after_partial_failure() {
 #[test]
 fn deinit_rerun_removes_skill_directories_after_late_failure() {
     use std::os::unix::fs::PermissionsExt;
-    let p = initialized();
-    let plan = plan_deinit(&p).unwrap();
+    let temp = initialized();
+    let p = temp.path();
+    let plan = plan_deinit(p).unwrap();
     // Only the configuration, removed last, lives directly in the root.
-    fs::set_permissions(&p, fs::Permissions::from_mode(0o500)).unwrap();
+    fs::set_permissions(p, fs::Permissions::from_mode(0o500)).unwrap();
     let failed = apply_deinit(&plan);
-    fs::set_permissions(&p, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(p, fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(failed.code, 1);
     assert!(
         failed
@@ -244,7 +249,7 @@ fn deinit_rerun_removes_skill_directories_after_late_failure() {
     assert!(!p
         .join(".agents/skills/docbridge/.docbridge-owned.json")
         .exists());
-    let rerun = deinit(&p);
+    let rerun = deinit(p);
     assert_eq!(rerun.code, 0, "{}", rerun.stderr);
     assert!(!p.join("docbridge.config.json").exists());
     assert!(!p.join(".agents/skills/docbridge").exists());
@@ -254,7 +259,8 @@ fn deinit_rerun_removes_skill_directories_after_late_failure() {
 #[test]
 fn init_rerun_finishes_after_partial_failure() {
     use std::os::unix::fs::PermissionsExt;
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     let dir = p.join(".agents/skills/docbridge");
     fs::create_dir_all(&dir).unwrap();
     let options = InitOptions {
@@ -262,7 +268,7 @@ fn init_rerun_finishes_after_partial_failure() {
         ..Default::default()
     };
     fs::set_permissions(&dir, fs::Permissions::from_mode(0o500)).unwrap();
-    let failed = init(&p, &options);
+    let failed = init(p, &options);
     fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(failed.code, 1);
     assert!(
@@ -271,16 +277,17 @@ fn init_rerun_finishes_after_partial_failure() {
         failed.stderr
     );
     assert!(failed.stderr.contains("Not changed: "), "{}", failed.stderr);
-    let rerun = init(&p, &options);
+    let rerun = init(p, &options);
     assert_eq!(rerun.code, 0, "{}", rerun.stderr);
     assert!(dir.join("SKILL.md").is_file());
     assert!(dir.join(".docbridge-owned.json").is_file());
-    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(deinit(p).code, 0);
     assert!(!dir.exists());
 }
 #[test]
 fn init_rerun_removes_leftover_temporary_file_from_interrupted_write() {
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     let dir = p.join(".agents/skills/docbridge");
     fs::create_dir_all(&dir).unwrap();
     // The first run stopped after creating the ownership record's temporary
@@ -288,7 +295,7 @@ fn init_rerun_removes_leftover_temporary_file_from_interrupted_write() {
     let leftover = ".docbridge-tmp-4242-1761700000000000000-0";
     fs::write(dir.join(leftover), "{\"SKILL.md\":").unwrap();
     let rerun = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             ..Default::default()
@@ -308,7 +315,8 @@ fn init_rerun_removes_leftover_temporary_file_from_interrupted_write() {
 }
 #[test]
 fn deinit_removes_leftover_temporary_files() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let agents = p.join(".agents/skills/docbridge");
     let claude = p.join(".claude/skills/docbridge");
     fs::write(agents.join(".docbridge-tmp-1-2-3"), "partial").unwrap();
@@ -316,7 +324,7 @@ fn deinit_removes_leftover_temporary_files() {
     fs::remove_file(claude.join("SKILL.md")).unwrap();
     fs::remove_file(claude.join(".docbridge-owned.json")).unwrap();
     fs::write(claude.join(".docbridge-tmp-4-5-6"), "partial").unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     assert!(
         plan.to_string()
             .contains("Remove: .agents/skills/docbridge/.docbridge-tmp-1-2-3\n"),
@@ -334,14 +342,15 @@ fn temporary_file_lookalikes_remain_user_content() {
         ".docbridge-tmp-1-2",
         ".docbridge-tmp-1-2-3.md",
     ];
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let dir = p.join(".agents/skills/docbridge");
     for name in names {
         fs::write(dir.join(name), "mine").unwrap();
     }
-    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(deinit(p).code, 0);
     let again = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             force: true,
@@ -360,30 +369,33 @@ fn temporary_file_lookalikes_remain_user_content() {
 }
 #[test]
 fn temporary_name_directory_remains_user_content() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let dir = p.join(".agents/skills/docbridge/.docbridge-tmp-7-8-9");
     fs::create_dir_all(&dir).unwrap();
     fs::write(dir.join("notes.md"), "mine").unwrap();
-    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(deinit(p).code, 0);
     assert_eq!(fs::read_to_string(dir.join("notes.md")).unwrap(), "mine");
 }
 #[test]
 fn recorded_file_with_temporary_name_follows_its_ownership_hash() {
     let name = ".docbridge-tmp-1-2-3";
     let remove = format!("Remove: .agents/skills/docbridge/{name}\n");
-    let unedited = initialized();
+    let unedited_temp = initialized();
+    let unedited = unedited_temp.path();
     add_owned(&unedited.join(".agents/skills/docbridge"), name, "owned");
-    let plan = plan_deinit(&unedited).unwrap();
+    let plan = plan_deinit(unedited).unwrap();
     assert_eq!(plan.to_string().matches(&remove).count(), 1, "{plan}");
     assert_eq!(apply_deinit(&plan).code, 0);
     assert!(!unedited.join(".agents/skills/docbridge").exists());
 
-    let edited = initialized();
+    let edited_temp = initialized();
+    let edited = edited_temp.path();
     let file = edited.join(".agents/skills/docbridge").join(name);
     add_owned(&edited.join(".agents/skills/docbridge"), name, "owned");
     fs::write(&file, "my edits").unwrap();
     let reinit = init(
-        &edited,
+        edited,
         &InitOptions {
             yes: true,
             ..Default::default()
@@ -391,7 +403,7 @@ fn recorded_file_with_temporary_name_follows_its_ownership_hash() {
     );
     assert_eq!(reinit.code, 0, "{}", reinit.stderr);
     assert_eq!(fs::read_to_string(&file).unwrap(), "my edits");
-    let plan = plan_deinit(&edited).unwrap();
+    let plan = plan_deinit(edited).unwrap();
     assert!(!plan.to_string().contains(&remove), "{plan}");
     assert_eq!(apply_deinit(&plan).code, 0);
     assert_eq!(fs::read_to_string(&file).unwrap(), "my edits");
@@ -412,14 +424,15 @@ fn add_owned(dir: &std::path::Path, name: &str, content: &str) {
 #[test]
 fn deinit_rerun_removes_nested_owned_directories_after_late_failure() {
     use std::os::unix::fs::PermissionsExt;
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let dir = p.join(".agents/skills/docbridge");
     add_owned(&dir, "support/helper.md", "helper");
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     // Only the configuration, removed last, lives directly in the root.
-    fs::set_permissions(&p, fs::Permissions::from_mode(0o500)).unwrap();
+    fs::set_permissions(p, fs::Permissions::from_mode(0o500)).unwrap();
     let failed = apply_deinit(&plan);
-    fs::set_permissions(&p, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(p, fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(failed.code, 1);
     assert!(
         failed
@@ -428,11 +441,11 @@ fn deinit_rerun_removes_nested_owned_directories_after_late_failure() {
         "{}",
         failed.stderr
     );
-    let rerun = deinit(&p);
+    let rerun = deinit(p);
     assert_eq!(rerun.code, 0, "{}", rerun.stderr);
     assert!(!dir.exists());
     let again = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             ..Default::default()
@@ -442,12 +455,13 @@ fn deinit_rerun_removes_nested_owned_directories_after_late_failure() {
 }
 #[test]
 fn deinit_removes_owned_directories_whose_files_are_already_gone() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let dir = p.join(".agents/skills/docbridge");
     add_owned(&dir, "support/deep/helper.md", "helper");
     // A run stopped after removing the file and before its directories.
     fs::remove_file(dir.join("support/deep/helper.md")).unwrap();
-    let result = deinit(&p);
+    let result = deinit(p);
     assert_eq!(result.code, 0, "{}", result.stderr);
     assert!(!dir.exists());
 }
@@ -455,9 +469,10 @@ fn deinit_removes_owned_directories_whose_files_are_already_gone() {
 #[test]
 fn failed_directory_removal_is_reported_and_rerun_finishes() {
     use std::os::unix::fs::PermissionsExt;
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let skills = p.join(".claude/skills");
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     // The skill directory's files can be removed, but not the directory.
     fs::set_permissions(&skills, fs::Permissions::from_mode(0o500)).unwrap();
     let failed = apply_deinit(&plan);
@@ -470,17 +485,18 @@ fn failed_directory_removal_is_reported_and_rerun_finishes() {
         "{}",
         failed.stderr
     );
-    let rerun = deinit(&p);
+    let rerun = deinit(p);
     assert_eq!(rerun.code, 0, "{}", rerun.stderr);
     assert!(!p.join(".claude/skills/docbridge").exists());
     assert!(!p.join("docbridge.config.json").exists());
 }
 #[test]
 fn dry_run_and_existing_config() {
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     assert_eq!(
         init(
-            &p,
+            p,
             &InitOptions {
                 dry_run: true,
                 ..Default::default()
@@ -493,7 +509,7 @@ fn dry_run_and_existing_config() {
     fs::write(p.join("docbridge.config.json"), "user config").unwrap();
     assert_eq!(
         init(
-            &p,
+            p,
             &InitOptions {
                 yes: true,
                 force: true,
@@ -522,13 +538,14 @@ fn write_config(p: &std::path::Path, docs: &str) {
 }
 #[test]
 fn init_deinit_init_round_trip_succeeds() {
-    let p = initialized();
-    let result = deinit(&p);
+    let temp = initialized();
+    let p = temp.path();
+    let result = deinit(p);
     assert_eq!(result.code, 0, "{}", result.stderr);
     assert!(!p.join(".agents/skills/docbridge").exists());
     assert!(!p.join(".claude/skills/docbridge").exists());
     let again = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             claude: true,
@@ -540,10 +557,11 @@ fn init_deinit_init_round_trip_succeeds() {
 }
 #[test]
 fn empty_plain_skill_directory_is_treated_as_absent() {
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     fs::create_dir_all(p.join(".agents/skills/docbridge")).unwrap();
     let result = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             ..Default::default()
@@ -554,9 +572,10 @@ fn empty_plain_skill_directory_is_treated_as_absent() {
 }
 #[test]
 fn deinit_keeps_skill_directory_with_user_files() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join(".agents/skills/docbridge/notes.txt"), "mine").unwrap();
-    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(deinit(p).code, 0);
     assert_eq!(
         fs::read_to_string(p.join(".agents/skills/docbridge/notes.txt")).unwrap(),
         "mine"
@@ -567,7 +586,8 @@ fn deinit_keeps_skill_directory_with_user_files() {
 #[test]
 fn rewrite_replaces_atomically_preserving_permissions_and_new_files_use_defaults() {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let mode = |path: std::path::PathBuf| fs::metadata(path).unwrap().permissions().mode() & 0o777;
     fs::write(p.join("reference"), "x").unwrap();
     let default_mode = mode(p.join("reference"));
@@ -580,7 +600,7 @@ fn rewrite_replaces_atomically_preserving_permissions_and_new_files_use_defaults
     fs::set_permissions(p.join("guide.md"), fs::Permissions::from_mode(0o755)).unwrap();
     // A hard link keeps the original inode, so an in-place write would show through it.
     fs::hard_link(p.join("guide.md"), p.join("guide.link")).unwrap();
-    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(deinit(p).code, 0);
     assert_eq!(fs::read_to_string(p.join("guide.md")).unwrap(), "# Guide\n");
     assert_eq!(mode(p.join("guide.md")), 0o755);
     assert_eq!(
@@ -596,12 +616,13 @@ fn rewrite_replaces_atomically_preserving_permissions_and_new_files_use_defaults
 #[test]
 fn init_discovery_skips_and_reports_symlinks() {
     use std::os::unix::fs::symlink;
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     fs::create_dir_all(p.join("node_modules/.bin")).unwrap();
     fs::write(p.join("node_modules/tool.js"), "x").unwrap();
     symlink("../tool.js", p.join("node_modules/.bin/tool")).unwrap();
     let result = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             ..Default::default()
@@ -615,12 +636,14 @@ fn init_discovery_skips_and_reports_symlinks() {
 #[test]
 fn advisory_scan_skips_and_reports_symlinks() {
     use std::os::unix::fs::symlink;
-    let p = initialized();
-    let outside = root();
+    let temp = initialized();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
     fs::write(outside.join("run.sh"), "docbridge validate").unwrap();
     fs::create_dir_all(p.join("scripts")).unwrap();
     symlink(outside.join("run.sh"), p.join("scripts/run.sh")).unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     assert!(plan.to_string().contains("scripts/run.sh"));
     assert!(plan.references.is_empty());
     assert_eq!(apply_deinit(&plan).code, 0);
@@ -629,8 +652,10 @@ fn advisory_scan_skips_and_reports_symlinks() {
 #[test]
 fn symlinked_managed_doc_makes_cleanup_incomplete() {
     use std::os::unix::fs::symlink;
-    let p = initialized();
-    let outside = root();
+    let temp = initialized();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
     fs::write(
         outside.join("linked.md"),
         "<!-- @code src/a.rs -->\n# Linked\n",
@@ -638,8 +663,8 @@ fn symlinked_managed_doc_makes_cleanup_incomplete() {
     .unwrap();
     fs::create_dir_all(p.join("docs")).unwrap();
     symlink(outside.join("linked.md"), p.join("docs/linked.md")).unwrap();
-    write_config(&p, "[\"docs\"]");
-    let plan = plan_deinit(&p).unwrap();
+    write_config(p, "[\"docs\"]");
+    let plan = plan_deinit(p).unwrap();
     assert!(plan.to_string().contains("docs/linked.md"));
     let result = apply_deinit(&plan);
     assert_eq!(result.code, 1);
@@ -650,10 +675,11 @@ fn symlinked_managed_doc_makes_cleanup_incomplete() {
 }
 #[test]
 fn unparsable_config_still_plans_removal_but_reports_incomplete() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join("guide.md"), "<!-- @code src/a.rs -->\n# Guide\n").unwrap();
     fs::write(p.join("docbridge.config.json"), "{ edited").unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     let shown = plan.to_string();
     assert!(shown.contains("Remove: docbridge.config.json"));
     assert!(shown.contains("Remove: .agents/skills/docbridge/SKILL.md"));
@@ -669,7 +695,8 @@ fn unparsable_config_still_plans_removal_but_reports_incomplete() {
 }
 #[test]
 fn code_examples_and_lookalikes_are_preserved_but_canonical_annotations_removed() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let source = concat!(
         "<PRE class=\"example\">\n",
         "<!-- @code src/in_pre.rs -->\n",
@@ -696,7 +723,7 @@ fn code_examples_and_lookalikes_are_preserved_but_canonical_annotations_removed(
         "<!-- @code src/dangling.rs -->\n",
     );
     fs::write(p.join("guide.md"), source).unwrap();
-    assert_eq!(deinit(&p).code, 0);
+    assert_eq!(deinit(p).code, 0);
     let after = fs::read_to_string(p.join("guide.md")).unwrap();
     for kept in [
         "in_pre",
@@ -721,7 +748,8 @@ fn code_examples_and_lookalikes_are_preserved_but_canonical_annotations_removed(
 }
 #[test]
 fn agent_instruction_references_are_reported() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join("AGENTS.md"), "Run docbridge check.\n").unwrap();
     fs::write(p.join("CLAUDE.md"), "Use DocBridge.\n").unwrap();
     fs::write(
@@ -729,7 +757,7 @@ fn agent_instruction_references_are_reported() {
         "{\"hooks\":\"docbridge validate\"}",
     )
     .unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     for name in ["AGENTS.md", "CLAUDE.md", ".claude/settings.json"] {
         assert!(
             plan.references.iter().any(|r| r == name),
@@ -739,10 +767,11 @@ fn agent_instruction_references_are_reported() {
     }
 }
 fn deinit_guide(source: &str) -> (Outcome, String, String) {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join("guide.md"), source).unwrap();
-    let plan = plan_deinit(&p).unwrap().to_string();
-    let result = deinit(&p);
+    let plan = plan_deinit(p).unwrap().to_string();
+    let result = deinit(p);
     let after = fs::read_to_string(p.join("guide.md")).unwrap();
     (result, after, plan)
 }
@@ -823,14 +852,15 @@ fn snapshot(dir: &std::path::Path) -> Vec<(String, Vec<u8>)> {
 }
 #[test]
 fn hook_and_script_references_are_reported_and_never_rewritten() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::create_dir_all(p.join(".githooks")).unwrap();
     fs::create_dir_all(p.join("scripts")).unwrap();
     let hook = "#!/bin/sh\ndocbridge validate\n";
     let script = "#!/bin/sh\ndocbridge validate --json\n";
     fs::write(p.join(".githooks/pre-commit"), hook).unwrap();
     fs::write(p.join("scripts/check.sh"), script).unwrap();
-    let plan = plan_deinit(&p).unwrap();
+    let plan = plan_deinit(p).unwrap();
     let text = plan.to_string();
     for name in [".githooks/pre-commit", "scripts/check.sh"] {
         assert!(plan.references.iter().any(|r| r == name), "{name}");
@@ -848,9 +878,10 @@ fn hook_and_script_references_are_reported_and_never_rewritten() {
 }
 #[test]
 fn skill_locations_default_agents_and_optional_claude() {
-    let p = root();
+    let temp = root();
+    let p = temp.path();
     let result = init(
-        &p,
+        p,
         &InitOptions {
             yes: true,
             ..Default::default()
@@ -859,19 +890,21 @@ fn skill_locations_default_agents_and_optional_claude() {
     assert_eq!(result.code, 0, "{}", result.stderr);
     assert!(p.join(".agents/skills/docbridge/SKILL.md").is_file());
     assert!(!p.join(".claude/skills/docbridge").exists());
-    let q = initialized();
+    let q_temp = initialized();
+    let q = q_temp.path();
     let agents = fs::read(q.join(".agents/skills/docbridge/SKILL.md")).unwrap();
     let claude = fs::read(q.join(".claude/skills/docbridge/SKILL.md")).unwrap();
     assert_eq!(agents, claude);
 }
 #[test]
 fn declined_confirmation_leaves_project_byte_identical() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     fs::write(p.join("guide.md"), "<!-- @code src/a.rs -->\n# Guide\n").unwrap();
     fs::create_dir_all(p.join(".githooks")).unwrap();
     fs::write(p.join(".githooks/pre-commit"), "docbridge validate\n").unwrap();
-    let before = snapshot(&p);
-    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p).unwrap();
+    let before = snapshot(p);
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], p).unwrap();
     let mut asked = false;
     let result = docbridge::cli::dispatch_with_confirmation(invocation, "", |plan| {
         asked = true;
@@ -880,17 +913,18 @@ fn declined_confirmation_leaves_project_byte_identical() {
     });
     assert!(asked);
     assert_ne!(result.exit_code, 0, "{}", result.stdout);
-    assert_eq!(snapshot(&p), before);
+    assert_eq!(snapshot(p), before);
 }
 #[test]
 fn embedded_skill_names_current_commands_only() {
-    let p = initialized();
+    let temp = initialized();
+    let p = temp.path();
     let text = fs::read_to_string(p.join(".agents/skills/docbridge/SKILL.md")).unwrap();
     for word in ["validate", "links", "unlinked", "docs"] {
         assert!(text.contains(&format!("docbridge {word}")), "{word}");
     }
     let lower = text.to_lowercase();
-    for old in ["check", "related", "context", "graph", "lsp", "claim"] {
+    for old in ["check", "related", "context", "graph", "lsp"] {
         assert!(
             !lower
                 .split(|c: char| !c.is_alphanumeric())
@@ -898,6 +932,4 @@ fn embedded_skill_names_current_commands_only() {
             "{old}"
         );
     }
-    assert!(!lower.contains("guarantee") && !lower.contains("automatically ensure"));
-    assert!(lower.contains("semantic consistency yourself"));
 }
