@@ -17,8 +17,8 @@ Scope is optional:
 Examples:
 
 ```text
-✨ feat(scanner): parse @doc annotations
-🐛 fix(resolver): report missing Markdown anchors
+✨ feat(links): read selectors from stdin
+🐛 fix(markdown): ignore annotations inside HTML blocks
 📝 docs: document commit rules
 ```
 
@@ -69,10 +69,10 @@ Prefer consistency over novelty. Add more Gitmoji only when the existing set doe
 Use a body when the reason, tradeoff, or migration detail is not obvious from the subject.
 
 ```text
-✨ feat(scanner): parse exported function docs
+✨ feat(unlinked): report headingless Markdown content
 
-Read JSDoc comments attached to top-level exported functions and collect
-@doc targets for resolver input.
+Report meaningful content before the first heading as its own region, so a
+document without headings is not silently treated as covered.
 ```
 
 ## Breaking Changes
@@ -82,5 +82,5 @@ For breaking changes, use `!` after the type or scope and include a `BREAKING CH
 ```text
 💥 feat(cli)!: change JSON output shape
 
-BREAKING CHANGE: check --json now returns an object instead of an array.
+BREAKING CHANGE: links --json now returns an object instead of an array.
 ```

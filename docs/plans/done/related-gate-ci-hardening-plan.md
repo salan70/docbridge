@@ -241,7 +241,7 @@ diverging silently.
 Tasks:
 
 - Rewrite the `Gate the PR change set` section of
-  [`docs/integrations/ci.md`](../../integrations/ci.md) with the hardened recipe,
+  [`docs/integrations/ci.md`](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/integrations/ci.md) with the hardened recipe,
   including the `fetch-depth: 0` requirement and the reason for it, and the
   three-outcome reporting. State plainly that a shallow checkout is the one
   configuration that breaks it.

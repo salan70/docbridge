@@ -1,32 +1,19 @@
 # Releasing
 
-Maintainer reference for how a merged pull request becomes a release and how the
-repository is configured for it. The per-PR rules that contributors and agents
-follow (release labels and `just release-bump`) live in the
+Maintainer reference for how a version is released and how the repository is
+configured for it. The per-PR rules that contributors and agents follow
+(release labels and `just release-bump`) live in the
 [git-workflow skill](../../.agents/skills/git-workflow/SKILL.md#releases-per-pr).
 
-## Publishing
+## Versions and labels
 
-When a pull request labeled `release: patch`, `release: minor`, or
-`release: major` merges, **Release Publish** (`release-publish.yml`) re-checks
-CI for the merge commit, builds the dist CLI with the platform scanner binaries
-and the runtime-backed workers, and publishes the `docbridge` package to npm with
-`npm publish --provenance --access public`. It authenticates through npm Trusted
-Publishing (GitHub Actions OIDC), then creates the `vX.Y.Z` tag and a GitHub
-Release from the matching `CHANGELOG.md` section. A version whose tag already
-exists is skipped. Merging a `release: none` pull request publishes nothing.
-
-`just build` stages the Python and Ruby workers and the Java worker JAR under
-`dist/workers/`, building the JAR first, so every job that runs it needs the
-JDK pinned by `.java-version`. These workers are platform-independent, so no
-release-matrix entry covers them; `verify-dist` and `pack-smoke` run them in
-each platform job and again before publishing.
-
-If the automatic run does not fire, dispatch **Release Publish** manually with
-the version as input. The dispatch uses the same workflow file, so it keeps the
-trusted publisher identity. If publishing fails with an authentication error,
-correct the npm Trusted Publisher fields (they are case-sensitive and are not
-validated when saved) and dispatch again. Do not add a token-based fallback.
+Every pull request carries one `release:` label. A releasing label means the
+pull request sets the next version in every crate manifest and rolls the
+CHANGELOG (`just release-bump <kind>`). The required `release-label` check
+(`.github/workflows/release-label.yml`, `scripts/check-release-label.sh`)
+enforces that. Merging publishes nothing: a maintainer releases a merged
+version by dispatching **Release vNext** as described in
+[vNext release (manual)](#vnext-release-manual).
 
 ## Branch protection
 
@@ -46,21 +33,15 @@ validated when saved) and dispatch again. Do not add a token-based fallback.
 
 - Create the four `release:` labels and make `release-label` a required status
   check on `main`.
-- On the npm `docbridge` package, configure one Trusted Publisher:
-  - Provider: GitHub Actions
-  - Organization or user: `salan70`
-  - Repository: `docbridge`
-  - Workflow filename: `release-publish.yml`
-  - Environment name: none
-  - Allowed action: `npm publish`
-- Do not add a long-lived npm write token or an `NPM_TOKEN` Actions secret, and
-  never record credential values in git, logs, or issue comments.
+- Never record credential values in git, logs, or issue comments.
+- The npm Trusted Publisher configured for `release-publish.yml` has no
+  workflow left to authorize after the cutover. The maintainer can remove it
+  from the npm `docbridge` package settings.
 
 ## vNext release (manual)
 
-The vNext Rust CLI is released separately from the npm package, and only by a
-maintainer dispatching **Release vNext** (`release-vnext.yml`). Nothing
-publishes it on merge during the cutover. The asset format is the contract in
+The Rust CLI is released only by a maintainer dispatching **Release vNext**
+(`release-vnext.yml`). Nothing publishes on merge. The asset format is the contract in
 [`crates/docbridge-update/README.md`](../../crates/docbridge-update/README.md#distribution-format):
 one raw executable per target, `docbridge-manifest.json`, and its detached
 Ed25519 signature `docbridge-manifest.sig`. The workflow also attaches an
@@ -80,26 +61,28 @@ Maintainer decisions:
 
 ### Cutover order
 
-The legacy npm publisher (`release-publish.yml`) also creates `vX.Y.Z` tags and
-GitHub releases and marks them latest, and `docbridge upgrade` reads the latest
-release. Two guards keep the two publishers apart, so do the cutover in this
-order:
+The legacy npm publisher (`release-publish.yml`) also created `vX.Y.Z` tags and
+GitHub releases and marked them latest, and `docbridge upgrade` reads the latest
+release. The cutover runs in this order:
 
-1. Legacy releases stay below `0.17.0`. `release-publish.yml` refuses any
-   version from `0.17.0` up, so it can never take the first vNext tag.
-2. Retire the legacy publisher (#215) so that no workflow other than
+1. Done: legacy releases stayed below `0.17.0` (the last is `0.16.0`).
+2. Done (#215): the legacy publisher is retired, so no workflow other than
    `release-vnext.yml` runs `npm publish` or creates or edits GitHub releases.
    Release mode of **Release vNext** runs
    `scripts/check-legacy-publisher-retired.sh .github/workflows` first and
-   refuses to start while any other workflow still publishes.
-3. Provision the keys and dispatch the first vNext release (`0.17.0`) as
-   described below.
-4. Deprecate the npm package.
+   refuses to start while any other workflow publishes; `just lint-actions`
+   runs the same check in `just verify` and CI.
+3. Pending: provision the keys and dispatch the first vNext release
+   (`0.17.0`) as described below.
+4. Pending: deprecate the npm package.
 
 **Pending: key provisioning.** The maintainer has not generated the keys yet.
 `crates/docbridge-update/keys/trusted-keys.txt` is empty, so
 `compiled_trusted_keys()` trusts nothing. A release run then fails closed
 before signing and publishes nothing.
+
+<!-- @code crates/docbridge-release/src/main.rs -->
+<!-- @code crates/docbridge-release/src/lib.rs -->
 
 ### Signing tool
 
@@ -285,7 +268,7 @@ nix build --no-link --impure --expr '
   (pkgs.callPackage ./packaging/nixpkgs/package.nix { }).overrideAttrs (_: {
     src = lib.fileset.toSource {
       root = ./.;
-      fileset = lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./crates ];
+      fileset = lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./crates ./docs/specs/cli.md ];
     };
     cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
   })'

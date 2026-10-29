@@ -1,101 +1,88 @@
 # DocBridge
 
-[![npm version](https://img.shields.io/npm/v/docbridge.svg)](https://www.npmjs.com/package/docbridge)
 [![English README](https://img.shields.io/badge/README-English-blue)](../../README.md)
 
-DocBridge は、Markdown ドキュメントと、その内容を実装するコードを双方向に
-結び付けます。TypeScript、JavaScript、Swift、Dart、Rust、Go、Python、Ruby、Java の対応宣言に
-書く `@doc` と、
-Markdown 見出しに書く `@code` を検証し、人間とコーディングエージェントが変更前に
-正しいカウンターパートへ到達できるようにします。
+DocBridge は Markdown ドキュメントと、その内容を実装するコードファイルを結び付けます。
+Markdown の見出しの直前に `<!-- @code path -->` の行を書くと、その節がコードファイルにリンクされます。
+`docbridge validate` がリンクを検証し、`docbridge links` と `docbridge unlinked` が関係する箇所とリンクのない箇所を示します。
+人間とコーディングエージェントは、変更の前に対応する文書やコードを見つけられます。
 
-## 必要な環境
-
-- Node.js 22 以降、または Bun 1.1.31 以降
-- Markdown と対応言語のソースコードを含むプロジェクト
-
-`darwin-arm64` と `linux-x64` 向けの Swift、Dart、Rust、Go scanner はパッケージに
-同梱されています。Python、Ruby、Java のプロジェクトには、platform を問わず CPython 3.10
-以降、CRuby 3.3 以降、JDK 17 以降がそれぞれマシンに必要です。言語ごとの拡張子、visibility の既定値、scanner は
-[設定の言語一覧](user/configuration.md#言語) を参照してください。
+DocBridge は単体のネイティブ実行ファイルです。
+言語のランタイムを必要とせず、コードを解析しないので、どの言語でも使えます。
 
 ## インストール
 
+ネイティブ CLI の最初のリリース `0.17.0` はまだ公開されていません。
+公開までは、ソースからビルドしてください。
+
+- GitHub Releases から（`0.17.0` の公開後）: [GitHub Releases](https://github.com/salan70/docbridge/releases) から使っている環境の実行ファイルをダウンロードし、`PATH` の通った場所に置いて実行権限を付けます。
+  Linux x64 と ARM64（静的リンクの musl）、macOS x64 と ARM64、Windows x64 を提供します。
+- Nix で: `nix profile install github:salan70/docbridge` を実行するか、flake の `packages.<system>.docbridge` を使います。
+- ソースから（Rust 1.83 以降）: `cargo install --locked --git https://github.com/salan70/docbridge docbridge` を実行します。
+
+`docbridge upgrade` が置き換えるのは、インストールの記録（receipt）を持つ単体のインストールだけです。
+置き換えの前にリリースの署名を検証します。
+Nix などのパッケージマネージャーで入れた場合は、そのパッケージマネージャーで更新してください。
+
+npm パッケージ（`0.16.0` 以前）から移行する場合、ネイティブ CLI に互換レイヤーはありません。
+移行ガイド（`docbridge docs show migration`、または [`crates/docbridge/guides/migration.md`](../../crates/docbridge/guides/migration.md)）の手順に従ってください。
+
+## 最初の節をリンクする
+
+プロジェクトのルートで設定の提案とエージェント向け Skill のインストールを行い、書き込まれた内容を確認します。
+
 ```sh
-npm install --save-dev docbridge
+docbridge init
 ```
 
-Bun を使う場合:
-
-```sh
-bun add --dev docbridge
-```
-
-## 最初のチェックを成功させる
-
-対話形式で初期設定を作成します。
-
-```sh
-npx docbridge init
-```
-
-TypeScript 向けの最小設定を手動で書く場合は、project root に
-`docbridge.config.json` として次の内容を保存します。
+設定ではコードのディレクトリと拡張子、ドキュメントのディレクトリを選びます。
 
 ```json
 {
-  "$schema": "./node_modules/docbridge/schemas/docbridge.schema.json",
   "include": {
-    "code": {
-      "typescript": {
-        "patterns": ["src/**/*.ts"]
-      }
-    },
-    "docs": ["docs/**/*.md"]
-  }
+    "code": { "paths": ["src"], "extensions": [".ts"] },
+    "docs": ["docs"]
+  },
+  "exclude": {}
 }
 ```
 
-`src/auth.ts` の対応するコード宣言にドキュメントのリンク先を追加します。
-
-```ts
-/** @doc docs/auth.md#login-flow */
-export function login(): void {}
-```
-
-`docs/auth.md` の見出しの直前に逆向きのリンクを追加します。
+`docs/auth.md` の見出しの直前にアノテーションを書き、その節を実装するファイルへリンクします。
 
 ```md
-<!-- @code src/auth.ts#login -->
+<!-- @code src/auth.ts -->
 
 ## Login Flow
 ```
 
-リンクの組を検証します。
+リンクを検証し、内容を確認します。
 
 ```sh
-npx docbridge check
+docbridge validate
+docbridge links docs/auth.md --include-content
+docbridge unlinked
 ```
 
-リンクグラフが正しければ終了コードは `0` です。設定不備、未解決のリンク先、
-backlink の欠落がある場合は診断を表示して `1` で終了します。アノテーションの path は
-project root からの相対 path で、各ファイルは設定した pattern に一致する必要があります。
+`validate` は、設定とリンクが正しければ `0`、そうでなければ `1` で終了します。
+構造が正しくても、コードと文章の意味が一致するとは限りません。
+リンク先の内容は、人間かエージェントが確認してください。
 
-## 次に読むガイド
+## ガイド
 
-- [はじめに](user/getting-started.md) — インストールと初期設定
-- [設定](user/configuration.md) — 対象範囲、言語、可視性
-- [リンク](user/linking.md) — 対象選定、アノテーション、意味のレビュー
-- [コマンド](user/commands.md) — check、related、context、graph、docs、upgrade
-- [自動化](user/automation.md) — エージェント、Git hook、CI
-- [トラブルシューティング](user/troubleshooting.md) — 設定・scanner・リンク診断
-- [サンプル](../../examples/) — 対応言語ごとの小さなプロジェクト
+CLI は英語のガイドを同梱しています。
+オフラインで読め、インストールしたバージョンの内容と一致します。
+
+```sh
+docbridge docs list
+docbridge docs show getting-started
+```
+
+ガイドの原稿は [`crates/docbridge/guides/`](../../crates/docbridge/guides/) にあります。
+
+- [英語のドキュメントハブ](../README.md) — 仕様とコントリビューター向けの資料
 - [変更履歴](../../CHANGELOG.md) — リリース履歴（英語）
-- [英語のドキュメントハブ](../README.md)
+- [コミットメッセージ](contributing/commits.md)
 
-英語のタスクガイドは CLI と同じ version で配布されます。
-`npx docbridge docs list` と `npx docbridge docs show <name>` で参照できます。
+## 開発への参加
 
-コントリビュータ向けの環境・テスト・Pull Request 規約は
-[CONTRIBUTING.md](../../CONTRIBUTING.md)、ドキュメントの配置と執筆規約は
-[Documentation Guidelines](../contributing/documentation.md) を参照してください。
+リポジトリのセットアップ、テスト、プルリクエストの方針は [CONTRIBUTING.md](../../CONTRIBUTING.md)、ドキュメントの配置と執筆規約は [Documentation Guidelines](../contributing/documentation.md) を参照してください。

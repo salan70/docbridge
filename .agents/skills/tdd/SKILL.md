@@ -29,22 +29,20 @@ t-wada style Red-Green-Refactor.
 
 ## Test suites
 
-- TypeScript under `src/` and `scripts/` uses `bun:test`; run one file with
-  `bun test <file>`.
-- A scanner worker under `packages/` uses its native suite,
-  `just test-<lang>-scanner`. `just verify` runs only the Python, Ruby, and
-  Java worker suites, so run the Swift, Dart, Rust, or Go suite yourself when
-  you change that worker. CI runs all of them.
+- Every crate uses `cargo test`. Run one integration test file with
+  `cargo test -p <crate> --test <file-stem>`, and one test by adding its name.
+- The release shell scripts under `scripts/` are tested from
+  `crates/docbridge-release/tests/` with stubbed commands.
 
 ## DocBridge specifics
 
 - Place tests and fixtures as
   [docs/contributing/testing.md](../../../docs/contributing/testing.md)
   describes.
-- Parser and scanner changes use small inline TypeScript or Markdown fixtures
-  that make the annotation contract obvious.
-- Resolver changes cover both resolving bidirectional links and the diagnostic
-  paths for missing files, anchors, and code symbols.
+- Markdown parsing changes use small inline Markdown that makes the
+  annotation contract obvious.
+- Link changes cover both resolving a valid target and the diagnostic paths
+  for missing, unmanaged, or invalid targets.
 - CLI changes verify output, exit code, or JSON shape through the command
   boundary.
 - Schema or config changes cover accepted and rejected shapes.

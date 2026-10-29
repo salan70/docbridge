@@ -9,8 +9,8 @@ Normative behavior should be reflected in these specs and docs as the slices
 land:
 
 - [CLI](../../specs/cli.md)
-- [Codex Integration](../../integrations/codex.md)
-- [Claude Code Integration](../../integrations/claude-code.md)
+- [Codex Integration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/integrations/codex.md)
+- [Claude Code Integration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/integrations/claude-code.md)
 
 ## Status
 

@@ -6,52 +6,41 @@ context for the reader to choose the next step.
 
 ## Information architecture
 
-| Location                             | Audience and ownership                                                                                    |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| `README.md`                          | First-time English reader: value, requirements, installation, one successful check, and next links        |
-| `docs/README.md`                     | Repository-wide map of user, integration, specification, contributor, decision, and plan documentation    |
-| `docs/user/`                         | Task-oriented English guides shipped with the npm package                                                 |
-| `docs/ja/README.md`, `docs/ja/user/` | Repository-hosted Japanese entry point and task-guide parity                                              |
-| `docs/specs/`                        | Normative and exhaustive behavior for commands, configuration, diagnostics, scanning, resolution, and LSP |
-| `docs/integrations/`                 | Tool-specific setup and copyable integration recipes                                                      |
-| `editors/vscode/README.md`           | Installation and operation of the VS Code-compatible extension                                            |
-| `docs/contributing/`                 | Repository development, testing, documentation, commit, and pull-request policy                           |
-| `docs/decisions/`                    | Durable architectural decisions and their rationale                                                       |
-| `docs/plans/`, `docs/plans/done/`    | Active implementation tracking and historical completed plans                                             |
-| `docs/reports/`                      | Dated evidence reports such as dogfooding reviews; historical observations, not current guidance          |
+| Location                          | Audience and ownership                                                                              |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `README.md`                       | First-time English reader: value, installation, one successful link, and next links                 |
+| `docs/README.md`                  | Repository-wide map of guides, specifications, contributor, decision, and plan documentation        |
+| `crates/docbridge/guides/`        | Task-oriented English user guides embedded in the CLI and printed by `docbridge docs`               |
+| `docs/ja/`                        | Repository-hosted Japanese entry point and contributor translations                                 |
+| `docs/specs/`                     | Normative and exhaustive behavior for commands, output, diagnostics, and the vNext public contracts |
+| `crates/docbridge-update/`        | The update crate's README: release format, installation receipt, replacement, and recovery          |
+| `docs/contributing/`              | Repository development, testing, documentation, commit, pull-request, and release policy            |
+| `docs/decisions/`                 | Durable architectural decisions and their rationale                                                 |
+| `docs/plans/`, `docs/plans/done/` | Active implementation tracking and historical completed plans                                       |
+| `docs/reports/`                   | Dated evidence reports such as dogfooding reviews; historical observations, not current guidance    |
 
-Task guides explain how to achieve an outcome and link to specifications for
-exact contracts. Specifications are not packaged, so a packaged guide under
-`docs/user/` links to them with an absolute
-`https://github.com/salan70/docbridge/blob/main/...` URL; a relative link
-would break in `docbridge docs show` and in the installed package. Integration pages build on the general automation guide and
-own only client-specific details. Decisions and completed plans explain why or
-how work landed; they are not current user instructions.
+Task guides explain how to achieve an outcome. The embedded guides are printed
+by `docbridge docs show` without a repository checkout, so they link only to
+each other, by file name, and never to repository paths. Decisions, completed
+plans, and reports explain why or how work landed; they are not current user
+instructions. Records written before the cutover (#215) describe the npm
+package and its TypeScript CLI. A link from them to a file removed at the
+cutover points to that file at the last commit before the cutover on GitHub.
 
-## Canonical user guides
+## User guides
 
-The English and Japanese sets use the same six basenames:
+The embedded guides are `getting-started`, `configuration`, `linking`,
+`commands`, `troubleshooting`, `automation`, `migration`, and `deinit`, listed
+in `crates/docbridge/src/docs.rs`. They carry no `@code` annotations, because
+`docbridge docs` prints them verbatim, and they stay outside `include.docs`.
+The distributable Skill stays thin and points to `docbridge docs`; the guides
+own the detail.
 
-- `getting-started`
-- `configuration`
-- `linking`
-- `commands`
-- `automation`
-- `troubleshooting`
-
-English files require YAML frontmatter with a one-line `description`, are
-included by `docbridge.config.json`, and may carry reciprocal `@code`
-annotations. They are packaged and listed by `docbridge docs list`.
-
-Japanese files are repository-hosted translations. They have no frontmatter,
-stay outside `docbridge.config.json`, and must not carry active `@code`
+Japanese pages are repository-hosted translations and are not embedded. They
+stay outside `docbridge.config.json` and must not carry active `@code`
 annotations. Runnable examples may show annotations inside fenced code blocks.
 Translate the meaning naturally: preserve tasks, constraints, examples, and
 next steps without forcing sentence-by-sentence equivalence.
-
-When one language changes materially, update the counterpart in the same pull
-request. `just check-docs` verifies file-set parity and navigation; reviewers
-verify semantic parity.
 
 ## Writing rules
 
@@ -64,14 +53,7 @@ Follow the repository [Writing Guidelines](writing.md). For documentation, also:
 
 ## Structural checks
 
-Run:
-
-```sh
-just check-docs
-```
-
-The check enforces the exact bilingual guide sets, navigation coverage from the
-English and Japanese entry points, the Japanese annotation boundary, and
-resolvable local file and heading links across active user-facing surfaces. It
-uses GitHub-style heading fragments because these links are consumed in the
-repository UI. `just verify` includes this check.
+`just lint-markdown` runs rumdl over every Markdown file. Besides style, it
+fails on a relative link to a missing file and on a fragment that matches no
+heading. `just validate` checks the `@code` annotations. `just verify` includes
+both.

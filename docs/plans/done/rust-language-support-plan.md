@@ -6,9 +6,9 @@ pattern. Each slice should leave the repository in a working state.
 
 Normative behavior is reflected in these specs as the slices land:
 
-- [Configuration](../../specs/configuration.md)
-- [Scanning](../../specs/scanning.md)
-- [Annotations](../../specs/annotations.md)
+- [Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md)
+- [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md)
+- [Annotations](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/annotations.md)
 - [Diagnostics](../../specs/diagnostics.md)
 
 ## Status

@@ -6,8 +6,8 @@ DocBridge package and exposes it through the CLI.
 Normative behavior is reflected in:
 
 - [CLI](../../specs/cli.md)
-- [Configuration](../../specs/configuration.md)
-- [Annotations](../../specs/annotations.md)
+- [Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md)
+- [Annotations](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/annotations.md)
 
 ## Status
 

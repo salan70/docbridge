@@ -1,121 +1,51 @@
 # Testing Convention
 
-DocBridge uses the Bun test runner (`bun test`, wrapped as `just test`).
+DocBridge is a Cargo workspace. `just test` runs
+`cargo test --workspace --locked`, and `just verify` composes it with the
+formatting, lint, and self-validation gates.
 
 ## Test placement
 
-- Colocate tests with the module they cover: `src/link/graph.ts` is tested by
-  `src/link/graph.test.ts` in the same directory.
-- There is no separate top-level `test/` directory. Do not create one.
-- Name test files `<module>.test.ts`. The runner discovers them automatically;
-  no configuration lists test paths.
-- Put a project that exists only to drive tests under `test-fixtures/`, and a
-  per-diagnostic fixture under `test-fixtures/diagnostics/`. `examples/` holds
-  one human-facing showcase per language. Tests may read an example, but do not
-  move it into `test-fixtures/` or reshape it for a test.
+- Put behavior tests at the crate boundary, in `crates/<crate>/tests/*.rs`.
+  `crates/docbridge/tests/` runs the built binary
+  (`env!("CARGO_BIN_EXE_docbridge")`) or calls the library API, and asserts
+  output, exit codes, and JSON shape.
+- Keep a `#[cfg(test)] mod tests` inside a module only for private helpers that
+  the public boundary cannot reach.
+- Put a fixture project that a test copies under
+  `crates/<crate>/tests/fixtures/<name>/`. Markdown lint and formatting skip
+  `crates/docbridge/tests/fixtures/`, so a fixture can hold deliberately
+  invalid or legacy input.
+- Prefer a scratch project written by the test itself in a temporary directory
+  when a few files are enough.
 
-## Shared test helpers
+## Release scripts
 
-- Put helpers shared by several test files next to those tests, without the
-  `.test` suffix, so the runner does not execute them as suites. Example:
-  `src/lsp/fixtures.ts`.
+The shell scripts under `scripts/` are tested from
+`crates/docbridge-release/tests/`. Each test copies or runs the script with
+stub `gh`, `git`, `cargo`, or `od` executables first on `PATH`, so no test
+touches GitHub, the network, or a real key. The tests are Unix-only
+(`#![cfg(unix)]`).
 
-## Type checking
+## Toolchain
 
-- `just typecheck` runs `tsc --noEmit` over the whole project. `bun build`
-  strips types without checking them, so this is the only gate that catches
-  type errors. `just verify`, which the pre-commit hook runs, composes it with
-  the other checks and test suites that its `justfile` recipe lists; CI exposes
-  the same checks as separate steps for diagnosis.
-- The TypeScript toolchain is pinned through `bun.lock` (`typescript`,
-  `@types/bun`, and the transitive `@types/node`). Run installs with
-  `bun install --frozen-lockfile` so every machine resolves the same types; a
-  stale `node_modules` is the usual cause of "type errors on one machine only".
+The Rust toolchain is pinned by `rust-toolchain.toml` (1.83.0). The Nix dev
+shell provides it, and CI installs the same version on each platform.
 
-## Scanner workers
+## Release binary smoke
 
-- `just test` includes TypeScript, JavaScript, Swift, Dart, Rust, Go, Python,
-  Ruby, and Java end-to-end integration tests. The Swift, Dart, Rust, and Go
-  integration tests spawn the built worker binaries, which `just setup` builds
-  for a fresh source checkout. Rebuild all four after changing worker code with
-  `just build-test-scanners`. The Python and Ruby integration tests run the
-  workers from source, and the Java integration tests run the JAR that
-  `just build-test-scanners` builds, on the runtimes on `PATH`.
-- `just test-swift-scanner` runs the SwiftPM test suite for
-  `packages/swift-scanner`. It requires a Swift 6 toolchain on `PATH`; the Nix
-  dev shell intentionally does not provide Swift, and CI installs it
-  separately.
-- `just test-dart-scanner` runs the Dart package tests for
-  `packages/dart-scanner`. The Dart SDK is provided by the Nix dev shell.
-- `just test-rust-scanner` runs the Cargo test suite for
-  `packages/rust-scanner`. The Nix dev shell provides the Rust toolchain
-  pinned by `packages/rust-scanner/rust-toolchain.toml`.
-- `just test-go-scanner` runs the Go test suite for `packages/go-scanner`. The
-  Nix dev shell provides Go; `just check-go-toolchain`, a prerequisite of every
-  Go recipe, fails unless `go env GOVERSION` matches the `go` directive in
-  `packages/go-scanner/go.mod`, and `GOTOOLCHAIN=local` stops Go from
-  downloading another version. Bump the directive together with the flake
-  lock when nixpkgs moves.
-- `just test-python-scanner`, `just test-ruby-scanner`, and
-  `just test-java-scanner` run the native suites of the runtime-backed
-  workers under `packages/python-scanner`, `packages/ruby-scanner`, and
-  `packages/java-scanner` (`unittest`, `minitest`, and a `main`-based runner).
-  The Nix dev shell provides CPython, CRuby with Prism, and the JDK. The Ruby
-  suite also runs the Ruby cases of the conformance corpus below.
-- `src/scan/code/worker/runtime-worker.test.ts` covers runtime resolution with
-  an injected probe; `runtime-worker-integration.test.ts` resolves the real
-  Python, Ruby, and Java workers of the checkout, probe included, and scans one
-  file with each. The Python, Ruby, and Java integration tests run the workers
-  through the registered adapters. A runtime missing from `PATH` fails these
-  tests instead of skipping them.
-- `just verify-dist` runs each runtime-backed worker from `dist/workers/`, and
-  `just pack-smoke <tarball>` runs each from the installed package: in an
-  install path with spaces, read-only and then writable, plus a configured
-  runtime that does not exist. `--runtime-workers-only` smokes only these
-  workers; the informational `pack-smoke-windows` CI job runs that mode on the
-  tarball `test-dist` packs, because native scanners are not shipped for
-  Windows.
-- `src/scan/code/conformance.test.ts` runs every case under
-  `test-fixtures/scanner-conformance/<case>/<language>/` through the real
-  adapter for that language. It compares the result with that directory's
-  `expected.json`. Inputs are stored as `input.txt` so formatters and linters
-  leave them alone, including cases that must not parse. Every case covers
-  every registered language. Expectations stay per language because canonical IDs and
-  positions differ by language. When you add a case, review each
-  `expected.json` against the input before committing it.
-- CI treats the scanner-native test suites as mandatory before the shared
-  `just test` gate. Local changes to scanner code should run the matching
-  native test plus `just test`.
+`just smoke` builds the release binary for this machine and runs
+`scripts/smoke-vnext.sh` on it: the binary must start, show the offline
+guides, and handle a representative `validate`, `links`, and `unlinked` flow
+in a throwaway project. CI runs the same script on the binary of each of the
+five release targets.
 
-## Executable examples
+## Repository self-validation
 
-`just check-example <lang>` runs `docbridge check` against
-`examples/<lang>`, where `<lang>` is `typescript` (the default),
-`javascript`, `swift`, `dart`, `rust`, `go`, `python`, `ruby`, or `java`.
-Extra flags such as `--json` pass through.
-
-## Language Server latency
-
-`just lsp-latency` builds the CLI, starts its Language Server on
-`examples/java`, and prints the p50 and p95 of two latencies to
-`publishDiagnostics` for `AuthService.java`: cold, from starting the server to
-its first publish, and warm, from a full-text edit to the publish of the rescan
-it causes, which includes the 50 ms rescan debounce. `--runs N` sets the server
-starts (default 20) and `--edits N` the edits per start (default 5). A run
-fails instead of reporting numbers when a publish carries a diagnostic or when
-the server cannot navigate from the `AuthService` class to its section, because
-then no Java scan was timed. The numbers depend on the machine and the JDK, so
-record them with both when they inform a decision.
-
-## Repository self-audit
-
-`just audit` reports this repository's `check --audit` warnings. No test or
-gate compares them against a recorded set. Policy for which endpoints must
-participate lives in [Self-audit](self-audit.md). Do not add `just audit` to
-`just verify`; audit warnings stay informational at the CLI boundary.
+`just validate` runs `docbridge validate`, built from this checkout, on the
+repository itself, and `just verify` includes it. `just unlinked` and
+`just links` are informational; see [Self-audit](self-audit.md).
 
 ## Notes
 
-- Colocated test files never reach `dist/`: `bun build` starts from the CLI
-  entry point (`src/cli/index.ts`) and only bundles what it imports.
 - For logic changes, write tests first (see the `tdd` skill).
