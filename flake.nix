@@ -53,14 +53,11 @@
             "--package"
             "docbridge"
           ];
-          # Test the crates that the executable is built from. The unpublished
-          # docbridge-release tool tests repository scripts and workflows that
-          # are outside this source; `just verify` and CI run its tests.
+          # Test the crate that the executable is built from; `just verify` and
+          # CI run the rest of the workspace tests.
           cargoTestFlags = [
             "--package"
             "docbridge"
-            "--package"
-            "docbridge-update"
           ];
           meta = {
             description = "Keep Markdown design docs and the code they describe linked";

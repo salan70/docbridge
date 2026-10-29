@@ -1,6 +1,5 @@
 pub mod cli;
 mod cli_lifecycle;
-mod cli_upgrade;
 pub mod config;
 pub mod docs;
 pub mod lifecycle;

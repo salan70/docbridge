@@ -17,7 +17,6 @@ docbridge unlinked [--root <directory>] [--json]
 docbridge init [--root <directory>] [--dry-run] [--yes] [--force] [--claude]
 docbridge deinit [--dry-run]
 docbridge docs [list | show <name>]
-docbridge upgrade [--check] [--dry-run] [--yes]
 ```
 
 - `validate --json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
@@ -119,10 +118,9 @@ Any diagnostic makes the result incomplete. Exit codes: [Exit codes and query ou
 
 Other commands:
 
-| Command   | 0                                                                                             | 1                                                                                                                                            | 3                                     |
-| --------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `upgrade` | Updated, update available (`--check`/`--dry-run`), already current, or declined interactively | Verification, provenance, network, lock, or recovery failure; confirmation required without a terminal and without `--yes` (nothing written) | Unknown argument or other usage error |
-| `docs`    | Overview, `list`, `show <name>`, `--help`                                                     | Not used                                                                                                                                     | Unknown guide or invalid usage        |
+| Command | 0                                         | 1        | 3                              |
+| ------- | ----------------------------------------- | -------- | ------------------------------ |
+| `docs`  | Overview, `list`, `show <name>`, `--help` | Not used | Unknown guide or invalid usage |
 
 - Exception: preserve the confirmed `validate` contract strictly; its argument errors also return 1. Exit code 3 applies to usage errors in the other commands.
 - A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
@@ -150,19 +148,15 @@ Other commands:
 - Preflight removal targets before writes, retain enough original content for recovery, and report failure explicitly if removal or recovery cannot finish. Do not claim a partial removal succeeded completely.
 - Rewrite files atomically via temporary files. Keep a persistent, private recovery directory for originals until removal finishes; if interrupted, identify changed and untouched files and the recovery path. Never overwrite or delete a pre-existing recovery directory.
 - deinit displays the resolved root in its confirmation. Managed annotation targets must match discovered paths exactly, independent of filesystem case folding. Always avoid Git metadata during discovery; other hidden paths follow the explicit configuration.
-- Noninteractive init or upgrade without `--yes` may inspect or dry-run, but must not perform writes or replacement.
+- Noninteractive init without `--yes` may inspect or dry-run, but must not perform writes.
 - Guides and the distributable skill are English.
 
-<!-- @code crates/docbridge-update/src/lib.rs -->
-<!-- @code crates/docbridge-update/src/install.rs -->
-<!-- @code crates/docbridge-release/src/lib.rs -->
+## Release integrity
 
-## Signing and release preparation
-
-- The executable verifies a signed manifest with a trusted compiled-in Ed25519 key before any asset can replace the installed binary. The signed version must match the selected release tag and be newer than the running version. Format, receipts, replacement, and recovery: [`docbridge-update`](../../crates/docbridge-update/README.md).
-- Until the maintainer provisions production keys, test with test-only keys; never invent a production key or weaken verification to make release tests pass.
-- Unknown install provenance never triggers self-replacement. Known managed installation locations take precedence over a standalone receipt.
-- `upgrade --check` and `--dry-run` never replace the executable. A newer version is not a command failure; failed verification is.
+- Each release attaches the five executables and a `SHA256SUMS` file in `sha256sum` format that lists them.
+- Each executable carries a GitHub artifact attestation of its build provenance, created by **Release vNext** from `main` in this repository.
+- Users can verify a download against both the attestation and `SHA256SUMS`; the commands are in [Install](../../README.md#install).
+- The CLI does not update itself. Users update through the channel they installed from.
 - Targets: Linux x64/ARM64 (static musl), macOS x64/ARM64, Windows x64. Document actual supported OS requirements rather than untested minimums.
 - Merging a pull request publishes nothing; a maintainer dispatches production releases. No npm/Marketplace removal or Nixpkgs submission happens merely to close an issue ([Releasing](../contributing/releasing.md)).
 
@@ -178,7 +172,7 @@ Other commands:
 
 Recorded by the maintainer on 2026-10-29:
 
-- The production signing key lives in a protected `release` GitHub Actions environment secret that requires reviewer approval. The executable compiles in a primary public key and an offline backup public key.
+- Release integrity relies on GitHub artifact attestations and `SHA256SUMS`; there is no project-owned signing key and no self-update ([#228](https://github.com/salan70/docbridge/issues/228)).
 - After release, deprecate the legacy npm package; never unpublish it.
 - Nixpkgs material is prepared in this repository, and the maintainer submits it.
 

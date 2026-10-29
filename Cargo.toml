@@ -1,11 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-  "crates/docbridge",
-  "crates/docbridge-release",
-  "crates/docbridge-update",
-  "crates/xtask",
-]
+members = ["crates/docbridge", "crates/xtask"]
 
 [workspace.package]
 edition = "2021"

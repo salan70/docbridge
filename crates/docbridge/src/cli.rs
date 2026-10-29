@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n  upgrade   Check or install verified updates\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content\n";
+pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
@@ -19,7 +19,6 @@ pub enum Command {
     Init,
     Deinit,
     Docs,
-    Upgrade,
     Help,
 }
 
@@ -77,7 +76,6 @@ impl Invocation {
             Some("init") => Command::Init,
             Some("deinit") => Command::Deinit,
             Some("docs") => Command::Docs,
-            Some("upgrade") => Command::Upgrade,
             Some(other) => return Err(failure(3, format!("unknown command: {other}"))),
         };
         let mut invocation = Self {
@@ -91,7 +89,7 @@ impl Invocation {
         };
         if matches!(
             invocation.command,
-            Command::Init | Command::Deinit | Command::Docs | Command::Upgrade
+            Command::Init | Command::Deinit | Command::Docs
         ) {
             invocation.extra_args = args[1..].to_vec();
             return Ok(invocation);
@@ -156,7 +154,7 @@ pub fn run(args: &[String], cwd: &Path, stdin: &str) -> Response {
     }
 }
 
-/// Keep lifecycle/docs/upgrade wiring here; read-query implementation is independent.
+/// Keep lifecycle/docs wiring here; read-query implementation is independent.
 pub fn dispatch_with_confirmation(
     mut invocation: Invocation,
     stdin: &str,
@@ -174,7 +172,6 @@ pub fn dispatch_with_confirmation(
         Command::Init | Command::Deinit => {
             return crate::cli_lifecycle::dispatch(invocation, &mut confirm)
         }
-        Command::Upgrade => return crate::cli_upgrade::dispatch(invocation, &mut confirm),
         _ => {}
     }
     let project = match Project::load(&invocation.root) {

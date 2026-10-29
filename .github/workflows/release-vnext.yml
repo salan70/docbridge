@@ -3,89 +3,74 @@ name: Release vNext
 # Manual release of the DocBridge CLI. It never runs on its own: a maintainer
 # dispatches it. It is the only workflow that publishes releases.
 #
-# dry-run (default): builds the five targets, signs them with a throwaway key
-#   generated in the job, and verifies the complete asset set. Creates nothing.
-# release: requires main, no other workflow that publishes releases or npm
-#   packages, a version equal to crates/docbridge/Cargo.toml, no release for it, a `v<version>` tag that is
-#   absent or already at this commit, and in the `release` environment the
-#   DOCBRIDGE_RELEASE_KEY_ID and DOCBRIDGE_RELEASE_KEY_SECRET variables naming the
-#   active key and its per-key secret. It signs once, verifies against the keys
-#   compiled into this commit, uploads everything to a DRAFT release, re-downloads
-#   and verifies the draft's complete asset set, creates the tag at this commit,
-#   and only then publishes it. Any failure leaves at most a draft and a tag at
-#   this commit.
+# It requires main, no other workflow that publishes releases or npm packages,
+# a version equal to crates/docbridge/Cargo.toml, no release or draft for it,
+# and a `v<version>` tag that is absent or already at this commit. It builds the
+# five targets, writes SHA256SUMS, attests build provenance for the executables,
+# uploads everything to a DRAFT release, re-downloads and checks the draft's
+# assets against SHA256SUMS, creates the tag at this commit, and only then
+# publishes it. Any failure leaves at most a draft and a tag at this commit.
 #
-# See docs/contributing/releasing.md#vnext-release-manual.
+# See docs/contributing/releasing.md#releasing.
 
 on:
   workflow_dispatch:
     inputs:
-      mode:
-        description: dry-run signs with a throwaway key and creates nothing; release publishes
-        type: choice
-        options: [dry-run, release]
-        default: dry-run
       version:
-        description: Release version X.Y.Z (release mode only; must equal crates/docbridge/Cargo.toml)
-        required: false
-        default: ""
+        description: Release version X.Y.Z (must equal crates/docbridge/Cargo.toml)
+        required: true
 
 concurrency:
   group: release-vnext
   cancel-in-progress: false
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
+      # The documented `gh attestation verify --source-ref refs/heads/main`
+      # holds only because every release is built from main.
+      - name: Require main
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::releases run only from main, not ${GITHUB_REF}"
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.83.0
-      - name: Resolve and check the version
+      - name: Check the version
         id: version
         env:
-          MODE: ${{ inputs.mode }}
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           crate="$(sed -n 's/^version = "\(.*\)"$/\1/p' crates/docbridge/Cargo.toml | head -n 1)"
-          if [ "$MODE" = release ]; then
-            if [ "$GITHUB_REF" != refs/heads/main ]; then
-              echo "::error::release mode runs only from main"
-              exit 1
-            fi
-            if ! [[ "$INPUT_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-              echo "::error::version must be X.Y.Z without a leading v, prerelease, or build metadata"
-              exit 1
-            fi
-            if [ "$INPUT_VERSION" != "$crate" ]; then
-              echo "::error::crates/docbridge/Cargo.toml has version $crate, not $INPUT_VERSION"
-              exit 1
-            fi
-            cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows
-            version="$INPUT_VERSION"
-          else
-            version="$crate"
+          if ! [[ "$INPUT_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::version must be X.Y.Z without a leading v, prerelease, or build metadata"
+            exit 1
           fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-      # The tag must be absent or already at this commit; a failed lookup fails.
-      - name: Check the release tag
-        if: inputs.mode == 'release'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: cargo run --quiet --locked -p docbridge-release --target-dir .tmp/rust-vnext -- tag check "$VERSION" "$GITHUB_SHA"
+          if [ "$INPUT_VERSION" != "$crate" ]; then
+            echo "::error::crates/docbridge/Cargo.toml has version $crate, not $INPUT_VERSION"
+            exit 1
+          fi
+          cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows
+          echo "version=${INPUT_VERSION}" >> "$GITHUB_OUTPUT"
 
   build:
     name: build (${{ matrix.platform }})
     needs: prepare
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: true
       matrix:
@@ -123,20 +108,8 @@ jobs:
         with:
           toolchain: 1.83.0
           targets: ${{ matrix.target }}
-      # Linux releases are static musl binaries; ring's C code needs musl-gcc.
-      - name: Install musl tools
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install --yes musl-tools
       - name: Build release binary
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == Linux ]]; then
-            target="${{ matrix.target }}"
-            export "CC_${target//-/_}=musl-gcc"
-            target_env="$(tr '[:lower:]-' '[:upper:]_' <<<"$target")"
-            export "CARGO_TARGET_${target_env}_LINKER=musl-gcc"
-          fi
-          cargo build --package docbridge --release --locked --target ${{ matrix.target }} --target-dir .tmp/rust-vnext
+        run: cargo build --package docbridge --release --locked --target ${{ matrix.target }} --target-dir .tmp/rust-vnext
       - name: Check static linkage
         if: runner.os == 'Linux'
         run: |
@@ -162,144 +135,75 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  sign-dry-run:
-    name: sign (dry run, throwaway key)
-    if: inputs.mode != 'release'
-    needs: [prepare, build]
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.83.0
-      - name: Download the release assets
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: docbridge-*
-          path: .tmp/release-artifacts
-          merge-multiple: true
-      - name: Build the release tool
-        run: cargo build --package docbridge-release --locked --target-dir .tmp/rust-vnext
-      - name: Sign and verify with a throwaway key
-        env:
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          .tmp/rust-vnext/debug/docbridge-release dry-run \
-            --artifacts .tmp/release-artifacts --out .tmp/release-signed --version "$VERSION"
-
-  sign:
-    name: sign (release key)
-    if: inputs.mode == 'release'
-    needs: [prepare, build]
-    runs-on: ubuntu-24.04
-    environment: release
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.83.0
-      - name: Download the release assets
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: docbridge-*
-          path: .tmp/release-artifacts
-          merge-multiple: true
-      - name: Build the release tool
-        run: cargo build --package docbridge-release --release --locked --target-dir .tmp/rust-vnext
-      # Fails closed: a missing key ID, secret name, or secret, or a secret name
-      # that does not belong to the key ID, stops the release before signing. Each
-      # key has its own secret (docbridge-release keygen), so staging a new key
-      # never replaces the active one.
-      - name: Sign the asset set
-        env:
-          DOCBRIDGE_RELEASE_SIGNING_KEY: ${{ secrets[vars.DOCBRIDGE_RELEASE_KEY_SECRET] }}
-          KEY_ID: ${{ vars.DOCBRIDGE_RELEASE_KEY_ID }}
-          KEY_SECRET: ${{ vars.DOCBRIDGE_RELEASE_KEY_SECRET }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          if [ -z "$KEY_ID" ] || [ -z "$KEY_SECRET" ]; then
-            echo "::error::DOCBRIDGE_RELEASE_KEY_ID and DOCBRIDGE_RELEASE_KEY_SECRET must be set in the release environment"
-            exit 1
-          fi
-          expected="DOCBRIDGE_RELEASE_SIGNING_KEY_$(printf '%s' "$KEY_ID" | tr 'a-z.-' 'A-Z__')"
-          if [ "$KEY_SECRET" != "$expected" ]; then
-            echo "::error::DOCBRIDGE_RELEASE_KEY_SECRET is ${KEY_SECRET}, not ${expected}; run docbridge-release keygen --activate again"
-            exit 1
-          fi
-          if [ -z "$DOCBRIDGE_RELEASE_SIGNING_KEY" ]; then
-            echo "::error::secret ${KEY_SECRET} is not set in the release environment"
-            exit 1
-          fi
-          # The released CLI must trust a primary and an offline backup key, and
-          # the signing key must be one of them.
-          trusted="$(.tmp/rust-vnext/release/docbridge-release trusted-keys)"
-          if [ "$(wc -l <<<"${trusted}" | tr -d ' ')" -lt 2 ] || [ -z "${trusted}" ]; then
-            echo "::error::crates/docbridge-update/keys/trusted-keys.txt needs a primary and a backup key"
-            exit 1
-          fi
-          if ! grep -qxF "$KEY_ID" <<<"$trusted"; then
-            echo "::error::DOCBRIDGE_RELEASE_KEY_ID is not a compiled trusted key"
-            exit 1
-          fi
-          .tmp/rust-vnext/release/docbridge-release sign --version "$VERSION" \
-            --artifacts .tmp/release-artifacts --out .tmp/release-signed \
-            --key-id "$KEY_ID" --key-env DOCBRIDGE_RELEASE_SIGNING_KEY
-      # The released binaries trust exactly the keys compiled into this commit, so
-      # the set must verify with them; while production trust is pending, it fails.
-      - name: Verify against the compiled trusted keys
-        env:
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: .tmp/rust-vnext/release/docbridge-release verify --dir .tmp/release-signed --version "$VERSION" --compiled-keys
-      - name: Upload the signed asset set
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: release-signed
-          path: .tmp/release-signed/
-          if-no-files-found: error
-          retention-days: 7
-
   publish:
     name: publish (draft, verify, un-draft)
-    if: inputs.mode == 'release'
-    needs: [prepare, sign]
+    needs: [prepare, build]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.prepare.outputs.version }}
+      EXECUTABLES: >-
+        docbridge-aarch64-apple-darwin
+        docbridge-aarch64-unknown-linux-musl
+        docbridge-x86_64-apple-darwin
+        docbridge-x86_64-pc-windows-msvc.exe
+        docbridge-x86_64-unknown-linux-musl
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.83.0
-      - name: Build the release tool
-        run: cargo build --package docbridge-release --release --locked --target-dir .tmp/rust-vnext
-      - name: Download the signed asset set
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: release-signed
-          path: .tmp/release-signed
+      # The tag must be absent or a lightweight tag at exactly this commit; a
+      # tag elsewhere, an annotated tag, or a failed lookup fails. No release or
+      # draft for the tag may exist yet.
       - name: Refuse an existing release or draft, or a tag elsewhere
         run: |
-          .tmp/rust-vnext/release/docbridge-release tag check "$VERSION" "$GITHUB_SHA"
+          status=0
+          refs="$(git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}")" || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+            echo "::error::looking up tag v${VERSION} on origin failed (git exit ${status})"
+            exit 1
+          fi
+          if [ "$status" -eq 0 ] && [ "$refs" != "${GITHUB_SHA}"$'\t'"refs/tags/v${VERSION}" ]; then
+            echo "::error::tag v${VERSION} exists and does not point at ${GITHUB_SHA}: ${refs}"
+            exit 1
+          fi
           existing="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
             --jq ".[] | select(.tag_name == \"v${VERSION}\") | .id")"
           if [ -n "$existing" ]; then
             echo "::error::a release or draft for v${VERSION} already exists (ids: ${existing//$'\n'/ }); delete it first"
             exit 1
           fi
+      - name: Download the release assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: docbridge-*
+          path: .tmp/release-assets
+          merge-multiple: true
+      - name: Write SHA256SUMS
+        working-directory: .tmp/release-assets
+        run: |
+          read -ra executables <<<"$EXECUTABLES"
+          found=(*)
+          if [ "$(printf '%s\n' "${found[@]}" | LC_ALL=C sort)" != "$(printf '%s\n' "${executables[@]}" | LC_ALL=C sort)" ]; then
+            echo "::error::expected exactly ${EXECUTABLES}, found: ${found[*]}"
+            exit 1
+          fi
+          sha256sum "${executables[@]}" >SHA256SUMS
+          cat SHA256SUMS
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: .tmp/release-assets/docbridge-*
       - name: Create the draft release with every asset
         id: draft
         run: |
           gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --draft \
             --target "$GITHUB_SHA" --title "v${VERSION}" \
-            --notes "DocBridge v${VERSION}. Verify downloads with docbridge-manifest.json and docbridge-manifest.sig." \
-            .tmp/release-signed/*
+            --notes "DocBridge v${VERSION}. Verify downloads with gh attestation verify and SHA256SUMS: https://github.com/${GITHUB_REPOSITORY}/blob/v${VERSION}/README.md#install" \
+            .tmp/release-assets/*
           id="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
             --jq ".[] | select(.draft and .tag_name == \"v${VERSION}\") | .id")"
           if [ "$(wc -w <<<"$id")" -ne 1 ]; then
@@ -313,19 +217,25 @@ jobs:
         run: |
           mkdir .tmp/release-redownload
           gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
-            --jq '.[] | select(.state == "uploaded") | "\(.id) \(.name)"' >.tmp/release-assets.txt
-          cat .tmp/release-assets.txt
+            --jq '.[] | select(.state == "uploaded") | "\(.id) \(.name)"' >.tmp/release-asset-list.txt
+          cat .tmp/release-asset-list.txt
           while read -r asset_id name; do
             case "$name" in
               */* | .* | "") echo "::error::unexpected asset name ${name}"; exit 1 ;;
             esac
             gh api -H "Accept: application/octet-stream" \
               "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" >".tmp/release-redownload/${name}"
-          done <.tmp/release-assets.txt
-      # Exact asset set, SHA256SUMS, and every target through the upgrade verifier
-      # with the compiled trusted keys.
-      - name: Verify the complete draft asset set
-        run: .tmp/rust-vnext/release/docbridge-release verify --dir .tmp/release-redownload --version "$VERSION" --compiled-keys
+          done <.tmp/release-asset-list.txt
+      - name: Verify the draft's assets
+        working-directory: .tmp/release-redownload
+        run: |
+          read -ra expected <<<"SHA256SUMS $EXECUTABLES"
+          found=(*)
+          if [ "$(printf '%s\n' "${found[@]}" | LC_ALL=C sort)" != "$(printf '%s\n' "${expected[@]}" | LC_ALL=C sort)" ]; then
+            echo "::error::expected exactly SHA256SUMS ${EXECUTABLES}, found: ${found[*]}"
+            exit 1
+          fi
+          sha256sum -c SHA256SUMS
       # GitHub publishes a draft on an existing tag and ignores its target commit,
       # so the tag is created here at this commit, or must already point at it.
       # Annotated tags and lookup failures fail closed.
@@ -333,8 +243,36 @@ jobs:
         env:
           RELEASE_ID: ${{ steps.draft.outputs.id }}
         run: |
-          .tmp/rust-vnext/release/docbridge-release tag ensure "$VERSION" "$GITHUB_SHA"
+          tag_at() {
+            local refs status=0
+            refs="$(git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}")" || status=$?
+            if [ "$status" -eq 2 ]; then
+              return 0
+            fi
+            if [ "$status" -ne 0 ]; then
+              echo "::error::looking up tag v${VERSION} on origin failed (git exit ${status})" >&2
+              return 1
+            fi
+            if [ "$refs" != "${refs%%$'\n'*}" ]; then
+              echo "::error::tag v${VERSION} is annotated or ambiguous: ${refs}" >&2
+              return 1
+            fi
+            printf '%s\n' "${refs%%$'\t'*}"
+          }
+          current="$(tag_at)"
+          if [ -z "$current" ]; then
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/v${VERSION}" -f "sha=${GITHUB_SHA}" >/dev/null
+            current="$(tag_at)"
+          fi
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "::error::tag v${VERSION} points at ${current:-nothing}, not ${GITHUB_SHA}"
+            exit 1
+          fi
           gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             -F draft=false -f make_latest=true >/dev/null
-          .tmp/rust-vnext/release/docbridge-release tag check "$VERSION" "$GITHUB_SHA"
+          if [ "$(tag_at)" != "$GITHUB_SHA" ]; then
+            echo "::error::tag v${VERSION} moved away from ${GITHUB_SHA} while publishing"
+            exit 1
+          fi
           echo "Published v${VERSION}"

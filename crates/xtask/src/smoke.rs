@@ -100,10 +100,6 @@ pub fn check(bin: &Path, runner: &mut impl Runner) -> Result<String, String> {
     )
     .map_err(|e| e.to_string())?;
     run(&["validate", "--root", &root], 1)?;
-    let reply = run(&["upgrade", "--check"], 1)?;
-    if !reply.err.contains("install provenance") && !reply.err.contains("managed installation") {
-        return Err("upgrade omitted installation refusal".into());
-    }
     Ok(format!("vNext smoke checks passed: {}", bin.display()))
 }
 #[cfg(test)]

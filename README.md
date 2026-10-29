@@ -25,9 +25,30 @@ been published yet. Until then, build it from source.
 - From source with Rust 1.83 or later:
   `cargo install --locked --git https://github.com/salan70/docbridge docbridge`.
 
-`docbridge upgrade` replaces only a standalone installation that carries an
-installation receipt. Nix and other package-managed installations are updated
-through their package manager.
+To verify a downloaded executable, download `SHA256SUMS` from the same release
+and run, in the download directory:
+
+```sh
+gh attestation verify docbridge-<target> --repo salan70/docbridge \
+  --signer-workflow salan70/docbridge/.github/workflows/release-vnext.yml \
+  --source-ref refs/heads/main
+sha256sum -c --ignore-missing SHA256SUMS
+```
+
+On macOS, use `shasum -a 256 -c --ignore-missing SHA256SUMS` for the second
+command. `gh attestation verify` checks that the file was built from `main` by
+this repository's release workflow; the checksum command checks it against the
+release checksums.
+
+### Update
+
+DocBridge does not update itself. Update it the way you installed it:
+
+- GitHub release: download the new executable and replace the old one.
+- Nix: `nix profile upgrade docbridge` (see `nix profile list` for the entry
+  name).
+- Cargo:
+  `cargo install --locked --force --git https://github.com/salan70/docbridge docbridge`.
 
 Upgrading from the npm package (`0.16.0` and earlier)? There is no
 compatibility layer; see

@@ -24,12 +24,7 @@ fn bump_replaces_files_atomically_and_preserves_permissions() {
     assert_eq!(after.permissions().mode() & 0o777, 0o640);
     assert_eq!(original.metadata().unwrap().len(), before.len());
 }
-const MANIFESTS: [&str; 4] = [
-    "crates/docbridge/Cargo.toml",
-    "crates/docbridge-update/Cargo.toml",
-    "crates/docbridge-release/Cargo.toml",
-    "crates/xtask/Cargo.toml",
-];
+const MANIFESTS: [&str; 2] = ["crates/docbridge/Cargo.toml", "crates/xtask/Cargo.toml"];
 #[derive(Default)]
 struct Fake {
     base: BTreeMap<String, String>,
@@ -201,7 +196,7 @@ fn bump_refuses_empty_unreleased_without_writes() {
 #[test]
 fn malformed_last_manifest_refuses_before_any_write() {
     let (d, mut f) = fixture("- Change.");
-    write(d.path(), MANIFESTS[3], "[package]\nname = \"bad\"\n");
+    write(d.path(), MANIFESTS[1], "[package]\nname = \"bad\"\n");
     let before = read(&d.path().join("CHANGELOG.md")).unwrap();
     assert!(bump(d.path(), "patch", &mut f).is_err());
     assert_eq!(before, read(&d.path().join("CHANGELOG.md")).unwrap());
@@ -233,7 +228,7 @@ fn bump_rejects_missing_heading_invalid_versions_and_mismatched_manifests_before
                     write(d.path(), p, &manifest("1.2.3-beta.1"));
                 }
             }
-            _ => write(d.path(), MANIFESTS[3], &manifest("0.18.0")),
+            _ => write(d.path(), MANIFESTS[1], &manifest("0.18.0")),
         }
         let before = MANIFESTS
             .iter()

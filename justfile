@@ -98,7 +98,7 @@ smoke: build
     cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- smoke {{ target_dir }}/release/docbridge
 
 # Apply a release bump inside a pull request: roll CHANGELOG [Unreleased] into
-# the new version and set it in the four versioned crate manifests. The `release: <kind>`
+# the new version and set it in the two versioned crate manifests. The `release: <kind>`
 # label on the pull request must name the same kind.
 release-bump KIND:
     cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- release-bump {{ KIND }}

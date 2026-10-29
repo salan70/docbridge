@@ -4,7 +4,7 @@
       "paths": ["crates"],
       "extensions": [".rs"]
     },
-    "docs": ["docs/specs", "docs/contributing", "crates/docbridge-update"]
+    "docs": ["docs/specs", "docs/contributing"]
   },
   "exclude": {}
 }
