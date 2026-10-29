@@ -78,13 +78,13 @@ Every PR carries exactly one release label:
 
 For a releasing PR, add the user-facing entries under `## [Unreleased]`
 following Keep a Changelog, then run `just release-bump <kind>`
-(`scripts/release-bump.sh`). It rolls `## [Unreleased]` into
-`## [X.Y.Z] - <date>`, sets `version` in every crate manifest
-(`crates/docbridge`, `crates/docbridge-update`, and `crates/docbridge-release`),
+(`xtask release-bump`). It rolls `## [Unreleased]` into
+`## [X.Y.Z] - <date>`, sets `version` in the four explicit crate manifests
+(`crates/docbridge`, `crates/docbridge-update`, `crates/docbridge-release`, and `crates/xtask`),
 and updates `Cargo.lock`.
 
 The required `release-label` check (`.github/workflows/release-label.yml`,
-`scripts/check-release-label.sh`) compares the PR head with the base branch
+`xtask release-label`) compares the PR head with the base branch
 tip. It fails when the label is missing or duplicated, when the versions are
 not the label's next version, or when the CHANGELOG is not rolled. It reruns
 when labels change; `just check-release-label "release: patch"` runs it

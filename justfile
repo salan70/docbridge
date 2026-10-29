@@ -64,12 +64,11 @@ lint-nix:
 # Also fails while any workflow other than release-vnext.yml publishes.
 lint-actions:
     actionlint
-    scripts/check-legacy-publisher-retired.sh .github/workflows
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- publisher-gate .github/workflows
 
 # Check the canonical agent assets and their contributor references.
 lint-ai-assets:
-    scripts/check-ai-assets.sh
-    bash scripts/test-ai-assets.sh
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- agent-gate
 
 test:
     cargo test --workspace --locked --target-dir {{ target_dir }}
@@ -96,19 +95,19 @@ build:
 
 # Smoke-run the release binary for this machine, as each CI platform job does.
 smoke: build
-    scripts/smoke-vnext.sh {{ target_dir }}/release/docbridge
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- smoke {{ target_dir }}/release/docbridge
 
 # Apply a release bump inside a pull request: roll CHANGELOG [Unreleased] into
-# the new version and set it in every crate manifest. The `release: <kind>`
+# the new version and set it in the four versioned crate manifests. The `release: <kind>`
 # label on the pull request must name the same kind.
 release-bump KIND:
-    scripts/release-bump.sh {{ KIND }}
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- release-bump {{ KIND }}
 
 # Check release labels and the change against origin/main, as the required
 # `release-label` check does: `just check-release-label "release: patch"`.
 [positional-arguments]
 check-release-label +LABELS:
-    scripts/check-release-label.sh origin/main "$@"
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- release-label origin/main "$@"
 
 flake-check:
     nix flake check

@@ -411,8 +411,17 @@ fn every_test_seed_is_a_registered_fixture() {
         "docbridge-update/src",
         "docbridge-update/tests",
     ] {
-        for entry in fs::read_dir(crates.join(dir)).unwrap() {
-            let text = fs::read_to_string(entry.unwrap().path()).unwrap();
+        let mut pending = vec![crates.join(dir)];
+        while let Some(path) = pending.pop() {
+            if path.is_dir() {
+                pending.extend(
+                    fs::read_dir(path)
+                        .unwrap()
+                        .map(|entry| entry.unwrap().path()),
+                );
+                continue;
+            }
+            let text = fs::read_to_string(path).unwrap();
             for part in text.split(needle.as_str()).skip(1) {
                 let (byte, rest) = part.split_once(';').unwrap();
                 assert!(rest.trim_start().starts_with("32]"), "{part}");

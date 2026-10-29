@@ -11,6 +11,7 @@ to decide where it belongs.
 | `crates/docbridge`         | The `docbridge` executable and its library: commands, project scanning, queries, and lifecycle | `docbridge-update` |
 | `crates/docbridge-update`  | Verified self-update of a standalone executable: release format, signatures, replacement       | none               |
 | `crates/docbridge-release` | The unpublished maintainer tool that signs and verifies a release asset set                    | `docbridge-update` |
+| `crates/xtask`             | Unpublished repository gates, smoke checks, and release version maintenance                    | none               |
 
 `docbridge-update` never depends on the CLI, so the release tool verifies a
 release with exactly the code that `docbridge upgrade` runs.
@@ -66,6 +67,19 @@ types, their JSON serialization, and the text rendering of a graph.
 - `docs.rs` embeds the guides under `crates/docbridge/guides/` with
   `include_str!` and serves `docbridge docs`.
 - `cli_upgrade.rs` adapts `docbridge-update` to the `upgrade` command.
+
+<!-- @code crates/xtask/src/main.rs -->
+<!-- @code crates/xtask/src/gates.rs -->
+<!-- @code crates/xtask/src/smoke.rs -->
+<!-- @code crates/xtask/src/release.rs -->
+
+## Repository automation
+
+`xtask` owns `agent-gate`, `publisher-gate`, `smoke`, `release-label`, and `release-bump`.
+Run it from the checkout with `cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- <command>`; `just` and workflows use this same interface.
+The agent and publisher regression tests run once as part of the Cargo workspace tests in `just verify`.
+Version maintenance names exactly four manifests: `docbridge`, `docbridge-update`, `docbridge-release`, and `xtask`.
+Only the product CLI and update library are published; repository automation adds no product command or API.
 
 ## Verification
 
