@@ -1,9 +1,10 @@
+use crate::paths;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
     fs::{self, OpenOptions},
-    io::Write,
+    io::{ErrorKind, Write},
     path::{Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
 };
@@ -23,7 +24,6 @@ pub struct Outcome {
     pub stderr: String,
     pub code: i32,
 }
-pub type InitResult = Outcome;
 fn outcome(result: Result<String, String>) -> Outcome {
     match result {
         Ok(stdout) => Outcome {
@@ -44,150 +44,80 @@ fn hash(bytes: &[u8]) -> String {
 fn relative(path: &str) -> Result<(), String> {
     crate::config::validate_path(path, false)
 }
-fn unsafe_metadata(meta: &fs::Metadata) -> bool {
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        if meta.file_attributes() & 0x400 != 0 {
-            return true;
-        }
+/// The content of the regular file at `name`, or `None` if it does not exist.
+fn current(root: &Path, name: &str) -> Result<Option<Vec<u8>>, String> {
+    match fs::symlink_metadata(paths::resolve(root, name)?) {
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
+        _ => paths::read(root, name).map(Some),
     }
-    meta.file_type().is_symlink()
 }
-fn safe(root: &Path, name: &str) -> Result<PathBuf, String> {
-    let root_meta = fs::symlink_metadata(root).map_err(|e| e.to_string())?;
-    if unsafe_metadata(&root_meta) || !root_meta.is_dir() {
-        return Err(format!("unsafe project root: {}", root.display()));
-    }
-    relative(name)?;
-    let mut path = root.to_path_buf();
-    for part in name.split('/') {
-        // Compare with the actual entry name, even on case-folding file systems.
-        if path.is_dir() {
-            let exact = fs::read_dir(&path)
-                .map_err(|e| e.to_string())?
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|e| e.to_string())?
+const TEMP_PREFIX: &str = ".docbridge-tmp-";
+/// Whether `name` has the exact shape of a [`replace`] temporary file,
+/// `.docbridge-tmp-<process>-<time>-<serial>` in decimal. Such a file is a
+/// leftover of an interrupted write and holds no user data.
+fn is_temp(name: &str) -> bool {
+    name.strip_prefix(TEMP_PREFIX).is_some_and(|rest| {
+        let parts: Vec<_> = rest.split('-').collect();
+        parts.len() == 3
+            && parts
                 .iter()
-                .any(|entry| entry.file_name() == part);
-            if !exact && fs::symlink_metadata(path.join(part)).is_ok() {
-                return Err(format!(
-                    "path spelling does not match directory entry: {name}"
-                ));
-            }
-        }
-        path.push(part);
-        match fs::symlink_metadata(&path) {
-            Ok(m) if unsafe_metadata(&m) => {
-                return Err(format!("unsafe symlink/reparse path: {}", path.display()))
-            }
-            Ok(_) => (),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
-            Err(e) => return Err(format!("{}: {e}", path.display())),
-        }
-    }
-    Ok(path)
+                .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
+    })
 }
-fn read(root: &Path, name: &str) -> Result<Vec<u8>, String> {
-    let p = safe(root, name)?;
-    let m = fs::metadata(&p).map_err(|e| format!("{}: {e}", p.display()))?;
-    if !m.is_file() {
-        return Err(format!("not a regular file: {}", p.display()));
-    }
-    fs::read(&p).map_err(|e| format!("{}: {e}", p.display()))
+fn is_regular(metadata: &fs::Metadata) -> bool {
+    !paths::is_link(metadata) && metadata.is_file()
 }
-/// Whether `path` exists as a real (non-link) directory with no entries.
-fn empty_plain_dir(path: &Path) -> Result<bool, String> {
+/// Whether `path` is a real directory holding nothing but leftover temporary
+/// files, such as one left by deinit or by an interrupted init.
+fn holds_no_user_data(path: &Path) -> Result<bool, String> {
+    let error = |e: std::io::Error| format!("{}: {e}", path.display());
     match fs::symlink_metadata(path) {
-        Ok(m) if !unsafe_metadata(&m) && m.is_dir() => Ok(fs::read_dir(path)
-            .map_err(|e| format!("{}: {e}", path.display()))?
-            .next()
-            .is_none()),
-        Ok(_) => Ok(false),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(format!("{}: {e}", path.display())),
+        Ok(m) if !paths::is_link(&m) && m.is_dir() => {}
+        Ok(_) => return Ok(false),
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(error(e)),
     }
+    for entry in fs::read_dir(path).map_err(error)? {
+        let entry = entry.map_err(error)?;
+        let leftover = entry.file_name().to_str().is_some_and(is_temp)
+            && fs::symlink_metadata(entry.path()).is_ok_and(|m| is_regular(&m));
+        if !leftover {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
-/// Files found by an exploratory walk, plus entries that were not inspected.
-#[derive(Default)]
-struct Walk {
-    files: Vec<String>,
-    /// `(path, reason)` for links, non-UTF-8 names, and unreadable entries.
-    skipped: Vec<(String, String)>,
-}
-/// Explore without following links. Links and unreadable entries are recorded
-/// in `skipped`; callers decide whether they matter for a managed path.
-fn walk(
+/// Removals of the leftover temporary files under `dir` among the walked `files`.
+/// A file the ownership `record` lists is never a leftover; its hash decides.
+fn leftovers(
     root: &Path,
-    directory: &str,
-    out: &mut Walk,
-    relevant: &dyn Fn(&str) -> bool,
-) -> Result<(), String> {
-    let path = if directory.is_empty() {
-        root.to_path_buf()
-    } else {
-        let path = root.join(directory);
-        match fs::symlink_metadata(&path) {
-            Ok(m) if !unsafe_metadata(&m) && m.is_dir() => path,
-            _ => {
-                out.skipped.push((
-                    directory.into(),
-                    "changed during discovery; not inspected".into(),
-                ));
-                return Ok(());
-            }
-        }
+    files: &[String],
+    dir: &str,
+    record: Option<&BTreeMap<String, String>>,
+) -> Result<Vec<Change>, String> {
+    let recorded = |f: &str| {
+        f.strip_prefix(dir)
+            .and_then(|rest| rest.strip_prefix('/'))
+            .is_some_and(|name| record.is_some_and(|r| r.contains_key(name)))
     };
-    let entries = fs::read_dir(&path)
-        .and_then(|entries| entries.collect::<Result<Vec<_>, _>>())
-        .map_err(|e| format!("{}: {e}", path.display()));
-    let mut entries = match entries {
-        Ok(entries) => entries,
-        Err(e) if directory.is_empty() => return Err(e),
-        Err(e) => {
-            out.skipped
-                .push((directory.into(), format!("unreadable: {e}")));
-            return Ok(());
-        }
-    };
-    entries.sort_by_key(|e| e.file_name());
-    for entry in entries {
-        let raw = entry.file_name();
-        let name = raw.to_string_lossy();
-        if name == ".git" || name.starts_with(".docbridge-recovery-") {
-            continue;
-        }
-        let rel = if directory.is_empty() {
-            name.into_owned()
-        } else {
-            format!("{directory}/{name}")
-        };
-        if !relevant(&rel) {
-            continue;
-        }
-        if raw.to_str().is_none() {
-            out.skipped
-                .push((rel, "non-UTF-8 name; not inspected".into()));
-            continue;
-        }
-        match fs::symlink_metadata(entry.path()) {
-            Err(e) => out.skipped.push((rel, format!("unreadable: {e}"))),
-            Ok(m) if unsafe_metadata(&m) => out
-                .skipped
-                .push((rel, "symlink/reparse point; not followed".into())),
-            Ok(m) if m.is_dir() => walk(root, &rel, out, relevant)?,
-            Ok(m) if m.is_file() => out.files.push(rel),
-            Ok(_) => (),
-        }
-    }
-    Ok(())
+    files
+        .iter()
+        .filter(|f| under(f, dir) && f.rsplit('/').next().is_some_and(is_temp) && !recorded(f))
+        .map(|f| {
+            Ok(Change {
+                path: f.clone(),
+                before: Some(paths::read(root, f)?),
+                after: None,
+            })
+        })
+        .collect()
 }
 fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, String> {
     let marker = format!("{dir}/{RECORD}");
-    if !safe(root, &marker)?.exists() {
+    let Some(bytes) = current(root, &marker)? else {
         return Ok(None);
-    }
-    let record: BTreeMap<String, String> = serde_json::from_slice(&read(root, &marker)?)
+    };
+    let record: BTreeMap<String, String> = serde_json::from_slice(&bytes)
         .map_err(|e| format!("invalid ownership record {marker}: {e}"))?;
     if record.is_empty() {
         return Err(format!("empty ownership record: {marker}"));
@@ -197,15 +127,14 @@ fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, Str
         if name == RECORD || digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err(format!("invalid ownership entry: {name}"));
         }
-        safe(root, &format!("{dir}/{name}"))?;
+        paths::resolve(root, &format!("{dir}/{name}"))?;
     }
     Ok(Some(record))
 }
 pub fn init(root: &Path, options: &InitOptions) -> Outcome {
     outcome((|| {
         let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
-        let mut found = Walk::default();
-        walk(&root, "", &mut found, &|_| true)?;
+        let found = paths::walk(&root, &|_| true)?;
         let mut extensions = BTreeSet::new();
         let mut paths = BTreeSet::new();
         let mut docs = Vec::new();
@@ -233,17 +162,13 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
             root.display(),
             String::from_utf8_lossy(&config)
         );
-        for (path, reason) in &found.skipped {
-            report.push_str(&format!("Skipped during discovery: {path} ({reason})\n"));
-        }
-        for recovery in pending_recovery(&root)? {
+        for skipped in &found.skipped {
             report.push_str(&format!(
-                "Unfinished recovery: {}; inspect manifest.json before applying changes.\n",
-                recovery.display()
+                "Skipped during discovery: {} ({})\n",
+                skipped.path, skipped.reason
             ));
         }
-        if safe(&root, CONFIG)?.exists() {
-            read(&root, CONFIG)?;
+        if current(&root, CONFIG)?.is_some() {
             report.push_str("Preserve existing configuration (including with --force).\n");
         } else {
             changes.push(Change {
@@ -258,64 +183,71 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
         }
         for dir in dirs {
             let record = owned(&root, dir)?;
-            let dir_path = safe(&root, dir)?;
-            // An empty real directory (left by deinit or a rolled-back init)
-            // holds no user data and is treated as absent.
-            let present = fs::symlink_metadata(&dir_path).is_ok() && !empty_plain_dir(&dir_path)?;
+            let stale = leftovers(&root, &found.files, dir, record.as_ref())?;
+            let dir_path = paths::resolve(&root, dir)?;
+            // A directory that holds no user data is treated as absent.
+            let present =
+                fs::symlink_metadata(&dir_path).is_ok() && !holds_no_user_data(&dir_path)?;
             if present && record.is_none() {
                 return Err(format!("unmanaged skill conflict: {dir}; use docbridge docs show migration for manual retirement"));
             }
             let skill = format!("{dir}/SKILL.md");
-            let existing = if safe(&root, &skill)?.exists() {
-                Some(read(&root, &skill)?)
+            let existing = current(&root, &skill)?;
+            if existing.is_some() && !record.as_ref().is_some_and(|r| r.contains_key("SKILL.md")) {
+                return Err(format!("unowned skill file: {skill}"));
+            }
+            if existing.is_some() && !options.force {
+                report.push_str(&format!(
+                    "Preserve managed skill {dir}; --force permits replacement.\n"
+                ));
             } else {
-                None
-            };
-            if let Some(bytes) = &existing {
-                if !record.as_ref().is_some_and(|r| r.contains_key("SKILL.md")) {
-                    return Err(format!("unowned skill file: {skill}"));
+                let digest = hash(SKILL.as_bytes());
+                let mut record = record.unwrap_or_default();
+                let changed = changes.len();
+                // The record goes first, so a rerun after a failed skill write
+                // still recognizes the directory as owned and finishes the install.
+                if record.get("SKILL.md") != Some(&digest) {
+                    record.insert("SKILL.md".into(), digest);
+                    let marker = format!("{dir}/{RECORD}");
+                    changes.push(Change {
+                        before: current(&root, &marker)?,
+                        path: marker,
+                        after: Some(serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?),
+                    });
                 }
-                if !options.force {
-                    report.push_str(&format!(
-                        "Preserve managed skill {dir}; --force permits replacement.\n"
-                    ));
-                    continue;
+                if existing.as_deref() != Some(SKILL.as_bytes()) {
+                    changes.push(Change {
+                        path: skill,
+                        before: existing,
+                        after: Some(SKILL.as_bytes().to_vec()),
+                    });
                 }
-                if bytes == SKILL.as_bytes() {
+                if changes.len() == changed {
                     report.push_str(&format!("Managed skill already current: {dir}\n"));
-                    continue;
+                } else {
+                    report.push_str(&format!("Install managed skill: {dir}\n"));
                 }
             }
-            let mut record = record.unwrap_or_default();
-            record.insert("SKILL.md".into(), hash(SKILL.as_bytes()));
-            changes.push(Change {
-                path: skill,
-                before: existing,
-                after: Some(SKILL.as_bytes().to_vec()),
-            });
-            let marker = format!("{dir}/{RECORD}");
-            let before = if safe(&root, &marker)?.exists() {
-                Some(read(&root, &marker)?)
-            } else {
-                None
-            };
-            changes.push(Change {
-                path: marker,
-                before,
-                after: Some(serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?),
-            });
-            report.push_str(&format!("Install managed skill: {dir}\n"));
+            for leftover in stale {
+                report.push_str(&format!(
+                    "Remove leftover temporary file: {}\n",
+                    leftover.path
+                ));
+                changes.push(leftover);
+            }
         }
         if options.dry_run || !options.yes {
             report.push_str("Inspection only; no changes. Pass --yes to apply.\n");
             return Ok(report);
         }
-        transact(&root, &changes)?;
+        let steps: Vec<_> = changes.into_iter().map(Step::File).collect();
+        apply(&root, &steps)?;
         report.push_str("Initialization complete.\n");
         Ok(report)
     })())
 }
 
+/// Write (`after` is `Some`) or remove one file whose content is still `before`.
 #[derive(Debug)]
 struct Change {
     path: String,
@@ -323,13 +255,26 @@ struct Change {
     after: Option<Vec<u8>>,
 }
 #[derive(Debug)]
+enum Step {
+    File(Change),
+    /// Remove a directory if it is empty when the step runs.
+    Directory(String),
+}
+impl Step {
+    fn path(&self) -> &str {
+        match self {
+            Step::File(change) => &change.path,
+            Step::Directory(dir) => dir,
+        }
+    }
+}
+#[derive(Debug)]
 pub struct RemovalPlan {
     pub root: PathBuf,
     pub preserved: Vec<String>,
     pub references: Vec<String>,
-    changes: Vec<Change>,
-    /// Directories that held only owned skill files; removed after success if still empty.
-    directories: Vec<String>,
+    /// Applied in order; see [`plan_deinit`].
+    steps: Vec<Step>,
     /// Advisory entries that were not inspected (links, unreadable files).
     skipped: Vec<String>,
     /// Reasons the cleanup cannot be complete; apply then exits nonzero.
@@ -338,20 +283,16 @@ pub struct RemovalPlan {
 impl fmt::Display for RemovalPlan {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Removal root: {}", self.root.display())?;
-        for c in &self.changes {
-            writeln!(
-                f,
-                "{} {}",
-                if c.after.is_some() {
-                    "Rewrite annotations:"
-                } else {
-                    "Remove:"
-                },
-                c.path
-            )?;
-        }
-        for d in &self.directories {
-            writeln!(f, "Remove directory if empty: {d}")?;
+        for step in &self.steps {
+            match step {
+                Step::File(Change {
+                    path,
+                    after: Some(_),
+                    ..
+                }) => writeln!(f, "Rewrite annotations: {path}")?,
+                Step::File(Change { path, .. }) => writeln!(f, "Remove: {path}")?,
+                Step::Directory(dir) => writeln!(f, "Remove directory if empty: {dir}")?,
+            }
         }
         for p in &self.preserved {
             writeln!(f, "Preserve/manual review: {p}")?;
@@ -391,20 +332,20 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         root,
         preserved: Vec::new(),
         references: Vec::new(),
-        changes: Vec::new(),
-        directories: Vec::new(),
+        steps: Vec::new(),
         skipped: Vec::new(),
         incomplete: Vec::new(),
     };
-    let config_path = safe(&plan.root, CONFIG)?;
+    let mut config_removal = None;
+    let config_path = paths::resolve(&plan.root, CONFIG)?;
     let config = if fs::symlink_metadata(&config_path).is_ok() {
-        match read(&plan.root, CONFIG) {
+        match paths::read(&plan.root, CONFIG) {
             Ok(bytes) => {
-                plan.changes.push(Change {
+                config_removal = Some(Step::File(Change {
                     path: CONFIG.into(),
                     before: Some(bytes),
                     after: None,
-                });
+                }));
                 match crate::config::Config::load(&plan.root) {
                     Ok(config) => Some(config),
                     Err(e) => {
@@ -424,12 +365,6 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
     } else {
         None
     };
-    for recovery in pending_recovery(&plan.root)? {
-        plan.preserved.push(format!(
-            "{} (unfinished recovery; inspect manifest.json before retrying)",
-            recovery.display()
-        ));
-    }
     let in_docs = |p: &str| {
         config.as_ref().is_some_and(|c| {
             c.include
@@ -438,15 +373,14 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
                 .any(|s| crate::config::may_contain(s, p))
         })
     };
-    let mut found = Walk::default();
-    walk(&plan.root, "", &mut found, &|p| {
+    let found = paths::walk(&plan.root, &|p| {
         SKILL_DIRS.iter().any(|s| crate::config::may_contain(s, p))
             || reference_patterns()
                 .iter()
                 .any(|s| crate::config::may_contain(s, p))
             || in_docs(p)
     })?;
-    for (path, reason) in found.skipped {
+    for paths::Skipped { path, reason, .. } in found.skipped {
         if SKILL_DIRS.iter().any(|s| *s == path || under(s, &path)) {
             // Never treat an unsafe skill directory or ancestor as cleanable.
             return Err(format!("unsafe managed path: {path} ({reason})"));
@@ -461,67 +395,78 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
             plan.skipped.push(format!("{path} ({reason})"));
         }
     }
+    let mut skill_steps = Vec::new();
     for dir in SKILL_DIRS {
-        if let Some(record) = owned(&plan.root, dir)? {
-            let mut removed_parents = BTreeSet::new();
-            for (file, digest) in record {
-                let path = format!("{dir}/{file}");
-                if !safe(&plan.root, &path)?.exists() {
-                    continue;
-                }
-                let bytes = read(&plan.root, &path)?;
-                if hash(&bytes) == digest {
-                    let mut parent = Path::new(&path).parent();
-                    while let Some(p) = parent.and_then(|p| p.to_str()) {
-                        if !under(p, dir) {
-                            break;
-                        }
-                        removed_parents.insert(p.to_string());
-                        parent = Path::new(p).parent();
-                    }
-                    plan.changes.push(Change {
-                        path,
-                        before: Some(bytes),
-                        after: None,
-                    });
-                } else {
-                    plan.preserved.push(format!("{path} (modified)"));
-                }
-            }
-            // Keep the ownership record while modified owned files remain.
-            let keep_record = plan
-                .preserved
-                .iter()
-                .any(|p| p.ends_with(" (modified)") && under(p, dir));
-            if !keep_record {
-                let marker = format!("{dir}/{RECORD}");
-                plan.changes.push(Change {
-                    before: Some(read(&plan.root, &marker)?),
-                    path: marker,
+        let record = owned(&plan.root, dir)?;
+        let mut removals = Vec::new();
+        let mut modified = false;
+        // Owned subdirectories come from the record rather than from the files
+        // still present, so a rerun still finds them after their files are gone.
+        let mut directories = BTreeSet::new();
+        for (file, digest) in record.iter().flatten() {
+            let path = format!("{dir}/{file}");
+            directories.extend(
+                Path::new(&path)
+                    .ancestors()
+                    .skip(1)
+                    .filter_map(Path::to_str)
+                    .take_while(|p| under(p, dir))
+                    .map(String::from),
+            );
+            let Some(bytes) = current(&plan.root, &path)? else {
+                continue;
+            };
+            if hash(&bytes) == *digest {
+                removals.push(Change {
+                    path,
+                    before: Some(bytes),
                     after: None,
                 });
+            } else {
+                plan.preserved.push(format!("{path} (modified)"));
+                modified = true;
             }
-            for file in found.files.iter().filter(|f| under(f, dir)) {
-                if !plan.changes.iter().any(|c| &c.path == file)
-                    && !plan.preserved.iter().any(|p| p.starts_with(file))
-                {
-                    plan.preserved.push(file.clone());
-                }
-            }
-            if !keep_record {
-                removed_parents.insert(dir.to_string());
-                // Deepest first; only directories with no preserved content.
-                let mut dirs: Vec<_> = removed_parents
-                    .into_iter()
-                    .filter(|d| !plan.preserved.iter().any(|p| under(p, d)))
-                    .collect();
-                dirs.sort_by_key(|d| std::cmp::Reverse(d.matches('/').count()));
-                plan.directories.extend(dirs);
-            }
-        } else {
-            for file in found.files.iter().filter(|f| under(f, dir)) {
+        }
+        removals.extend(leftovers(&plan.root, &found.files, dir, record.as_ref())?);
+        // Keep the ownership record while modified owned files remain.
+        let remove_record = record.is_some() && !modified;
+        let marker = format!("{dir}/{RECORD}");
+        for file in found.files.iter().filter(|f| under(f, dir)) {
+            let planned =
+                removals.iter().any(|c| &c.path == file) || (remove_record && *file == marker);
+            if !planned && !plan.preserved.iter().any(|p| p.starts_with(file.as_str())) {
                 plan.preserved.push(file.clone());
             }
+        }
+        skill_steps.extend(removals.into_iter().map(Step::File));
+        let unpreserved = |d: &str| !plan.preserved.iter().any(|p| under(p, d));
+        if remove_record {
+            // The record goes only after the files and directories it covers,
+            // so a rerun after a partial failure still knows what to remove.
+            // Deepest first; only directories with no preserved content.
+            let mut directories: Vec<_> =
+                directories.into_iter().filter(|d| unpreserved(d)).collect();
+            directories.sort_by_key(|d| std::cmp::Reverse(d.matches('/').count()));
+            for directory in directories {
+                if fs::symlink_metadata(paths::resolve(&plan.root, &directory)?).is_ok() {
+                    skill_steps.push(Step::Directory(directory));
+                }
+            }
+            skill_steps.push(Step::File(Change {
+                before: Some(paths::read(&plan.root, &marker)?),
+                path: marker,
+                after: None,
+            }));
+        }
+        // Without a record, as after a failed run removed it, only a directory
+        // that holds no user data is removed.
+        let removable = if record.is_some() {
+            remove_record && unpreserved(dir)
+        } else {
+            holds_no_user_data(&paths::resolve(&plan.root, dir)?)?
+        };
+        if removable {
+            skill_steps.push(Step::Directory(dir.into()));
         }
     }
     for file in found.files {
@@ -541,7 +486,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         if !selected && !ref_candidate {
             continue;
         }
-        let bytes = match read(&plan.root, &file) {
+        let bytes = match paths::read(&plan.root, &file) {
             Ok(bytes) => bytes,
             Err(e) if selected => {
                 plan.incomplete.push(format!(
@@ -610,37 +555,40 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
             .map(|(_, line)| line)
             .collect();
         if after.as_bytes() != bytes {
-            plan.changes.push(Change {
+            plan.steps.push(Step::File(Change {
                 path: file,
                 before: Some(bytes),
                 after: Some(after.into_bytes()),
-            });
+            }));
         }
     }
+    // Rewrites first and the configuration last; each ownership record already
+    // follows what it covers. A rerun after a partial failure then still finds
+    // the documentation scope and ownership it needs to finish.
+    plan.steps.extend(skill_steps);
+    plan.steps.extend(config_removal);
     Ok(plan)
 }
-/// Remove `dir` only if it is still a real, empty directory.
-fn remove_empty_dir(root: &Path, dir: &str) -> Result<bool, String> {
-    let path = safe(root, dir)?;
-    if !empty_plain_dir(&path)? {
-        return Ok(false);
+/// Remove `dir` if it is still a real, empty directory, and describe the result.
+fn remove_empty_dir(root: &Path, dir: &str) -> Result<String, String> {
+    let path = paths::resolve(root, dir)?;
+    let error = |e: std::io::Error| format!("{}: {e}", path.display());
+    match fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(String::new()),
+        Err(e) => return Err(error(e)),
+        Ok(_) => {}
     }
-    fs::remove_dir(&path)
-        .map(|_| true)
-        .map_err(|e| format!("{}: {e}", path.display()))
+    if fs::read_dir(&path).map_err(error)?.next().is_some() {
+        return Ok(format!("Kept non-empty directory: {dir}\n"));
+    }
+    fs::remove_dir(&path).map_err(error)?;
+    Ok(format!("Removed empty directory: {dir}\n"))
 }
 pub fn apply_deinit(plan: &RemovalPlan) -> Outcome {
-    if let Err(e) = transact(&plan.root, &plan.changes) {
-        return outcome(Err(e));
-    }
-    let mut notes = String::new();
-    for dir in &plan.directories {
-        match remove_empty_dir(&plan.root, dir) {
-            Ok(true) => notes.push_str(&format!("Removed empty directory: {dir}\n")),
-            Ok(false) => notes.push_str(&format!("Kept non-empty directory: {dir}\n")),
-            Err(e) => notes.push_str(&format!("Kept directory {dir}: {e}\n")),
-        }
-    }
+    let notes = match apply(&plan.root, &plan.steps) {
+        Ok(notes) => notes,
+        Err(e) => return outcome(Err(e)),
+    };
     if plan.incomplete.is_empty() {
         return outcome(Ok(format!("Removal complete.\n{notes}{plan}")));
     }
@@ -695,287 +643,101 @@ fn unique() -> String {
         SERIAL.fetch_add(1, Ordering::Relaxed)
     )
 }
-/// Create a new file. With `permissions`, it is created private (0600 on Unix)
-/// and then set to those permissions; otherwise the platform default (umask) applies.
-fn write_new(
-    path: &Path,
-    bytes: &[u8],
-    permissions: Option<&fs::Permissions>,
-) -> Result<(), String> {
+/// A fresh name that [`is_temp`] recognizes.
+fn temp_name() -> String {
+    format!("{TEMP_PREFIX}{}", unique())
+}
+/// Write or remove one target atomically. New content goes to a temporary
+/// file in the target's directory and is renamed over the target, so the
+/// target holds either its old or its new content. A rewrite keeps the
+/// target's permissions; a new file gets the platform defaults.
+fn replace(root: &Path, name: &str, bytes: Option<&[u8]>) -> Result<(), String> {
+    let path = paths::resolve(root, name)?;
+    let error = |e: std::io::Error| format!("{}: {e}", path.display());
+    let Some(bytes) = bytes else {
+        return fs::remove_file(&path).map_err(error);
+    };
+    let parent = path.parent().ok_or("missing parent")?;
+    fs::create_dir_all(parent).map_err(error)?;
+    paths::resolve(root, name)?;
+    let permissions = fs::symlink_metadata(&path)
+        .ok()
+        .filter(|m| m.is_file())
+        .map(|m| m.permissions());
+    let temp = parent.join(temp_name());
     let mut options = OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
         if permissions.is_some() {
+            // Private until the target's permissions are applied.
             options.mode(0o600);
         }
     }
-    let mut file = options
-        .open(path)
-        .map_err(|e| format!("{}: {e}", path.display()))?;
-    file.write_all(bytes)
-        .and_then(|_| match permissions {
-            Some(p) => file.set_permissions(p.clone()),
-            None => Ok(()),
-        })
-        .and_then(|_| file.sync_all())
-        .map_err(|e| format!("{}: {e}", path.display()))
-}
-#[cfg(unix)]
-fn private() -> Option<fs::Permissions> {
-    use std::os::unix::fs::PermissionsExt;
-    Some(fs::Permissions::from_mode(0o600))
-}
-#[cfg(not(unix))]
-fn private() -> Option<fs::Permissions> {
-    // Windows: the recovery directory inherits ACLs from the project root.
-    None
-}
-type Operation<'a> =
-    dyn FnMut(&Path, &str, &Option<Vec<u8>>, Option<&fs::Permissions>) -> Result<(), String> + 'a;
-/// Atomically write or remove one target. Rewrites keep `permissions` (or the
-/// existing file's permissions); new files use platform defaults.
-fn replace(
-    root: &Path,
-    name: &str,
-    bytes: &Option<Vec<u8>>,
-    permissions: Option<&fs::Permissions>,
-) -> Result<(), String> {
-    let path = safe(root, name)?;
-    if let Some(bytes) = bytes {
-        let parent = path.parent().ok_or("missing parent")?;
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        safe(root, name)?;
-        let keep = match permissions {
-            Some(p) => Some(p.clone()),
-            None => fs::symlink_metadata(&path)
-                .ok()
-                .filter(|m| m.is_file())
-                .map(|m| m.permissions()),
-        };
-        let temp = parent.join(format!(".docbridge-tmp-{}", unique()));
-        let result = write_new(&temp, bytes, keep.as_ref())
-            .and_then(|_| fs::rename(&temp, &path).map_err(|e| format!("{}: {e}", path.display())));
-        if result.is_err() {
-            let _ = fs::remove_file(temp);
-        }
-        result
-    } else {
-        fs::remove_file(&path).map_err(|e| format!("{}: {e}", path.display()))
-    }
-}
-fn transact(root: &Path, changes: &[Change]) -> Result<(), String> {
-    transact_using(root, changes, &mut replace)
-}
-fn write_manifest(
-    recovery: &Path,
-    changes: &[Change],
-    permissions: &[Option<fs::Permissions>],
-    created: &[PathBuf],
-    states: &[&str],
-) -> Result<(), String> {
-    let entries: Vec<_> = changes
-        .iter()
-        .enumerate()
-        .map(|(i, c)| {
-            #[cfg(unix)]
-            let mode = permissions[i].as_ref().map(|p| {
-                use std::os::unix::fs::PermissionsExt;
-                format!("{:o}", p.mode() & 0o7777)
-            });
-            #[cfg(not(unix))]
-            let mode = permissions[i].as_ref().map(|p| p.readonly().to_string());
-            serde_json::json!({
-                "path": c.path,
-                "backup": c.before.as_ref().map(|_| i.to_string()),
-                "before_sha256": c.before.as_ref().map(|b| hash(b)),
-                "after_sha256": c.after.as_ref().map(|b| hash(b)),
-                "original_permissions": mode,
-                "state": states[i],
-            })
-        })
-        .collect();
-    let manifest = serde_json::json!({
-        "states": "untouched: not attempted; in_progress: compare with before/after hashes; applied; failed: operation errored; restored; restore_failed: restore from backup manually",
-        "changes": entries,
-        "created_directories": created,
-    });
-    let temp = recovery.join(format!(".manifest-{}", unique()));
-    write_new(
-        &temp,
-        &serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,
-        private().as_ref(),
-    )?;
-    fs::rename(&temp, recovery.join("manifest.json")).map_err(|e| {
-        let _ = fs::remove_file(&temp);
-        format!("{}: {e}", recovery.display())
-    })
-}
-fn transact_using(
-    root: &Path,
-    changes: &[Change],
-    operation: &mut Operation<'_>,
-) -> Result<(), String> {
-    let pending = pending_recovery(root)?;
-    if !pending.is_empty() {
-        return Err(format!("unfinished recovery directories; inspect originals and manifest before retrying: {pending:?}"));
-    }
-    let mut permissions = Vec::new();
-    let mut created: Vec<PathBuf> = Vec::new();
-    for c in changes {
-        let path = safe(root, &c.path)?;
-        let meta = match fs::symlink_metadata(&path) {
-            Ok(m) => Some(m),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
-            Err(e) => return Err(format!("{}: {e}", path.display())),
-        };
-        let current = if meta.is_some() {
-            Some(read(root, &c.path)?)
-        } else {
-            None
-        };
-        if current != c.before {
-            return Err(format!("plan is stale; no changes applied: {}", c.path));
-        }
-        permissions.push(meta.map(|m| m.permissions()));
-        let mut parent = path.parent().ok_or("target has no parent")?;
-        while !parent.exists() {
-            if c.after.is_some() && !created.iter().any(|d| d == parent) {
-                created.push(parent.to_path_buf());
+    let result = options
+        .open(&temp)
+        .and_then(|mut file| {
+            file.write_all(bytes)?;
+            if let Some(permissions) = permissions {
+                file.set_permissions(permissions)?;
             }
-            parent = parent.parent().ok_or("missing project parent")?;
+            file.sync_all()
+        })
+        .and_then(|_| fs::rename(&temp, &path));
+    if result.is_err() {
+        let _ = fs::remove_file(&temp);
+    }
+    result.map_err(error)
+}
+/// Apply `steps` in order, one atomic step per file, and return notes on the
+/// directories. Nothing is written if any file differs from the plan or any
+/// path became unsafe. A failure stops at that step and names the paths that
+/// changed and those that did not; because plans are computed from the files
+/// on disk, rerunning the command finishes the rest.
+fn apply(root: &Path, steps: &[Step]) -> Result<String, String> {
+    for step in steps {
+        match step {
+            Step::File(change) if current(root, &change.path)? != change.before => {
+                return Err(format!(
+                    "plan is stale; no changes applied: {}",
+                    change.path
+                ));
+            }
+            Step::File(_) => {}
+            Step::Directory(dir) => {
+                paths::resolve(root, dir)?;
+            }
         }
-        if fs::metadata(parent)
-            .map_err(|e| e.to_string())?
-            .permissions()
-            .readonly()
-        {
+    }
+    let mut notes = String::new();
+    for (index, step) in steps.iter().enumerate() {
+        let result = match step {
+            Step::File(change) => replace(root, &change.path, change.after.as_deref()),
+            Step::Directory(dir) => remove_empty_dir(root, dir).map(|note| notes.push_str(&note)),
+        };
+        if let Err(e) = result {
+            let list = |steps: &[Step]| {
+                if steps.is_empty() {
+                    return "none".to_string();
+                }
+                let paths: Vec<_> = steps.iter().map(Step::path).collect();
+                paths.join(", ")
+            };
             return Err(format!(
-                "target parent is read-only; no changes applied: {}",
-                parent.display()
+                "Failed to change {}: {e}\nChanged: {}\nNot changed: {}\nRun the same command again to finish; completed changes are not repeated.\n",
+                step.path(),
+                list(&steps[..index]),
+                list(&steps[index..])
             ));
         }
     }
-    if changes.is_empty() {
-        return Ok(());
-    }
-    // Deepest first, so rollback removes children before parents.
-    created.sort_by_key(|d| std::cmp::Reverse(d.components().count()));
-    let recovery = root.join(format!(".docbridge-recovery-{}", unique()));
-    #[cfg_attr(not(unix), allow(unused_mut))]
-    let mut builder = fs::DirBuilder::new();
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::DirBuilderExt;
-        builder.mode(0o700);
-    }
-    builder
-        .create(&recovery)
-        .map_err(|e| format!("{}: {e}", recovery.display()))?;
-    let mut states = vec!["untouched"; changes.len()];
-    let backup = (|| {
-        for (i, c) in changes.iter().enumerate() {
-            if let Some(bytes) = &c.before {
-                write_new(&recovery.join(i.to_string()), bytes, private().as_ref())?;
-            }
-        }
-        write_manifest(&recovery, changes, &permissions, &created, &states)
-    })();
-    if let Err(e) = backup {
-        return Err(format!(
-            "backup failed; no targets changed: {e}; recovery: {}",
-            recovery.display()
-        ));
-    }
-    for (index, c) in changes.iter().enumerate() {
-        states[index] = "in_progress";
-        let step = match write_manifest(&recovery, changes, &permissions, &created, &states) {
-            Err(e) => Err(("untouched", format!("manifest update failed: {e}"))),
-            Ok(()) => operation(root, &c.path, &c.after, permissions[index].as_ref())
-                .map_err(|e| ("failed", e)),
-        };
-        if let Err((state, error)) = step {
-            states[index] = state;
-            let mut failures = Vec::new();
-            for old in (0..index).rev() {
-                let c = &changes[old];
-                match operation(root, &c.path, &c.before, permissions[old].as_ref()) {
-                    Ok(()) => states[old] = "restored",
-                    Err(e) => {
-                        states[old] = "restore_failed";
-                        failures.push(e);
-                    }
-                }
-            }
-            if failures.is_empty() {
-                for dir in &created {
-                    if empty_plain_dir(dir).unwrap_or(false) {
-                        let _ = fs::remove_dir(dir);
-                    }
-                }
-            }
-            if let Err(e) = write_manifest(&recovery, changes, &permissions, &created, &states) {
-                failures.push(format!("manifest update failed: {e}"));
-            }
-            return Err(format!("operation failed at {}: {error}; attempted changes: {:?}; untouched: {:?}; rollback failures: {:?}; recovery retained: {}", c.path, changes[..index].iter().map(|c| &c.path).collect::<Vec<_>>(), changes[index + 1..].iter().map(|c| &c.path).collect::<Vec<_>>(), failures, recovery.display()));
-        }
-        states[index] = "applied";
-    }
-    fs::remove_dir_all(&recovery).map_err(|e| {
-        format!(
-            "targets updated but recovery cleanup failed: {}: {e}",
-            recovery.display()
-        )
-    })?;
-    Ok(())
-}
-fn pending_recovery(root: &Path) -> Result<Vec<PathBuf>, String> {
-    let mut paths = Vec::new();
-    for entry in fs::read_dir(root).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        if entry
-            .file_name()
-            .to_string_lossy()
-            .starts_with(".docbridge-recovery-")
-        {
-            paths.push(entry.path());
-        }
-    }
-    paths.sort();
-    Ok(paths)
+    Ok(notes)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn temp_root(label: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!("docbridge-{label}-{}", unique()));
-        fs::create_dir(&root).unwrap();
-        root
-    }
-    fn recovery_dir(root: &Path) -> PathBuf {
-        fs::read_dir(root)
-            .unwrap()
-            .map(|e| e.unwrap().path())
-            .find(|p| {
-                p.file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .starts_with(".docbridge-recovery-")
-            })
-            .unwrap()
-    }
-    fn states(recovery: &Path) -> Vec<String> {
-        let manifest: serde_json::Value =
-            serde_json::from_slice(&fs::read(recovery.join("manifest.json")).unwrap()).unwrap();
-        manifest["changes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|c| c["state"].as_str().unwrap().to_string())
-            .collect()
-    }
     #[test]
     fn uninstall_guidance_names_only_supported_channels() {
         let guidance = uninstall_guidance();
@@ -988,156 +750,41 @@ mod tests {
     }
     #[test]
     fn invalid_parent_fails_preflight_without_changes() {
-        let root = temp_root("recovery-test");
+        let root = std::env::temp_dir().join(format!("docbridge-apply-test-{}", unique()));
+        fs::create_dir(&root).unwrap();
         fs::write(root.join("first"), b"original").unwrap();
         // A file used as a parent directory is rejected during preflight.
         fs::write(root.join("blocker"), b"block").unwrap();
-        let changes = vec![
-            Change {
+        let steps = vec![
+            Step::File(Change {
                 path: "first".into(),
                 before: Some(b"original".to_vec()),
                 after: Some(b"changed".to_vec()),
-            },
-            Change {
+            }),
+            Step::File(Change {
                 path: "blocker/child".into(),
                 before: None,
                 after: Some(b"new".to_vec()),
-            },
+            }),
         ];
-        // Abort (ENOTDIR on Unix; Windows words it differently) and leave the first target unchanged.
-        let error = transact(&root, &changes).unwrap_err();
-        if cfg!(unix) {
-            assert!(error.contains("Not a directory") || error.contains("not a directory"));
-        }
+        let error = apply(&root, &steps).unwrap_err();
+        assert!(error.contains("not a directory"), "{error}");
         assert_eq!(fs::read(root.join("first")).unwrap(), b"original");
         fs::remove_dir_all(root).unwrap();
     }
     #[test]
-    fn injected_failure_rolls_back_and_retains_originals_even_if_restore_fails() {
-        for fail_restore in [false, true] {
-            let root = temp_root("rollback-test");
-            fs::write(root.join("first"), b"original").unwrap();
-            fs::write(root.join("second"), b"second").unwrap();
-            fs::write(root.join("third"), b"third").unwrap();
-            let changes = ["first", "second", "third"]
-                .map(|name| Change {
-                    path: name.into(),
-                    before: Some(fs::read(root.join(name)).unwrap()),
-                    after: None,
-                })
-                .into_iter()
-                .collect::<Vec<_>>();
-            let mut calls = 0;
-            let error = transact_using(&root, &changes, &mut |r, p, b, m| {
-                calls += 1;
-                if calls == 2 || (fail_restore && calls == 3) {
-                    Err("injected failure".into())
-                } else {
-                    replace(r, p, b, m)
-                }
-            })
-            .unwrap_err();
-            assert!(error.contains("recovery retained:"));
-            assert!(error.contains("second"));
-            assert_eq!(fs::read(root.join("second")).unwrap(), b"second");
-            assert_eq!(fs::read(root.join("third")).unwrap(), b"third");
-            if !fail_restore {
-                assert_eq!(fs::read(root.join("first")).unwrap(), b"original");
-            }
-            let recovery = recovery_dir(&root);
-            assert_eq!(fs::read(recovery.join("0")).unwrap(), b"original");
-            let expected = if fail_restore {
-                ["restore_failed", "failed", "untouched"]
-            } else {
-                ["restored", "failed", "untouched"]
-            };
-            assert_eq!(states(&recovery), expected);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let mode = |p: &Path| fs::metadata(p).unwrap().permissions().mode() & 0o777;
-                assert_eq!(mode(&recovery), 0o700);
-                assert_eq!(mode(&recovery.join("0")), 0o600);
-                assert_eq!(mode(&recovery.join("manifest.json")), 0o600);
-            }
-            fs::remove_dir_all(root).unwrap();
+    fn only_exact_temporary_file_names_are_recognized() {
+        assert!(is_temp(&temp_name()));
+        for name in [
+            ".docbridge-tmp-",
+            ".docbridge-tmp-1-2",
+            ".docbridge-tmp-1-2-3-4",
+            ".docbridge-tmp-1--3",
+            ".docbridge-tmp-a-2-3",
+            ".docbridge-tmp-1-2-3.md",
+            "docbridge-tmp-1-2-3",
+        ] {
+            assert!(!is_temp(name), "{name}");
         }
-    }
-    #[cfg(unix)]
-    #[test]
-    fn rollback_restores_original_permissions() {
-        use std::os::unix::fs::PermissionsExt;
-        let root = temp_root("permission-test");
-        for name in ["removed", "rewritten"] {
-            fs::write(root.join(name), name).unwrap();
-            fs::set_permissions(root.join(name), fs::Permissions::from_mode(0o755)).unwrap();
-        }
-        let changes = vec![
-            Change {
-                path: "removed".into(),
-                before: Some(b"removed".to_vec()),
-                after: None,
-            },
-            Change {
-                path: "rewritten".into(),
-                before: Some(b"rewritten".to_vec()),
-                after: Some(b"new".to_vec()),
-            },
-            Change {
-                path: "failing".into(),
-                before: None,
-                after: Some(b"x".to_vec()),
-            },
-        ];
-        let mut calls = 0;
-        transact_using(&root, &changes, &mut |r, p, b, m| {
-            calls += 1;
-            if calls == 3 {
-                Err("injected failure".into())
-            } else {
-                replace(r, p, b, m)
-            }
-        })
-        .unwrap_err();
-        for name in ["removed", "rewritten"] {
-            assert_eq!(fs::read(root.join(name)).unwrap(), name.as_bytes());
-            assert_eq!(
-                fs::metadata(root.join(name)).unwrap().permissions().mode() & 0o777,
-                0o755
-            );
-        }
-        fs::remove_dir_all(root).unwrap();
-    }
-    #[test]
-    fn rollback_removes_only_directories_it_created() {
-        let root = temp_root("created-dir-test");
-        fs::create_dir(root.join("existing")).unwrap();
-        let changes = vec![
-            Change {
-                path: "existing/new/deeper/file".into(),
-                before: None,
-                after: Some(b"x".to_vec()),
-            },
-            Change {
-                path: "fails".into(),
-                before: None,
-                after: Some(b"y".to_vec()),
-            },
-        ];
-        let mut calls = 0;
-        transact_using(&root, &changes, &mut |r, p, b, m| {
-            calls += 1;
-            if calls == 2 {
-                Err("injected failure".into())
-            } else {
-                replace(r, p, b, m)
-            }
-        })
-        .unwrap_err();
-        assert!(root.join("existing").is_dir());
-        assert!(!root.join("existing/new").exists());
-        let manifest = fs::read_to_string(recovery_dir(&root).join("manifest.json")).unwrap();
-        assert!(manifest.contains("existing/new/deeper"));
-        fs::remove_dir_all(root).unwrap();
     }
 }

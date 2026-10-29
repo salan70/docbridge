@@ -90,6 +90,7 @@ Any diagnostic makes the result incomplete. Exit codes: [Exit codes and query ou
 
 <!-- @code crates/docbridge/src/config.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
+<!-- @code crates/docbridge/src/paths.rs -->
 <!-- @code crates/docbridge/src/markdown.rs -->
 
 ## Core CLI and identity
@@ -122,7 +123,7 @@ Other commands:
 | ------- | ----------------------------------------- | -------- | ------------------------------ |
 | `docs`  | Overview, `list`, `show <name>`, `--help` | Not used | Unknown guide or invalid usage |
 
-- Exception: preserve the confirmed `validate` contract strictly; its argument errors also return 1. Exit code 3 applies to usage errors in the other commands.
+- Usage errors exit 3 in every command, including `validate`.
 - A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
 - Warnings and errors go to stderr, leaving stdout valid JSON when requested.
 - `links` retrieves direct edges only. A selected node can show all of its direct neighbors; neighbors do not trigger another traversal.
@@ -145,8 +146,9 @@ Other commands:
 - `init --force` may replace recorded managed skill files, but it never overwrites configuration, follows symlinks, or deletes unrecorded user files.
 - deinit shows a complete removal plan and requires interactive confirmation. Noninteractive input without confirmation fails without changes; no new deinit `--yes` or `--root` flag is added in the initial version.
 - deinit removes recognizable DocBridge annotation lines outside examples and ordinary comments, preserving malformed lookalikes for manual review. It removes only owned unchanged skill files; modified or unowned files are reported and preserved. The displayed config removal requires confirmation even if the config was edited.
-- Preflight removal targets before writes, retain enough original content for recovery, and report failure explicitly if removal or recovery cannot finish. Do not claim a partial removal succeeded completely.
-- Rewrite files atomically via temporary files. Keep a persistent, private recovery directory for originals until removal finishes; if interrupted, identify changed and untouched files and the recovery path. Never overwrite or delete a pre-existing recovery directory.
+- init and deinit check every target against the confirmed plan before the first write and write nothing if any differs. Each file then changes in one atomic step: a write goes to a temporary file in the target's directory that is renamed over the target, keeping an existing target's permissions. There is no recovery directory.
+- If a run fails partway, report which files changed and which did not, and do not claim the run succeeded. Rerunning the same command finishes the remaining work without repeating or damaging completed changes: deinit rewrites documentation first, removes each ownership record only after the files and directories it covers, and removes the configuration last; init writes an ownership record before its skill file. A directory that deinit cannot remove also fails the run.
+- A file in a skill directory named exactly `.docbridge-tmp-<digits>-<digits>-<digits>` is a temporary file left by an interrupted write, not user data. It never makes a skill directory an unmanaged conflict, and init and deinit list and remove it. Files with similar names remain user files, and a file the ownership record lists follows its ownership hash instead.
 - deinit displays the resolved root in its confirmation. Managed annotation targets must match discovered paths exactly, independent of filesystem case folding. Always avoid Git metadata during discovery; other hidden paths follow the explicit configuration.
 - Noninteractive init without `--yes` may inspect or dry-run, but must not perform writes.
 - Guides and the distributable skill are English.
@@ -173,6 +175,7 @@ Other commands:
 Recorded by the maintainer on 2026-10-29:
 
 - Release integrity relies on GitHub artifact attestations and `SHA256SUMS`; there is no project-owned signing key and no self-update ([#228](https://github.com/salan70/docbridge/issues/228)).
+- init and deinit apply atomic per-file changes and finish on rerun instead of keeping a recovery directory, and every usage error exits 3, including in `validate` ([#228](https://github.com/salan70/docbridge/issues/228)).
 - After release, deprecate the legacy npm package; never unpublish it.
 - Nixpkgs material is prepared in this repository, and the maintainer submits it.
 

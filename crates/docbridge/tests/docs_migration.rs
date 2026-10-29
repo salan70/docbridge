@@ -327,7 +327,6 @@ fn help_and_command_guide_agree() {
     assert!(guide.contains("incomplete scans exit 1"));
     assert!(guide.contains("partial `links` exits 2"));
     assert!(guide.contains("invalid arguments exit 3"));
-    assert!(guide.contains("`validate` argument errors, which exit 1"));
     assert!(guide.contains("no writes without confirmation"));
     assert!(guide.contains("`--dry-run` never writes"));
 }
@@ -344,14 +343,13 @@ fn documented_exit_codes_hold_through_the_binary() {
         code(&migrated, &["links", "docs/auth.md", "missing.md"]),
         Some(2)
     );
-    // Invalid arguments exit 3 ...
+    // Invalid arguments exit 3, including for validate.
     assert_eq!(code(&migrated, &["links", "--bogus"]), Some(3));
     assert_eq!(code(&migrated, &["unlinked", "--bogus"]), Some(3));
     assert_eq!(code(&migrated, &["deinit", "--bogus"]), Some(3));
     assert_eq!(code(&migrated, &["docs", "show", "no-such-guide"]), Some(3));
     assert_eq!(code(&migrated, &["no-such-command"]), Some(3));
-    // ... except validate argument errors, which exit 1.
-    assert_eq!(code(&migrated, &["validate", "--bogus"]), Some(1));
+    assert_eq!(code(&migrated, &["validate", "--bogus"]), Some(3));
     // Success exits 0.
     assert_eq!(code(&migrated, &["validate"]), Some(0));
     let _ = fs::remove_dir_all(legacy);

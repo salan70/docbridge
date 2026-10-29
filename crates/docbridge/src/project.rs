@@ -3,6 +3,7 @@ use crate::{
     markdown,
     model::Document,
     output::{Edge, Node, QueryDiagnostic},
+    paths,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -27,57 +28,11 @@ pub struct Project {
     pub complete: bool,
 }
 
-pub fn is_symlink(metadata: &fs::Metadata) -> bool {
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        metadata.file_attributes() & 0x400 != 0
-    }
-    #[cfg(not(windows))]
-    {
-        metadata.file_type().is_symlink()
-    }
-}
-
-/// The root must already be canonical. Every existing component is checked before reading.
-pub fn safe_path(root: &Path, relative: &str) -> Result<PathBuf, String> {
-    config::validate_path(relative, false)?;
-    let mut path = root.to_path_buf();
-    let mut segments = relative.split('/').peekable();
-    while let Some(segment) = segments.next() {
-        // Compare directory entries byte-for-byte even on case-folding filesystems.
-        let entries = fs::read_dir(&path).map_err(|e| format!("{relative}: {e}"))?;
-        let mut found = false;
-        for entry in entries {
-            let entry = entry.map_err(|e| format!("{relative}: {e}"))?;
-            if entry.file_name() == segment {
-                found = true;
-                break;
-            }
-        }
-        if !found {
-            return Err(format!(
-                "managed path does not exist with exact spelling: {relative}"
-            ));
-        }
-        path.push(segment);
-        let metadata = fs::symlink_metadata(&path).map_err(|e| format!("{relative}: {e}"))?;
-        if is_symlink(&metadata) {
-            return Err(format!("symlink/reparse point is not managed: {relative}"));
-        }
-        if segments.peek().is_some() && !metadata.is_dir() {
-            return Err(format!("not a directory: {relative}"));
-        }
-        if segments.peek().is_none() && !metadata.is_file() {
-            return Err(format!("not a regular file: {relative}"));
-        }
-    }
-    Ok(path)
-}
-
+/// Read managed text under the canonical `root`. Links are rejected, and each
+/// existing component must match its directory entry exactly.
 pub fn read_text(root: &Path, relative: &str) -> Result<String, String> {
-    let path = safe_path(root, relative)?;
-    let text = fs::read_to_string(path).map_err(|e| format!("{relative}: {e}"))?;
+    let text =
+        String::from_utf8(paths::read(root, relative)?).map_err(|e| format!("{relative}: {e}"))?;
     if text.contains('\0') {
         return Err(format!("NUL-containing binary file: {relative}"));
     }
@@ -136,7 +91,7 @@ impl Project {
             diagnostics: Vec::new(),
             complete: true,
         };
-        project.discover("");
+        project.discover();
         project.build_nodes();
         project.resolve();
         project.diagnostics.sort_by(|a, b| {
@@ -174,66 +129,15 @@ impl Project {
                 .any(|p| config::may_contain(p, path))
     }
 
-    fn discover(&mut self, directory: &str) {
-        let entries = match fs::read_dir(self.root.join(directory)) {
-            Ok(entries) => entries,
-            Err(e) => {
-                self.error("read-directory", directory, None, e.to_string());
-                return;
-            }
+    fn discover(&mut self) {
+        let found = match paths::walk(&self.root, &|p| self.relevant(p)) {
+            Ok(found) => found,
+            Err(e) => return self.error("read-directory", "", None, e),
         };
-        let mut paths = Vec::new();
-        for entry in entries {
-            match entry {
-                Ok(entry) => paths.push(entry),
-                Err(e) => self.error("read-directory", directory, None, e.to_string()),
-            }
+        for skipped in found.skipped {
+            self.error(skipped.code, &skipped.path, None, skipped.reason);
         }
-        paths.sort_by_key(|entry| entry.file_name());
-        for entry in paths {
-            let name = entry.file_name();
-            if name == ".git" {
-                continue;
-            }
-            let display_name = name.to_string_lossy();
-            let relative = if directory.is_empty() {
-                display_name.to_string()
-            } else {
-                format!("{directory}/{display_name}")
-            };
-            if !self.relevant(&relative) {
-                continue;
-            }
-            if name.to_str().is_none() {
-                self.error(
-                    "invalid-path",
-                    directory,
-                    None,
-                    "non-UTF-8 directory entry in managed scope",
-                );
-                continue;
-            }
-            let metadata = match fs::symlink_metadata(entry.path()) {
-                Ok(m) => m,
-                Err(e) => {
-                    self.error("read-metadata", &relative, None, e.to_string());
-                    continue;
-                }
-            };
-            if is_symlink(&metadata) {
-                // A symlink directory might hide managed descendants; never inspect its target.
-                self.error(
-                    "unsafe-path",
-                    &relative,
-                    None,
-                    "symlink/reparse point is not managed",
-                );
-                continue;
-            }
-            if metadata.is_dir() {
-                self.discover(&relative);
-                continue;
-            }
+        for relative in found.files {
             let code = self
                 .config
                 .include

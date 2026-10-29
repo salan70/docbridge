@@ -42,7 +42,9 @@ conversion. Migrate an existing project with the Migration guide:
 - `docbridge unlinked` lists code files and Markdown regions that no link
   covers.
 - `docbridge deinit` removes DocBridge's project assets after showing a
-  complete plan and asking for confirmation.
+  complete plan and asking for confirmation. `init` and `deinit` change each
+  file atomically; if a run fails partway, it lists the files that changed and
+  those that did not, and running the same command again finishes the rest.
 - `docbridge docs` shows the bundled English guides offline.
 
 ### Removed

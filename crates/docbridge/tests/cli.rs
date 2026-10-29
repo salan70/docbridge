@@ -54,7 +54,9 @@ impl Drop for Project {
 fn validates_required_exact_configuration_and_usage_exit_codes() {
     let p = Project::new();
     assert_eq!(p.run(&["validate"]).status.code(), Some(0));
-    assert_eq!(p.run(&["validate", "--audit"]).status.code(), Some(1));
+    assert_eq!(p.run(&["validate", "--audit"]).status.code(), Some(3));
+    assert_eq!(p.run(&["validate", "--root"]).status.code(), Some(3));
+    assert_eq!(p.run(&["validate", "extra"]).status.code(), Some(3));
     assert_eq!(p.run(&["links", "--audit"]).status.code(), Some(3));
     for command in ["check", "related", "context", "graph", "lsp"] {
         assert_eq!(p.run(&[command]).status.code(), Some(3));
@@ -296,7 +298,7 @@ fn uncovered_parent_ranges_exclude_linked_child_subtrees() {
 fn json_usage_errors_and_invalid_selectors_stay_structured() {
     let p = Project::new();
     let (o, v) = p.json(&["validate", "--json", "--audit"]);
-    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(o.status.code(), Some(3));
     assert!(v["summary"].is_object());
     let (o, v) = p.json(&["links", "--json", "--audit"]);
     assert_eq!(o.status.code(), Some(3));
