@@ -68,6 +68,7 @@ impl Drop for Project {
     }
 }
 
+#[cfg(unix)]
 fn codes(value: &Value) -> Vec<String> {
     value["diagnostics"]
         .as_array()
