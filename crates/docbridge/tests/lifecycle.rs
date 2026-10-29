@@ -428,7 +428,6 @@ fn code_examples_and_lookalikes_are_preserved_but_canonical_annotations_removed(
     let after = fs::read_to_string(p.join("guide.md")).unwrap();
     for kept in [
         "in_pre",
-        "in_code",
         "indented",
         "fenced",
         "comment",
@@ -440,7 +439,8 @@ fn code_examples_and_lookalikes_are_preserved_but_canonical_annotations_removed(
             "{kept} removed:\n{after}"
         );
     }
-    for removed in ["valid", "interrupted", "dangling"] {
+    // `<code>` is inline HTML, not a CommonMark type-1 block, so its line is an annotation.
+    for removed in ["in_code", "valid", "interrupted", "dangling"] {
         assert!(
             !after.contains(&format!("src/{removed}.rs")),
             "{removed} kept:\n{after}"
@@ -465,4 +465,62 @@ fn agent_instruction_references_are_reported() {
             plan.references
         );
     }
+}
+fn deinit_guide(source: &str) -> (Outcome, String, String) {
+    let p = initialized();
+    fs::write(p.join("guide.md"), source).unwrap();
+    let plan = plan_deinit(&p).unwrap().to_string();
+    let result = deinit(&p);
+    let after = fs::read_to_string(p.join("guide.md")).unwrap();
+    (result, after, plan)
+}
+#[test]
+fn html_block_regressions_preserve_examples_without_panicking() {
+    for (source, line) in [
+        ("<pre\n>\n<!-- @code src/example.rs -->\n</pre>\n", 3),
+        (
+            "<pre title=\"\n<!-- @code src/example.rs -->\n\">\nexample\n</pre>\n",
+            2,
+        ),
+        (
+            "Use <letter in prose\n<pre>\n<!-- @code src/example.rs -->\n</pre>\n",
+            3,
+        ),
+    ] {
+        let (result, after, plan) = deinit_guide(source);
+        assert_eq!(result.code, 0, "{source:?}: {}", result.stderr);
+        assert!(result.stdout.contains("Removal complete."));
+        assert_eq!(after, source);
+        let example = format!("guide.md:{line} (inside HTML block example)");
+        assert!(plan.contains(&example), "{plan}");
+    }
+}
+#[test]
+fn closing_tag_ends_html_block_even_after_stray_quote() {
+    let source = "<pre>\nUse <letter ' in prose\n</pre>\n<!-- @code src/real.rs -->\n# Real\n";
+    let (result, after, plan) = deinit_guide(source);
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(result.stdout.contains("Removal complete."));
+    assert_eq!(after, "<pre>\nUse <letter ' in prose\n</pre>\n# Real\n");
+    assert!(!plan.contains("example"), "{plan}");
+}
+#[test]
+fn unterminated_html_block_annotation_makes_removal_incomplete() {
+    let source = "<!-- @code src/real.rs -->\n# Real\n<pre>\n<!-- @code src/example.rs -->\n";
+    let (result, after, plan) = deinit_guide(source);
+    assert_eq!(result.code, 1);
+    assert!(!result.stdout.contains("Removal complete."));
+    assert!(result.stderr.contains("guide.md:4"), "{}", result.stderr);
+    assert_eq!(after, "# Real\n<pre>\n<!-- @code src/example.rs -->\n");
+    assert!(
+        plan.contains("guide.md:4 (inside an unterminated HTML block, review manually)"),
+        "{plan}"
+    );
+    assert!(!plan.contains("example)"), "{plan}");
+}
+#[test]
+fn unterminated_html_block_without_annotations_is_complete() {
+    let (result, after, _) = deinit_guide("<!-- @code src/a.rs -->\n# A\n<pre>\ntext\n");
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert_eq!(after, "# A\n<pre>\ntext\n");
 }

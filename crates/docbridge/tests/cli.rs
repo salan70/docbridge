@@ -611,3 +611,41 @@ fn headingless_indented_code_examples_are_meaningful_unlinked_content() {
     assert!(o.status.success());
     assert!(v["nodes"].to_string().contains("docs/example.md#@preamble"));
 }
+
+#[test]
+fn annotations_inside_html_blocks_are_not_links() {
+    let p = Project::new();
+    p.write("src/a.rs", "fn a() {}\n");
+    p.write(
+        "docs/a.md",
+        "<pre>\n<!-- @code src/missing.rs -->\n</pre>\n<!-- @code src/a.rs -->\n# A\n",
+    );
+    assert_eq!(p.run(&["validate"]).status.code(), Some(0));
+    let (o, v) = p.json(&["links", "--json"]);
+    assert!(o.status.success());
+    assert!(!v.to_string().contains("missing.rs"));
+    assert_eq!(v["edges"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn deinit_with_unterminated_html_block_annotation_exits_incomplete() {
+    let p = Project::new();
+    p.write("src/a.rs", "fn a() {}\n");
+    p.write(
+        "docs/a.md",
+        "<!-- @code src/a.rs -->\n# A\n<pre>\n<!-- @code src/a.rs -->\n",
+    );
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p.0).unwrap();
+    let result = docbridge::cli::dispatch_with_confirmation(invocation, "", |plan| {
+        assert!(plan.contains("docs/a.md:4 (inside an unterminated HTML block, review manually)"));
+        true
+    });
+    assert_eq!(result.exit_code, 1);
+    assert!(!result.stdout.contains("Removal complete."));
+    assert!(result.stderr.contains("docs/a.md:4"), "{}", result.stderr);
+    assert!(!p.0.join("docbridge.config.json").exists());
+    assert_eq!(
+        fs::read_to_string(p.0.join("docs/a.md")).unwrap(),
+        "# A\n<pre>\n<!-- @code src/a.rs -->\n"
+    );
+}

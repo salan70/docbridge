@@ -2,7 +2,31 @@ use crate::model::{Annotation, Diagnostic, DiagnosticKind, Document, Section};
 
 /// Parse syntax only; targets and section identities remain uninterpreted.
 pub fn parse(source: &str) -> Document {
+    scan(source).0
+}
+
+/// An annotation-looking line inside a CommonMark type-1 HTML block
+/// (`<pre>`, `<script>`, `<style>`, `<textarea>`). Such lines are ordinary
+/// content, never annotations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HtmlBlockAnnotation {
+    /// 1-based line number.
+    pub line: usize,
+    /// False when the block runs to the end of the document without an end tag.
+    pub terminated: bool,
+}
+
+/// Annotation-looking lines that [`parse`] treats as HTML block content.
+pub fn html_block_annotations(source: &str) -> Vec<HtmlBlockAnnotation> {
+    scan(source).1
+}
+
+/// Shared line classification for [`parse`] and [`html_block_annotations`].
+fn scan(source: &str) -> (Document, Vec<HtmlBlockAnnotation>) {
     let mut document = Document::default();
+    let mut html_annotations = Vec::new();
+    // Start index into `html_annotations` of the open HTML block, if any.
+    let mut html_block: Option<usize> = None;
     let mut pending = Vec::new();
     let mut ancestors: Vec<usize> = Vec::new();
     let mut fence: Option<(u8, usize)> = None;
@@ -19,6 +43,19 @@ pub fn parse(source: &str) -> Document {
             if indentation <= 3 && closes_fence(trimmed, marker, length) {
                 fence = None;
             }
+        } else if let Some(start) = html_block {
+            if annotation(line.trim_start_matches([' ', '\t'])).is_some() {
+                html_annotations.push(HtmlBlockAnnotation {
+                    line: line_number,
+                    terminated: false,
+                });
+            }
+            if closes_html_block(line) {
+                html_annotations[start..]
+                    .iter_mut()
+                    .for_each(|a| a.terminated = true);
+                html_block = None;
+            }
         } else if comment {
             if let Some(end) = line.find("-->") {
                 comment = false;
@@ -31,6 +68,15 @@ pub fn parse(source: &str) -> Document {
                 DiagnosticKind::InterruptedAnnotation,
             );
             fence = Some(opening);
+        } else if indentation <= 3 && opens_html_block(trimmed) {
+            interrupt(
+                &mut document,
+                &mut pending,
+                DiagnosticKind::InterruptedAnnotation,
+            );
+            if !closes_html_block(line) {
+                html_block = Some(html_annotations.len());
+            }
         } else if let Some(target) = (indentation <= 3).then(|| annotation(trimmed)).flatten() {
             pending.push(Annotation {
                 target: target.to_owned(),
@@ -71,7 +117,32 @@ pub fn parse(source: &str) -> Document {
         &mut pending,
         DiagnosticKind::DanglingAnnotation,
     );
-    document
+    (document, html_annotations)
+}
+
+const HTML_BLOCK_TAGS: [&str; 4] = ["pre", "script", "style", "textarea"];
+
+/// CommonMark type-1 start: `<tag` followed by whitespace, `>` or end of line.
+fn opens_html_block(line: &str) -> bool {
+    let Some(rest) = line.strip_prefix('<') else {
+        return false;
+    };
+    HTML_BLOCK_TAGS.iter().any(|tag| {
+        rest.get(..tag.len())
+            .is_some_and(|name| name.eq_ignore_ascii_case(tag))
+            && rest[tag.len()..]
+                .chars()
+                .next()
+                .is_none_or(|c| c == '>' || c.is_ascii_whitespace())
+    })
+}
+
+/// CommonMark type-1 end: the line contains any of the matching end tags.
+fn closes_html_block(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    HTML_BLOCK_TAGS
+        .iter()
+        .any(|tag| lower.contains(&format!("</{tag}>")))
 }
 
 fn interrupt(document: &mut Document, pending: &mut Vec<Annotation>, kind: DiagnosticKind) {

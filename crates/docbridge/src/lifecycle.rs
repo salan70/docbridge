@@ -575,7 +575,20 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
             }
         };
         let parsed = crate::markdown::parse(text);
-        let protected = raw_html_code_lines(text);
+        for example in crate::markdown::html_block_annotations(text) {
+            let location = format!("{file}:{}", example.line);
+            if example.terminated {
+                plan.preserved
+                    .push(format!("{location} (inside HTML block example)"));
+            } else {
+                plan.preserved.push(format!(
+                    "{location} (inside an unterminated HTML block, review manually)"
+                ));
+                plan.incomplete.push(format!(
+                    "{location} is inside an unterminated HTML block; annotation-looking line not removed"
+                ));
+            }
+        }
         let mut lines = BTreeSet::new();
         for annotation in parsed
             .sections
@@ -583,12 +596,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
             .flat_map(|s| &s.annotations)
             .chain(parsed.diagnostics.iter().map(|d| &d.annotation))
         {
-            if protected.contains(&annotation.line) {
-                plan.preserved.push(format!(
-                    "{file}:{} (inside raw HTML code example)",
-                    annotation.line
-                ));
-            } else if relative(&annotation.target).is_ok() {
+            if relative(&annotation.target).is_ok() {
                 lines.insert(annotation.line);
             } else {
                 plan.preserved
@@ -610,131 +618,6 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         }
     }
     Ok(plan)
-}
-/// Element name (`pre`/`code` only), closing flag and open attribute quote.
-type OpenTag = (Option<&'static [u8]>, bool, Option<u8>);
-fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|w| w == needle)
-}
-/// 1-based lines inside raw HTML `<pre>` or `<code>` elements (case-insensitive,
-/// attributes allowed), outside fenced and indented code. Comments and inline code
-/// spans do not open or close elements.
-fn raw_html_code_lines(text: &str) -> BTreeSet<usize> {
-    let mut protected = BTreeSet::new();
-    let mut fence: Option<(u8, usize)> = None;
-    let mut comment = false;
-    // Open `pre`/`code` elements; only the matching close tag pops one.
-    let mut stack: Vec<&'static [u8]> = Vec::new();
-    // Tag being scanned (possibly across lines): element name, closing flag, open quote.
-    let mut tag: Option<OpenTag> = None;
-    for (index, raw) in text.split_inclusive('\n').enumerate() {
-        let line = raw.trim_end_matches(['\n', '\r']);
-        let trimmed = line.trim_start_matches(' ');
-        let indentation = line.len() - trimmed.len();
-        let marker = trimmed.bytes().next().unwrap_or(0);
-        let run = trimmed.bytes().take_while(|&b| b == marker).count();
-        if let Some((open, length)) = fence {
-            if indentation <= 3
-                && marker == open
-                && run >= length
-                && trimmed[run..].trim_matches([' ', '\t']).is_empty()
-            {
-                fence = None;
-            }
-            continue;
-        }
-        if stack.is_empty() && !comment && tag.is_none() {
-            if indentation <= 3
-                && (marker == b'`' || marker == b'~')
-                && run >= 3
-                && !(marker == b'`' && trimmed[run..].contains('`'))
-            {
-                fence = Some((marker, run));
-                continue;
-            }
-            if indentation >= 4 {
-                continue;
-            }
-        }
-        let inside = !stack.is_empty();
-        let lower = line.to_ascii_lowercase();
-        let bytes = lower.as_bytes();
-        let mut i = 0;
-        while i < bytes.len() {
-            if let Some((name, closing, quote)) = tag {
-                let byte = bytes[i];
-                tag = match (quote, byte) {
-                    (Some(q), b) if b == q => Some((name, closing, None)),
-                    (Some(_), _) => tag,
-                    (None, b'"' | b'\'') => Some((name, closing, Some(byte))),
-                    (None, b'>') => {
-                        if let Some(name) = name {
-                            if closing {
-                                if stack.last() == Some(&name) {
-                                    stack.pop();
-                                }
-                            } else if bytes[i - 1] != b'/' {
-                                stack.push(name);
-                            }
-                        }
-                        None
-                    }
-                    _ => tag,
-                };
-                i += 1;
-                continue;
-            }
-            if comment {
-                match find(&bytes[i..], b"-->") {
-                    Some(end) => {
-                        i += end + 3;
-                        comment = false;
-                    }
-                    None => break,
-                }
-                continue;
-            }
-            if bytes[i..].starts_with(b"<!--") {
-                comment = true;
-                i += 4;
-                continue;
-            }
-            if bytes[i] == b'`' && stack.is_empty() {
-                let ticks = bytes[i..].iter().take_while(|&&b| b == b'`').count();
-                let closing = vec![b'`'; ticks];
-                i += ticks + find(&bytes[i + ticks..], &closing).map_or(0, |e| e + ticks);
-                continue;
-            }
-            if bytes[i] == b'<' {
-                let closing = bytes.get(i + 1) == Some(&b'/');
-                let start = i + 1 + usize::from(closing);
-                if bytes.get(start).is_some_and(u8::is_ascii_alphabetic) {
-                    let len = bytes[start..]
-                        .iter()
-                        .take_while(|b| b.is_ascii_alphanumeric() || **b == b'-')
-                        .count();
-                    let word = &bytes[start..start + len];
-                    let name = [&b"pre"[..], b"code"].into_iter().find(|t| *t == word).map(
-                        |t| -> &'static [u8] {
-                            if t == b"pre" {
-                                b"pre"
-                            } else {
-                                b"code"
-                            }
-                        },
-                    );
-                    tag = Some((name, closing, None));
-                    i = start + len;
-                    continue;
-                }
-            }
-            i += 1;
-        }
-        if inside || !stack.is_empty() {
-            protected.insert(index + 1);
-        }
-    }
-    protected
 }
 /// Remove `dir` only if it is still a real, empty directory.
 fn remove_empty_dir(root: &Path, dir: &str) -> Result<bool, String> {
@@ -980,6 +863,7 @@ fn transact_using(
     // Deepest first, so rollback removes children before parents.
     created.sort_by_key(|d| std::cmp::Reverse(d.components().count()));
     let recovery = root.join(format!(".docbridge-recovery-{}", unique()));
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut builder = fs::DirBuilder::new();
     #[cfg(unix)]
     {
@@ -1243,38 +1127,5 @@ mod tests {
         let manifest = fs::read_to_string(recovery_dir(&root).join("manifest.json")).unwrap();
         assert!(manifest.contains("existing/new/deeper"));
         fs::remove_dir_all(root).unwrap();
-    }
-    #[test]
-    fn raw_html_code_detection_handles_case_attributes_comments_and_inline_code() {
-        let text = "`<pre>`\n<!-- <code> -->\na\n<Code data-x=\"1\">\nb\n</CODE>\n<preview>\nc\n```\n<pre>\n```\nd\n";
-        let lines: Vec<_> = raw_html_code_lines(text).into_iter().collect();
-        assert_eq!(lines, vec![4, 5, 6]);
-    }
-    fn deinit_removed(text: &str) -> Vec<String> {
-        let lines = raw_html_code_lines(text);
-        text.lines()
-            .enumerate()
-            .filter(|(i, l)| l.contains("@code") && !lines.contains(&(i + 1)))
-            .map(|(_, l)| l.to_string())
-            .collect()
-    }
-    #[test]
-    fn quoted_attribute_tag_text_does_not_close_pre() {
-        for quote in ['"', '\''] {
-            let text = format!(
-                "<pre title={quote}</pre>{quote}>\n<!-- @code a.rs -->\n</pre>\n<!-- @code b.rs -->\n"
-            );
-            assert_eq!(deinit_removed(&text), vec!["<!-- @code b.rs -->"]);
-        }
-    }
-    #[test]
-    fn unmatched_close_tag_does_not_close_pre() {
-        let text = "<pre>\n</code>\n<!-- @code a.rs -->\n</pre>\n<!-- @code b.rs -->\n";
-        assert_eq!(deinit_removed(text), vec!["<!-- @code b.rs -->"]);
-    }
-    #[test]
-    fn real_annotation_after_closed_pre_is_removable() {
-        let text = "<pre><code>x</code></pre>\n<!-- @code a.rs -->\n";
-        assert_eq!(deinit_removed(text), vec!["<!-- @code a.rs -->"]);
     }
 }
