@@ -45,6 +45,10 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.83.0
       - name: Resolve and check the version
         id: version
         env:
@@ -65,7 +69,7 @@ jobs:
               echo "::error::crates/docbridge/Cargo.toml has version $crate, not $INPUT_VERSION"
               exit 1
             fi
-            scripts/check-legacy-publisher-retired.sh .github/workflows
+            cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows
             version="$INPUT_VERSION"
           else
             version="$crate"
@@ -76,7 +80,7 @@ jobs:
         if: inputs.mode == 'release'
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: scripts/release-vnext-tag.sh check "$VERSION" "$GITHUB_SHA"
+        run: cargo run --quiet --locked -p docbridge-release --target-dir .tmp/rust-vnext -- tag check "$VERSION" "$GITHUB_SHA"
 
   build:
     name: build (${{ matrix.platform }})
@@ -102,7 +106,18 @@ jobs:
             os: windows-2025
             target: x86_64-pc-windows-msvc
     steps:
+      - name: Enable Windows symlink checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.symlinks true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require the canonical skill symlink
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          if [[ ! -L .claude/skills ]]; then
+            echo "::error::Windows checkout requires symlink creation privileges for .claude/skills; enable Developer Mode or grant Create symbolic links"
+            exit 1
+          fi
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -131,7 +146,7 @@ jobs:
           ! ldd "$bin" 2>/dev/null | grep -q '=>'
       - name: Smoke-run the release binary
         shell: bash
-        run: scripts/smoke-vnext.sh .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
+        run: cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- smoke .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
       - name: Stage the release asset
         shell: bash
         run: |
@@ -170,8 +185,8 @@ jobs:
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          scripts/release-vnext-dry-run.sh .tmp/rust-vnext/debug/docbridge-release \
-            .tmp/release-artifacts .tmp/release-signed "$VERSION"
+          .tmp/rust-vnext/debug/docbridge-release dry-run \
+            --artifacts .tmp/release-artifacts --out .tmp/release-signed --version "$VERSION"
 
   sign:
     name: sign (release key)
@@ -195,7 +210,7 @@ jobs:
         run: cargo build --package docbridge-release --release --locked --target-dir .tmp/rust-vnext
       # Fails closed: a missing key ID, secret name, or secret, or a secret name
       # that does not belong to the key ID, stops the release before signing. Each
-      # key has its own secret (scripts/release-keygen.sh), so staging a new key
+      # key has its own secret (docbridge-release keygen), so staging a new key
       # never replaces the active one.
       - name: Sign the asset set
         env:
@@ -210,7 +225,7 @@ jobs:
           fi
           expected="DOCBRIDGE_RELEASE_SIGNING_KEY_$(printf '%s' "$KEY_ID" | tr 'a-z.-' 'A-Z__')"
           if [ "$KEY_SECRET" != "$expected" ]; then
-            echo "::error::DOCBRIDGE_RELEASE_KEY_SECRET is ${KEY_SECRET}, not ${expected}; run scripts/release-keygen.sh --activate again"
+            echo "::error::DOCBRIDGE_RELEASE_KEY_SECRET is ${KEY_SECRET}, not ${expected}; run docbridge-release keygen --activate again"
             exit 1
           fi
           if [ -z "$DOCBRIDGE_RELEASE_SIGNING_KEY" ]; then
@@ -271,7 +286,7 @@ jobs:
           path: .tmp/release-signed
       - name: Refuse an existing release or draft, or a tag elsewhere
         run: |
-          scripts/release-vnext-tag.sh check "$VERSION" "$GITHUB_SHA"
+          .tmp/rust-vnext/release/docbridge-release tag check "$VERSION" "$GITHUB_SHA"
           existing="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
             --jq ".[] | select(.tag_name == \"v${VERSION}\") | .id")"
           if [ -n "$existing" ]; then
@@ -318,8 +333,8 @@ jobs:
         env:
           RELEASE_ID: ${{ steps.draft.outputs.id }}
         run: |
-          scripts/release-vnext-tag.sh ensure "$VERSION" "$GITHUB_SHA"
+          .tmp/rust-vnext/release/docbridge-release tag ensure "$VERSION" "$GITHUB_SHA"
           gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             -F draft=false -f make_latest=true >/dev/null
-          scripts/release-vnext-tag.sh check "$VERSION" "$GITHUB_SHA"
+          .tmp/rust-vnext/release/docbridge-release tag check "$VERSION" "$GITHUB_SHA"
           echo "Published v${VERSION}"

@@ -9,6 +9,8 @@ use ed25519_dalek::SigningKey;
 use std::{collections::BTreeMap, path::PathBuf, process::ExitCode};
 use zeroize::Zeroizing;
 
+mod operations;
+
 const USAGE: &str = "\
 usage:
   docbridge-release sign --version X.Y.Z --artifacts DIR --out DIR --key-id ID
@@ -17,6 +19,10 @@ usage:
                            (--compiled-keys | --key-id ID --public-key HEX)
   docbridge-release public-key (--key-file PATH | --key-env NAME)
   docbridge-release trusted-keys
+  docbridge-release tag check|ensure VERSION SHA
+  docbridge-release keygen --role primary|backup --key-id ID [--backup-out PATH] [--root DIR]
+  docbridge-release keygen --activate --key-id ID [--root DIR]
+  docbridge-release dry-run --artifacts DIR --out DIR --version X.Y.Z
 
 The private key is a 32-byte Ed25519 seed as 64 hex characters. It is never
 accepted as a command-line argument.";
@@ -29,13 +35,20 @@ fn main() -> ExitCode {
         }
         Err(message) => {
             eprintln!("docbridge-release: {message}");
-            ExitCode::FAILURE
+            if operations::is_usage_error(&message) {
+                ExitCode::from(2)
+            } else {
+                ExitCode::FAILURE
+            }
         }
     }
 }
 
 fn run(args: Vec<String>) -> Result<String, String> {
     let (command, rest) = args.split_first().ok_or(USAGE)?;
+    if matches!(command.as_str(), "tag" | "keygen" | "dry-run") {
+        return operations::run(command, rest);
+    }
     let (mut flags, switches) = parse(rest)?;
     let allowed: &[&str] = match command.as_str() {
         "sign" => &[

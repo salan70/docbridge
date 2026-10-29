@@ -50,7 +50,7 @@ release. The cutover runs in this order:
 2. Done (#215): the legacy publisher is retired, so no workflow other than
    `release-vnext.yml` runs `npm publish` or creates or edits GitHub releases.
    Release mode of **Release vNext** runs
-   `scripts/check-legacy-publisher-retired.sh .github/workflows` first and
+   `cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- publisher-gate .github/workflows` first and
    refuses to start while any other workflow publishes; `just lint-actions`
    runs the same check in `just verify` and CI.
 3. Pending: provision the keys and dispatch the first vNext release
@@ -64,6 +64,8 @@ before signing and publishes nothing.
 
 <!-- @code crates/docbridge-release/src/main.rs -->
 <!-- @code crates/docbridge-release/src/lib.rs -->
+<!-- @code crates/docbridge-release/src/operations/tag.rs -->
+<!-- @code crates/docbridge-release/src/operations/dry_run.rs -->
 
 ### Signing tool
 
@@ -76,6 +78,10 @@ docbridge-release sign --version X.Y.Z --artifacts DIR --out DIR --key-id ID \
 docbridge-release verify --dir DIR --version X.Y.Z \
   (--compiled-keys | --key-id ID --public-key HEX)
 docbridge-release public-key (--key-file PATH | --key-env NAME)
+docbridge-release trusted-keys
+docbridge-release tag check VERSION SHA
+docbridge-release tag ensure VERSION SHA
+docbridge-release dry-run --artifacts DIR --out DIR --version VERSION
 ```
 
 - The private key is a 32-byte Ed25519 seed written as 64 hex characters. It
@@ -89,6 +95,9 @@ docbridge-release public-key (--key-file PATH | --key-env NAME)
   executable's SHA-256.
 - `public-key` prints the public half of a key.
 - `trusted-keys` prints the key IDs compiled into this build.
+- `tag check` requires an absent tag or a lightweight tag at exactly the supplied commit; lookup failures and annotated tags fail closed.
+- `tag ensure` applies the same checks and creates only an absent tag through GitHub, using `GITHUB_REPOSITORY` and the caller's origin.
+  Production publication remains a separate, manually authorized workflow operation.
 
 `cargo test --package docbridge-release` covers genuine sets and the rejection
 of tampered executables, tampered manifests, other keys, unknown key IDs,
@@ -98,8 +107,8 @@ sets.
 ### Dry run
 
 The `release-dry-run` CI job, and **Release vNext** in its default `dry-run`
-mode, run `scripts/release-vnext-dry-run.sh` on the five built binaries. It
-generates a throwaway key inside the job, signs, verifies, and checks that a
+mode, run `docbridge-release dry-run --artifacts DIR --out DIR --version VERSION` on the five built binaries. It
+generates an in-memory throwaway key inside the job, signs, verifies, and checks that a
 tampered executable and the compiled (still empty) trust are rejected. It
 creates no tag or release and uses no secret.
 
@@ -117,17 +126,23 @@ creates no tag or release and uses no secret.
   the primary and backup public keys. The `sign` job refuses fewer than two
   compiled keys or a key ID that is not among them.
 
+<!-- @code crates/docbridge-release/src/operations/keygen.rs -->
+<!-- @code crates/docbridge-release/src/operations/keygen/privacy.rs -->
+
 ### Provisioning the keys
 
 The maintainer runs this once, locally, with `gh` authenticated as a repository
-admin. Pending: not run yet.
+admin, from the checkout root. Pending: not run yet.
+Build the maintainer tool with `cargo build --locked -p docbridge-release --target-dir .tmp/rust-vnext` first.
+When invoking it outside the checkout, pass `--root /path/to/checkout` to `keygen`.
 
 ```sh
-scripts/release-keygen.sh --role primary --key-id docbridge-2026-primary
-scripts/release-keygen.sh --role backup --key-id docbridge-2026-backup \
-  --backup-out /path/to/offline-media/docbridge-2026-backup.key
+.tmp/rust-vnext/debug/docbridge-release keygen --role primary --key-id docbridge-2026-primary
+mkdir -m 0700 /path/to/private-local-directory
+.tmp/rust-vnext/debug/docbridge-release keygen --role backup --key-id docbridge-2026-backup \
+  --backup-out /path/to/private-local-directory/docbridge-2026-backup.key
 # After the pull request with trusted-keys.txt is merged:
-scripts/release-keygen.sh --activate --key-id docbridge-2026-primary
+.tmp/rust-vnext/debug/docbridge-release keygen --activate --key-id docbridge-2026-primary
 ```
 
 - `--role primary` stages a key. It refuses an existing secret of that name or
@@ -136,9 +151,12 @@ scripts/release-keygen.sh --activate --key-id docbridge-2026-primary
   `gh secret set DOCBRIDGE_RELEASE_SIGNING_KEY_<ID> --env release`. It never
   changes the active key ID or any other secret. If the upload fails, the seed
   is discarded; remove the new line from `trusted-keys.txt` and run again.
-- `--role backup` writes the seed to a new file with mode 0600, then appends
-  the public entry. Move that file to offline storage and delete every other
-  copy. It is never uploaded.
+- `--role backup` exclusively creates a new file with mode 0600 in a private local directory with mode 0700, then appends the public entry.
+  The directory must not be a symlink.
+  Transfer the file to offline storage using appropriate secret-handling procedures, then securely remove other copies.
+  It is never uploaded.
+  FAT and exFAT filesystems may report permissions as 0777 and can be refused.
+  Native Windows private backup export currently fails closed because private ACL creation is not implemented.
 - `--activate` checks that the key ID is in `trusted-keys.txt` and that its
   secret exists. Then it sets `DOCBRIDGE_RELEASE_KEY_SECRET` and
   `DOCBRIDGE_RELEASE_KEY_ID`. It asks you to type the key ID first. It never
@@ -209,12 +227,12 @@ The CLI accepts any key in `compiled_trusted_keys()`, selected by the
 manifest's `key_id`. It always ships a primary and a backup key.
 
 - Planned rotation:
-  1. Stage the new key with `scripts/release-keygen.sh --role primary`. The
+  1. Stage the new key with `docbridge-release keygen --role primary`. The
      active key, key ID, and secret are unchanged, and the previous seed stays
      in its own secret.
   2. Merge `trusted-keys.txt` and publish a transition release, still signed
      with the current primary key.
-  3. After clients update, run `scripts/release-keygen.sh --activate` with the
+  3. After clients update, run `docbridge-release keygen --activate` with the
      new key ID. To roll back, activate the previous ID again.
   4. Remove the retired key from `trusted-keys.txt` in a later release, then
      delete its secret with `gh secret delete`.
@@ -222,7 +240,7 @@ manifest's `key_id`. It always ships a primary and a backup key.
   away and delete its secret. Store the offline backup seed as the secret
   `DOCBRIDGE_RELEASE_SIGNING_KEY_<BACKUP_ID>` with
   `gh secret set ... --env release < backup.key`, run
-  `scripts/release-keygen.sh --activate` with the backup ID, and release.
+  `docbridge-release keygen --activate` with the backup ID, and release.
   Generate a new backup key in the same pull request. Clients older than that
   release still trust the removed key until they update.
 

@@ -52,13 +52,27 @@ jobs:
             os: windows-2025
             target: x86_64-pc-windows-msvc
     steps:
+      - name: Enable Windows symlink checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.symlinks true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require the canonical skill symlink
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          if [[ ! -L .claude/skills ]]; then
+            echo "::error::Windows checkout requires symlink creation privileges for .claude/skills; enable Developer Mode or grant Create symbolic links"
+            exit 1
+          fi
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.83.0
           components: rustfmt, clippy
           targets: ${{ matrix.target }}
+      - name: Check agent assets on Windows
+        if: runner.os == 'Windows'
+        run: cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- agent-gate
       # Linux releases are static musl binaries; ring's C code needs musl-gcc.
       - name: Install musl tools
         if: runner.os == 'Linux'
@@ -88,7 +102,7 @@ jobs:
           ! ldd "$bin" 2>/dev/null | grep -q '=>'
       - name: Smoke-run the release binary
         shell: bash
-        run: scripts/smoke-vnext.sh .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
+        run: cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- smoke .tmp/rust-vnext/${{ matrix.target }}/release/docbridge
       # Stage the binary under its release asset name for the signing dry run.
       - name: Stage the release asset
         shell: bash
@@ -129,8 +143,8 @@ jobs:
       - name: Sign and verify with a throwaway key
         run: |
           version="$(sed -n 's/^version = "\(.*\)"$/\1/p' crates/docbridge/Cargo.toml | head -n 1)"
-          scripts/release-vnext-dry-run.sh .tmp/rust-vnext/debug/docbridge-release \
-            .tmp/release-artifacts .tmp/release-signed "$version"
+          .tmp/rust-vnext/debug/docbridge-release dry-run \
+            --artifacts .tmp/release-artifacts --out .tmp/release-signed --version "$version"
 
   # Preserve the branch-protection check name while the expensive work runs in
   # parallel. This job succeeds only when all required workloads succeed.

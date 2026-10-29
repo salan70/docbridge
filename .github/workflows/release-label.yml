@@ -26,10 +26,17 @@ jobs:
     steps:
       # Check out the pull request head itself, not the merge ref, and compare
       # it with the base branch tip so a stale version bump fails.
+      # Run the head's xtask even when the historical base has no xtask crate;
+      # the base is only release metadata input, never executable gate code.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.83.0
 
       - name: Check release label against the change
         env:
@@ -40,4 +47,4 @@ jobs:
           while IFS= read -r label; do
             labels+=("$label")
           done < <(jq -r '.[]' <<<"$PR_LABELS")
-          scripts/check-release-label.sh "$BASE_REF" "${labels[@]}"
+          cargo run --quiet --locked -p xtask --target-dir .tmp/rust-vnext -- release-label "$BASE_REF" "${labels[@]}"

@@ -2,7 +2,7 @@
 # the CLI. One `<key-id> <64 lowercase hex public key>` per line; `#` starts a
 # comment. Empty means no release is trusted: upgrades fail closed.
 #
-# Maintained only by `scripts/release-keygen.sh` and maintainer-reviewed pull
+# Maintained only by `docbridge-release keygen` and maintainer-reviewed pull
 # requests: a primary key (private half in the `release` environment secret)
 # and a backup key (private half kept offline). A malformed file is treated as
 # empty, and the docbridge-update tests reject it.

@@ -64,7 +64,7 @@ Production uses `OfficialClient`, `NativeFileOps`, and compiled maintainer-appro
 
 **Production key provisioning is pending.**
 `compiled_trusted_keys()` returns the keys in the checked-in `keys/trusted-keys.txt` (`<key-id> <64 lowercase hex public key>` per line), compiled in with `include_str!`.
-The file is empty until the maintainer adds the primary and backup keys with `scripts/release-keygen.sh`, so `run` refuses every newer release until then.
+The file is empty until the maintainer adds the primary and backup keys with `docbridge-release keygen`, so `run` refuses every newer release until then.
 A malformed file yields no keys (fail closed), and the crate's tests reject it.
 The parent may call `run_with` using its own compiled key map.
 Never load trust keys or release URLs from CLI arguments, project settings, or environment variables.

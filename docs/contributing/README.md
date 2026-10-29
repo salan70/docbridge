@@ -213,9 +213,11 @@ Put behavior tests at crate boundaries in `crates/<crate>/tests/*.rs`; reserve m
 CLI tests invoke the built binary or library and assert output, exit codes, and JSON shape.
 Use temporary scratch projects for small inputs; larger copied fixtures belong in `tests/fixtures/<name>/`.
 Deliberately invalid CLI fixtures are excluded from Markdown lint and formatting.
-Release-script tests in `crates/docbridge-release/tests/` use stub tools and never touch GitHub, the network, or real keys; they are Unix-only.
+Release tool tests in `crates/docbridge-release/tests/` use stub tools and never touch GitHub, the network, or real keys.
+The Rust tests are portable, with Unix-specific secret and signal fixtures.
+On Windows, the agent fixtures in `cargo test --workspace --locked` require Developer Mode or symbolic link creation privileges; they are not skipped.
 `just test` runs `cargo test --workspace --locked`.
-`just smoke` runs `scripts/smoke-vnext.sh` against the host release binary in a throwaway project; CI does the same for five targets.
+`just smoke` runs `xtask smoke` against the host release binary in a throwaway project; CI does the same for five targets.
 Host tests do not establish native Windows validation or minimum OS support.
 
 ## References
