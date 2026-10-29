@@ -3,6 +3,8 @@ use ed25519_dalek::{Signer, SigningKey};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
+mod running_process;
+
 struct Fixture {
     release: Release,
     files: BTreeMap<String, Vec<u8>>,
@@ -606,18 +608,44 @@ fn cleanup_preserves_substituted_backup_files() {
     assert!(cleanup(&options.executable).is_err());
     assert_eq!(fs::read(old).unwrap(), b"unrecognized user data");
 }
-#[cfg(windows)]
 #[test]
-fn windows_running_binary_is_retained_until_a_later_cleanup() {
-    let (_dir, options, client, keys) = setup();
-    assert_eq!(
-        run_with(&options, &client, &keys, &NativeFileOps).status,
-        Status::Updated
-    );
-    let old = recovery_path(&options.executable).join("running-binary");
-    assert_eq!(fs::read(old).unwrap(), b"old binary fixture");
+fn running_native_binary_survives_update_and_later_cleanup() {
+    let (dir, mut options, _, keys) = setup();
+    options.executable = dir
+        .path()
+        .join(format!("native-helper{}", std::env::consts::EXE_SUFFIX));
+    let source = std::env::current_exe().unwrap();
+    fs::copy(&source, &options.executable).unwrap();
+    write_install_receipt(&options.executable).unwrap();
+    // Reuse a valid native image without modifying its platform code signature.
+    let bytes = fs::read(source).unwrap();
+    let client = signed_release("2.0.0", &options.target, &bytes);
+    let mut old_child = running_process::RunningProcess::start(&options.executable, "old");
+    let out = run_with(&options, &client, &keys, &NativeFileOps);
+    assert_eq!(out.status, Status::Updated, "{}", out.stderr);
+    assert_eq!(fs::read(&options.executable).unwrap(), bytes);
+    old_child.ping();
+    let mut new_child = running_process::RunningProcess::start(&options.executable, "new");
+    new_child.ping();
+    new_child.finish();
+    #[cfg(windows)]
+    {
+        let old = recovery_path(&options.executable).join("running-binary");
+        assert_eq!(fs::read(&old).unwrap(), bytes);
+        let error = cleanup(&options.executable).unwrap_err();
+        assert!(error.contains("deferred cleanup"), "{error}");
+        assert!(old.exists(), "the live PE image must remain available");
+        assert!(recovery_path(&options.executable)
+            .join("journal.json")
+            .exists());
+        old_child.ping();
+    }
+    old_child.finish();
     cleanup(&options.executable).unwrap();
     assert!(!recovery_path(&options.executable).exists());
+    let mut installed = running_process::RunningProcess::start(&options.executable, "cleaned");
+    installed.ping();
+    installed.finish();
 }
 
 fn signed_release(version: &str, target: &str, bytes: &[u8]) -> Fixture {
