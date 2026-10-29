@@ -277,6 +277,23 @@ fn binary_options(command: &str, global_help: &str) -> std::collections::BTreeSe
     set
 }
 
+/// The lines strictly between the `start` heading and the `end` heading. Line
+/// based, so a CRLF checkout (Git on Windows) reads the same as LF.
+fn section(text: &str, start: &str, end: &str) -> String {
+    let mut lines = text.lines().skip_while(|l| *l != start);
+    assert!(lines.next().is_some(), "missing {start}");
+    let body: Vec<&str> = lines.take_while(|l| *l != end).collect();
+    body.join("\n")
+}
+
+#[test]
+fn section_reads_lf_and_crlf_alike() {
+    let lf = "# T\n## Commands\na\nb\n## Output model\nc\n";
+    let crlf = lf.replace('\n', "\r\n");
+    assert_eq!(section(lf, "## Commands", "## Output model"), "a\nb");
+    assert_eq!(section(&crlf, "## Commands", "## Output model"), "a\nb");
+}
+
 #[test]
 fn help_and_command_guide_agree() {
     let help = run(&temp_dir("help"), &["--help"]);
@@ -287,11 +304,7 @@ fn help_and_command_guide_agree() {
     ];
     let guide = fs::read_to_string(crate_dir().join("guides/commands.md")).unwrap();
     let spec = fs::read_to_string(crate_dir().join("../../docs/specs/cli.md")).unwrap();
-    let syntax = spec
-        .split("\n## Commands\n")
-        .nth(1)
-        .and_then(|s| s.split("\n## Output model\n").next())
-        .expect("spec syntax section");
+    let syntax = section(&spec, "## Commands", "## Output model");
     for command in commands {
         assert!(
             help.lines().any(|l| l.trim_start().starts_with(command)),
