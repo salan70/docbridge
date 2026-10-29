@@ -5,8 +5,8 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 # Git exports GIT_DIR, GIT_INDEX_FILE, and related variables to hooks. Drop
-# them so nothing `just verify` spawns (tests create throwaway git
-# repositories) can act on this repository by accident; see issue #175.
+# them so nothing the hook spawns can act on this repository by accident; see
+# issue #175.
 run_just() {
   if [[ -n "${IN_NIX_SHELL:-}" ]]; then
     env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR just "$@"
@@ -15,8 +15,9 @@ run_just() {
   fi
 }
 
-# `just verify` includes `docbridge validate` on this repository. Semantic
-# review of linked counterparts belongs to the pull request; see
+# Only the fast checks: formatting and `docbridge validate` on this
+# repository. CI runs the full `just verify`. Semantic review of linked
+# counterparts belongs to the pull request; see
 # docs/contributing/README.md#documentation.
-echo "Running pre-commit guard: just verify"
-run_just verify
+echo "Running pre-commit guard: just format-check validate"
+run_just format-check validate

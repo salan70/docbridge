@@ -13,7 +13,6 @@
 <!-- Only checks actually run. -->
 
 - [ ] `just verify`
-- [ ] `just smoke`
 - [ ] Area-specific checks, when applicable
 
 ## Review notes

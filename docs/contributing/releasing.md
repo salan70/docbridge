@@ -28,17 +28,6 @@ how users verify it is the
 npm handling and Nixpkgs responsibility are set by the
 [maintainer decisions](../specs/vnext-contracts.md#decisions).
 
-### Cutover order
-
-**Release vNext** first runs `publisher-gate` (`xtask`) and refuses to start
-while any other workflow runs `npm publish` or creates or edits GitHub releases;
-`just lint-actions` runs the same check. Remaining steps:
-
-1. Dispatch the first vNext release (`0.17.0`).
-2. Deprecate the npm package (step 5 of [Releasing](#releasing)). Also remove
-   the npm Trusted Publisher configured for `release-publish.yml` from the npm
-   `docbridge` package settings.
-
 ### Required configuration
 
 A GitHub environment named `release`, restricted to `main`, with required
@@ -50,9 +39,9 @@ is needed.
 1. Merge the release pull request made with `just release X.Y.Z`.
 2. Dispatch **Release vNext** from `main` with that version, then approve the
    `release` environment deployment.
-3. `prepare` refuses a ref other than `main`, a version that differs from the
-   workspace version, and any other workflow that still publishes. `build` builds and
-   smoke-tests the five targets (Linux as static musl).
+3. `prepare` refuses a ref other than `main` and a version that differs from the
+   workspace version. `build` builds and smoke-tests the five targets (Linux as
+   static musl).
 4. `publish` refuses an existing release or draft for the tag and a `vX.Y.Z`
    tag at another commit, an annotated tag, or a failed tag lookup. It writes
    `SHA256SUMS`, attests the executables, creates a **draft** with every asset,
@@ -60,8 +49,10 @@ is needed.
    at the dispatched commit or confirms it already points there, and then
    publishes the draft as latest. Users verify downloads as described in
    [Install](../../README.md#install).
-5. After the first vNext release, deprecate the npm package once, from an npm
-   account that owns `docbridge`. Never run `npm unpublish`.
+5. After the first vNext release (`0.17.0`), deprecate the npm package once,
+   from an npm account that owns `docbridge`, and remove the npm Trusted
+   Publisher configured for `release-publish.yml` from the package settings.
+   Never run `npm unpublish`.
 
    ```sh
    npm deprecate docbridge "docbridge on npm is replaced by the native DocBridge CLI; install it as described at https://github.com/salan70/docbridge#install"

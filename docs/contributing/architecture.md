@@ -8,7 +8,7 @@ direction their dependencies may point.
 | Crate              | Owns                                                                                           | Workspace deps |
 | ------------------ | ---------------------------------------------------------------------------------------------- | -------------- |
 | `crates/docbridge` | The `docbridge` executable and its library: commands, project scanning, queries, and lifecycle | none           |
-| `crates/xtask`     | Unpublished repository gates, smoke checks, and release version maintenance                    | none           |
+| `crates/xtask`     | Unpublished release version maintenance                                                        | none           |
 
 <!-- @code crates/docbridge/src/cli.rs -->
 <!-- @code crates/docbridge/src/main.rs -->
@@ -58,12 +58,10 @@ and the text rendering of a graph.
   `docbridge docs`.
 
 <!-- @code crates/xtask/src/main.rs -->
-<!-- @code crates/xtask/src/gates.rs -->
-<!-- @code crates/xtask/src/smoke.rs -->
 <!-- @code crates/xtask/src/release.rs -->
 
 ## Repository automation
 
-`xtask` owns `agent-gate`, `publisher-gate`, `smoke`, and `release`. Both
-crates inherit the root `Cargo.toml` `[workspace.package]` version, the only
-version `release` sets. Only the product CLI is published.
+`xtask` owns `release`. Both crates inherit the root `Cargo.toml`
+`[workspace.package]` version, the only version `release` sets. Only the product
+CLI is published.

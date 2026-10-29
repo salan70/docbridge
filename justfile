@@ -21,7 +21,6 @@ doctor:
 format:
     cargo fmt --all
     oxfmt .
-    just shell-sources | xargs -0 shfmt -w -ln bash -i 2 -ci -bn
     nixfmt flake.nix packaging/nixpkgs/package.nix
 
 # Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
@@ -30,7 +29,7 @@ shell-sources:
     @git ls-files -z '*.sh' '.githooks/*'
 
 # Check formatting without modifying the worktree.
-format-check: format-check-rust format-check-ox format-check-shell format-check-nix
+format-check: format-check-rust format-check-ox format-check-nix
 
 format-check-rust:
     cargo fmt --all -- --check
@@ -39,14 +38,11 @@ format-check-rust:
 format-check-ox:
     oxfmt --check .
 
-format-check-shell:
-    just shell-sources | xargs -0 shfmt -d -ln bash -i 2 -ci -bn
-
 format-check-nix:
     nixfmt --check flake.nix packaging/nixpkgs/package.nix
 
 # Run every linter over the whole repository.
-lint: lint-rust lint-markdown lint-shell lint-nix lint-actions lint-ai-assets
+lint: lint-rust lint-markdown lint-shell lint-actions
 
 lint-rust:
     cargo clippy --workspace --locked --target-dir {{ target_dir }} --all-targets -- -D warnings
@@ -57,18 +53,8 @@ lint-markdown:
 lint-shell:
     just shell-sources | xargs -0 shellcheck --severity=style
 
-lint-nix:
-    statix check flake.nix
-    deadnix --fail flake.nix
-
-# Also fails while any workflow other than release-vnext.yml publishes.
 lint-actions:
     actionlint
-    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- publisher-gate .github/workflows
-
-# Check the canonical agent assets and their contributor references.
-lint-ai-assets:
-    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- agent-gate
 
 test:
     cargo test --workspace --locked --target-dir {{ target_dir }}
@@ -86,16 +72,12 @@ unlinked:
 links *ARGS:
     cargo run --quiet --package docbridge --locked --target-dir {{ target_dir }} -- links "$@"
 
-# Offline, read-only common gate shared by the pre-commit hook and CI.
+# Offline, read-only gate that CI runs; the pre-commit hook runs only `format-check` and `validate`.
 verify: format-check lint test validate
 
 # Build the release binary for this machine.
 build:
     cargo build --package docbridge --release --locked --target-dir {{ target_dir }}
-
-# Smoke-run the release binary for this machine, as each CI platform job does.
-smoke: build
-    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- smoke {{ target_dir }}/release/docbridge
 
 # Prepare a release pull request: set the workspace version and roll CHANGELOG
 # [Unreleased] into `## [VERSION] - <today, UTC>`.

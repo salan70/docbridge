@@ -21,7 +21,8 @@ description: DocBridge git workflow — branching, PR-based integration, merge c
    works even while another worktree holds `main`.
 2. Before committing, review the linked counterparts of each changed file or
    section with `just links <path> --include-content`. The `pre-commit` hook
-   runs `just verify` over the working tree, not only the staged snapshot. If
+   runs `just format-check` and `just validate` over the working tree, not
+   only the staged snapshot; run `just verify` yourself before you report. If
    `git config core.hooksPath` is unset, run `just setup`.
 3. Push with `git push -u origin <branch>` and open the PR with the template.
 4. After merge, run `git fetch --prune origin` and confirm that

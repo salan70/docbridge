@@ -13,19 +13,17 @@ just setup
 just doctor
 ```
 
-`just setup` sets `core.hooksPath` to `.githooks`; the pre-commit hook runs the
-read-only `just verify` gate and never modifies files. `just doctor` confirms
-that the required tools are visible.
+`just setup` sets `core.hooksPath` to `.githooks`; the pre-commit hook runs only
+the fast read-only checks, `just format-check` and `just validate`, and never
+modifies files. `just doctor` confirms that the required tools are visible.
 
 Without Nix, `flake.nix` is the authoritative tool list; install all of its
 packages yourself. The repository does not maintain a second set of unpinned
 setup instructions.
 
-Coding agents read `AGENTS.md`. This repository keeps exactly two canonical
-skills, `docbridge` and `git-workflow`, in `.agents/skills/`.
-The whole `.claude/skills` directory is a symlink to `../.agents/skills`, and
-`just lint-ai-assets` enforces this layout. On Windows, enable Git symlink
-checkout with the required OS permissions; there is no copy fallback.
+Coding agents read `AGENTS.md`. This repository keeps its canonical skills,
+`docbridge` and `git-workflow`, in `.agents/skills/`.
+`.claude/skills` is a symlink to `../.agents/skills`; Windows may check it out as a plain file.
 
 Do not run `init --force --claude` in this repository: the product rejects write
 paths through symlinks. After changing the distributable skill embedded in
@@ -39,19 +37,14 @@ you invest in a large change.
 
 ## Verification
 
-Run the common read-only gate:
+Run the full read-only gate before you report a change complete:
 
 ```sh
 just verify
 ```
 
 It covers formatting checks, lint, the workspace tests, and `docbridge validate`
-on this repository. `just format` applies deterministic formatting. Also
-smoke-test the release binary for this machine:
-
-```sh
-just smoke
-```
+on this repository. `just format` applies deterministic formatting.
 
 Run additional checks when the affected area requires them:
 
@@ -61,8 +54,8 @@ Run additional checks when the affected area requires them:
 | Repository coverage | `just unlinked`                             |
 | Linked counterparts | `just links <path> --include-content`       |
 
-CI runs `just verify`, then builds, tests, and smoke-runs the five release
-targets; see [Releasing](releasing.md).
+CI runs `just verify`, and lints, tests, builds, and smoke-runs the five release
+targets natively; see [Releasing](releasing.md).
 
 If a command must be run outside an activated shell, prefix it with
 `nix develop -c`.
@@ -129,5 +122,4 @@ Avoid content-existence tests that merely freeze wording.
 Put behavior tests at crate boundaries in `crates/<crate>/tests/*.rs`; reserve module-local tests for private helpers inaccessible there.
 Use temporary scratch projects for small inputs; larger copied fixtures belong in `tests/fixtures/<name>/`.
 Deliberately invalid CLI fixtures are excluded from Markdown lint and formatting.
-On Windows, the agent fixtures in `cargo test --workspace --locked` require Developer Mode or symbolic link creation privileges; they are not skipped.
 Host tests do not establish native Windows validation or minimum OS support.
