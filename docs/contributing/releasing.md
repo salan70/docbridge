@@ -2,7 +2,7 @@
 
 Maintainer reference for how a version is released and how the repository is
 configured for it. Contributor rules for release labels and version bumps live in
-[CONTRIBUTING.md](../CONTRIBUTING.md#git-and-pull-requests).
+[Contributor guide](README.md#git-and-pull-requests).
 
 ## Branch protection
 

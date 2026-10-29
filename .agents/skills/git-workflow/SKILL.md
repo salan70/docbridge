@@ -16,17 +16,17 @@ cannot be pushed to directly. Follow these rules for all git work.
   `main` history; use `git log --first-parent main` for a PR-level view.
 - The `ci` and `release-label` checks must pass before a PR can merge.
 - Commit messages follow
-  [CONTRIBUTING.md#git-and-pull-requests](../../../docs/CONTRIBUTING.md#git-and-pull-requests):
+  [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests):
   `<gitmoji> <type>(<scope>): <summary>`, written in English, with unrelated
   changes split into separate commits.
 
 ## Standard change flow
 
 1. Branch from a freshly fetched `main`, named per
-   [CONTRIBUTING.md#git-and-pull-requests](../../../docs/CONTRIBUTING.md#git-and-pull-requests):
+   [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests):
    `git fetch origin && git switch --no-track -c <branch> origin/main`. This
    works even while another worktree holds `main`.
-2. Implement test-first. Follow [test conventions](../../../docs/CONTRIBUTING.md#test-conventions).
+2. Implement test-first. Follow [test conventions](../../../docs/contributing/README.md#test-conventions).
 3. Choose the PR's release kind (see [Releases](#releases-per-pr)). For
    `patch`, `minor`, or `major`, run `just release-bump <kind>` and commit the
    result. Commit in focused, logical commits. The `pre-commit` hook runs
@@ -37,9 +37,9 @@ cannot be pushed to directly. Follow these rules for all git work.
 4. Write the PR body using the writing rules in `AGENTS.md`, push with
    `git push -u origin <branch>`, and open a PR using the repository template.
    Title, body, and issue linking follow
-   [CONTRIBUTING.md#git-and-pull-requests](../../../docs/CONTRIBUTING.md#git-and-pull-requests).
+   [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests).
    Add exactly one `release:` label. Documentation ownership follows
-   [CONTRIBUTING.md#documentation](../../../docs/CONTRIBUTING.md#documentation).
+   [Documentation](../../../docs/contributing/README.md#documentation).
 5. Wait for CI and the `release-label` check to pass.
 6. Once CI is green and a human has explicitly approved the merge, merge with
    **Create a merge commit**.

@@ -10,8 +10,8 @@ for name in docbridge git-workflow; do
   cp -R "$repo/.agents/skills/$name" "$fixture/.agents/skills/$name"
 done
 cp "$repo/AGENTS.md" "$fixture/AGENTS.md"
-mkdir -p "$fixture/docs" "$fixture/.claude"
-cp "$repo/docs/CONTRIBUTING.md" "$fixture/docs/CONTRIBUTING.md"
+mkdir -p "$fixture/docs/contributing" "$fixture/.claude"
+cp "$repo/docs/contributing/README.md" "$fixture/docs/contributing/README.md"
 ln -s ../.agents/skills "$fixture/.claude/skills"
 expect() {
   local expected="$1"
@@ -23,6 +23,20 @@ expect() {
     exit 1
   fi
 }
+expect 0
+mv "$fixture/.agents/skills" "$scratch/skills"
+ln -s "$scratch/skills" "$fixture/.agents/skills"
+expect 1
+rm "$fixture/.agents/skills"
+mv "$scratch/skills" "$fixture/.agents/skills"
+mv "$fixture/.agents/skills/docbridge/SKILL.md" "$scratch/SKILL.md"
+expect 1
+touch "$fixture/.agents/skills/docbridge/SKILL.md"
+expect 1
+mv "$scratch/SKILL.md" "$fixture/.agents/skills/docbridge/SKILL.md"
+touch "$fixture/.agents/skills/.extra"
+expect 1
+rm "$fixture/.agents/skills/.extra"
 expect 0
 mv "$fixture/.agents/skills/git-workflow" "$scratch/git-workflow"
 expect 1
@@ -54,9 +68,9 @@ rm "$fixture/CLAUDE.md"
 mv "$fixture/.agents/skills/docbridge/.docbridge-owned.json" "$scratch/owned.json"
 expect 1
 mv "$scratch/owned.json" "$fixture/.agents/skills/docbridge/.docbridge-owned.json"
-mv "$fixture/docs/CONTRIBUTING.md" "$scratch/contributing.md"
+mv "$fixture/docs/contributing/README.md" "$scratch/contributing.md"
 expect 1
-mv "$scratch/contributing.md" "$fixture/docs/CONTRIBUTING.md"
+mv "$scratch/contributing.md" "$fixture/docs/contributing/README.md"
 cp "$fixture/AGENTS.md" "$scratch/agents.md"
 printf '# Agent rules\n' >"$fixture/AGENTS.md"
 expect 1

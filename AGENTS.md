@@ -1,10 +1,10 @@
 # AGENTS.md
 
 Shared rules for every coding agent in this repository.
-Contributor procedures are owned by [CONTRIBUTING.md](docs/CONTRIBUTING.md):
-[Verification](docs/CONTRIBUTING.md#verification),
-[Git and pull requests](docs/CONTRIBUTING.md#git-and-pull-requests), and
-[Documentation](docs/CONTRIBUTING.md#documentation).
+Contributor procedures are owned by [Contributor guide](docs/contributing/README.md):
+[Verification](docs/contributing/README.md#verification),
+[Git and pull requests](docs/contributing/README.md#git-and-pull-requests), and
+[Documentation](docs/contributing/README.md#documentation).
 
 ## Environment
 
@@ -24,7 +24,7 @@ Contributor procedures are owned by [CONTRIBUTING.md](docs/CONTRIBUTING.md):
   failure before implementation, make the smallest passing change, and refactor
   only while green. Never skip or weaken tests to pass. For uncovered
   behavior-preserving refactors, add characterization coverage first.
-  Follow [test conventions](docs/CONTRIBUTING.md#test-conventions) and report
+  Follow [test conventions](docs/contributing/README.md#test-conventions) and report
   observed RED/GREEN results.
 - Run `just verify` on changed work before you report completion.
 - Fix the underlying code instead of weakening a quality gate. Get explicit
@@ -32,8 +32,8 @@ Contributor procedures are owned by [CONTRIBUTING.md](docs/CONTRIBUTING.md):
   suppression, disable or downgrade a rule, expand an ignore or exclusion, or
   raise a complexity, size, depth, or parameter limit.
 - Write deliverables in English, including documentation, code comments,
-  commits, and pull requests. Use Japanese only for content marked as Japanese,
-  such as files under `docs/ja/`.
+  commits, and pull requests. Use Japanese only for content explicitly marked
+  as Japanese.
 - Agents may branch, commit, push, and open pull requests through the
   `git-workflow` skill. **Merging a pull request requires explicit human
   approval.** Releases are published only when a maintainer dispatches

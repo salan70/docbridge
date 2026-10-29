@@ -83,13 +83,10 @@ Issues are optional. Open one to report a problem, to propose a change, or to
 agree on scope before you invest in a large change. Choose the form by the type
 of work:
 
-| Work                                                            | Issue form          |
-| --------------------------------------------------------------- | ------------------- |
-| Reproducible incorrect behavior or regression                   | Bug report          |
-| New capability or user-visible improvement                      | Feature proposal    |
-| API, architecture, refactor, build, CI, or dependency design    | Technical proposal  |
-| Incorrect, missing, or substantially restructured documentation | Documentation issue |
-| Routine upkeep with a concrete outcome                          | Maintenance task    |
+| Work                                                                                    | Issue form      |
+| --------------------------------------------------------------------------------------- | --------------- |
+| Reproducible incorrect behavior or regression                                           | Bug report      |
+| Feature, technical design, API, build, dependency, documentation, or maintenance change | Change proposal |
 
 Provide the form's required information and follow the
 [Documentation](#documentation). Each form field owns
@@ -140,7 +137,7 @@ Run additional checks when the affected area requires them:
 
 CI runs `just verify`, then builds, tests, and smoke-runs the five release
 targets and signs them with a throwaway key; see
-[Releasing](contributing/releasing.md#dry-run).
+[Releasing](releasing.md#dry-run).
 
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.
@@ -169,7 +166,7 @@ Without an issue, state the problem solved.
 Every PR requires exactly one label: `release: none`, `release: patch`, `release: minor`, or `release: major`.
 A releasing label requires `just release-bump <kind>` and its version/CHANGELOG changes in the same PR.
 The required `release-label` check enforces this; a maintainer separately dispatches Release vNext.
-See [release operations](contributing/releasing.md) for publication and key management.
+See [release operations](releasing.md) for publication and key management.
 
 ## Documentation
 
@@ -185,7 +182,7 @@ Review prose for supported, necessary claims, clear terms, descriptive links, an
 | `README.md`                         | Installation, readiness, and routes to guides    |
 | `crates/docbridge/guides/`          | Canonical offline user tasks                     |
 | `docs/specs/vnext-contracts.md`     | Single developer behavior contract               |
-| `docs/CONTRIBUTING.md`              | Contributor workflow and documentation policy    |
+| `docs/contributing/README.md`       | Contributor workflow and documentation policy    |
 | `docs/contributing/architecture.md` | Module responsibilities and dependencies         |
 | `docs/contributing/releasing.md`    | Detailed release operations and pending work     |
 | `crates/docbridge-update/README.md` | Signed format, installer API, receipts, recovery |
@@ -223,8 +220,8 @@ Host tests do not establish native Windows validation or minimum OS support.
 
 ## References
 
-- [Architecture](contributing/architecture.md)
-- [Release operations](contributing/releasing.md)
-- [Public contracts](specs/vnext-contracts.md)
-- [User guides](../crates/docbridge/guides/)
-- [Agent instructions](../AGENTS.md)
+- [Architecture](architecture.md)
+- [Release operations](releasing.md)
+- [Public contracts](../specs/vnext-contracts.md)
+- [User guides](../../crates/docbridge/guides/)
+- [Agent instructions](../../AGENTS.md)

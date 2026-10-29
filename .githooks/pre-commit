@@ -17,6 +17,6 @@ run_just() {
 
 # `just verify` includes `docbridge validate` on this repository. Semantic
 # review of linked counterparts belongs to the pull request; see
-# docs/contributing/self-audit.md.
+# docs/contributing/README.md#documentation.
 echo "Running pre-commit guard: just verify"
 run_just verify

@@ -36,14 +36,14 @@ if [ -e "$root/CLAUDE.md" ] || [ -L "$root/CLAUDE.md" ]; then
   fail "CLAUDE.md must be removed; AGENTS.md owns shared agent rules."
 fi
 for anchor in verification git-and-pull-requests documentation; do
-  if ! grep -Fq "docs/CONTRIBUTING.md#$anchor" "$root/AGENTS.md"; then
-    fail "AGENTS.md must reference docs/CONTRIBUTING.md#$anchor."
+  if ! grep -Fq "docs/contributing/README.md#$anchor" "$root/AGENTS.md"; then
+    fail "AGENTS.md must reference docs/contributing/README.md#$anchor."
   fi
 done
-if [ ! -s "$root/docs/CONTRIBUTING.md" ]; then
-  fail "docs/CONTRIBUTING.md must provide the canonical contributor workflow."
+if [ ! -s "$root/docs/contributing/README.md" ]; then
+  fail "docs/contributing/README.md must provide the canonical contributor workflow."
 fi
-if ! grep -Fq 'docs/CONTRIBUTING.md#' "$skills/git-workflow/SKILL.md"; then
+if ! grep -Fq 'docs/contributing/README.md#' "$skills/git-workflow/SKILL.md"; then
   fail "git-workflow must reference the canonical contributor workflow."
 fi
 if grep -En 'docs/contributing/(commits|pull-requests|testing|writing|documentation|self-audit)\.md|concise-writing|grill-me|pr-review|review-response' \
