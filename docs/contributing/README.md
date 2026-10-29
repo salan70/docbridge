@@ -14,8 +14,9 @@ just doctor
 ```
 
 `just setup` sets `core.hooksPath` to `.githooks`; the pre-commit hook runs only
-the fast read-only checks, `just format-check` and `just validate`, and never
-modifies files. `just doctor` confirms that the required tools are visible.
+the fast read-only checks, `just format-check` and `just validate`, over the
+working tree, not only the staged snapshot, and never modifies files.
+`just doctor` confirms that the required tools are visible.
 
 Without Nix, `flake.nix` is the authoritative tool list; install all of its
 packages yourself. The repository does not maintain a second set of unpinned
@@ -52,7 +53,6 @@ Run additional checks when the affected area requires them:
 | ------------------- | ------------------------------------------- |
 | Nix package         | `nix build .#docbridge`, `just flake-check` |
 | Repository coverage | `just unlinked`                             |
-| Linked counterparts | `just links <path> --include-content`       |
 
 CI runs `just verify`, and lints, tests, builds, and smoke-runs the five release
 targets natively; see [Releasing](releasing.md).
@@ -62,8 +62,8 @@ If a command must be run outside an activated shell, prefix it with
 
 ## Git and pull requests
 
-Every change lands through a pull request and a merge commit after required CI passes.
-Agents require explicit human approval to merge; merging publishes nothing.
+Every change lands through a pull request after required CI passes, as
+[branch protection](releasing.md#branch-protection) enforces.
 Use `<feat|fix|chore>/#<issue>-<kebab-desc>` for branches, omitting `#<issue>-` when no issue exists.
 Dependabot branch names are exempt.
 
@@ -82,9 +82,8 @@ A PR with a user-facing change adds its entry under `## [Unreleased]` in
 A release is one PR that runs `just release X.Y.Z`. It sets the workspace
 version in the root `Cargo.toml` and rolls `## [Unreleased]` into
 `## [X.Y.Z] - <date>`. During `0.x`, new features and breaking changes bump the
-minor version; `major` is reserved for 1.0. Merging publishes nothing; after
-the release PR merges, a maintainer dispatches Release vNext, see
-[release operations](releasing.md).
+minor version; `major` is reserved for 1.0. Publishing it after the merge is
+described in [Releasing](releasing.md#releasing-1).
 
 ## Documentation
 
@@ -105,7 +104,7 @@ Issues own problems and acceptance criteria; PRs own delivered results and verif
 
 Embedded guides link only to each other by filename because `docbridge docs` prints them without a checkout.
 They have no active `@code` annotations and stay outside `include.docs`.
-Keep the distributable Skill thin; guides own user detail.
+The distributable Skill follows the [Skill and guide split](../specs/vnext-contracts.md#skill-and-guide-split).
 Link normative sections and design references to the Rust file implementing them, using `@code` before a heading.
 Tests, re-export modules, process prose, and overviews can remain unlinked; zero unlinked items is not a goal.
 Run `just links <path> --include-content` for changed linked sections and confirm agreement or update counterparts.

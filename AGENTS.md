@@ -28,8 +28,8 @@ Contributor procedures are owned by [Contributor guide](docs/contributing/README
   as Japanese.
 - Agents may branch, commit, push, and open pull requests through the
   `git-workflow` skill. **Merging a pull request requires explicit human
-  approval.** Releases are published only when a maintainer dispatches
-  Release vNext.
+  approval.** Only a maintainer publishes a release; see
+  [Releasing](docs/contributing/releasing.md).
 - A user's explicit instruction overrides a skill's default behavior, but not
   the approval requirements above.
 

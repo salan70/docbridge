@@ -22,11 +22,10 @@ Never record credential values in git, logs, or issue comments.
 ## vNext release (manual)
 
 The Rust CLI is released only by a maintainer dispatching **Release vNext**
-(`release-vnext.yml`). Nothing publishes on merge. What a release contains and
-how users verify it is the
+(`release-vnext.yml`). Merging a pull request publishes nothing, and no npm or
+Marketplace removal or Nixpkgs submission happens merely to close an issue.
+What a release contains and how users verify it is the
 [release integrity contract](../specs/vnext-contracts.md#release-integrity).
-npm handling and Nixpkgs responsibility are set by the
-[maintainer decisions](../specs/vnext-contracts.md#decisions).
 
 ### Required configuration
 
@@ -40,15 +39,13 @@ is needed.
 2. Dispatch **Release vNext** from `main` with that version, then approve the
    `release` environment deployment.
 3. `prepare` refuses a ref other than `main` and a version that differs from the
-   workspace version. `build` builds and smoke-tests the five targets (Linux as
-   static musl).
+   workspace version. `build` builds and smoke-tests the five targets.
 4. `publish` refuses an existing release or draft for the tag and a `vX.Y.Z`
    tag at another commit, an annotated tag, or a failed tag lookup. It writes
    `SHA256SUMS`, attests the executables, creates a **draft** with every asset,
    re-downloads the draft and checks it against `SHA256SUMS`, creates the tag
    at the dispatched commit or confirms it already points there, and then
-   publishes the draft as latest. Users verify downloads as described in
-   [Install](../../README.md#install).
+   publishes the draft as latest.
 5. After the first vNext release (`0.17.0`), deprecate the npm package once,
    from an npm account that owns `docbridge`, and remove the npm Trusted
    Publisher configured for `release-publish.yml` from the package settings.
@@ -72,42 +69,7 @@ dispatched commit.
 - A published release later found wrong: do not delete or edit its assets.
   Release a higher version.
 
-## Nixpkgs packaging (pending)
+## Nixpkgs packaging
 
-**Pending: the first vNext release and the maintainer's submission.** The draft
-[`packaging/nixpkgs/package.nix`](../../packaging/nixpkgs/package.nix) builds
-from the `v0.17.0` GitHub source; `src.hash` and `cargoHash` are
-`lib.fakeHash` placeholders until a tag exists. To check it against the working
-tree:
-
-```sh
-nix build --no-link --impure --expr '
-  let
-    flake = builtins.getFlake (toString ./.);
-    pkgs = import flake.inputs.nixpkgs { };
-    lib = pkgs.lib;
-  in
-  (pkgs.callPackage ./packaging/nixpkgs/package.nix { }).overrideAttrs (_: {
-    src = lib.fileset.toSource {
-      root = ./.;
-      fileset = lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./crates ./docs/specs/vnext-contracts.md ];
-    };
-    cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
-  })'
-```
-
-Submission checklist:
-
-- [ ] First vNext release `v0.17.0` published by **Release vNext**.
-- [ ] `src.hash` and `cargoHash` filled in from a build of that tag.
-- [ ] A Nixpkgs maintainer agrees to maintain the package and is listed in
-      `meta.maintainers`.
-- [ ] `nixpkgs-review` passes on supported Darwin and Linux systems.
-- [ ] The maintainer opens the pull request against `NixOS/nixpkgs` from
-      their own account, following
-      [`packaging/nixpkgs/PR.md`](../../packaging/nixpkgs/PR.md).
-- [ ] After acceptance, update the installation guidance to the Nixpkgs
-      attribute and record the merged pull request here.
-
-On each vNext release, bump `version`, refresh both hashes, and rebuild, through
-`nix-update docbridge` or by hand.
+After the first vNext release, the maintainer submits a Nixpkgs package derived
+from `flake.nix`.

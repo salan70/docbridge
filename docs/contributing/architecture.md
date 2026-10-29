@@ -67,5 +67,4 @@ and the text rendering of a graph.
 ## Repository automation
 
 `xtask` owns `release`. Both crates inherit the root `Cargo.toml`
-`[workspace.package]` version, the only version `release` sets. Only the product
-CLI is published.
+`[workspace.package]` version, the only version `release` sets.

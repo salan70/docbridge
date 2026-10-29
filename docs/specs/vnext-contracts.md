@@ -23,7 +23,7 @@ docbridge docs [list | show <name>]
 - `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
 - Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward.
 - A new command must be added to the `Command` enum, the parser, and `HELP` in `crates/docbridge/src/cli.rs`, and to the embedded guides.
-- The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, and `lsp` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands.
+- The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, `lsp`, and `upgrade` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands or states that none replaces them.
 
 <!-- @code crates/docbridge/src/output.rs -->
 <!-- @code crates/docbridge/src/query.rs -->
@@ -123,7 +123,7 @@ Other commands:
 | ------- | ----------------------------------------- | -------- | ------------------------------ |
 | `docs`  | Overview, `list`, `show <name>`, `--help` | Not used | Unknown guide or invalid usage |
 
-- Usage errors exit 3 in every command, including `validate`.
+- Usage errors exit 3 in every command, including `validate` ([#228](https://github.com/salan70/docbridge/issues/228)).
 - A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
 - Warnings and errors go to stderr, leaving stdout valid JSON when requested.
 - `links` retrieves direct edges only. A selected node can show all of its direct neighbors; neighbors do not trigger another traversal.
@@ -146,7 +146,7 @@ Other commands:
 - `init --force` may replace recorded managed skill files, but it never overwrites configuration, follows symlinks, or deletes unrecorded user files.
 - deinit shows a complete removal plan and requires interactive confirmation. Noninteractive input without confirmation fails without changes; no new deinit `--yes` or `--root` flag is added in the initial version.
 - deinit removes recognizable DocBridge annotation lines outside examples and ordinary comments, preserving malformed lookalikes for manual review. It removes only owned unchanged skill files; modified or unowned files are reported and preserved. The displayed config removal requires confirmation even if the config was edited.
-- init and deinit check every target against the confirmed plan before the first write and write nothing if any differs. Each file then changes in one atomic step: a write goes to a temporary file in the target's directory that is renamed over the target, keeping an existing target's permissions. There is no recovery directory.
+- init and deinit check every target against the confirmed plan before the first write and write nothing if any differs. Each file then changes in one atomic step: a write goes to a temporary file in the target's directory that is renamed over the target, keeping an existing target's permissions. There is no recovery directory ([#228](https://github.com/salan70/docbridge/issues/228)).
 - If a run fails partway, report which files changed and which did not, and do not claim the run succeeded. Rerunning the same command finishes the remaining work without repeating or damaging completed changes: deinit rewrites documentation first, removes each ownership record only after the files and directories it covers, and removes the configuration last; init writes an ownership record before its skill file. A directory that deinit cannot remove also fails the run.
 - A file in a skill directory named exactly `.docbridge-tmp-<digits>-<digits>-<digits>` is a temporary file left by an interrupted write, not user data. It never makes a skill directory an unmanaged conflict, and init and deinit list and remove it. Files with similar names remain user files, and a file the ownership record lists follows its ownership hash instead.
 - deinit displays the resolved root in its confirmation. Managed annotation targets must match discovered paths exactly, independent of filesystem case folding. Always avoid Git metadata during discovery; other hidden paths follow the explicit configuration.
@@ -158,9 +158,9 @@ Other commands:
 - Each release attaches the five executables and a `SHA256SUMS` file in `sha256sum` format that lists them.
 - Each executable carries a GitHub artifact attestation of its build provenance, created by **Release vNext** from `main` in this repository.
 - Users can verify a download against both the attestation and `SHA256SUMS`; the commands are in [Install](../../README.md#install).
-- The CLI does not update itself. Users update through the channel they installed from.
+- There is no project-owned signing key, and the CLI does not update itself; users update through the channel they installed from ([#228](https://github.com/salan70/docbridge/issues/228)).
 - Targets: Linux x64/ARM64 (static musl), macOS x64/ARM64, Windows x64. Document actual supported OS requirements rather than untested minimums.
-- Merging a pull request publishes nothing; a maintainer dispatches production releases. No npm/Marketplace removal or Nixpkgs submission happens merely to close an issue ([Releasing](../contributing/releasing.md)).
+- Release operations: [Releasing](../contributing/releasing.md).
 
 <!-- @code crates/docbridge/src/docs.rs -->
 <!-- @code crates/docbridge/src/lifecycle.rs -->
@@ -169,15 +169,6 @@ Other commands:
 
 - The distributable Skill stays thin: it states when to use DocBridge and points to `docbridge docs`.
 - The embedded guides are the source of detail (commands, migration, deinit). Do not duplicate guide content in the Skill.
-
-## Decisions
-
-Recorded by the maintainer on 2026-10-29:
-
-- Release integrity relies on GitHub artifact attestations and `SHA256SUMS`; there is no project-owned signing key and no self-update ([#228](https://github.com/salan70/docbridge/issues/228)).
-- init and deinit apply atomic per-file changes and finish on rerun instead of keeping a recovery directory, and every usage error exits 3, including in `validate` ([#228](https://github.com/salan70/docbridge/issues/228)).
-- After release, deprecate the legacy npm package; never unpublish it.
-- Nixpkgs material is prepared in this repository, and the maintainer submits it.
 
 ## Open items
 

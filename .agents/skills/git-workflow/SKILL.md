@@ -8,9 +8,8 @@ description: DocBridge git workflow — branching, PR-based integration, merge c
 - No direct pushes to `main`; never bypass branch protection or the required
   `ci` check.
 - Agents may branch, commit, push, and open PRs. **Merging a PR requires
-  explicit human approval** and uses **Create a merge commit**
-  (`git log --first-parent main` for the PR view).
-- Only a maintainer publishes a release, by dispatching Release vNext.
+  explicit human approval**; the merge method is set by
+  [branch protection](../../../docs/contributing/releasing.md#branch-protection).
 - Branch, commit, and PR conventions:
   [Git and pull requests](../../../docs/contributing/README.md#git-and-pull-requests).
 
@@ -19,12 +18,12 @@ description: DocBridge git workflow — branching, PR-based integration, merge c
 1. Branch from a freshly fetched `main`:
    `git fetch origin && git switch --no-track -c <branch> origin/main`. This
    works even while another worktree holds `main`.
-2. Before committing, review the linked counterparts of each changed file or
-   section with `just links <path> --include-content`. The `pre-commit` hook
-   runs `just format-check` and `just validate` over the working tree, not
-   only the staged snapshot; run `just verify` yourself before you report. If
-   `git config core.hooksPath` is unset, run `just setup`.
-3. Push with `git push -u origin <branch>` and open the PR with the template.
+2. Before committing, review linked counterparts as
+   [Documentation](../../../docs/contributing/README.md#documentation) requires.
+   If `git config core.hooksPath` is unset, run `just setup`; the hook is
+   described in
+   [Development environment](../../../docs/contributing/README.md#development-environment).
+3. Push with `git push -u origin <branch>` and open the PR.
 4. After merge, run `git fetch --prune origin` and confirm that
    `git merge-base --is-ancestor <branch> origin/main` succeeds. Then leave the
    branch: remove a linked worktree with `git worktree remove <path>`, or in

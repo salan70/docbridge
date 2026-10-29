@@ -21,7 +21,7 @@ doctor:
 format:
     cargo fmt --all
     oxfmt .
-    nixfmt flake.nix packaging/nixpkgs/package.nix
+    nixfmt flake.nix
 
 # Every tracked shell source, NUL-separated: `*.sh` plus the extension-less Git hooks.
 [private]
@@ -39,7 +39,7 @@ format-check-ox:
     oxfmt --check .
 
 format-check-nix:
-    nixfmt --check flake.nix packaging/nixpkgs/package.nix
+    nixfmt --check flake.nix
 
 # Run every linter over the whole repository.
 lint: lint-rust lint-markdown lint-shell lint-actions
@@ -72,7 +72,7 @@ unlinked:
 links *ARGS:
     cargo run --quiet --package docbridge --locked --target-dir {{ target_dir }} -- links "$@"
 
-# Offline, read-only gate that CI runs; the pre-commit hook runs only `format-check` and `validate`.
+# Offline, read-only gate that CI runs.
 verify: format-check lint test validate
 
 # Build the release binary for this machine.
