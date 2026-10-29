@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-29
+
+This release replaces the npm package with a native DocBridge CLI written in
+Rust. It is a breaking change with no compatibility layer and no automatic
+conversion. Migrate an existing project with the Migration guide:
+`docbridge docs show migration`, or
+[`crates/docbridge/guides/migration.md`](crates/docbridge/guides/migration.md).
+
+### Changed
+
+- DocBridge is a single native executable for Linux x64 and ARM64 (static
+  musl), macOS x64 and ARM64, and Windows x64. It no longer needs Node.js, Bun,
+  or a language runtime, and it is distributed through GitHub Releases and the
+  repository's Nix flake instead of npm.
+- Links are file-level and declared only in Markdown: a standalone
+  `<!-- @code path -->` line before a heading links that section to a whole
+  code file. Sections are addressed as `document.md#parent/child`.
+- `docbridge.config.json` selects code by `include.code.paths` and
+  `include.code.extensions`, and docs by `include.docs`, with an optional
+  `exclude.code`. Language-keyed `include.code.<language>` entries, `$schema`,
+  and any other unknown key are errors.
+- `docbridge upgrade` updates only a standalone executable, after verifying a
+  signed release manifest. It no longer updates project assets; Nix and other
+  package-managed installations receive update guidance instead.
+- `docbridge init` installs the agent Skill under `.agents/skills/docbridge/`
+  (and `.claude/skills/docbridge/` with `--claude`) with an ownership record.
+  An older Skill without that record must be removed by hand first.
+
+### Added
+
+- `docbridge validate` checks configuration, annotations, and link targets.
+- `docbridge links` shows the direct links of files, globs, or sections, with
+  `--include-content` for complete, untruncated text.
+- `docbridge unlinked` lists code files and Markdown regions that no link
+  covers.
+- `docbridge deinit` removes DocBridge's project assets after showing a
+  complete plan and asking for confirmation.
+- `docbridge docs` shows the bundled English guides offline.
+
+### Removed
+
+- The `check`, `related`, `context`, `graph`, `init-with-agent`, and `lsp`
+  commands, and the `related --gate` and `check --audit` modes. There are no
+  aliases; see the Migration guide for the replacements.
+- Symbol-level links: `@code path#Symbol` targets are errors, and `@doc`
+  annotations in code and `docbridge.links.json` link manifests are ignored.
+- The language scanners and their runtime requirements (Swift, Dart, Rust, Go,
+  Python, Ruby, and Java workers), and the published JSON Schemas.
+- The Language Server and the VS Code-compatible editor extension.
+
 ## [0.16.0] - 2026-10-12
 
 ### Added
@@ -585,7 +635,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/salan70/docbridge/releases/tag/v0.17.0
 [0.16.0]: https://github.com/salan70/docbridge/releases/tag/v0.16.0
 [0.15.0]: https://github.com/salan70/docbridge/releases/tag/v0.15.0
 [0.14.0]: https://github.com/salan70/docbridge/releases/tag/v0.14.0

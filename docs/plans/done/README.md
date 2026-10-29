@@ -1,8 +1,12 @@
 # Completed Plans
 
 These plans are delivery records: they explain how work landed and are not
-current instructions. Current behavior lives in the
-[specifications](../../specs/cli.md) and the [user guides](../../user/getting-started.md).
+current instructions. Every plan below delivered part of the npm package and
+its TypeScript CLI, which the native CLI replaced at the cutover (#215, release
+0.17.0); links to files removed then point to the last commit before the
+cutover. Current
+behavior lives in the [specifications](../../specs/cli.md) and the
+[user guides](../../../crates/docbridge/guides/getting-started.md).
 Active plans, when any exist, stay directly under `docs/plans/`.
 
 | Plan                                                                           | Delivered                                                                 | Release |

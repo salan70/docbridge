@@ -8,11 +8,11 @@ plan repeats only what differs for Go or what the issue left open.
 
 Normative behavior is reflected in these specs as the slices land:
 
-- [Configuration](../../specs/configuration.md)
-- [Scanning](../../specs/scanning.md)
-- [Annotations](../../specs/annotations.md)
+- [Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md)
+- [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md)
+- [Annotations](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/annotations.md)
 - [Diagnostics](../../specs/diagnostics.md)
-- [LSP](../../specs/lsp.md)
+- [LSP](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/lsp.md)
 
 ## Status
 

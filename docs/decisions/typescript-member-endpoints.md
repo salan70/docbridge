@@ -2,9 +2,9 @@
 
 This document records why TypeScript member endpoints are shaped the way they
 are. It is not normative: the behavior itself is specified in
-[Scanning](../specs/scanning.md#typescript-scanning),
-[Annotations](../specs/annotations.md), and
-[Configuration](../specs/configuration.md). Implementation sequencing lives in
+[Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md#typescript-scanning),
+[Annotations](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/annotations.md), and
+[Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md). Implementation sequencing lives in
 [the plan](../plans/done/typescript-member-endpoints-plan.md).
 
 The trigger is [issue #76](https://github.com/salan70/docbridge/issues/76).
@@ -172,7 +172,7 @@ change, so the restrictive direction is the only safe one to start from.
 
 ### Amendment, 2026-09-17: The Exemption Moved, The Behavior Did Not
 
-The [link manifest](../specs/link-manifest.md) resolves a `code` target against
+The [link manifest](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/link-manifest.md) resolves a `code` target against
 the set of visible endpoints, so a member had to be visible to the core even
 without a `@doc`. Withholding members from `CodeScanResult` made every member
 unaddressable from a manifest entry.
@@ -296,7 +296,7 @@ not by a symbol lookup. That is why exempting members from audit opens no hole i
 `@code` resolution — the same bidirectional-pair requirement that already
 governs top-level endpoints governs members. When this record was written,
 DocBridge had no `code_symbol_not_found`. The
-[link manifest](../specs/link-manifest.md) later added it for manifest `code`
+[link manifest](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/link-manifest.md) later added it for manifest `code`
 targets only; annotation resolution is unchanged.
 
 ### What Is Visited Versus What Is Diagnosed

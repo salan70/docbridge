@@ -1,9 +1,0 @@
-package auth;
-
-public class Auth {
-  /**
-   * ログイン 😀
-   * @doc docs/ログイン😀.md#login
-   */
-  public String login() { return "😀"; }
-}

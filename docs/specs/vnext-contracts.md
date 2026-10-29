@@ -5,6 +5,10 @@ The original confirmed requirements remain binding.
 The maintainer decided production key custody, the first vNext version, legacy npm handling, and Nixpkgs submission on 2026-10-29 (see Decisions); actually generating keys, publishing, and submitting remain manual maintainer steps.
 Internal module layout, algorithms, and crate selection remain implementation decisions.
 
+<!-- @code crates/docbridge/src/config.rs -->
+<!-- @code crates/docbridge/src/project.rs -->
+<!-- @code crates/docbridge/src/markdown.rs -->
+
 ## Core CLI and identity
 
 - Section selectors use `relative/document.md#parent/child`. Each component is the heading's simple lowercase slug, retaining Unicode letters/numbers and underscores, replacing other runs with `-`, and trimming edge hyphens. This keeps the current simple rule rather than requiring GitHub compatibility.
@@ -15,6 +19,10 @@ Internal module layout, algorithms, and crate selection remain implementation de
 - Extension matching is case-sensitive and uses the configured suffixes. Glob syntax supports segment-local `*` and recursive `**`; it does not silently add language detection or extra glob operators.
 - Unknown configuration keys are errors. The initial schema has `include.code.paths`, `include.code.extensions`, `include.docs`, and optional `exclude.code`; it does not add a docs-exclude field implicitly. Empty include lists explicitly select no files of that kind.
 - Canonicalize the explicitly selected project root, then reject symlinks/reparse points inside managed paths, including ancestor components. Do not follow a symlink while discovering files. Excluded entries are not managed. Unreadable files, non-UTF-8 text, or NUL-containing binary files prevent the result from being reported as complete.
+
+<!-- @code crates/docbridge/src/cli.rs -->
+<!-- @code crates/docbridge/src/query.rs -->
+<!-- @code crates/docbridge/src/output.rs -->
 
 ## Exit codes and query output
 
@@ -45,6 +53,10 @@ Per-command notes for the commands that do not query the graph:
 - `unlinked` reports meaningful pre-heading or headingless content as a separate document region. A linked parent covers all descendants. When only a child is linked, report the parent's uncovered region without including the covered child as an unlinked item. Invalid links do not make an incomplete scan look complete.
 - When an unlinked section and its descendants are all unlinked, report the topmost region with descendants nested under it. A section whose only annotations are invalid is not counted as successfully linked; its diagnostics remain visible.
 
+<!-- @code crates/docbridge/src/lifecycle.rs -->
+<!-- @code crates/docbridge/src/cli_lifecycle.rs -->
+<!-- @code crates/docbridge/src/docs.rs -->
+
 ## Project assets and embedded docs
 
 - init uses `.agents/skills/docbridge/` by default and adds an optional `--claude` flag for `.claude/skills/docbridge/`.
@@ -59,6 +71,10 @@ Per-command notes for the commands that do not query the graph:
 - Noninteractive init or upgrade without `--yes` may inspect or dry-run, but must not perform writes or replacement.
 - Bare `docs` shows a short getting-started entry and available guides. `docs list` lists guide names; `docs show <name>` displays one guide. Guides and the distributable skill are English initially.
 
+<!-- @code crates/docbridge-update/src/lib.rs -->
+<!-- @code crates/docbridge-update/src/install.rs -->
+<!-- @code crates/docbridge-release/src/lib.rs -->
+
 ## Signing and release preparation
 
 - The executable verifies a signed manifest binding schema version, release version, target, filename, SHA-256, and key ID. It may bundle multiple trusted Ed25519 public keys. Verify the manifest with the identified trusted key before assets can replace the installed binary.
@@ -71,6 +87,9 @@ Per-command notes for the commands that do not query the graph:
 - Prepare Linux x64/ARM64 as static musl builds for portability, macOS x64/ARM64, and Windows x64. Document actual supported OS/toolchain requirements rather than claiming untested minimum versions.
 - Keep production release invocation manual during cutover. Preparatory internal PRs use the repository's non-releasing path; the final user-facing cutover must satisfy versioning and release-label checks. No production publishing, npm/Marketplace removal, or Nixpkgs submission is performed merely to close an issue.
 - Nixpkgs packaging is built from Rust source. Prepare and verify the package and submission material; record any external approval or acceptance that remains outstanding instead of closing it as completed.
+
+<!-- @code crates/docbridge/src/docs.rs -->
+<!-- @code crates/docbridge/src/lifecycle.rs -->
 
 ## Skill and guide split
 

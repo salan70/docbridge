@@ -16,9 +16,9 @@ the demand is now present in this repository's own dogfooding and in
 The design rationale — why the canonical ID format is what it is, and why
 members are exempt from audit — lives in
 [docs/decisions/typescript-member-endpoints.md](../../decisions/typescript-member-endpoints.md).
-Normative behavior lives in [Scanning](../../specs/scanning.md#typescript-scanning),
-[Annotations](../../specs/annotations.md), and
-[Configuration](../../specs/configuration.md).
+Normative behavior lives in [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md#typescript-scanning),
+[Annotations](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/annotations.md), and
+[Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md).
 
 The whole plan lands as a single pull request. Slices are commit units within
 that PR, not separate PRs.

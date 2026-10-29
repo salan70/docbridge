@@ -13,7 +13,7 @@ rely on the mode surviving the trip through the registry and the installer.
 
 Normative behavior is reflected in:
 
-- [Scanning](../../specs/scanning.md)
+- [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md)
 - [Diagnostics](../../specs/diagnostics.md)
 
 ## Status
@@ -262,7 +262,7 @@ their workaround.
 
 Tasks:
 
-- Update [Scanning](../../specs/scanning.md#code-scanning) to state that DocBridge
+- Update [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md#code-scanning) to state that DocBridge
   restores the executable bit on its own bundled scanner binaries when it finds
   them non-executable, and emits `code_scanner_unavailable` when it cannot.
 - Update [Diagnostics](../../specs/diagnostics.md) with the distinguishable

@@ -1,14 +1,12 @@
 name: Release vNext
 
-# Manual release of the vNext Rust CLI during the cutover. It never runs on its
-# own: a maintainer dispatches it. The legacy npm release stays in
-# release-publish.yml and is unaffected.
+# Manual release of the DocBridge CLI. It never runs on its own: a maintainer
+# dispatches it. It is the only workflow that publishes releases.
 #
 # dry-run (default): builds the five targets, signs them with a throwaway key
 #   generated in the job, and verifies the complete asset set. Creates nothing.
-# release: requires main, a retired legacy publisher (no other workflow
-#   publishes releases or npm packages), a version equal to
-#   crates/docbridge/Cargo.toml, no release for it, a `v<version>` tag that is
+# release: requires main, no other workflow that publishes releases or npm
+#   packages, a version equal to crates/docbridge/Cargo.toml, no release for it, a `v<version>` tag that is
 #   absent or already at this commit, and in the `release` environment the
 #   DOCBRIDGE_RELEASE_KEY_ID and DOCBRIDGE_RELEASE_KEY_SECRET variables naming the
 #   active key and its per-key secret. It signs once, verifies against the keys

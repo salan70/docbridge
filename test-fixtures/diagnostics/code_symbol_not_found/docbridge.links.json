@@ -1,9 +1,0 @@
-{
-  "$schema": "../../../schemas/docbridge.links.schema.json",
-  "links": [
-    {
-      "code": "src/example.ts#Session.find",
-      "doc": "docs/spec.md#example-section"
-    }
-  ]
-}

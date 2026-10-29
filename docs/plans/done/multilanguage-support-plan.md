@@ -11,13 +11,13 @@ resolver, graph, CLI, context command, or LSP.
 
 Normative behavior will be reflected in these specs as the slices land:
 
-- [Configuration](../../specs/configuration.md)
-- [Scanning](../../specs/scanning.md)
-- [Annotations](../../specs/annotations.md)
-- [Link Resolution](../../specs/link-resolution.md)
+- [Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md)
+- [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md)
+- [Annotations](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/annotations.md)
+- [Link Resolution](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/link-resolution.md)
 - [Diagnostics](../../specs/diagnostics.md)
 - [CLI](../../specs/cli.md)
-- [LSP](../../specs/lsp.md)
+- [LSP](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/lsp.md)
 
 ## Status
 

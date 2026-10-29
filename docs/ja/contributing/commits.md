@@ -17,8 +17,8 @@ scope は任意です。
 例:
 
 ```text
-✨ feat(scanner): parse @doc annotations
-🐛 fix(resolver): report missing Markdown anchors
+✨ feat(links): read selectors from stdin
+🐛 fix(markdown): ignore annotations inside HTML blocks
 📝 docs: document commit rules
 ```
 
@@ -69,10 +69,10 @@ scope は任意です。
 subject だけでは理由、tradeoff、migration detail が明らかでない場合は body を書きます。
 
 ```text
-✨ feat(scanner): parse exported function docs
+✨ feat(unlinked): report headingless Markdown content
 
-Read JSDoc comments attached to top-level exported functions and collect
-@doc targets for resolver input.
+Report meaningful content before the first heading as its own region, so a
+document without headings is not silently treated as covered.
 ```
 
 ## Breaking Changes
@@ -82,5 +82,5 @@ breaking change では type または scope の後に `!` を付け、`BREAKING 
 ```text
 💥 feat(cli)!: change JSON output shape
 
-BREAKING CHANGE: check --json now returns an object instead of an array.
+BREAKING CHANGE: links --json now returns an object instead of an array.
 ```

@@ -5,13 +5,15 @@ through the `@AGENTS.md` import in `CLAUDE.md`.
 
 ## Environment
 
-- The published CLI runs on Node.js 22+ and Bun. Keep dependencies minimal, and
-  prefer Bun and the TypeScript Compiler API.
+- DocBridge is a native Rust CLI built from the Cargo workspace in `crates/`
+  with the toolchain pinned by `rust-toolchain.toml`. Keep dependencies
+  minimal and pinned through `Cargo.lock`.
 - Use the `justfile` recipes. If `just` or another tool is missing, run the
   command through `nix develop -c`; this also applies when `IN_NIX_SHELL` is set
   but the environment is stale.
-- To run the CLI from this checkout, use `bun run src/cli/index.ts` in place of
-  `docbridge`.
+- To run the CLI from this checkout, use `cargo run -p docbridge --` in place of
+  `docbridge`. `just validate`, `just links`, and `just unlinked` run it on this
+  repository.
 
 ## Rules
 
@@ -26,7 +28,8 @@ through the `@AGENTS.md` import in `CLAUDE.md`.
   such as files under `docs/ja/`.
 - Agents may branch, commit, push, and open pull requests through the
   `git-workflow` skill. **Merging a pull request requires explicit human
-  approval**, and merging one with a releasing label also publishes the release.
+  approval.** Releases are published only when a maintainer dispatches
+  Release vNext.
 - A user's explicit instruction overrides a skill's default behavior, but not
   the approval requirements above.
 

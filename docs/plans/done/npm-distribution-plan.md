@@ -9,8 +9,8 @@ Normative behavior will be reflected in these specs and docs as the slices
 land:
 
 - [CLI](../../specs/cli.md)
-- [Scanning](../../specs/scanning.md)
-- [Configuration](../../specs/configuration.md)
+- [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md)
+- [Configuration](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/configuration.md)
 - [Testing](../../contributing/testing.md)
 
 ## Status

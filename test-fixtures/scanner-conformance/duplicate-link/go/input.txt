@@ -1,5 +1,0 @@
-package auth
-
-// @doc docs/auth.md#login
-// @doc docs/auth.md#login
-func Login() {}

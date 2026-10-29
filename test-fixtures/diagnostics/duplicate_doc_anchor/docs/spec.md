@@ -1,3 +1,0 @@
-# Example Section
-
-# Example Section

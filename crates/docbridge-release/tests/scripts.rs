@@ -350,10 +350,9 @@ fn legacy_gate(dir: &Path) -> Output {
 
 #[test]
 fn vnext_release_is_blocked_while_another_workflow_publishes() {
-    // The legacy npm publisher in this checkout still publishes: blocked.
+    // The legacy npm publisher is retired, so this checkout passes the gate.
     let out = legacy_gate(&repo().join(".github/workflows"));
-    assert!(!out.status.success(), "{out:?}");
-    assert!(String::from_utf8_lossy(&out.stderr).contains("release-publish.yml"));
+    assert!(out.status.success(), "{out:?}");
 
     let dir = tempfile::tempdir().unwrap();
     fs::copy(

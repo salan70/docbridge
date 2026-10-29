@@ -1,56 +1,37 @@
 # DocBridge Documentation
 
 Choose the shortest path for the task. User guides explain how to achieve an
-outcome; specifications define exhaustive behavior; integration recipes adapt
-the general workflow to a particular tool.
+outcome; specifications define exhaustive behavior.
 
 [日本語の入口](ja/README.md)
 
 ## Use DocBridge
 
-These English guides are also installed with the npm package and available
-through `docbridge docs show <name>`:
+The English user guides ship inside the CLI. Read them offline with
+`docbridge docs list` and `docbridge docs show <name>`. Their sources are
+under [`crates/docbridge/guides/`](../crates/docbridge/guides/):
 
-- [Getting started](user/getting-started.md) — install, configure, and validate
-  the first reciprocal link
-- [Configuration](user/configuration.md) — choose roots, patterns, languages,
-  and visibility
-- [Linking](user/linking.md) — select sections, author annotation pairs, and
-  review their meaning
-- [Commands](user/commands.md) — choose between check, related, context, graph,
-  docs, and upgrade
-- [Automation](user/automation.md) — connect agents, Git hooks, and CI
-- [Troubleshooting](user/troubleshooting.md) — recover from configuration,
-  scanner, parsing, and link diagnostics
+- [Getting started](../crates/docbridge/guides/getting-started.md)
+- [Configuration](../crates/docbridge/guides/configuration.md)
+- [Linking](../crates/docbridge/guides/linking.md)
+- [Commands](../crates/docbridge/guides/commands.md)
+- [Troubleshooting](../crates/docbridge/guides/troubleshooting.md)
+- [Automation](../crates/docbridge/guides/automation.md) — agents, Git hooks,
+  and CI
+- [Migration](../crates/docbridge/guides/migration.md) — from the npm package
+  (`0.16.0` and earlier)
+- [Removal](../crates/docbridge/guides/deinit.md)
 
-Runnable showcases, one per supported language, live under
-[`examples/`](../examples/). Release history is in the
-[Changelog](../CHANGELOG.md).
-
-## Automate and integrate
-
-- [Claude Code](integrations/claude-code.md)
-- [Codex](integrations/codex.md)
-- [Continuous integration](integrations/ci.md)
-- [VS Code-compatible extension](../editors/vscode/README.md)
-
-These pages contain client-specific setup and runnable recipes. The general
-editing and gate policy stays in [Automation](user/automation.md).
+Release history is in the [Changelog](../CHANGELOG.md).
 
 ## Understand the contracts
 
-Normative command, configuration, diagnostic, scanning, link-resolution, and
-language-server behavior lives under [Specifications](specs/cli.md). Start
-with the specification for the interface whose exact contract you need:
-
-- [CLI](specs/cli.md)
-- [Configuration](specs/configuration.md)
-- [Annotations](specs/annotations.md)
-- [Scanning](specs/scanning.md)
-- [Link resolution](specs/link-resolution.md)
-- [Link manifest](specs/link-manifest.md)
-- [Diagnostics](specs/diagnostics.md)
-- [Language server](specs/lsp.md)
+- [vNext public contracts](specs/vnext-contracts.md) — selectors, paths,
+  annotations, configuration, exit codes, project assets, and signed updates
+- [CLI](specs/cli.md) — commands and the output model
+- [Diagnostics](specs/diagnostics.md) — diagnostic codes
+- [Update crate](../crates/docbridge-update/README.md) — the signed release
+  format, installation receipt, and replacement and recovery
 
 ## Contribute to DocBridge
 
@@ -59,7 +40,6 @@ with the specification for the interface whose exact contract you need:
 - [Writing guidelines](contributing/writing.md)
 - [Documentation guidelines](contributing/documentation.md)
 - [Testing](contributing/testing.md)
-- [Adding a language](contributing/adding-a-language.md)
 - [Commit messages](contributing/commits.md)
 - [Pull requests](contributing/pull-requests.md)
 - [Releasing](contributing/releasing.md)
@@ -71,4 +51,6 @@ Architectural choices are recorded in [Decisions](decisions/README.md).
 Completed delivery records are archived under
 [Completed plans](plans/done/README.md), and dated evidence reports such as the
 [Dogfooding review, September 2026](reports/2026-09-dogfooding-review.md) live
-under `reports/`. They are historical context, not current user instructions.
+under `reports/`. They describe the npm package and its TypeScript CLI where
+they predate the cutover (#215). They are historical context, not current user
+instructions.

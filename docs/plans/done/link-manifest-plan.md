@@ -5,9 +5,9 @@ An optional root file `docbridge.links.json` declares links with no marker in
 code or Markdown. A team that does not accept tool-specific comments in source
 files can then adopt DocBridge.
 
-Normative behavior lands in [Link manifest](../../specs/link-manifest.md), with
-supporting changes in [Link resolution](../../specs/link-resolution.md),
-[Scanning](../../specs/scanning.md), and [Diagnostics](../../specs/diagnostics.md).
+Normative behavior lands in [Link manifest](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/link-manifest.md), with
+supporting changes in [Link resolution](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/link-resolution.md),
+[Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md), and [Diagnostics](../../specs/diagnostics.md).
 
 The whole plan lands as a single pull request. Slices are commit units within
 that PR, not separate PRs.
@@ -167,7 +167,7 @@ Add optional `isMember` to `CodeSymbolEndpoint` and to `codeSymbol` in
 undocumented members with the flag set, and `auditUndocumentedSymbols` in
 `src/core/resolver.ts` skips flagged symbols.
 
-Reword the member paragraph in [Scanning](../../specs/scanning.md) and amend
+Reword the member paragraph in [Scanning](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/scanning.md) and amend
 [TypeScript member endpoints](../../decisions/typescript-member-endpoints.md).
 
 Verification:
@@ -241,7 +241,7 @@ links, and a member target resolves in all four languages.
 
 ## Slice 7: User Documentation and Example
 
-Document the manifest in [Linking](../../user/linking.md) and its Japanese
+Document the manifest in [Linking](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/user/linking.md) and its Japanese
 counterpart, add the `code_symbol_not_found` row to both troubleshooting
 guides, and add one manifest-declared pair to `examples/typescript` so the
 showcase demonstrates coexistence.

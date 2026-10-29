@@ -17,7 +17,7 @@ Examples:
 ```text
 feat/#42-version-flag
 fix/#51-anchor-resolution
-chore/#75-rename-scanner-executables
+chore/#75-rename-release-assets
 chore/agent-environment-inventory
 ```
 
@@ -41,8 +41,8 @@ Examples:
 
 ```text
 📝 docs: define pull request title and branch naming conventions
-🐛 fix: preserve scanner executable bit in npm package
-✨ feat: support the Node.js runtime for the npm package
+🐛 fix: keep the executable bit on release assets
+✨ feat: add the unlinked command
 ```
 
 Rules:
@@ -78,7 +78,8 @@ content-based disposition.
 Every pull request carries exactly one `release:` label: `release: none`,
 `release: patch`, `release: minor`, or `release: major`. A releasing label
 requires the version bump and CHANGELOG roll from `just release-bump <kind>` in
-the same pull request, and merging it publishes that release. The required
+the same pull request. Merging publishes nothing; a maintainer releases the
+version by dispatching Release vNext. The required
 `release-label` check enforces the label and the matching change. The
 [git-workflow skill](../../.agents/skills/git-workflow/SKILL.md#releases-per-pr)
 defines when to use each kind.

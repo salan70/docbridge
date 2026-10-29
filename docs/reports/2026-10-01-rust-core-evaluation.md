@@ -153,13 +153,13 @@ defect, and none changes shipped output.
    experiment machine produced ICU root order, where punctuation sorts by
    collation weight, digits sort before letters, and case only breaks ties.
    `comparePaths` uses UTF-16 code-unit order instead.
-   [Sorting Diagnostics](../specs/diagnostics.md#sorting-diagnostics) names the
+   [Sorting Diagnostics](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/diagnostics.md#sorting-diagnostics) names the
    keys but not the string order.
 2. **Navigation resolves code targets against annotated symbols only.**
    `buildLinkGraph` keys code endpoints by `symbols`, not `undocumentedSymbols`,
    so a Markdown `@code` link to an unannotated symbol is not navigable unless
    the link manifest promotes that symbol.
-   [Navigation](../specs/lsp.md#navigation-and-resolvable-one-way-links) leaves
+   [Navigation](https://github.com/salan70/docbridge/blob/11da92e56bbcabe471b1b4fa707ada7cf71b128b/docs/specs/lsp.md#navigation-and-resolvable-one-way-links) leaves
    the code side implicit.
 3. **File-scoped scanner failures require `language`.** `collectErroredFiles`
    treats `code_scanner_unavailable` and `code_scanner_failed` as file-scoped

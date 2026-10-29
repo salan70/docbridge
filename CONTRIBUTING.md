@@ -5,15 +5,11 @@ setting up the repository, making a change, and preparing a pull request.
 
 ## Development environment
 
-The recommended environment is the pinned Nix development shell. It provides
-Bun, Node.js, Dart, Rust, Go, `just`, and every formatter and linter used by the
-shared
-quality gate. Install a flake-enabled Nix distribution and optionally
+DocBridge is a Rust Cargo workspace (`crates/`). The recommended environment is
+the pinned Nix development shell. It provides the Rust toolchain pinned by
+`rust-toolchain.toml`, `just`, and every formatter and linter used by the
+shared quality gate. Install a flake-enabled Nix distribution and optionally
 [direnv](https://direnv.net/) before cloning the repository.
-
-Swift is intentionally not supplied by the Nix shell. Install the Swift version
-named in `.swift-version` on `PATH`; `just verify` checks Swift formatting for the whole repository, even
-when a change does not touch the Swift scanner.
 
 Without Nix, use `flake.nix` as the authoritative tool list and install all of
 its packages yourself. The repository does not maintain a second set of
@@ -33,8 +29,7 @@ Alternatively, enter it explicitly:
 nix develop
 ```
 
-Install locked Bun and Dart dependencies, build the scanner workers used by the
-integration tests, and configure the repository Git hooks:
+Configure the repository Git hooks:
 
 ```sh
 just setup
@@ -46,30 +41,33 @@ From outside the development shell, use:
 nix develop -c just setup
 ```
 
-Confirm that the required tools and Swift version are visible:
+Confirm that the required tools are visible:
 
 ```sh
 just doctor
 ```
 
 The setup command configures `core.hooksPath` as `.githooks`. The pre-commit
-hook runs the read-only `just verify` gate and never modifies files, then runs
-`just related-gate-report`, which reports the staged changes' unstaged linked
-counterparts with their content without blocking the commit. Run the same
-report yourself after staging with `just related-gate-report`.
+hook runs the read-only `just verify` gate and never modifies files.
 
-To run the CLI from this checkout, for example the `docbridge docs show`
-commands that the `docbridge` skill suggests, use `bun run src/cli/index.ts`
-in place of `docbridge`:
+To run the CLI from this checkout, use `cargo run -p docbridge --` in place of
+`docbridge`, for example for the `docbridge docs show` commands that the
+`docbridge` skill suggests:
 
 ```sh
-bun run src/cli/index.ts docs show linking
+cargo run -p docbridge -- docs show linking
 ```
 
+`just validate`, `just links`, and `just unlinked` run the matching commands on
+this repository.
+
 Coding agents read `AGENTS.md`, which `CLAUDE.md` imports. Each skill's source
-is `.agents/skills/<name>/`, except the distributable `docbridge` skill under
-`templates/skills/docbridge/`, and `.claude/skills/<name>` is a symlink to it.
-Keep skill bodies tool-neutral. `just check-ai-assets` enforces this layout.
+is `.agents/skills/<name>/`, and `.claude/skills/<name>` is a symlink to it.
+The exception is the distributable `docbridge` skill: `docbridge init --claude`
+installs it as a managed copy in both trees, with an ownership record. Its text
+is embedded in `crates/docbridge/src/lifecycle.rs`; after changing it, reinstall
+both copies with `cargo run -p docbridge -- init --force --claude --yes`. Keep
+skill bodies tool-neutral. `just lint-ai-assets` enforces this layout.
 
 ## Issues
 
@@ -95,14 +93,12 @@ distinct information; link to an existing fact instead of paraphrasing it.
    per [Pull requests](docs/contributing/pull-requests.md)
    (`<feat|fix|chore>/#<issue>-<kebab-desc>`, without `#<issue>` when no issue
    exists).
-2. Keep code, tests, specifications, and user documentation consistent. Use
-   `just related-gate` before committing to find linked counterparts that your
-   uncommitted changes did not update, or `just related-gate-report` for the
-   staged set with the counterparts' content, as the pre-commit hook prints it.
+2. Keep code, tests, specifications, and user documentation consistent. For
+   each file or section you change, `just links <path> --include-content` shows
+   its linked counterparts; update them or confirm that they still agree.
 3. For logic changes, write the failing test first and follow the conventions
    in [Testing](docs/contributing/testing.md).
-4. Apply deterministic formatting with `just format`. `just lint-fix` applies
-   only Oxlint's safe fixes; review every resulting diff.
+4. Apply deterministic formatting with `just format`.
 5. Run the relevant focused checks while iterating, then run the shared gates
    before opening a pull request.
 
@@ -117,44 +113,29 @@ Run the common read-only gate:
 just verify
 ```
 
-It runs the checks and test suites that the `verify` recipe in `justfile` lists.
-Also verify the distributable build:
+It runs formatting checks, lint (Clippy, rumdl, ShellCheck, Nix, actionlint,
+and the skill layout), the workspace tests, and `docbridge validate` on this
+repository. Also smoke-test the release binary for this machine:
 
 ```sh
-just build
+just smoke
 ```
 
 Run additional checks when the affected area requires them:
 
-| Area                  | Commands                                                           |
-| --------------------- | ------------------------------------------------------------------ |
-| Swift scanner         | `just test-swift-scanner`, `just build-swift-scanner`              |
-| Dart scanner          | `just test-dart-scanner`, `just build-dart-scanner`                |
-| Rust scanner          | `just test-rust-scanner`, `just build-rust-scanner`                |
-| Go scanner            | `just test-go-scanner`, `just build-go-scanner`                    |
-| Python scanner        | `just test-python-scanner` (also in `just verify`)                 |
-| Ruby scanner          | `just test-ruby-scanner` (also in `just verify`)                   |
-| Java scanner          | `just test-java-scanner`, `just lint-java` (both in `just verify`) |
-| Language Server speed | `just lsp-latency`                                                 |
-| Examples              | `just check-example <language>`                                    |
-| npm distribution      | `just verify-dist`                                                 |
-| Editor client         | `just typecheck-extension` (also in `just verify`)                 |
-| VS Code extension     | `just package-vsix`, `just verify-vsix`                            |
-| Local VSIX install    | `just package-vsix-local`, `just verify-vsix-local`                |
-| Repository self-audit | `just audit`                                                       |
+| Area                | Commands                                     |
+| ------------------- | -------------------------------------------- |
+| Nix package         | `nix build .#docbridge`, `just flake-check`  |
+| Release label       | `just check-release-label "release: <kind>"` |
+| Repository coverage | `just unlinked`                              |
+| Linked counterparts | `just links <path> --include-content`        |
+
+CI runs `just verify`, then builds, tests, and smoke-runs the five release
+targets and signs them with a throwaway key; see
+[Releasing](docs/contributing/releasing.md#dry-run).
 
 Use `just --list` for the complete task list. If a command must be run outside
 an activated shell, prefix it with `nix develop -c`.
-
-`just setup` builds the debug Swift, compiled Dart, debug Rust, and Go workers
-required by the Bun integration tests. Rebuild all four after changing worker
-code with `just build-test-scanners`, which also builds the Java worker JAR.
-The Python and Ruby workers run from source on the CPython and CRuby that the
-Nix dev shell provides, and the JAR runs on its JDK.
-
-`just setup` also installs the editor client's own locked dependencies under
-`editors/vscode`, which `just typecheck-extension` needs. Install them alone
-with `just install-editor-deps`.
 
 ## Commits and pull requests
 
@@ -172,11 +153,8 @@ with `just install-editor-deps`.
   an issue, the pull request states the problem it solves.
 - Complete the pull request template with the actual commands run and their
   results. Do not check a command that was not run.
-- For every linked counterpart reported for the pull request's changes, update
-  it or explain in the pull request why no corresponding change is needed.
-  `just related-gate` covers only uncommitted and untracked files, and
-  `just related-gate-report` only staged files; on a committed branch, use the
-  CI related-gate comment, which covers the whole pull request.
+- For every linked counterpart of the pull request's changes, update it or
+  explain in the pull request why no corresponding change is needed.
 - All changes land through a pull request. Maintainers merge with a merge
   commit after the required CI checks pass.
 
@@ -184,7 +162,6 @@ with `just install-editor-deps`.
 
 - [Module architecture](docs/contributing/architecture.md)
 - [Testing](docs/contributing/testing.md)
-- [Adding a language](docs/contributing/adding-a-language.md)
 - [Writing](docs/contributing/writing.md)
 - [Documentation](docs/contributing/documentation.md)
 - [Self-audit](docs/contributing/self-audit.md)
@@ -192,5 +169,5 @@ with `just install-editor-deps`.
 - [Pull requests](docs/contributing/pull-requests.md)
 - [Releasing](docs/contributing/releasing.md)
 - [Specifications](docs/specs)
-- [AI agent integrations](docs/integrations)
+- [User guides](crates/docbridge/guides)
 - [Project guidance for AI agents](AGENTS.md)

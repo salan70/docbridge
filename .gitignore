@@ -1,13 +1,11 @@
-node_modules/
-dist/
 .tmp/
-editors/vscode/.tmp/
+/target/
 .direnv/
 .DS_Store
 *.log
 
-# Machine-specific editor settings (e.g. absolute bunPath); keep local.
-.vscode/settings.json
+# Machine-specific editor settings; keep local.
+.vscode/
 
 # Worktrees the Claude Code Agent tool creates inside the checkout.
 .claude/worktrees/

@@ -1,3 +1,0 @@
-/// ログイン 😀
-/// @doc docs/ログイン😀.md#login
-pub fn login() -> &'static str { "😀" }

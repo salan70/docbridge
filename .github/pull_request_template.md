@@ -12,14 +12,14 @@
 ## Release
 
 <!-- Add exactly one label: release: none, release: patch, release: minor, or release: major. -->
-<!-- For patch, minor, or major, run just release-bump <kind> in this pull request; merging it publishes the release. -->
+<!-- For patch, minor, or major, run just release-bump <kind> in this pull request. Merging publishes nothing; a maintainer dispatches Release vNext. -->
 
 ## Verification
 
 <!-- List only commands or external checks actually run and their result. -->
 
 - [ ] `just verify`
-- [ ] `just build`
+- [ ] `just smoke`
 - [ ] Area-specific checks, when applicable
 
 ## Review notes
@@ -28,4 +28,4 @@
 
 ## Linked counterparts
 
-<!-- List the counterparts reported by just related-gate before committing, or by the CI related-gate comment for the whole pull request, and either the update or the content-based reason it remains unchanged. -->
+<!-- For each changed file or section, list the counterparts that just links <path> reports and either the update or the content-based reason it remains unchanged. -->
