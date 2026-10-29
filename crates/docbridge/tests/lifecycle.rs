@@ -525,3 +525,108 @@ fn unterminated_html_block_without_annotations_is_complete() {
     assert_eq!(result.code, 0, "{}", result.stderr);
     assert_eq!(after, "# A\n<pre>\ntext\n");
 }
+fn snapshot(dir: &std::path::Path) -> Vec<(String, Vec<u8>)> {
+    fn visit(base: &std::path::Path, dir: &std::path::Path, out: &mut Vec<(String, Vec<u8>)>) {
+        let mut entries: Vec<_> = fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
+        entries.sort();
+        for path in entries {
+            let name = path
+                .strip_prefix(base)
+                .unwrap()
+                .to_string_lossy()
+                .into_owned();
+            if path.is_dir() {
+                out.push((format!("{name}/"), Vec::new()));
+                visit(base, &path, out);
+            } else {
+                out.push((name, fs::read(&path).unwrap()));
+            }
+        }
+    }
+    let mut out = Vec::new();
+    visit(dir, dir, &mut out);
+    out
+}
+#[test]
+fn hook_and_script_references_are_reported_and_never_rewritten() {
+    let p = initialized();
+    fs::create_dir_all(p.join(".githooks")).unwrap();
+    fs::create_dir_all(p.join("scripts")).unwrap();
+    let hook = "#!/bin/sh\ndocbridge validate\n";
+    let script = "#!/bin/sh\ndocbridge validate --json\n";
+    fs::write(p.join(".githooks/pre-commit"), hook).unwrap();
+    fs::write(p.join("scripts/check.sh"), script).unwrap();
+    let plan = plan_deinit(&p).unwrap();
+    let text = plan.to_string();
+    for name in [".githooks/pre-commit", "scripts/check.sh"] {
+        assert!(plan.references.iter().any(|r| r == name), "{name}");
+        assert!(text.contains(&format!("Manual reference cleanup: {name}")));
+    }
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert_eq!(
+        fs::read_to_string(p.join(".githooks/pre-commit")).unwrap(),
+        hook
+    );
+    assert_eq!(
+        fs::read_to_string(p.join("scripts/check.sh")).unwrap(),
+        script
+    );
+}
+#[test]
+fn skill_locations_default_agents_and_optional_claude() {
+    let p = root();
+    let result = init(
+        &p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(p.join(".agents/skills/docbridge/SKILL.md").is_file());
+    assert!(!p.join(".claude/skills/docbridge").exists());
+    let q = initialized();
+    let agents = fs::read(q.join(".agents/skills/docbridge/SKILL.md")).unwrap();
+    let claude = fs::read(q.join(".claude/skills/docbridge/SKILL.md")).unwrap();
+    assert_eq!(agents, claude);
+}
+#[test]
+fn declined_confirmation_leaves_project_byte_identical() {
+    let p = initialized();
+    fs::write(p.join("guide.md"), "<!-- @code src/a.rs -->\n# Guide\n").unwrap();
+    fs::create_dir_all(p.join(".githooks")).unwrap();
+    fs::write(p.join(".githooks/pre-commit"), "docbridge validate\n").unwrap();
+    let before = snapshot(&p);
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".into()], &p).unwrap();
+    let mut asked = false;
+    let result = docbridge::cli::dispatch_with_confirmation(invocation, "", |plan| {
+        asked = true;
+        assert!(plan.contains("guide.md"));
+        false
+    });
+    assert!(asked);
+    assert_ne!(result.exit_code, 0, "{}", result.stdout);
+    assert_eq!(snapshot(&p), before);
+}
+#[test]
+fn embedded_skill_names_current_commands_only() {
+    let p = initialized();
+    let text = fs::read_to_string(p.join(".agents/skills/docbridge/SKILL.md")).unwrap();
+    for word in ["validate", "links", "unlinked", "docs"] {
+        assert!(text.contains(&format!("docbridge {word}")), "{word}");
+    }
+    let lower = text.to_lowercase();
+    for old in ["check", "related", "context", "graph", "lsp", "claim"] {
+        assert!(
+            !lower
+                .split(|c: char| !c.is_alphanumeric())
+                .any(|w| w == old),
+            "{old}"
+        );
+    }
+    assert!(!lower.contains("guarantee") && !lower.contains("automatically ensure"));
+    assert!(lower.contains("semantic consistency yourself"));
+}

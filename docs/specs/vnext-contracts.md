@@ -2,7 +2,7 @@
 
 The user accepted these resolutions of the open questions in #209–#215 on 2026-10-29.
 The original confirmed requirements remain binding.
-Production key custody, external publication, and Nixpkgs submission remain separate decisions.
+The maintainer decided production key custody, the first vNext version, legacy npm handling, and Nixpkgs submission on 2026-10-29 (see Decisions); actually generating keys, publishing, and submitting remain manual maintainer steps.
 Internal module layout, algorithms, and crate selection remain implementation decisions.
 
 ## Core CLI and identity
@@ -24,6 +24,13 @@ Internal module layout, algorithms, and crate selection remain implementation de
 | Validation/configuration/I/O failure, incomplete unlinked scan, or links with no usable result due to errors |         1 |
 | links with both usable results and inconsistencies                                                           |         2 |
 | Invalid CLI arguments or unknown docs guide                                                                  |         3 |
+
+Per-command notes for the commands that do not query the graph:
+
+| Command   | 0                                                                                             | 1                                                                                                                                            | 3                                     |
+| --------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `upgrade` | Updated, update available (`--check`/`--dry-run`), already current, or declined interactively | Verification, provenance, network, lock, or recovery failure; confirmation required without a terminal and without `--yes` (nothing written) | Unknown argument or other usage error |
+| `docs`    | Overview, `list`, `show <name>`, `--help`                                                     | Not used                                                                                                                                     | Unknown guide or invalid usage        |
 
 - Exception: preserve the confirmed `validate` contract strictly; its argument errors also return 1. Exit code 3 applies to usage errors in the other commands.
 - Plain nonexistent file selectors are errors; a valid glob matching nothing succeeds with an empty graph.
@@ -56,7 +63,7 @@ Internal module layout, algorithms, and crate selection remain implementation de
 
 - The executable verifies a signed manifest binding schema version, release version, target, filename, SHA-256, and key ID. It may bundle multiple trusted Ed25519 public keys. Verify the manifest with the identified trusted key before assets can replace the installed binary.
 - The signed version must match the selected release tag and be newer than the running version. Reject replay, downgrade, and version/target mismatch before replacement.
-- Production key custody, rotation/revocation, and the actual trusted public key require an explicit maintainer decision. Implement and test the verifier with test-only keys first; do not invent a production key or weaken verification to make release tests pass.
+- Production keys follow the Decisions section: the private key is held only in the protected `release` environment, and the binary trusts a compiled-in primary and an offline backup public key. Until the maintainer provisions them, test and verify with test-only keys; do not invent a production key or weaken verification to make release tests pass.
 - Unknown install provenance never triggers self-replacement. Managed installations receive commands appropriate to their package manager; detection does not depend on the current directory.
 - Positive standalone identification requires a receipt created by the documented standalone installation procedure, bound to the executable path and installed hash. Known managed installation locations take precedence over such a receipt. Direct downloads without a receipt receive installation/update guidance instead of self-replacement.
 - `upgrade --check` and `--dry-run` never replace the executable. A newer stable version is reported without treating availability itself as a command failure. Failed verification remains an error.
@@ -64,6 +71,26 @@ Internal module layout, algorithms, and crate selection remain implementation de
 - Prepare Linux x64/ARM64 as static musl builds for portability, macOS x64/ARM64, and Windows x64. Document actual supported OS/toolchain requirements rather than claiming untested minimum versions.
 - Keep production release invocation manual during cutover. Preparatory internal PRs use the repository's non-releasing path; the final user-facing cutover must satisfy versioning and release-label checks. No production publishing, npm/Marketplace removal, or Nixpkgs submission is performed merely to close an issue.
 - Nixpkgs packaging is built from Rust source. Prepare and verify the package and submission material; record any external approval or acceptance that remains outstanding instead of closing it as completed.
+
+## Skill and guide split
+
+- The distributable Skill stays thin: it states when to use DocBridge and points to `docbridge docs`.
+- The embedded guides are the source of detail (commands, migration, deinit). Do not duplicate guide content in the Skill.
+
+## Decisions
+
+Recorded by the maintainer on 2026-10-29:
+
+- The production signing key lives in a protected `release` GitHub Actions environment secret that requires reviewer approval. The executable compiles in a primary public key and an offline backup public key.
+- The first vNext version is 0.17.0.
+- After release, deprecate the legacy npm package. Never unpublish it.
+- Nixpkgs material is prepared in this repository, and the maintainer submits it.
+
+## Open items
+
+- macOS signing and notarization.
+- The Windows distribution format.
+- Minimum supported OS versions for each target.
 
 ## Merge intent
 
