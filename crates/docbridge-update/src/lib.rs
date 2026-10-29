@@ -138,6 +138,8 @@ pub struct Plan {
     version: Version,
     sha256: String,
     bytes: Vec<u8>,
+    /// Receipt-verified SHA256 of the installed executable when the plan was made.
+    installed_sha256: String,
 }
 impl Plan {
     /// Signed stable release version that `apply` installs.
@@ -161,6 +163,11 @@ impl Plan {
     pub fn size(&self) -> usize {
         self.bytes.len()
     }
+    /// Receipt-verified SHA256 of the installed executable the plan replaces. `apply`
+    /// refuses to run if the installation no longer has this hash.
+    pub fn installed_sha256(&self) -> &str {
+        &self.installed_sha256
+    }
 }
 impl std::fmt::Debug for Plan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -171,6 +178,7 @@ impl std::fmt::Debug for Plan {
             .field("version", &self.version)
             .field("sha256", &self.sha256)
             .field("size", &self.bytes.len())
+            .field("installed_sha256", &self.installed_sha256)
             .finish()
     }
 }
@@ -291,6 +299,12 @@ fn install_plan(plan: &Plan, options: &Options, fs: &dyn FileOps) -> Result<(), 
     }
     let _lock = install::Lock::acquire(&plan.executable)?;
     let exe = install::identified(&plan.executable)?;
+    // Bind the plan to the installation it was made for: a stale plan must never
+    // downgrade or overwrite an installation changed by a later upgrade or recovery.
+    // Checked before any write, including cleanup of earlier recovery data.
+    if install::installed_hash(&exe)? != plan.installed_sha256 {
+        return Err("installation changed since the plan; re-run upgrade (no changes)".into());
+    }
     install::tidy(&exe)?;
     install::replace(&exe, &plan.bytes, fs)
 }
@@ -307,6 +321,7 @@ fn verify(o: &Options, client: &dyn ReleaseClient, keys: &TrustedKeys) -> Result
         return Err("unsupported target".into());
     }
     let exe = install::identified(&o.executable)?;
+    let installed_sha256 = install::installed_hash(&exe)?;
     let current = version(&o.current_version)?;
     let release = client.latest()?;
     let selected = version(&release.tag)?;
@@ -373,6 +388,7 @@ fn verify(o: &Options, client: &dyn ReleaseClient, keys: &TrustedKeys) -> Result
         version: selected,
         sha256: asset.sha256.clone(),
         bytes,
+        installed_sha256,
     }))
 }
 pub fn filename(target: &str) -> String {

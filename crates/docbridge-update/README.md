@@ -31,6 +31,7 @@ std::process::exit(outcome.code);
 
 `plan` downloads and verifies the metadata, signed manifest and executable once, and returns a `Plan` holding the version, target, signed SHA256 and the verified bytes in memory.
 `apply` installs exactly those bytes; it re-checks that the executable path, target and byte hash still match the plan and never fetches again.
+The plan also records the receipt-verified hash of the installed executable; under the lock, before any cleanup or replacement, `apply` fails with "installation changed since the plan; re-run upgrade" and writes nothing if the installation changed after planning (for example, a separate upgrade installed a newer release).
 `run(&options)` is a convenience wrapper for `plan` followed by `apply` (for `--check`, `--dry-run` and `--yes`).
 
 `Options` exposes `executable`, `current_version`, `target`, `check`, `dry_run`, `yes`, and `confirmed`.
@@ -170,7 +171,7 @@ A preparation failure (for example a partial write or full disk) leaves the exec
 Only an inconsistent state, where the installed executable/receipt match neither the old nor the committed new state of the journal, blocks another update and asks for `recover`, including during check/dry-run.
 Use `recover(original_executable_path, true)` only after explicit recovery confirmation; the original absolute path works even if the executable is temporarily absent.
 Recovery takes the lock, validates journal path binding, backup hash, and old receipt before restoring, and refuses to overwrite an unrecognized modified executable.
-Recovery preserves its backups.
+Recovery preserves its backups and is resumable: if it was interrupted after the old executable was restored, running it again only restores the receipt and never moves the executable aside again, so an existing `failed-binary` is kept.
 
 The parent may also call `cleanup(executable_path)` on a later normal launch; it takes the lock and removes only recognized validated backup/staging files from a committed, restored, or never-mutated transaction, and succeeds when there is nothing to clean.
 Do not call cleanup during check/dry-run.

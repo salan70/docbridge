@@ -224,6 +224,10 @@ fn receipt(exe: &Path) -> Result<Receipt, String> {
     }
     Ok(value)
 }
+/// Receipt-verified hash of the installed executable (receipt and file agree).
+pub(crate) fn installed_hash(exe: &Path) -> Result<String, String> {
+    receipt(exe).map(|r| r.sha256)
+}
 pub(crate) fn identified(path: &Path) -> Result<PathBuf, String> {
     let exe = executable(path)?;
     let state = inspect(&exe).map_err(|e| {
@@ -554,33 +558,78 @@ fn validate_backups(exe: &Path, dir: &Path, journal: &Journal) -> Result<(), Str
     }
     Ok(())
 }
-fn restore(exe: &Path, dir: &Path, journal: &Journal, ops: &dyn FileOps) -> Result<(), String> {
-    validate_backups(exe, dir, journal)?;
-    // Preserve backups even if restoration itself fails or is interrupted.
-    if exe.exists() {
-        let current = file_hash(exe)?;
-        if current != journal.old_hash && current != journal.new_hash {
-            return Err("current executable changed; refusing to overwrite it".into());
-        }
+/// What restoration still has to do with the executable.
+#[derive(Debug, PartialEq, Eq)]
+enum BinaryStep {
+    /// Already the old executable (never replaced, or restored by an interrupted
+    /// recovery): only the receipt remains to be restored.
+    Keep,
+    /// Absent, or replaceable in place: install the old executable.
+    Install,
+    /// The replacement is installed and cannot be replaced in place: move it aside to
+    /// `failed-binary`, then install the old executable.
+    MoveAsideAndInstall,
+}
+fn binary_step(
+    exe: &Path,
+    dir: &Path,
+    journal: &Journal,
+    move_aside: bool,
+) -> Result<BinaryStep, String> {
+    match fs::symlink_metadata(exe) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BinaryStep::Install),
+        Err(e) => return Err(format!("{}: {e}", exe.display())),
+        Ok(_) => {}
     }
-    let binary = dir.join(RESTORE_BINARY);
-    remove_if_present(&binary)?;
-    copy_new(&dir.join("old-binary"), &binary)?;
+    let current = file_hash(exe)?;
+    if current == journal.old_hash {
+        return Ok(BinaryStep::Keep);
+    }
+    if current != journal.new_hash {
+        return Err("current executable changed; refusing to overwrite it".into());
+    }
+    if !move_aside {
+        return Ok(BinaryStep::Install);
+    }
+    // A running replacement may be locked. Never delete it or overwrite a prior backup.
+    let failed = dir.join("failed-binary");
+    if failed.try_exists().map_err(|e| e.to_string())? {
+        return Err(format!(
+            "{} already exists; inspect it manually before restoring",
+            failed.display()
+        ));
+    }
+    Ok(BinaryStep::MoveAsideAndInstall)
+}
+fn restore(exe: &Path, dir: &Path, journal: &Journal, ops: &dyn FileOps) -> Result<(), String> {
+    restore_as(exe, dir, journal, ops, cfg!(windows))
+}
+/// `move_aside`: the platform cannot replace a (possibly running) executable in place,
+/// so a present replacement is first renamed to `failed-binary` (Windows). A parameter
+/// rather than `cfg` so both strategies are exercised on every host.
+fn restore_as(
+    exe: &Path,
+    dir: &Path,
+    journal: &Journal,
+    ops: &dyn FileOps,
+    move_aside: bool,
+) -> Result<(), String> {
+    validate_backups(exe, dir, journal)?;
+    // Backups are never removed or overwritten here, so an interrupted restoration can
+    // always be resumed by running it again.
+    let step = binary_step(exe, dir, journal, move_aside)?;
     let old_receipt = dir.join(RESTORE_RECEIPT);
     write_scratch(&old_receipt, &read_limited(&dir.join("old-receipt.json"))?)?;
-    #[cfg(windows)]
-    if exe.exists() {
-        // A running replacement may be locked. Never delete it or overwrite a prior backup.
-        let failed = dir.join("failed-binary");
-        if failed.try_exists().map_err(|e| e.to_string())? {
-            return Err(format!(
-                "{} already exists; inspect it manually before restoring",
-                failed.display()
-            ));
+    if step != BinaryStep::Keep {
+        let binary = dir.join(RESTORE_BINARY);
+        remove_if_present(&binary)?;
+        copy_new(&dir.join("old-binary"), &binary)?;
+        if step == BinaryStep::MoveAsideAndInstall {
+            ops.rename(exe, &dir.join("failed-binary"))
+                .map_err(|e| e.to_string())?;
         }
-        ops.rename(exe, &failed).map_err(|e| e.to_string())?;
+        ops.rename(&binary, exe).map_err(|e| e.to_string())?;
     }
-    ops.rename(&binary, exe).map_err(|e| e.to_string())?;
     ops.rename(&old_receipt, &receipt_path(exe))
         .map_err(|e| e.to_string())?;
     sync_dir(exe.parent().ok_or("missing parent")?)?;
@@ -696,5 +745,121 @@ fn check_entry(exe: &Path, path: &Path, name: &str, journal: &Journal) -> Result
             Ok(())
         }
         _ => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+
+    /// Fails the n-th rename (1-based), simulating an interruption at that point.
+    struct FailNth(Cell<usize>, usize);
+    impl FailNth {
+        fn new(n: usize) -> Self {
+            Self(Cell::new(0), n)
+        }
+    }
+    impl FileOps for FailNth {
+        fn rename(&self, from: &Path, to: &Path) -> std::io::Result<()> {
+            let n = self.0.get() + 1;
+            self.0.set(n);
+            if n == self.1 {
+                return Err(std::io::Error::other("simulated interruption"));
+            }
+            fs::rename(from, to)
+        }
+    }
+
+    /// A committed 1 -> 2 transaction: the new executable and receipt are installed.
+    fn committed() -> (tempfile::TempDir, PathBuf, PathBuf, Journal) {
+        let tmp = tempfile::tempdir().unwrap();
+        let exe = fs::canonicalize(tmp.path()).unwrap().join("docbridge");
+        fs::write(&exe, b"old binary").unwrap();
+        write_install_receipt(&exe).unwrap();
+        replace(&exe, b"new binary", &NativeFileOps).unwrap();
+        let (dir, journal) = load_journal(&exe).unwrap();
+        assert!(journal.phase == Phase::Committed);
+        (tmp, exe, dir, journal)
+    }
+    fn receipt_hash(exe: &Path) -> String {
+        let value: Receipt = serde_json::from_slice(&fs::read(receipt_path(exe)).unwrap()).unwrap();
+        value.sha256
+    }
+
+    #[test]
+    fn move_aside_recovery_resumes_after_restoring_the_binary() {
+        let (_tmp, exe, dir, journal) = committed();
+        // Renames: replacement -> failed-binary, old -> exe, then the receipt (interrupted).
+        assert!(restore_as(&exe, &dir, &journal, &FailNth::new(3), true).is_err());
+        assert_eq!(fs::read(&exe).unwrap(), b"old binary");
+        assert_eq!(fs::read(dir.join("failed-binary")).unwrap(), b"new binary");
+        assert_eq!(receipt_hash(&exe), journal.new_hash);
+        assert!(tidy(&exe).is_err(), "inconsistent state must block cleanup");
+
+        restore_as(&exe, &dir, &journal, &NativeFileOps, true).unwrap();
+        assert_eq!(fs::read(&exe).unwrap(), b"old binary");
+        assert_eq!(receipt(&exe).unwrap().sha256, journal.old_hash);
+        assert_eq!(
+            fs::read(dir.join("failed-binary")).unwrap(),
+            b"new binary",
+            "an existing failed-binary backup is preserved"
+        );
+        assert!(load_journal(&exe).unwrap().1.phase == Phase::Restored);
+        tidy(&exe).unwrap();
+        assert!(!dir.exists());
+    }
+
+    #[test]
+    fn move_aside_recovery_resumes_when_the_executable_is_absent() {
+        let (_tmp, exe, dir, journal) = committed();
+        // Interrupted after moving the replacement aside, before installing the old one.
+        assert!(restore_as(&exe, &dir, &journal, &FailNth::new(2), true).is_err());
+        assert!(!exe.exists());
+        restore_as(&exe, &dir, &journal, &NativeFileOps, true).unwrap();
+        assert_eq!(fs::read(&exe).unwrap(), b"old binary");
+        assert_eq!(receipt(&exe).unwrap().sha256, journal.old_hash);
+        assert_eq!(fs::read(dir.join("failed-binary")).unwrap(), b"new binary");
+        tidy(&exe).unwrap();
+    }
+
+    #[test]
+    fn in_place_recovery_resumes_after_restoring_the_binary() {
+        let (_tmp, exe, dir, journal) = committed();
+        // Renames: old -> exe, then the receipt (interrupted).
+        assert!(restore_as(&exe, &dir, &journal, &FailNth::new(2), false).is_err());
+        assert_eq!(fs::read(&exe).unwrap(), b"old binary");
+        assert_eq!(receipt_hash(&exe), journal.new_hash);
+        // Only the receipt remains to be restored: exactly one rename.
+        let ops = FailNth::new(2);
+        restore_as(&exe, &dir, &journal, &ops, false).unwrap();
+        assert_eq!(ops.0.get(), 1);
+        assert_eq!(receipt(&exe).unwrap().sha256, journal.old_hash);
+        tidy(&exe).unwrap();
+    }
+
+    #[test]
+    fn move_aside_recovery_never_overwrites_an_existing_failed_binary() {
+        let (_tmp, exe, dir, journal) = committed();
+        fs::write(dir.join("failed-binary"), b"earlier backup").unwrap();
+        assert!(restore_as(&exe, &dir, &journal, &NativeFileOps, true).is_err());
+        assert_eq!(
+            fs::read(dir.join("failed-binary")).unwrap(),
+            b"earlier backup"
+        );
+        assert_eq!(fs::read(&exe).unwrap(), b"new binary");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_recover_resumes_an_interrupted_recovery() {
+        let (_tmp, exe, dir, journal) = committed();
+        assert!(restore(&exe, &dir, &journal, &FailNth::new(3)).is_err());
+        recover(&exe, true).unwrap();
+        assert_eq!(fs::read(&exe).unwrap(), b"old binary");
+        assert_eq!(receipt(&exe).unwrap().sha256, journal.old_hash);
+        assert_eq!(fs::read(dir.join("failed-binary")).unwrap(), b"new binary");
+        cleanup(&exe).unwrap();
+        assert!(!dir.exists());
     }
 }

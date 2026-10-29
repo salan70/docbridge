@@ -843,3 +843,40 @@ fn an_existing_lock_blocks_upgrade_cleanup_and_recovery() {
     );
     assert!(!lock.exists());
 }
+#[test]
+fn stale_plan_cannot_downgrade_an_installation_updated_after_planning() {
+    let (dir, options, client, keys) = setup();
+    let stale = plan_with(&options, &client, &keys).unwrap();
+    assert_eq!(stale.version().to_string(), "2.0.0");
+    let third = signed_release("3.0.0", &options.target, b"third binary fixture");
+    let out = run_with(&options, &third, &keys, &NativeFileOps);
+    assert_eq!(out.status, Status::Updated, "{}", out.stderr);
+    let before = tree(dir.path());
+    let out = apply_with(stale, &options, &NativeFileOps);
+    assert_eq!(out.status, Status::Error, "{}", out.stdout);
+    assert!(
+        out.stderr
+            .contains("installation changed since the plan; re-run upgrade"),
+        "{}",
+        out.stderr
+    );
+    assert_eq!(tree(dir.path()), before, "stale plan must not write");
+    assert_eq!(
+        fs::read(&options.executable).unwrap(),
+        b"third binary fixture"
+    );
+}
+fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+    let mut out = BTreeMap::new();
+    for e in fs::read_dir(dir).unwrap() {
+        let path = e.unwrap().path();
+        if path.is_dir() {
+            for (name, bytes) in tree(&path) {
+                out.insert(format!("{}/{name}", path.display()), bytes);
+            }
+        } else {
+            out.insert(path.display().to_string(), fs::read(&path).unwrap());
+        }
+    }
+    out
+}
