@@ -7,6 +7,6 @@ publish.workspace = true
 description = "Repository-only development and maintenance tasks"
 
 [dependencies]
-tempfile = "=3.15.0"
+tempfile = "=3.24.0"
 
 [dev-dependencies]
