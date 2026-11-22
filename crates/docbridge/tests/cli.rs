@@ -720,6 +720,33 @@ fn section_candidates_match_slugged_fragment_segments() {
 }
 
 #[test]
+fn empty_fragment_lists_the_shortest_section_ids_first() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/order.md", "# A Long Parent\n## X\n# Intro\n");
+
+    // `docs/order.md#` ranks by full section-ID length: `intro` precedes
+    // `a-long-parent/x` even though its last segment is longer.
+    let (o, v) = p.json(&["links", "docs/order.md#", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        candidates,
+        [
+            "docs/order.md#intro",
+            "docs/order.md#a-long-parent",
+            "docs/order.md#a-long-parent/x"
+        ],
+        "{candidates:?}"
+    );
+}
+
+#[test]
 fn sections_glob_matches_the_files_links_selects() {
     let p = project();
     p.write("src/a.rs", "a");

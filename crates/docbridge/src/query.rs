@@ -177,15 +177,20 @@ fn section_candidates(project: &Project, path: &str, fragment: &str) -> Vec<Stri
             rest.push(relative);
         }
     }
-    rest.sort_by_cached_key(|relative| {
-        (
-            edit_distance(&normalized, relative).min(edit_distance(
-                &normalized,
-                relative.rsplit('/').next().unwrap_or(relative),
-            )),
-            *relative,
-        )
-    });
+    if fragment.is_empty() {
+        // Nothing to match: list the shortest full section IDs first.
+        rest.sort_by_cached_key(|relative| (relative.chars().count(), *relative));
+    } else {
+        rest.sort_by_cached_key(|relative| {
+            (
+                edit_distance(&normalized, relative).min(edit_distance(
+                    &normalized,
+                    relative.rsplit('/').next().unwrap_or(relative),
+                )),
+                *relative,
+            )
+        });
+    }
     candidates.extend(
         rest.into_iter()
             .map(|relative| format!("{prefix}{relative}")),
