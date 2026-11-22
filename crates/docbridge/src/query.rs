@@ -5,7 +5,12 @@ use crate::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-pub fn links(project: &Project, selectors: &[String], include_content: bool) -> Graph {
+pub fn links(
+    project: &Project,
+    selectors: &[String],
+    include_content: bool,
+    ignore_unmanaged: bool,
+) -> Graph {
     let mut selected = BTreeSet::new();
     let mut diagnostics = project.diagnostics.clone();
     if selectors.is_empty() {
@@ -46,7 +51,7 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
                     .filter(|n| n.path == path)
                     .map(|n| n.id.clone()),
             );
-        } else {
+        } else if !ignore_unmanaged || project.manages(path) {
             diagnostics.push(QueryDiagnostic::new(
                 "selector",
                 path,

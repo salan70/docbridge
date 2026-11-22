@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content\n";
+pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --ignore-unmanaged\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
@@ -28,6 +28,7 @@ pub struct Invocation {
     pub root: PathBuf,
     pub json: bool,
     pub include_content: bool,
+    pub ignore_unmanaged: bool,
     pub stdin: bool,
     pub selectors: Vec<String>,
     /// Additional command owners parse these arguments in their own public handler.
@@ -83,6 +84,7 @@ impl Invocation {
             root: cwd.to_path_buf(),
             json: false,
             include_content: false,
+            ignore_unmanaged: false,
             stdin: false,
             selectors: Vec::new(),
             extra_args: Vec::new(),
@@ -121,6 +123,10 @@ impl Invocation {
                     }
                     "--include-content" if invocation.command == Command::Links => {
                         invocation.include_content = true;
+                        continue;
+                    }
+                    "--ignore-unmanaged" if invocation.command == Command::Links => {
+                        invocation.ignore_unmanaged = true;
                         continue;
                     }
                     "--" => {
@@ -236,7 +242,12 @@ pub fn dispatch_with_confirmation(
             contents: invocation.include_content.then(Vec::new),
         }
     } else {
-        query::links(&project, &invocation.selectors, invocation.include_content)
+        query::links(
+            &project,
+            &invocation.selectors,
+            invocation.include_content,
+            invocation.ignore_unmanaged,
+        )
     };
     let exit_code = if graph.complete {
         0

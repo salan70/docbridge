@@ -5,8 +5,35 @@ use serde_json::{json, Value};
 use std::{
     fs,
     io::Write,
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
 };
+
+/// Runs the binary with `input` piped to standard input and parses its
+/// standard output as JSON, like [`Project::json`].
+fn stdin_json(p: &Project, args: &[&str], input: &str) -> (Output, Value) {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_docbridge"))
+        .current_dir(&**p)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(input.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    let value = serde_json::from_slice(&output.stdout).unwrap_or_else(|_| {
+        panic!(
+            "stdout {:?}, stderr {:?}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    (output, value)
+}
 
 /// A project with the configuration most tests share.
 fn project() -> Project {
@@ -559,6 +586,78 @@ fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code()
     assert!(o.status.success());
     assert_eq!(v["edges"].as_array().unwrap().len(), 2);
     assert_eq!(v["nodes"].as_array().unwrap().len(), 3);
+}
+
+#[test]
+fn ignore_unmanaged_skips_unmanaged_paths_but_keeps_managed_errors() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    p.write("tool/review.py", "unmanaged\n");
+    p.write("src/no.test.rs", "excluded\n");
+    let args = ["links", "--stdin", "--ignore-unmanaged", "--json"];
+    // A mixed selection keeps the managed part and finishes complete.
+    let (o, v) = stdin_json(&p, &args, "src/a.rs\ntool/review.py\njustfile\n");
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["diagnostics"], json!([]));
+    assert!(v["nodes"].to_string().contains("src/a.rs"));
+    assert!(!v.to_string().contains("tool/review.py"));
+    // When every input is unmanaged, the graph is empty and still complete.
+    let (o, v) = stdin_json(&p, &args, "tool/review.py\n");
+    assert!(o.status.success());
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["nodes"], json!([]));
+    // Positional selectors behave the same; excluded paths are unmanaged.
+    let (o, v) = p.json(&[
+        "links",
+        "src/no.test.rs",
+        "README.md",
+        "--ignore-unmanaged",
+        "--json",
+    ]);
+    assert!(o.status.success());
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["nodes"], json!([]));
+    // Errors inside the managed set are still reported.
+    for selector in [
+        "src/missing.rs",
+        "docs/missing.md",
+        "docs/a.md#nope",
+        "tool/review.py#top",
+        "../escape.rs",
+    ] {
+        let (o, v) = p.json(&["links", selector, "--ignore-unmanaged", "--json"]);
+        assert_eq!(o.status.code(), Some(1), "{selector}");
+        assert_eq!(v["complete"], false, "{selector}");
+        assert!(!o.stderr.is_empty(), "{selector}");
+    }
+    // Without the flag an unmanaged selector stays a diagnostic, and the flag
+    // belongs to `links` alone.
+    let (o, v) = p.json(&["links", "tool/review.py", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    assert_eq!(
+        p.run(&["validate", "--ignore-unmanaged"]).status.code(),
+        Some(3)
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn ignore_unmanaged_still_reports_unsafe_and_unreadable_managed_files() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let p = project();
+    p.write("src/a.rs", "a");
+    symlink("a.rs", p.join("src/link.rs")).unwrap();
+    let (o, v) = p.json(&["links", "src/link.rs", "--ignore-unmanaged", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o0)).unwrap();
+    let (o, v) = p.json(&["links", "src/a.rs", "--ignore-unmanaged", "--json"]);
+    fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
 }
 
 #[test]

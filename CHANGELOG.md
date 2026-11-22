@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docbridge links --ignore-unmanaged` skips plain file selectors outside the
+  configured managed set without a `selector` diagnostic, so a branch diff can
+  feed `links` directly:
+  `git diff --name-only --diff-filter=d origin/main...HEAD | docbridge links --stdin --ignore-unmanaged`.
+  Invalid section selectors, missing or unreadable managed files, and unsafe
+  paths are still reported.
+
 ### Changed
 
 - `docbridge.config.json` must be spelled exactly as its directory entry, as
