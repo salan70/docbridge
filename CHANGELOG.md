@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `docbridge.config.json` must be spelled exactly as its directory entry, as
+  every managed path already is. On a case-folding file system such as default
+  macOS APFS, a differently cased name such as `Docbridge.config.json` is now a
+  configuration error instead of being read.
+
 ## [0.17.0] - 2026-10-29
 
 This release replaces the npm package with a native DocBridge CLI written in

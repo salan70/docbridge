@@ -30,6 +30,7 @@ Do not run `init --force --claude` in this repository: the product rejects write
 paths through symlinks. After changing the distributable skill embedded in
 `crates/docbridge/src/lifecycle.rs`, regenerate the canonical copy with
 `cargo run -p docbridge -- init --force --yes`. Keep skill bodies tool-neutral.
+`just skill-check` fails when the canonical copy has drifted.
 
 ## Issues
 
@@ -44,8 +45,10 @@ Run the full read-only gate before you report a change complete:
 just verify
 ```
 
-It covers formatting checks, lint, the workspace tests, and `docbridge validate`
-on this repository. `just format` applies deterministic formatting.
+It covers formatting checks, lint, the workspace tests, `docbridge validate`
+on this repository, and `just skill-check`, which fails when the checked-in
+skill differs from what `init` emits. `just format` applies deterministic
+formatting.
 
 Run additional checks when the affected area requires them:
 
@@ -59,6 +62,26 @@ targets natively; see [Releasing](releasing.md).
 
 If a command must be run outside an activated shell, prefix it with
 `nix develop -c`.
+
+### Where a check belongs
+
+Prevent a violation at the highest layer that can express it, and add a lower
+layer only for what the higher one cannot:
+
+1. **Names, types, and structure.** Make the wrong thing impossible to write.
+   Managed-path reads go through `paths.rs`, whose functions refuse symlinks
+   and mismatched spelling, so callers need no checks of their own.
+2. **Lints and structural checks.** Reject a whole class of mistakes
+   mechanically. `lib.rs` denies `clippy::print_stdout`, `clippy::print_stderr`,
+   and `clippy::exit`, which keeps terminal and process I/O in `main.rs`.
+   `just skill-check` compares the checked-in skill with the `init` output; it
+   runs only in a checkout, because the Nix package build excludes `.agents/`.
+3. **Behavior tests.** Prove what the layers above cannot, through the CLI. The
+   symlink tests show that unsafe paths are rejected, which counting `std::fs`
+   call sites could not.
+
+Do not add a test that counts or lists call sites to stand in for a behavior
+test.
 
 ## Git and pull requests
 

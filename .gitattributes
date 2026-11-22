@@ -1,3 +1,7 @@
+# `just skill-check` compares the checked-in skill with what `init` emits byte for
+# byte, and `init` writes LF. Keep these files LF on every checkout.
+.agents/skills/docbridge/** text eol=lf
+
 # pstack verifies vendored files byte for byte against upstream SHA-256 values,
 # so Git must never convert their line endings on checkout.
 .agents/skills/benchmark-checklist/** -text

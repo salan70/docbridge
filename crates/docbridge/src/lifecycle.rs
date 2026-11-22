@@ -44,13 +44,6 @@ fn hash(bytes: &[u8]) -> String {
 fn relative(path: &str) -> Result<(), String> {
     crate::config::validate_path(path, false)
 }
-/// The content of the regular file at `name`, or `None` if it does not exist.
-fn current(root: &Path, name: &str) -> Result<Option<Vec<u8>>, String> {
-    match fs::symlink_metadata(paths::resolve(root, name)?) {
-        Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
-        _ => paths::read(root, name).map(Some),
-    }
-}
 const TEMP_PREFIX: &str = ".docbridge-tmp-";
 /// Whether `name` has the exact shape of a [`replace`] temporary file,
 /// `.docbridge-tmp-<process>-<time>-<serial>` in decimal. Such a file is a
@@ -114,7 +107,7 @@ fn leftovers(
 }
 fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, String> {
     let marker = format!("{dir}/{RECORD}");
-    let Some(bytes) = current(root, &marker)? else {
+    let Some(bytes) = paths::read_optional(root, &marker)? else {
         return Ok(None);
     };
     let record: BTreeMap<String, String> = serde_json::from_slice(&bytes)
@@ -168,7 +161,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                 skipped.path, skipped.reason
             ));
         }
-        if current(&root, CONFIG)?.is_some() {
+        if paths::read_optional(&root, CONFIG)?.is_some() {
             report.push_str("Preserve existing configuration (including with --force).\n");
         } else {
             changes.push(Change {
@@ -184,15 +177,14 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
         for dir in dirs {
             let record = owned(&root, dir)?;
             let stale = leftovers(&root, &found.files, dir, record.as_ref())?;
-            let dir_path = paths::resolve(&root, dir)?;
             // A directory that holds no user data is treated as absent.
             let present =
-                fs::symlink_metadata(&dir_path).is_ok() && !holds_no_user_data(&dir_path)?;
+                paths::exists(&root, dir)? && !holds_no_user_data(&paths::resolve(&root, dir)?)?;
             if present && record.is_none() {
                 return Err(format!("unmanaged skill conflict: {dir}; use docbridge docs show migration for manual retirement"));
             }
             let skill = format!("{dir}/SKILL.md");
-            let existing = current(&root, &skill)?;
+            let existing = paths::read_optional(&root, &skill)?;
             if existing.is_some() && !record.as_ref().is_some_and(|r| r.contains_key("SKILL.md")) {
                 return Err(format!("unowned skill file: {skill}"));
             }
@@ -210,7 +202,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                     record.insert("SKILL.md".into(), digest);
                     let marker = format!("{dir}/{RECORD}");
                     changes.push(Change {
-                        before: current(&root, &marker)?,
+                        before: paths::read_optional(&root, &marker)?,
                         path: marker,
                         after: Some(serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?),
                     });
@@ -337,8 +329,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         incomplete: Vec::new(),
     };
     let mut config_removal = None;
-    let config_path = paths::resolve(&plan.root, CONFIG)?;
-    let config = if fs::symlink_metadata(&config_path).is_ok() {
+    let config = if paths::exists(&plan.root, CONFIG)? {
         match paths::read(&plan.root, CONFIG) {
             Ok(bytes) => {
                 config_removal = Some(Step::File(Change {
@@ -413,7 +404,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
                     .take_while(|p| under(p, dir))
                     .map(String::from),
             );
-            let Some(bytes) = current(&plan.root, &path)? else {
+            let Some(bytes) = paths::read_optional(&plan.root, &path)? else {
                 continue;
             };
             if hash(&bytes) == *digest {
@@ -448,7 +439,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
                 directories.into_iter().filter(|d| unpreserved(d)).collect();
             directories.sort_by_key(|d| std::cmp::Reverse(d.matches('/').count()));
             for directory in directories {
-                if fs::symlink_metadata(paths::resolve(&plan.root, &directory)?).is_ok() {
+                if paths::exists(&plan.root, &directory)? {
                     skill_steps.push(Step::Directory(directory));
                 }
             }
@@ -698,7 +689,7 @@ fn replace(root: &Path, name: &str, bytes: Option<&[u8]>) -> Result<(), String> 
 fn apply(root: &Path, steps: &[Step]) -> Result<String, String> {
     for step in steps {
         match step {
-            Step::File(change) if current(root, &change.path)? != change.before => {
+            Step::File(change) if paths::read_optional(root, &change.path)? != change.before => {
                 return Err(format!(
                     "plan is stale; no changes applied: {}",
                     change.path
