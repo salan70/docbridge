@@ -120,6 +120,12 @@ Edit `tool/pstack/overlays/poteto-mode.md`, not this section. Read `.agents/rule
 - Only a curated subset of pstack is installed. A step that names a skill missing from `.agents/skills/` (`architect`, `arena`, `interrogate`, `swarm`, `how`, `why`, `no-comments`, `show-me-your-work`, `figure-it-out`, `poteto-agent`, `comment-sicko`, and the rest) is skipped with one line, never fetched.
 - Spawn `general-purpose` for every subagent, in place of `poteto-agent`. Ignore the model defaults in **Subagents**. Use `.agents/rules/pstack-models.md`. An explicit model choice from the user in the session wins.
 
+### Devin free-model rate limit
+
+- SWE-2 free models are rate-limited on concurrent sessions. The cap and the retry procedure live in `.agents/rules/pstack.md` (Autonomy and cost).
+- The preferred baseline for Devin is `swe-2-max`, but acpRegistry does not advertise it, so `delegate_task` uses `swe-2-high`. Whether `swe-2-flash` variants or `adaptive` fall under the same limit is unverified.
+- When you will not wait for the reset, run the same level on the thread's provider instead of `delegate_task` to Devin, as the `implement` notes in `pstack-models.md` describe. No model table change is needed.
+
 ### Playbooks
 
 - **Feature**, **Bug fix**, **Refactoring.** Follow the test conventions in `docs/contributing/README.md`, and finish with `just verify`. Delegation is optional for a small change. Read "rebase into small, ordered commits" as commits ordered by verifiable unit, without rewriting pushed history.
