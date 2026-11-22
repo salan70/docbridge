@@ -21,6 +21,8 @@ devin: high=adaptive (medium-max, *max), mid=swe-2-high (max-max, *max), low=swe
 
 The `devin` models run through T3 `delegate_task` on the provider instance `acpRegistry_devin`. SWE-2 always runs with `thought_level: max`.
 
+SWE-2 free models are rate-limited on concurrent sessions; the cap and the retry procedure live in `pstack.md` (Autonomy and cost). The preferred baseline is `swe-2-max`, but acpRegistry does not advertise it, so `delegate_task` uses `swe-2-high` (measured 2026-11). Whether `swe-2-flash` variants or `adaptive` fall under the same limit is unverified.
+
 ## Implementation delegates
 
 ```text
