@@ -54,7 +54,7 @@ fn last_line(text: &str, start: usize, end: usize) -> usize {
     }
 }
 
-fn slug(title: &str) -> String {
+pub(crate) fn slug(title: &str) -> String {
     let mut result = String::new();
     let mut separator = false;
     for c in title.chars().flat_map(char::to_lowercase) {

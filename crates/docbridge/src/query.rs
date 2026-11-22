@@ -1,37 +1,89 @@
 use crate::{
     config,
-    output::{ContentBlock, ContentReference, Graph, Node, QueryDiagnostic, Region},
-    project::{line_at, Project},
+    output::{ContentBlock, ContentReference, Edge, Graph, Node, QueryDiagnostic, Region},
+    project::{line_at, slug, Project},
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::Path,
+};
 
-pub fn links(
+/// Whether `relative` resolves to a directory under `root`. Links, missing
+/// components, and misspelled names are not directories; see [`paths::resolve`].
+fn directory(root: &Path, relative: &str) -> bool {
+    crate::paths::resolve(root, relative)
+        .ok()
+        .and_then(|path| fs::symlink_metadata(path).ok())
+        .is_some_and(|metadata| metadata.is_dir())
+}
+
+/// Resolve selectors into selected node IDs, appending one diagnostic per
+/// rejected selector. `links --sections` (`sections_only`) contributes only
+/// section nodes and rejects section selectors; `links` contributes every
+/// node and resolves section selectors. File selectors — paths and globs —
+/// share one interpretation so new selector features apply to both. Under
+/// `ignore_unmanaged`, a selector naming a path outside the managed set is
+/// skipped without a diagnostic; a managed path keeps its rejection.
+fn resolve_selectors(
     project: &Project,
     selectors: &[String],
-    include_content: bool,
+    sections_only: bool,
     ignore_unmanaged: bool,
-) -> Graph {
-    let mut selected = BTreeSet::new();
-    let mut diagnostics = project.diagnostics.clone();
+    selected: &mut BTreeSet<String>,
+    diagnostics: &mut Vec<QueryDiagnostic>,
+) {
+    let eligible = |node: &&Node| !sections_only || node.kind == "section";
     if selectors.is_empty() {
-        selected.extend(project.nodes.keys().cloned());
+        selected.extend(
+            project
+                .nodes
+                .values()
+                .filter(&eligible)
+                .map(|n| n.id.clone()),
+        );
     }
     for selector in selectors.iter().collect::<BTreeSet<_>>() {
         let (path, section) = selector
             .split_once('#')
             .map_or((selector.as_str(), None), |(p, s)| (p, Some(s)));
+        if sections_only && section.is_some() {
+            diagnostics.push(QueryDiagnostic::new(
+                "selector",
+                path,
+                None,
+                format!("--sections accepts file selectors, not section selectors: {selector}"),
+            ));
+            continue;
+        }
+        // `dir/` spells the directory `dir` when that directory exists.
+        let path = match path.strip_suffix('/') {
+            Some(stripped) if directory(&project.root, stripped) => stripped,
+            _ => path,
+        };
         if let Err(e) = config::validate_path(path, path.contains('*')) {
             diagnostics.push(QueryDiagnostic::new("selector", path, None, e));
             continue;
         }
-        if section.is_some() {
-            if path.contains('*') || section == Some("") || !project.nodes.contains_key(selector) {
+        if let Some(fragment) = section {
+            if path.contains('*') {
                 diagnostics.push(QueryDiagnostic::new(
                     "selector",
                     path,
                     None,
                     format!("section does not exist: {selector}"),
                 ));
+            } else if !project.nodes.contains_key(selector) {
+                if !ignore_unmanaged || project.manages(path) {
+                    let mut diagnostic = QueryDiagnostic::new(
+                        "selector",
+                        path,
+                        None,
+                        format!("section does not exist: {selector}"),
+                    );
+                    diagnostic.candidates = section_candidates(project, path, fragment);
+                    diagnostics.push(diagnostic);
+                }
             } else {
                 selected.insert(selector.clone());
             }
@@ -40,7 +92,7 @@ pub fn links(
                 project
                     .nodes
                     .values()
-                    .filter(|n| config::glob_matches(path, &n.path))
+                    .filter(|n| eligible(n) && config::glob_matches(path, &n.path))
                     .map(|n| n.id.clone()),
             );
         } else if project.files.contains_key(path) {
@@ -48,7 +100,16 @@ pub fn links(
                 project
                     .nodes
                     .values()
-                    .filter(|n| n.path == path)
+                    .filter(|n| eligible(n) && n.path == path)
+                    .map(|n| n.id.clone()),
+            );
+        } else if directory(&project.root, path) {
+            let recursive = format!("{path}/**");
+            selected.extend(
+                project
+                    .nodes
+                    .values()
+                    .filter(|n| eligible(n) && config::glob_matches(&recursive, &n.path))
                     .map(|n| n.id.clone()),
             );
         } else if !ignore_unmanaged || project.manages(path) {
@@ -60,6 +121,24 @@ pub fn links(
             ));
         }
     }
+}
+
+pub fn links(
+    project: &Project,
+    selectors: &[String],
+    include_content: bool,
+    ignore_unmanaged: bool,
+) -> Graph {
+    let mut selected = BTreeSet::new();
+    let mut diagnostics = project.diagnostics.clone();
+    resolve_selectors(
+        project,
+        selectors,
+        false,
+        ignore_unmanaged,
+        &mut selected,
+        &mut diagnostics,
+    );
     let edges: Vec<_> = project
         .edges
         .iter()
@@ -71,7 +150,37 @@ pub fn links(
         retained.insert(edge.source.clone());
         retained.insert(edge.target.clone());
     }
-    let mut nodes: Vec<_> = retained
+    graph(project, retained, edges, diagnostics, include_content)
+}
+
+/// The section IDs of the selected files, without traversing any link edges.
+pub fn sections(
+    project: &Project,
+    selectors: &[String],
+    include_content: bool,
+    ignore_unmanaged: bool,
+) -> Graph {
+    let mut selected = BTreeSet::new();
+    let mut diagnostics = project.diagnostics.clone();
+    resolve_selectors(
+        project,
+        selectors,
+        true,
+        ignore_unmanaged,
+        &mut selected,
+        &mut diagnostics,
+    );
+    graph(project, selected, Vec::new(), diagnostics, include_content)
+}
+
+fn graph(
+    project: &Project,
+    selected: BTreeSet<String>,
+    edges: Vec<Edge>,
+    mut diagnostics: Vec<QueryDiagnostic>,
+    include_content: bool,
+) -> Graph {
+    let mut nodes: Vec<_> = selected
         .iter()
         .filter_map(|id| project.nodes.get(id).cloned())
         .collect();
@@ -89,6 +198,77 @@ pub fn links(
         complete,
         contents,
     }
+}
+
+/// The longest candidate list a failed section selector reports.
+const MAX_CANDIDATES: usize = 10;
+
+/// Section IDs of `path` that best match `fragment`: every ID whose section
+/// path ends with the fragment at a segment boundary, then the closest by edit
+/// distance to the fragment, in deterministic order. Fragment segments are
+/// slugged like heading titles, so `#Camera Rig` matches `…/camera-rig`.
+fn section_candidates(project: &Project, path: &str, fragment: &str) -> Vec<String> {
+    let prefix = format!("{path}#");
+    let normalized = fragment
+        .split('/')
+        .map(|segment| {
+            if segment.is_empty() {
+                String::new()
+            } else {
+                slug(segment)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/");
+    let suffix = format!("/{normalized}");
+    let mut candidates = Vec::new();
+    let mut rest = Vec::new();
+    for id in project.nodes.keys() {
+        let Some(relative) = id.strip_prefix(&prefix) else {
+            continue;
+        };
+        if relative.ends_with(&suffix) {
+            candidates.push(id.clone());
+        } else {
+            rest.push(relative);
+        }
+    }
+    if fragment.is_empty() {
+        // Nothing to match: list the shortest full section IDs first.
+        rest.sort_by_cached_key(|relative| (relative.chars().count(), *relative));
+    } else {
+        rest.sort_by_cached_key(|relative| {
+            (
+                edit_distance(&normalized, relative).min(edit_distance(
+                    &normalized,
+                    relative.rsplit('/').next().unwrap_or(relative),
+                )),
+                *relative,
+            )
+        });
+    }
+    candidates.extend(
+        rest.into_iter()
+            .map(|relative| format!("{prefix}{relative}")),
+    );
+    candidates.truncate(MAX_CANDIDATES);
+    candidates
+}
+
+fn edit_distance(a: &str, b: &str) -> usize {
+    let b: Vec<char> = b.chars().collect();
+    let mut previous: Vec<usize> = (0..=b.len()).collect();
+    let mut current = vec![0; b.len() + 1];
+    for (i, ca) in a.chars().enumerate() {
+        current[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            current[j + 1] = (previous[j] + usize::from(ca != *cb))
+                .min(previous[j + 1] + 1)
+                .min(current[j] + 1);
+        }
+        std::mem::swap(&mut previous, &mut current);
+    }
+    previous[b.len()]
 }
 
 fn content_blocks(project: &Project, nodes: &mut [Node]) -> Vec<ContentBlock> {

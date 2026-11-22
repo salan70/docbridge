@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --ignore-unmanaged\n";
+pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --sections --ignore-unmanaged\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
@@ -30,6 +30,7 @@ pub struct Invocation {
     pub include_content: bool,
     pub ignore_unmanaged: bool,
     pub stdin: bool,
+    pub sections: bool,
     pub selectors: Vec<String>,
     /// Additional command owners parse these arguments in their own public handler.
     pub extra_args: Vec<String>,
@@ -86,6 +87,7 @@ impl Invocation {
             include_content: false,
             ignore_unmanaged: false,
             stdin: false,
+            sections: false,
             selectors: Vec::new(),
             extra_args: Vec::new(),
         };
@@ -127,6 +129,10 @@ impl Invocation {
                     }
                     "--ignore-unmanaged" if invocation.command == Command::Links => {
                         invocation.ignore_unmanaged = true;
+                        continue;
+                    }
+                    "--sections" if invocation.command == Command::Links => {
+                        invocation.sections = true;
                         continue;
                     }
                     "--" => {
@@ -241,6 +247,13 @@ pub fn dispatch_with_confirmation(
             complete: project.complete,
             contents: invocation.include_content.then(Vec::new),
         }
+    } else if invocation.sections {
+        query::sections(
+            &project,
+            &invocation.selectors,
+            invocation.include_content,
+            invocation.ignore_unmanaged,
+        )
     } else {
         query::links(
             &project,
@@ -322,6 +335,9 @@ fn diagnostic_text(diagnostics: &[QueryDiagnostic]) -> String {
             d.message
         )
         .expect("write to String");
+        for candidate in &d.candidates {
+            writeln!(out, "  {candidate}").expect("write to String");
+        }
     }
     out
 }
