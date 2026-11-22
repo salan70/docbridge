@@ -169,6 +169,185 @@ fn symlink_ancestor_blocks_writes_and_removal() {
     assert!(plan_deinit(p).is_err());
     assert_eq!(fs::read_dir(outside).unwrap().count(), 0);
 }
+/// A project whose skills root is a link to another in-project directory:
+/// `.agents/skills -> ../.claude/skills`, the layout projects use to share one
+/// skills tree between agents.
+#[cfg(unix)]
+fn shared_skills_root() -> TempDir {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".claude/skills")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("../.claude/skills", p.join(".agents/skills")).unwrap();
+    fs::write(p.join("guide.md"), "# Guide\n").unwrap();
+    temp
+}
+#[cfg(unix)]
+#[test]
+fn shared_skills_root_installs_one_skill_across_init_force_and_deinit() {
+    let temp = shared_skills_root();
+    let p = temp.path();
+    let real = p.join(".claude/skills/docbridge");
+    let is_link =
+        |path: &std::path::Path| fs::symlink_metadata(path).unwrap().file_type().is_symlink();
+    // The default target resolves through the link to the shared directory.
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(real.join("SKILL.md").is_file());
+    assert!(real.join(".docbridge-owned.json").is_file());
+    assert!(is_link(&p.join(".agents/skills")));
+    assert!(!is_link(&real));
+    assert_eq!(
+        fs::canonicalize(p.join(".agents/skills/docbridge")).unwrap(),
+        fs::canonicalize(&real).unwrap()
+    );
+    // --force --claude replaces the same single install instead of writing twice.
+    fs::write(real.join("SKILL.md"), "edited").unwrap();
+    let forced = init(
+        p,
+        &InitOptions {
+            yes: true,
+            force: true,
+            claude: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(forced.code, 0, "{}", forced.stderr);
+    assert_eq!(forced.stdout.matches("Install managed skill").count(), 1);
+    assert_ne!(fs::read_to_string(real.join("SKILL.md")).unwrap(), "edited");
+    // deinit removes the managed files but keeps the link and the skills root.
+    let plan = plan_deinit(p).unwrap();
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert!(!real.exists());
+    assert!(is_link(&p.join(".agents/skills")));
+    assert!(p.join(".claude/skills").is_dir());
+}
+#[cfg(unix)]
+#[test]
+fn skills_root_link_outside_project_is_rejected_with_named_component() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::create_dir_all(outside.join("skills")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink(outside.join("skills"), p.join(".agents/skills")).unwrap();
+    for args in [
+        vec!["init".to_string(), "--yes".to_string()],
+        vec![
+            "init".to_string(),
+            "--yes".to_string(),
+            "--claude".to_string(),
+        ],
+        vec!["deinit".to_string(), "--dry-run".to_string()],
+    ] {
+        let invocation = docbridge::cli::Invocation::parse(&args, p).unwrap();
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| true);
+        assert_eq!(response.exit_code, 1, "{args:?}");
+        assert!(
+            response.stderr.contains(".agents/skills"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.contains("docbridge docs show"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{args:?}: {:?}",
+            response.stderr
+        );
+    }
+    assert!(!p.join("docbridge.config.json").exists());
+    assert_eq!(fs::read_dir(outside.join("skills")).unwrap().count(), 0);
+}
+#[cfg(unix)]
+#[test]
+fn dangling_in_project_skills_link_resolves_to_the_real_directory() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("../.claude/skills", p.join(".agents/skills")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(p.join(".claude/skills/docbridge/SKILL.md").is_file());
+    assert!(p.join(".agents/skills/docbridge/SKILL.md").is_file());
+}
+#[cfg(unix)]
+#[test]
+fn skill_directory_and_its_contents_stay_link_free() {
+    use std::os::unix::fs::symlink;
+    // The Skill directory itself may not be a link, even into the project.
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".agents/skills")).unwrap();
+    fs::create_dir_all(p.join("real-skill")).unwrap();
+    symlink("../../real-skill", p.join(".agents/skills/docbridge")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 1);
+    assert!(
+        result.stderr.contains(".agents/skills/docbridge"),
+        "{}",
+        result.stderr
+    );
+    assert!(
+        result.stderr.contains("docbridge docs show"),
+        "{}",
+        result.stderr
+    );
+    // Neither may a file inside the Skill directory be a link.
+    let temp = shared_skills_root();
+    let p = temp.path();
+    let outside_temp = root();
+    fs::write(outside_temp.path().join("extra.md"), "extra").unwrap();
+    fs::create_dir_all(p.join(".claude/skills/docbridge")).unwrap();
+    symlink(
+        outside_temp.path().join("extra.md"),
+        p.join(".claude/skills/docbridge/extra.md"),
+    )
+    .unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 1);
+    assert!(
+        result.stderr.contains(".claude/skills/docbridge/extra.md"),
+        "{}",
+        result.stderr
+    );
+    assert!(
+        result.stderr.contains("docbridge docs show"),
+        "{}",
+        result.stderr
+    );
+}
 #[cfg(unix)]
 #[test]
 fn out_of_scope_symlinks_are_not_followed() {

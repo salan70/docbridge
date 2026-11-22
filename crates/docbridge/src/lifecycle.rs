@@ -5,7 +5,7 @@ use std::{
     fmt,
     fs::{self, OpenOptions},
     io::{ErrorKind, Write},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
 };
 const CONFIG: &str = "docbridge.config.json";
@@ -124,15 +124,171 @@ fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, Str
     }
     Ok(Some(record))
 }
+/// The remedy for lifecycle paths that cross links the managed layout cannot
+/// use: ancestor links must resolve inside the project, and the Skill
+/// directory and its contents must be real.
+const LINK_GUIDANCE: &str = "links to a managed Skill must stay inside the project; move the shared skills directory inside the project or remove the link — see docbridge docs show configuration";
+/// Lexically resolve `.` and `..` in `path`. The parent chain is canonical by
+/// then, so `..` stays within real directories.
+fn normalize(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::ParentDir => {
+                out.pop();
+            }
+            Component::CurDir => {}
+            _ => out.push(component.as_os_str()),
+        }
+    }
+    out
+}
+/// The first component of `path` that is a link resolving outside `root`;
+/// `path` itself when none can be identified.
+fn escaping_link(root: &Path, path: &Path) -> PathBuf {
+    let mut prefix = PathBuf::new();
+    for component in path.components() {
+        prefix.push(component.as_os_str());
+        let is_link = fs::symlink_metadata(&prefix)
+            .map(|m| paths::is_link(&m))
+            .unwrap_or(false);
+        if is_link && fs::canonicalize(&prefix).is_ok_and(|r| !r.starts_with(root)) {
+            return prefix;
+        }
+    }
+    path.to_path_buf()
+}
+/// Error for a `link` that resolves outside `root`, naming the component.
+fn outside(root: &Path, link: &Path) -> String {
+    let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
+    format!("{name} resolves outside the project root; {LINK_GUIDANCE}")
+}
+/// Canonicalize `path` under the canonical `root`, resolving existing link
+/// components only while the resolved location stays inside `root`, so writes
+/// and removals never leave the project. Missing components are kept as
+/// spelled. The error names the link that would escape `root`.
+fn canonical_inside(root: &Path, path: &Path) -> Result<PathBuf, String> {
+    let mut current = path.to_path_buf();
+    let mut tail = Vec::new();
+    for _ in 0..64 {
+        let metadata = match fs::symlink_metadata(&current) {
+            Ok(metadata) => metadata,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                let Some(name) = current.file_name() else {
+                    return Err(format!("{}: cannot resolve", path.display()));
+                };
+                tail.push(name.to_os_string());
+                current.pop();
+                continue;
+            }
+            Err(e) => return Err(format!("{}: {e}", current.display())),
+        };
+        let resolved = if paths::is_link(&metadata) {
+            match fs::canonicalize(&current) {
+                Ok(resolved) => resolved,
+                Err(e) if e.kind() == ErrorKind::NotFound => {
+                    // A link to a missing target: hop to the spelled target
+                    // against the canonical parent, then keep resolving.
+                    let target = fs::read_link(&current)
+                        .map_err(|e| format!("{}: {e}", current.display()))?;
+                    let parent = fs::canonicalize(current.parent().ok_or("missing parent")?)
+                        .map_err(|e| format!("{}: {e}", current.display()))?;
+                    let hopped = if target.is_absolute() {
+                        normalize(&target)
+                    } else {
+                        normalize(&parent.join(&target))
+                    };
+                    if !hopped.starts_with(root) {
+                        return Err(outside(root, &current));
+                    }
+                    current = hopped;
+                    continue;
+                }
+                Err(e) => return Err(format!("{}: {e}", current.display())),
+            }
+        } else {
+            fs::canonicalize(&current).map_err(|e| format!("{}: {e}", current.display()))?
+        };
+        if !resolved.starts_with(root) {
+            return Err(outside(root, &escaping_link(root, &current)));
+        }
+        let mut out = resolved;
+        for name in tail.iter().rev() {
+            out.push(name);
+        }
+        return Ok(out);
+    }
+    Err(format!("too many links while resolving {}", path.display()))
+}
+/// Resolve a requested Skill directory to the canonical root-relative
+/// directory it names: existing ancestor components may be links whose target
+/// stays inside `root`, but the Skill directory itself may not be a link.
+/// Two requested directories resolving to the same result share one Skill.
+fn effective_dir(root: &Path, dir: &str) -> Result<String, String> {
+    let absolute = root.join(dir);
+    if fs::symlink_metadata(&absolute)
+        .map(|m| paths::is_link(&m))
+        .unwrap_or(false)
+    {
+        return Err(format!(
+            "{dir} is a link: the Skill directory itself must be a real directory; {LINK_GUIDANCE}"
+        ));
+    }
+    let resolved = canonical_inside(root, &absolute)?;
+    let mut effective = String::new();
+    for component in resolved
+        .strip_prefix(root)
+        .map_err(|_| outside(root, &resolved))?
+        .components()
+    {
+        let Some(name) = component.as_os_str().to_str() else {
+            return Err(format!("non-UTF-8 path: {}", resolved.display()));
+        };
+        if !effective.is_empty() {
+            effective.push('/');
+        }
+        effective.push_str(name);
+    }
+    Ok(effective)
+}
+/// Map requested Skill directories to their canonical root-relative forms,
+/// deduplicated so a shared directory is managed exactly once.
+fn effective_dirs<'a>(
+    root: &Path,
+    dirs: impl IntoIterator<Item = &'a str>,
+) -> Result<Vec<String>, String> {
+    let mut effective = Vec::new();
+    for dir in dirs {
+        let dir = effective_dir(root, dir)?;
+        if !effective.contains(&dir) {
+            effective.push(dir);
+        }
+    }
+    Ok(effective)
+}
 pub fn init(root: &Path, options: &InitOptions) -> Outcome {
     outcome((|| {
         let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
         let found = paths::walk(&root, &|_| true)?;
+        let mut requested = vec![SKILL_DIRS[0]];
+        if options.claude {
+            requested.push(SKILL_DIRS[1]);
+        }
+        let dirs = effective_dirs(&root, requested)?;
+        // A link inside the managed Skill directory itself is never followed.
+        for skipped in &found.skipped {
+            if skipped.code == "unsafe-path" && dirs.iter().any(|d| under(&skipped.path, d)) {
+                return Err(format!(
+                    "{} is a link inside the managed Skill directory; {LINK_GUIDANCE}",
+                    skipped.path
+                ));
+            }
+        }
         let mut extensions = BTreeSet::new();
         let mut paths = BTreeSet::new();
         let mut docs = Vec::new();
         for file in &found.files {
-            if file.starts_with('.') || file == CONFIG {
+            if file.starts_with('.') || file == CONFIG || dirs.iter().any(|d| under(file, d)) {
                 continue;
             }
             if file.ends_with(".md") {
@@ -170,11 +326,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                 after: Some(config),
             });
         }
-        let mut dirs = vec![SKILL_DIRS[0]];
-        if options.claude {
-            dirs.push(SKILL_DIRS[1]);
-        }
-        for dir in dirs {
+        for dir in &dirs {
             let record = owned(&root, dir)?;
             let stale = leftovers(&root, &found.files, dir, record.as_ref())?;
             // A directory that holds no user data is treated as absent.
@@ -320,6 +472,7 @@ fn under(path: &str, dir: &str) -> bool {
 }
 pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
     let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
+    let dirs = effective_dirs(&root, SKILL_DIRS)?;
     let mut plan = RemovalPlan {
         root,
         preserved: Vec::new(),
@@ -365,18 +518,26 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         })
     };
     let found = paths::walk(&plan.root, &|p| {
-        SKILL_DIRS.iter().any(|s| crate::config::may_contain(s, p))
+        dirs.iter().any(|s| crate::config::may_contain(s, p))
             || reference_patterns()
                 .iter()
                 .any(|s| crate::config::may_contain(s, p))
             || in_docs(p)
     })?;
-    for paths::Skipped { path, reason, .. } in found.skipped {
-        if SKILL_DIRS.iter().any(|s| *s == path || under(s, &path)) {
+    for paths::Skipped { path, code, reason } in found.skipped {
+        if code == "unsafe-path" && SKILL_DIRS.iter().any(|s| under(s, &path)) {
+            // An ancestor link that resolved inside the project; it is not
+            // inspected, followed, or removed.
+            plan.skipped.push(format!("{path} ({reason})"));
+            continue;
+        }
+        if SKILL_DIRS.iter().any(|s| *s == path || under(s, &path))
+            || dirs.iter().any(|s| *s == path || under(s, &path))
+        {
             // Never treat an unsafe skill directory or ancestor as cleanable.
             return Err(format!("unsafe managed path: {path} ({reason})"));
         }
-        if SKILL_DIRS.iter().any(|s| under(&path, s)) {
+        if dirs.iter().any(|s| under(&path, s)) {
             plan.preserved.push(format!("{path} ({reason})"));
         } else if in_docs(&path) {
             plan.incomplete.push(format!(
@@ -387,7 +548,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         }
     }
     let mut skill_steps = Vec::new();
-    for dir in SKILL_DIRS {
+    for dir in &dirs {
         let record = owned(&plan.root, dir)?;
         let mut removals = Vec::new();
         let mut modified = false;
@@ -461,7 +622,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         }
     }
     for file in found.files {
-        if SKILL_DIRS.iter().any(|s| under(&file, s)) || file == CONFIG {
+        if dirs.iter().any(|s| under(&file, s)) || file == CONFIG {
             continue;
         }
         let selected = file.ends_with(".md")
