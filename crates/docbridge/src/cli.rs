@@ -74,6 +74,13 @@ impl Invocation {
             if let Some(flag) = args.get(1).filter(|arg| arg.starts_with('-')) {
                 return Err(failure(3, format!("unknown command: {flag}")));
             }
+            if let Some(extra) = args.get(2) {
+                return Err(if extra.starts_with('-') {
+                    failure(3, format!("unknown argument: {extra}"))
+                } else {
+                    failure(3, format!("unexpected argument: {extra}"))
+                });
+            }
             let mut rewritten = Vec::with_capacity(args.len());
             if let Some(command) = args.get(1) {
                 rewritten.push(command.clone());

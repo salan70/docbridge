@@ -472,6 +472,35 @@ fn version_flag_is_only_valid_as_the_first_argument() {
 }
 
 #[test]
+fn help_accepts_at_most_one_command_operand() {
+    let p = Project::new();
+    for (args, stderr) in [
+        (
+            vec!["help", "links", "validate"],
+            "unexpected argument: validate\n",
+        ),
+        (vec!["help", "validate", "x"], "unexpected argument: x\n"),
+        (
+            vec!["help", "docs", "validate"],
+            "unexpected argument: validate\n",
+        ),
+        (
+            vec!["help", "validate", "--bogus"],
+            "unknown argument: --bogus\n",
+        ),
+    ] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            stderr,
+            "{args:?}"
+        );
+    }
+}
+
+#[test]
 fn embedded_docs_work_without_project_configuration_or_guide_files() {
     let p = Project::new();
     let overview = p.run(&["docs"]);
