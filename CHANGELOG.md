@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `links` section selector that matches no section now lists candidate
   section IDs from the same file — indented under the diagnostic text, and as
   a `candidates` array in `--json` diagnostics.
+- `docbridge links --sections` lists the section IDs of the selected files
+  without traversing link edges.
 
 ### Changed
 

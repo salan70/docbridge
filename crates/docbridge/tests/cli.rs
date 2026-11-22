@@ -605,6 +605,74 @@ fn unmatched_section_selectors_list_pasteable_candidate_ids() {
 }
 
 #[test]
+fn sections_flag_lists_section_ids_of_selected_files() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write(
+        "docs/stage.md",
+        "<!-- @code src/a.rs -->\n# 舞台とカメラ\n## 舞台がアプリの画面をすべて描く\nbody\n",
+    );
+    p.write("docs/other.md", "# Elsewhere\n## Deep\n");
+
+    // A file selector lists only that file's section IDs, without edges.
+    let o = p.run(&["links", "--sections", "docs/stage.md"]);
+    assert!(o.status.success());
+    let stdout = String::from_utf8(o.stdout).unwrap();
+    assert!(stdout.contains("docs/stage.md#舞台とカメラ"), "{stdout}");
+    assert!(
+        stdout.contains("docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("docs/other.md"), "{stdout}");
+    assert!(!stdout.contains("->"), "{stdout}");
+
+    // No selector lists every file's sections; globs select by file path.
+    let o = p.run(&["links", "--sections"]);
+    assert!(o.status.success());
+    let stdout = String::from_utf8(o.stdout).unwrap();
+    assert!(stdout.contains("docs/stage.md#舞台とカメラ"), "{stdout}");
+    assert!(stdout.contains("docs/other.md#elsewhere/deep"), "{stdout}");
+    let (o, v) = p.json(&["links", "--sections", "docs/*.md", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(v["edges"], json!([]));
+    let ids: Vec<_> = v["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|n| n["id"].as_str())
+        .collect();
+    for id in [
+        "docs/stage.md#舞台とカメラ",
+        "docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く",
+        "docs/other.md#elsewhere",
+        "docs/other.md#elsewhere/deep",
+    ] {
+        assert!(ids.contains(&id), "{ids:?}");
+    }
+    let (o, v) = p.json(&[
+        "links",
+        "--sections",
+        "docs/stage.md",
+        "--include-content",
+        "--json",
+    ]);
+    assert!(o.status.success());
+    assert!(!v["contents"].as_array().unwrap().is_empty());
+
+    // Unmanaged files and section selectors are diagnostics, not listings.
+    let o = p.run(&["links", "--sections", "docs/missing.md"]);
+    assert_eq!(o.status.code(), Some(1));
+    let o = p.run(&["links", "--sections", "docs/stage.md#舞台とカメラ"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(stderr.contains("selector"), "{stderr}");
+
+    // The flag belongs to links only.
+    assert_eq!(p.run(&["validate", "--sections"]).status.code(), Some(3));
+    assert_eq!(p.run(&["unlinked", "--sections"]).status.code(), Some(3));
+}
+
+#[test]
 fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code() {
     let p = project();
     p.write("src/internal space.rs", "full file\n");

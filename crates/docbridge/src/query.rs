@@ -1,6 +1,6 @@
 use crate::{
     config,
-    output::{ContentBlock, ContentReference, Graph, Node, QueryDiagnostic, Region},
+    output::{ContentBlock, ContentReference, Edge, Graph, Node, QueryDiagnostic, Region},
     project::{line_at, Project},
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -82,7 +82,72 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
         retained.insert(edge.source.clone());
         retained.insert(edge.target.clone());
     }
-    let mut nodes: Vec<_> = retained
+    graph(project, retained, edges, diagnostics, include_content)
+}
+
+/// The section IDs of the selected files, without traversing any link edges.
+pub fn sections(project: &Project, selectors: &[String], include_content: bool) -> Graph {
+    let mut selected = BTreeSet::new();
+    let mut diagnostics = project.diagnostics.clone();
+    if selectors.is_empty() {
+        selected.extend(
+            project
+                .nodes
+                .values()
+                .filter(|n| n.kind == "section")
+                .map(|n| n.id.clone()),
+        );
+    }
+    for selector in selectors.iter().collect::<BTreeSet<_>>() {
+        if selector.contains('#') {
+            diagnostics.push(QueryDiagnostic::new(
+                "selector",
+                selector,
+                None,
+                format!("--sections accepts file selectors, not section selectors: {selector}"),
+            ));
+            continue;
+        }
+        if let Err(e) = config::validate_path(selector, selector.contains('*')) {
+            diagnostics.push(QueryDiagnostic::new("selector", selector, None, e));
+            continue;
+        }
+        if selector.contains('*') {
+            selected.extend(
+                project
+                    .nodes
+                    .values()
+                    .filter(|n| n.kind == "section" && config::glob_matches(selector, &n.path))
+                    .map(|n| n.id.clone()),
+            );
+        } else if project.files.contains_key(selector.as_str()) {
+            selected.extend(
+                project
+                    .nodes
+                    .values()
+                    .filter(|n| n.path == *selector && n.kind == "section")
+                    .map(|n| n.id.clone()),
+            );
+        } else {
+            diagnostics.push(QueryDiagnostic::new(
+                "selector",
+                selector,
+                None,
+                format!("file is not a discovered managed file: {selector}"),
+            ));
+        }
+    }
+    graph(project, selected, Vec::new(), diagnostics, include_content)
+}
+
+fn graph(
+    project: &Project,
+    selected: BTreeSet<String>,
+    edges: Vec<Edge>,
+    mut diagnostics: Vec<QueryDiagnostic>,
+    include_content: bool,
+) -> Graph {
+    let mut nodes: Vec<_> = selected
         .iter()
         .filter_map(|id| project.nodes.get(id).cloned())
         .collect();

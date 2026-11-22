@@ -12,7 +12,7 @@ The CLI has no language parsers, LSP or editor integration, in-code annotations,
 
 ```sh
 docbridge validate [--root <directory>] [--json]
-docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [selectors...]
+docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [--sections] [selectors...]
 docbridge unlinked [--root <directory>] [--json]
 docbridge init [--root <directory>] [--dry-run] [--yes] [--force] [--claude]
 docbridge deinit [--dry-run]
@@ -20,7 +20,7 @@ docbridge docs [list | show <name>]
 ```
 
 - `validate --json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
-- `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
+- `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text. `--sections` instead treats selectors as file selectors and lists the section IDs of the selected files, with no edges.
 - Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward. The file name must match its directory entry exactly, even on case-folding file systems, and the file must not be a symlink.
 - A new command must be added to the `Command` enum, the parser, and `HELP` in `crates/docbridge/src/cli.rs`, and to the embedded guides.
 - The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, `lsp`, and `upgrade` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands or states that none replaces them.
