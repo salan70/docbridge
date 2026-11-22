@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `docbridge init` proposes a shorter candidate configuration on real
+  projects: `include.code.extensions` lists only source-file extensions,
+  `include.docs` names each outermost directory containing Markdown files
+  instead of every file, and `include.code.paths` drops directories already
+  covered by `.`.
 - `docbridge.config.json` must be spelled exactly as its directory entry, as
   every managed path already is. On a case-folding file system such as default
   macOS APFS, a differently cased name such as `Docbridge.config.json` is now a

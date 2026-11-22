@@ -1,4 +1,5 @@
 use docbridge::lifecycle::*;
+use serde_json::{json, Value};
 use std::fs;
 use tempfile::TempDir;
 // These tests call the library, so a bare temporary directory is enough.
@@ -523,6 +524,93 @@ fn dry_run_and_existing_config() {
         fs::read_to_string(p.join("docbridge.config.json")).unwrap(),
         "user config"
     );
+}
+/// The candidate configuration `init` prints during inspection.
+fn proposal(p: &std::path::Path) -> Value {
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    let body = outcome
+        .stdout
+        .split_once("Candidate configuration:\n")
+        .unwrap()
+        .1;
+    serde_json::Deserializer::from_str(body)
+        .into_iter::<Value>()
+        .next()
+        .unwrap()
+        .unwrap()
+}
+#[test]
+fn init_proposes_docs_directory_and_scanned_extension() {
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/a.ts"), "a\n").unwrap();
+    fs::create_dir_all(p.join("docs")).unwrap();
+    fs::write(p.join("docs/a.md"), "# A\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["src"],"extensions":[".ts"]},"docs":["docs"]}})
+    );
+}
+#[test]
+fn init_proposal_excludes_asset_lock_and_generated_files() {
+    let temp = root();
+    let p = temp.path();
+    for dir in [
+        "lib/nested",
+        "assets",
+        "ios/Runner",
+        "ios/Runner.xcodeproj",
+        "ios/Runner.xcworkspace",
+        "infra",
+        "site",
+        "docs/guide",
+    ] {
+        fs::create_dir_all(p.join(dir)).unwrap();
+    }
+    fs::write(p.join("lib/a.dart"), "void a() {}\n").unwrap();
+    fs::write(p.join("lib/nested/b.dart"), "void b() {}\n").unwrap();
+    fs::write(p.join("assets/logo.png"), [0x89, b'P', b'N', b'G', 0]).unwrap();
+    fs::write(p.join("assets/font.ttf"), [0, 1, 0, 0]).unwrap();
+    fs::write(p.join("assets/palette.example"), "red\n").unwrap();
+    fs::write(p.join("pubspec.lock"), "lock\n").unwrap();
+    fs::write(p.join("Package.resolved"), "{}\n").unwrap();
+    fs::write(p.join("ios/Runner/AppDelegate.swift"), "class A {}\n").unwrap();
+    fs::write(
+        p.join("ios/Runner.xcodeproj/project.pbxproj"),
+        "// !$*UTF8*$!\n",
+    )
+    .unwrap();
+    fs::write(
+        p.join("ios/Runner.xcworkspace/contents.xcworkspacedata"),
+        "<Workspace/>\n",
+    )
+    .unwrap();
+    fs::write(p.join("infra/main.tf"), "terraform {}\n").unwrap();
+    fs::write(p.join("site/logo.svg"), "<svg/>\n").unwrap();
+    fs::write(p.join("README.md"), "# R\n").unwrap();
+    fs::write(p.join("docs/guide/a.md"), "# A\n").unwrap();
+    fs::write(p.join("docs/b.md"), "# B\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["ios","lib"],"extensions":[".dart",".swift"]},"docs":["README.md","docs"]}})
+    );
+}
+#[test]
+fn init_drops_code_paths_covered_by_dot() {
+    let temp = root();
+    let p = temp.path();
+    fs::write(p.join("main.rs"), "fn main() {}\n").unwrap();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/a.rs"), "fn a() {}\n").unwrap();
+    assert_eq!(proposal(p)["include"]["code"]["paths"], json!(["."]));
 }
 fn deinit(p: &std::path::Path) -> Outcome {
     let plan = plan_deinit(p).unwrap();

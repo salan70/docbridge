@@ -44,6 +44,13 @@ fn hash(bytes: &[u8]) -> String {
 fn relative(path: &str) -> Result<(), String> {
     crate::config::validate_path(path, false)
 }
+/// The file extensions init proposes as code: the ones DocBridge's language
+/// scanners claim. Binary, asset, lock, and generated extensions are never
+/// proposed.
+const CODE_EXTENSIONS: &[&str] = &[
+    ".cjs", ".cts", ".dart", ".go", ".java", ".js", ".jsx", ".mjs", ".mts", ".py", ".rb", ".rs",
+    ".swift", ".ts", ".tsx",
+];
 const TEMP_PREFIX: &str = ".docbridge-tmp-";
 /// Whether `name` has the exact shape of a [`replace`] temporary file,
 /// `.docbridge-tmp-<process>-<time>-<serial>` in decimal. Such a file is a
@@ -130,15 +137,29 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
         let found = paths::walk(&root, &|_| true)?;
         let mut extensions = BTreeSet::new();
         let mut paths = BTreeSet::new();
-        let mut docs = Vec::new();
+        let mut docs = BTreeSet::new();
         for file in &found.files {
             if file.starts_with('.') || file == CONFIG {
                 continue;
             }
             if file.ends_with(".md") {
-                docs.push(file.clone());
-            } else if let Some(ext) = Path::new(file).extension().and_then(|e| e.to_str()) {
-                extensions.insert(format!(".{ext}"));
+                // A directory stands in for its Markdown files: every Markdown
+                // file under it is included. Root-level files stay literal
+                // entries because "." is a discovery root, not a docs tree.
+                docs.insert(
+                    file.split('/')
+                        .next()
+                        .filter(|_| file.contains('/'))
+                        .unwrap_or(file)
+                        .to_string(),
+                );
+            } else if let Some(ext) = Path::new(file)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| format!(".{e}"))
+                .filter(|e| CODE_EXTENSIONS.contains(&e.as_str()))
+            {
+                extensions.insert(ext);
                 paths.insert(
                     file.split('/')
                         .next()
@@ -147,6 +168,10 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                         .to_string(),
                 );
             }
+        }
+        // "." already covers its child directories.
+        if paths.contains(".") {
+            paths.retain(|p| p == ".");
         }
         let config = serde_json::to_vec_pretty(&serde_json::json!({"include":{"code":{"paths":paths,"extensions":extensions},"docs":docs}})).map_err(|e| e.to_string())?;
         let mut changes = Vec::new();
