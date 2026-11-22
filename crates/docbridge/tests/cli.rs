@@ -654,6 +654,65 @@ fn include_docs_has_no_implicit_exclude() {
     assert!(nodes.iter().any(|n| n["path"] == "src/a.rs"));
 }
 
+#[test]
+fn directory_selectors_match_their_recursive_glob() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("src/nested/deep/b.rs", "b");
+    p.write("docs/a.md", "<!-- @code src/nested/deep/b.rs -->\n# A\n");
+    for selector in ["src", "src/", "docs", "src/nested", "src/nested/"] {
+        let directory = selector.trim_end_matches('/');
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        let (_, g) = p.json(&["links", &format!("{directory}/**"), "--json"]);
+        assert!(o.status.success(), "{selector}");
+        assert_eq!(v["nodes"], g["nodes"], "{selector}");
+        assert_eq!(v["edges"], g["edges"], "{selector}");
+    }
+    p.write("vendor/lib/x.rs", "x");
+    let (o, v) = p.json(&["links", "vendor", "--json"]);
+    let (_, g) = p.json(&["links", "vendor/**", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(v["nodes"], json!([]));
+    assert_eq!(v["nodes"], g["nodes"]);
+    for selector in ["src/a.rs/", "none/"] {
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        assert_eq!(o.status.code(), Some(1), "{selector}");
+        assert_eq!(v["complete"], false);
+    }
+    let mut child = Command::new(env!("CARGO_BIN_EXE_docbridge"))
+        .current_dir(&*p)
+        .args(["links", "--stdin", "--json"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"src/nested/\n")
+        .unwrap();
+    let o = child.wait_with_output().unwrap();
+    assert!(o.status.success());
+    let v: Value = serde_json::from_slice(&o.stdout).unwrap();
+    let (_, g) = p.json(&["links", "src/nested/**", "--json"]);
+    assert_eq!(v["nodes"], g["nodes"]);
+}
+
+#[cfg(unix)]
+#[test]
+fn symlinked_directory_selectors_keep_their_rejection() {
+    use std::os::unix::fs::symlink;
+    let p = project();
+    p.write("src/a.rs", "a");
+    symlink(p.join("src"), p.join("alias")).unwrap();
+    for selector in ["alias", "alias/"] {
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        assert_eq!(o.status.code(), Some(1), "{selector}");
+        assert_eq!(v["complete"], false);
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn discovery_prunes_unmanaged_subtrees_before_io() {
