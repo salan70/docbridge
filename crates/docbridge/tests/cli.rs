@@ -541,6 +541,244 @@ fn configuration_name_must_match_its_directory_entry_exactly() {
 }
 
 #[test]
+fn unmatched_section_selectors_list_pasteable_candidate_ids() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write(
+        "docs/stage.md",
+        "# 舞台とカメラ\n## 舞台がアプリの画面をすべて描く\nbody\n# 別の章\n## 舞台がアプリの画面をすべて描く\ndup\n",
+    );
+    p.write("docs/other.md", "# Elsewhere\n");
+
+    let o = p.run(&["links", "docs/stage.md#舞台がアプリの画面をすべて描く"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("section does not exist: docs/stage.md#舞台がアプリの画面をすべて描く"),
+        "{stderr}"
+    );
+    for id in [
+        "docs/stage.md#別の章/舞台がアプリの画面をすべて描く",
+        "docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く",
+    ] {
+        assert!(stderr.contains(id), "{stderr}");
+    }
+    assert!(!stderr.contains("docs/other.md"), "{stderr}");
+
+    let (_, v) = p.json(&[
+        "links",
+        "docs/stage.md#舞台がアプリの画面をすべて描く",
+        "--json",
+    ]);
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        candidates[..2],
+        [
+            "docs/stage.md#別の章/舞台がアプリの画面をすべて描く",
+            "docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く"
+        ],
+        "{candidates:?}"
+    );
+
+    // Without a last-segment match the closest IDs are listed, bounded at ten.
+    let mut big = String::new();
+    for i in 1..=12 {
+        use std::fmt::Write;
+        writeln!(big, "# Section {i}").unwrap();
+    }
+    p.write("docs/big.md", &big);
+    let (o, v) = p.json(&["links", "docs/big.md#sectoin-10", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(candidates[0], "docs/big.md#section-10", "{candidates:?}");
+    assert!(candidates.len() <= 10, "{candidates:?}");
+}
+
+#[test]
+fn sections_flag_lists_section_ids_of_selected_files() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write(
+        "docs/stage.md",
+        "<!-- @code src/a.rs -->\n# 舞台とカメラ\n## 舞台がアプリの画面をすべて描く\nbody\n",
+    );
+    p.write("docs/other.md", "# Elsewhere\n## Deep\n");
+
+    // A file selector lists only that file's section IDs, without edges.
+    let o = p.run(&["links", "--sections", "docs/stage.md"]);
+    assert!(o.status.success());
+    let stdout = String::from_utf8(o.stdout).unwrap();
+    assert!(stdout.contains("docs/stage.md#舞台とカメラ"), "{stdout}");
+    assert!(
+        stdout.contains("docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("docs/other.md"), "{stdout}");
+    assert!(!stdout.contains("->"), "{stdout}");
+
+    // No selector lists every file's sections; globs select by file path.
+    let o = p.run(&["links", "--sections"]);
+    assert!(o.status.success());
+    let stdout = String::from_utf8(o.stdout).unwrap();
+    assert!(stdout.contains("docs/stage.md#舞台とカメラ"), "{stdout}");
+    assert!(stdout.contains("docs/other.md#elsewhere/deep"), "{stdout}");
+    let (o, v) = p.json(&["links", "--sections", "docs/*.md", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(v["edges"], json!([]));
+    let ids: Vec<_> = v["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|n| n["id"].as_str())
+        .collect();
+    for id in [
+        "docs/stage.md#舞台とカメラ",
+        "docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く",
+        "docs/other.md#elsewhere",
+        "docs/other.md#elsewhere/deep",
+    ] {
+        assert!(ids.contains(&id), "{ids:?}");
+    }
+    let (o, v) = p.json(&[
+        "links",
+        "--sections",
+        "docs/stage.md",
+        "--include-content",
+        "--json",
+    ]);
+    assert!(o.status.success());
+    assert!(!v["contents"].as_array().unwrap().is_empty());
+
+    // Unmanaged files and section selectors are diagnostics, not listings.
+    let o = p.run(&["links", "--sections", "docs/missing.md"]);
+    assert_eq!(o.status.code(), Some(1));
+    let (o, v) = p.json(&[
+        "links",
+        "--sections",
+        "docs/stage.md#舞台とカメラ",
+        "--json",
+    ]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(stderr.contains("selector"), "{stderr}");
+    assert_eq!(v["diagnostics"][0]["path"], "docs/stage.md");
+
+    // The flag belongs to links only.
+    assert_eq!(p.run(&["validate", "--sections"]).status.code(), Some(3));
+    assert_eq!(p.run(&["unlinked", "--sections"]).status.code(), Some(3));
+}
+
+#[test]
+fn section_selector_on_unmanaged_file_reports_missing_section() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "# A\n");
+
+    // A section selector naming an unmanaged file is a missing section.
+    let o = p.run(&["links", "tool/x.py#a"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("section does not exist: tool/x.py#a"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("managed file"), "{stderr}");
+}
+
+#[test]
+fn section_candidates_match_slugged_fragment_segments() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/rig.md", "# Camera Rig\n# Zed\n## Camera Rig\nbody\n");
+
+    // The fragment's segments are slugged like headings: `Camera Rig`
+    // boundary-matches `zed/camera-rig` ahead of the edit-distance order.
+    let (o, v) = p.json(&["links", "docs/rig.md#Camera Rig", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        candidates[0], "docs/rig.md#zed/camera-rig",
+        "{candidates:?}"
+    );
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(stderr.contains("docs/rig.md#zed/camera-rig"), "{stderr}");
+}
+
+#[test]
+fn empty_fragment_lists_the_shortest_section_ids_first() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/order.md", "# A Long Parent\n## X\n# Intro\n");
+
+    // `docs/order.md#` ranks by full section-ID length: `intro` precedes
+    // `a-long-parent/x` even though its last segment is longer.
+    let (o, v) = p.json(&["links", "docs/order.md#", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        candidates,
+        [
+            "docs/order.md#intro",
+            "docs/order.md#a-long-parent",
+            "docs/order.md#a-long-parent/x"
+        ],
+        "{candidates:?}"
+    );
+}
+
+#[test]
+fn sections_glob_matches_the_files_links_selects() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write(
+        "docs/stage.md",
+        "<!-- @code src/a.rs -->\n# 舞台とカメラ\n## 舞台がアプリの画面をすべて描く\nbody\n",
+    );
+    p.write("docs/other.md", "# Elsewhere\n");
+    p.write("docs/nested/deep.md", "# Deep\n");
+
+    // `--sections` shares links' selector interpretation: a single-segment
+    // glob covers the same files, so it lists the section IDs links selects.
+    let section_ids = |v: &Value| -> Vec<String> {
+        v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|n| n["kind"] == "section")
+            .map(|n| n["id"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    let (o, links_v) = p.json(&["links", "docs/*.md", "--json"]);
+    assert!(o.status.success());
+    let (o, sections_v) = p.json(&["links", "--sections", "docs/*.md", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(section_ids(&sections_v), section_ids(&links_v));
+    assert!(section_ids(&sections_v)
+        .iter()
+        .all(|id| !id.starts_with("docs/nested/")));
+}
+
+#[test]
 fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code() {
     let p = project();
     p.write("src/internal space.rs", "full file\n");
@@ -697,6 +935,56 @@ fn directory_selectors_match_their_recursive_glob() {
     let v: Value = serde_json::from_slice(&o.stdout).unwrap();
     let (_, g) = p.json(&["links", "src/nested/**", "--json"]);
     assert_eq!(v["nodes"], g["nodes"]);
+}
+
+#[test]
+fn sections_directory_selector_lists_the_recursive_glob_sections() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "# A\n## Child\n");
+    p.write("docs/nested/deep.md", "# Deep\n## Inner\n");
+    p.write("other/x.md", "# Other\n");
+    for selector in ["docs", "docs/"] {
+        let (o, v) = p.json(&["links", "--sections", selector, "--json"]);
+        let (_, g) = p.json(&["links", "--sections", "docs/**", "--json"]);
+        assert!(o.status.success(), "{selector}");
+        let ids: Vec<_> = v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["id"].as_str().unwrap().to_owned())
+            .collect();
+        assert!(
+            ids.contains(&"docs/nested/deep.md#deep/inner".to_owned()),
+            "{ids:?}"
+        );
+        assert!(v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|n| n["kind"] == "section"));
+        assert_eq!(v["nodes"], g["nodes"], "{selector}");
+        assert_eq!(v["edges"], json!([]), "{selector}");
+    }
+}
+
+#[test]
+fn directory_section_selector_reports_a_missing_section() {
+    let p = project();
+    p.write("docs/a.md", "# A\n");
+    let (o, v) = p.json(&["links", "docs/#sec", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    // `dir/#sec` keeps the trailing slash in the reported selector and names
+    // the directory as the path; there are no candidates to offer.
+    assert_eq!(
+        v["diagnostics"],
+        json!([{
+            "code": "selector",
+            "message": "section does not exist: docs/#sec",
+            "path": "docs"
+        }])
+    );
 }
 
 // Directory names are taken literally, so a name with glob-reserved characters
