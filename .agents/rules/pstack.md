@@ -57,5 +57,6 @@ Every request resends the whole thread, so cost follows thread length times the 
 - A follow-up, a fix round, or the next step goes to a fresh delegate with a consolidated brief. Do not append "continue" to a finished delegate's thread.
 - The main agent keeps design and judgment. It delegates mechanical work (rendering, verification runs, routine edits) at the `mid` level, or at `low` when the spec pins the work down.
 - A small change runs in the main agent while the thread is short.
+- Implementation delegates follow the `implement` line of `pstack-models.md`. With `implement: devin`, start them with T3 `delegate_task` on `acpRegistry_devin`, model `swe-2-high`, and `thought_level: max`.
 - An implementer owns one unit: investigation, the change, and its verification. It may hand location searches and long verification to a `low` subagent. Nesting stops there: one level, `low` only.
 - When the user asks a side question in a long thread, answer it, then say in one line that a new thread is cheaper for such questions.

@@ -96,6 +96,13 @@ class DelegateTest(unittest.TestCase):
         self.assertIsNotNone(delegate('terra', [{'id': 'other', 'value': 'x'}]))
         self.assertIsNotNone(delegate(None, {'effort': 'low'}))
 
+    def test_real_table_allows_swe_2_only_at_max(self):
+        table = g.parse_table((ROOT / g.RULE).read_text(encoding='utf-8'))
+        check = lambda level: g.check('mcp__t3-code__delegate_task', {'target': {
+            'model': 'swe-2-high', 'options': [{'id': 'thought_level', 'value': level}]}}, table)
+        self.assertIsNone(check('max'))
+        self.assertIsNotNone(check('high'))
+
     def test_longest_model_name_wins(self):
         self.assertEqual(g.find_model(TABLE, 'swe-2-flash-medium')[0], 'swe-2-flash')
 
