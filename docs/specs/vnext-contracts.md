@@ -36,7 +36,13 @@ When invoked with `--json`, query commands (`links`, `unlinked`) print one JSON 
 type Graph = {
   nodes: Node[];
   edges: { source: string; target: string }[];
-  diagnostics: { code: string; path: string; line?: number; message: string }[];
+  diagnostics: {
+    code: string;
+    path: string;
+    line?: number;
+    message: string;
+    candidates?: string[];
+  }[];
   complete: boolean;
   contents?: { id: string; path: string; start_line: number; end_line: number; text: string }[];
 };
@@ -70,6 +76,7 @@ type QueryDiagnostic = {
   path: string; // root-relative; empty when no file applies
   line?: number;
   message: string;
+  candidates?: string[]; // pasteable section IDs offered by a failed section selector
 };
 ```
 
@@ -95,7 +102,8 @@ Any diagnostic makes the result incomplete. Exit codes: [Exit codes and query ou
 
 ## Core CLI and identity
 
-- Section selectors use `relative/document.md#parent/child`. Each component is the heading's simple lowercase slug, retaining Unicode letters/numbers and underscores, replacing other runs with `-`, and trimming edge hyphens. This keeps the current simple rule rather than requiring GitHub compatibility.
+- Section selectors use `relative/document.md#parent/child`. Each component is the heading's simple lowercase slug, retaining Unicode letters/numbers and underscores, replacing other runs with `-`, and trimming edge hyphens. This keeps the current simple rule rather than requiring GitHub compatibility. A section ID is the full heading path; a bare last-segment slug is not resolved.
+- A section selector that matches no section reports candidate section IDs from the same file: every section path ending with the given fragment at a segment boundary, then the closest by edit distance, capped at ten. Text diagnostics list them indented under the message; JSON diagnostics carry them in `candidates`.
 - Parent components follow the actual nearest preceding lower-level headings; skipped heading levels create no artificial ancestors. Empty heading slugs use `section` so their children remain addressable.
 - Sibling collisions receive the first available numeric suffix, beginning with `-2`, in document order. Unrelated parents may use the same component.
 - Managed paths are root-relative with `/` separators. Absolute paths, `..` components, backslashes, and `#` in managed file names are rejected. Internal spaces are allowed in annotation paths. `.` is permitted only as a configuration discovery root, not as a link target.

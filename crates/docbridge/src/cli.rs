@@ -311,6 +311,9 @@ fn diagnostic_text(diagnostics: &[QueryDiagnostic]) -> String {
             d.message
         )
         .expect("write to String");
+        for candidate in &d.candidates {
+            writeln!(out, "  {candidate}").expect("write to String");
+        }
     }
     out
 }

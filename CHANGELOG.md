@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A `links` section selector that matches no section now lists candidate
+  section IDs from the same file — indented under the diagnostic text, and as
+  a `candidates` array in `--json` diagnostics.
+
 ### Changed
 
 - `docbridge.config.json` must be spelled exactly as its directory entry, as

@@ -541,6 +541,70 @@ fn configuration_name_must_match_its_directory_entry_exactly() {
 }
 
 #[test]
+fn unmatched_section_selectors_list_pasteable_candidate_ids() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write(
+        "docs/stage.md",
+        "# 舞台とカメラ\n## 舞台がアプリの画面をすべて描く\nbody\n# 別の章\n## 舞台がアプリの画面をすべて描く\ndup\n",
+    );
+    p.write("docs/other.md", "# Elsewhere\n");
+
+    let o = p.run(&["links", "docs/stage.md#舞台がアプリの画面をすべて描く"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("section does not exist: docs/stage.md#舞台がアプリの画面をすべて描く"),
+        "{stderr}"
+    );
+    for id in [
+        "docs/stage.md#別の章/舞台がアプリの画面をすべて描く",
+        "docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く",
+    ] {
+        assert!(stderr.contains(id), "{stderr}");
+    }
+    assert!(!stderr.contains("docs/other.md"), "{stderr}");
+
+    let (_, v) = p.json(&[
+        "links",
+        "docs/stage.md#舞台がアプリの画面をすべて描く",
+        "--json",
+    ]);
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        candidates[..2],
+        [
+            "docs/stage.md#別の章/舞台がアプリの画面をすべて描く",
+            "docs/stage.md#舞台とカメラ/舞台がアプリの画面をすべて描く"
+        ],
+        "{candidates:?}"
+    );
+
+    // Without a last-segment match the closest IDs are listed, bounded at ten.
+    let mut big = String::new();
+    for i in 1..=12 {
+        use std::fmt::Write;
+        writeln!(big, "# Section {i}").unwrap();
+    }
+    p.write("docs/big.md", &big);
+    let (o, v) = p.json(&["links", "docs/big.md#sectoin-10", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(candidates[0], "docs/big.md#section-10", "{candidates:?}");
+    assert!(candidates.len() <= 10, "{candidates:?}");
+}
+
+#[test]
 fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code() {
     let p = project();
     p.write("src/internal space.rs", "full file\n");

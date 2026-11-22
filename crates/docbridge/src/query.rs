@@ -19,14 +19,30 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
             diagnostics.push(QueryDiagnostic::new("selector", path, None, e));
             continue;
         }
-        if section.is_some() {
-            if path.contains('*') || section == Some("") || !project.nodes.contains_key(selector) {
+        if let Some(fragment) = section {
+            if path.contains('*') {
                 diagnostics.push(QueryDiagnostic::new(
                     "selector",
                     path,
                     None,
                     format!("section does not exist: {selector}"),
                 ));
+            } else if !project.files.contains_key(path) {
+                diagnostics.push(QueryDiagnostic::new(
+                    "selector",
+                    path,
+                    None,
+                    format!("file is not a discovered managed file: {path}"),
+                ));
+            } else if !project.nodes.contains_key(selector) {
+                let mut diagnostic = QueryDiagnostic::new(
+                    "selector",
+                    path,
+                    None,
+                    format!("section does not exist: {selector}"),
+                );
+                diagnostic.candidates = section_candidates(project, path, fragment);
+                diagnostics.push(diagnostic);
             } else {
                 selected.insert(selector.clone());
             }
@@ -84,6 +100,60 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
         complete,
         contents,
     }
+}
+
+/// The longest candidate list a failed section selector reports.
+const MAX_CANDIDATES: usize = 10;
+
+/// Section IDs of `path` that best match `fragment`: every ID whose section
+/// path ends with the fragment at a segment boundary, then the closest by edit
+/// distance to the fragment, in deterministic order.
+fn section_candidates(project: &Project, path: &str, fragment: &str) -> Vec<String> {
+    let prefix = format!("{path}#");
+    let suffix = format!("/{fragment}");
+    let mut candidates = Vec::new();
+    let mut rest = Vec::new();
+    for id in project.nodes.keys() {
+        let Some(relative) = id.strip_prefix(&prefix) else {
+            continue;
+        };
+        if relative.ends_with(&suffix) {
+            candidates.push(id.clone());
+        } else {
+            rest.push(relative);
+        }
+    }
+    rest.sort_by_cached_key(|relative| {
+        (
+            edit_distance(fragment, relative).min(edit_distance(
+                fragment,
+                relative.rsplit('/').next().unwrap_or(relative),
+            )),
+            *relative,
+        )
+    });
+    candidates.extend(
+        rest.into_iter()
+            .map(|relative| format!("{prefix}{relative}")),
+    );
+    candidates.truncate(MAX_CANDIDATES);
+    candidates
+}
+
+fn edit_distance(a: &str, b: &str) -> usize {
+    let b: Vec<char> = b.chars().collect();
+    let mut previous: Vec<usize> = (0..=b.len()).collect();
+    let mut current = vec![0; b.len() + 1];
+    for (i, ca) in a.chars().enumerate() {
+        current[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            current[j + 1] = (previous[j] + usize::from(ca != *cb))
+                .min(previous[j + 1] + 1)
+                .min(current[j] + 1);
+        }
+        std::mem::swap(&mut previous, &mut current);
+    }
+    previous[b.len()]
 }
 
 fn content_blocks(project: &Project, nodes: &mut [Node]) -> Vec<ContentBlock> {
