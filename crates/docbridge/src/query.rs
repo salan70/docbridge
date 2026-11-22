@@ -3,7 +3,20 @@ use crate::{
     output::{ContentBlock, ContentReference, Edge, Graph, Node, QueryDiagnostic, Region},
     project::{line_at, slug, Project},
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::Path,
+};
+
+/// Whether `relative` resolves to a directory under `root`. Links, missing
+/// components, and misspelled names are not directories; see [`paths::resolve`].
+fn directory(root: &Path, relative: &str) -> bool {
+    crate::paths::resolve(root, relative)
+        .ok()
+        .and_then(|path| fs::symlink_metadata(path).ok())
+        .is_some_and(|metadata| metadata.is_dir())
+}
 
 /// Resolve selectors into selected node IDs, appending one diagnostic per
 /// rejected selector. `links --sections` (`sections_only`) contributes only
@@ -40,6 +53,11 @@ fn resolve_selectors(
             ));
             continue;
         }
+        // `dir/` spells the directory `dir` when that directory exists.
+        let path = match path.strip_suffix('/') {
+            Some(stripped) if directory(&project.root, stripped) => stripped,
+            _ => path,
+        };
         if let Err(e) = config::validate_path(path, path.contains('*')) {
             diagnostics.push(QueryDiagnostic::new("selector", path, None, e));
             continue;
@@ -78,6 +96,15 @@ fn resolve_selectors(
                     .nodes
                     .values()
                     .filter(|n| eligible(n) && n.path == path)
+                    .map(|n| n.id.clone()),
+            );
+        } else if directory(&project.root, path) {
+            let recursive = format!("{path}/**");
+            selected.extend(
+                project
+                    .nodes
+                    .values()
+                    .filter(|n| eligible(n) && config::glob_matches(&recursive, &n.path))
                     .map(|n| n.id.clone()),
             );
         } else {

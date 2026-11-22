@@ -892,6 +892,134 @@ fn include_docs_has_no_implicit_exclude() {
     assert!(nodes.iter().any(|n| n["path"] == "src/a.rs"));
 }
 
+#[test]
+fn directory_selectors_match_their_recursive_glob() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("src/nested/deep/b.rs", "b");
+    p.write("docs/a.md", "<!-- @code src/nested/deep/b.rs -->\n# A\n");
+    for selector in ["src", "src/", "docs", "src/nested", "src/nested/"] {
+        let directory = selector.trim_end_matches('/');
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        let (_, g) = p.json(&["links", &format!("{directory}/**"), "--json"]);
+        assert!(o.status.success(), "{selector}");
+        assert_eq!(v["nodes"], g["nodes"], "{selector}");
+        assert_eq!(v["edges"], g["edges"], "{selector}");
+    }
+    p.write("vendor/lib/x.rs", "x");
+    let (o, v) = p.json(&["links", "vendor", "--json"]);
+    let (_, g) = p.json(&["links", "vendor/**", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(v["nodes"], json!([]));
+    assert_eq!(v["nodes"], g["nodes"]);
+    for selector in ["src/a.rs/", "none/"] {
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        assert_eq!(o.status.code(), Some(1), "{selector}");
+        assert_eq!(v["complete"], false);
+    }
+    let mut child = Command::new(env!("CARGO_BIN_EXE_docbridge"))
+        .current_dir(&*p)
+        .args(["links", "--stdin", "--json"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"src/nested/\n")
+        .unwrap();
+    let o = child.wait_with_output().unwrap();
+    assert!(o.status.success());
+    let v: Value = serde_json::from_slice(&o.stdout).unwrap();
+    let (_, g) = p.json(&["links", "src/nested/**", "--json"]);
+    assert_eq!(v["nodes"], g["nodes"]);
+}
+
+#[test]
+fn sections_directory_selector_lists_the_recursive_glob_sections() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "# A\n## Child\n");
+    p.write("docs/nested/deep.md", "# Deep\n## Inner\n");
+    p.write("other/x.md", "# Other\n");
+    for selector in ["docs", "docs/"] {
+        let (o, v) = p.json(&["links", "--sections", selector, "--json"]);
+        let (_, g) = p.json(&["links", "--sections", "docs/**", "--json"]);
+        assert!(o.status.success(), "{selector}");
+        let ids: Vec<_> = v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["id"].as_str().unwrap().to_owned())
+            .collect();
+        assert!(
+            ids.contains(&"docs/nested/deep.md#deep/inner".to_owned()),
+            "{ids:?}"
+        );
+        assert!(v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|n| n["kind"] == "section"));
+        assert_eq!(v["nodes"], g["nodes"], "{selector}");
+        assert_eq!(v["edges"], json!([]), "{selector}");
+    }
+}
+
+#[test]
+fn directory_section_selector_reports_a_missing_section() {
+    let p = project();
+    p.write("docs/a.md", "# A\n");
+    let (o, v) = p.json(&["links", "docs/#sec", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    // `dir/#sec` keeps the trailing slash in the reported selector and names
+    // the directory as the path; there are no candidates to offer.
+    assert_eq!(
+        v["diagnostics"],
+        json!([{
+            "code": "selector",
+            "message": "section does not exist: docs/#sec",
+            "path": "docs"
+        }])
+    );
+}
+
+// Directory names are taken literally, so a name with glob-reserved characters
+// works as a selector even though the equivalent `dir/**` glob is rejected.
+#[test]
+fn directory_selectors_take_bracketed_names_literally() {
+    let p = project();
+    p.write("src/[slug]/a.rs", "a");
+    for selector in ["src/[slug]", "src/[slug]/"] {
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        assert!(o.status.success(), "{selector}: {v}");
+        let nodes = v["nodes"].as_array().unwrap();
+        assert!(
+            nodes.iter().any(|n| n["path"] == "src/[slug]/a.rs"),
+            "{selector}: {v}"
+        );
+    }
+    let (o, v) = p.json(&["links", "src/[slug]/**", "--json"]);
+    assert_eq!(o.status.code(), Some(1), "{v}");
+}
+
+#[cfg(unix)]
+#[test]
+fn symlinked_directory_selectors_keep_their_rejection() {
+    use std::os::unix::fs::symlink;
+    let p = project();
+    p.write("src/a.rs", "a");
+    symlink(p.join("src"), p.join("alias")).unwrap();
+    for selector in ["alias", "alias/"] {
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        assert_eq!(o.status.code(), Some(1), "{selector}");
+        assert_eq!(v["complete"], false);
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn discovery_prunes_unmanaged_subtrees_before_io() {
