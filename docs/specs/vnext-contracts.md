@@ -20,7 +20,7 @@ docbridge docs [list | show <name>]
 ```
 
 - `validate --json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
-- `links` retrieves direct edges for file, directory, or section selectors (`relative/document.md#parent/child`), from arguments or stdin. An existing directory, `dir` or `dir/`, selects the managed files under it recursively, exactly like `dir/**`. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
+- `links` retrieves direct edges for file, directory, or section selectors (`relative/document.md#parent/child`), from arguments or stdin. An existing directory, `dir` or `dir/`, selects the same managed files as `dir/**` would. The name is taken literally, so a directory such as `src/[slug]` works even though the glob `src/[slug]/**` is rejected. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
 - Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward. The file name must match its directory entry exactly, even on case-folding file systems, and the file must not be a symlink.
 - A new command must be added to the `Command` enum, the parser, and `HELP` in `crates/docbridge/src/cli.rs`, and to the embedded guides.
 - The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, `lsp`, and `upgrade` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands or states that none replaces them.

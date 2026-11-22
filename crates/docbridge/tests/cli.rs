@@ -699,6 +699,25 @@ fn directory_selectors_match_their_recursive_glob() {
     assert_eq!(v["nodes"], g["nodes"]);
 }
 
+// Directory names are taken literally, so a name with glob-reserved characters
+// works as a selector even though the equivalent `dir/**` glob is rejected.
+#[test]
+fn directory_selectors_take_bracketed_names_literally() {
+    let p = project();
+    p.write("src/[slug]/a.rs", "a");
+    for selector in ["src/[slug]", "src/[slug]/"] {
+        let (o, v) = p.json(&["links", selector, "--json"]);
+        assert!(o.status.success(), "{selector}: {v}");
+        let nodes = v["nodes"].as_array().unwrap();
+        assert!(
+            nodes.iter().any(|n| n["path"] == "src/[slug]/a.rs"),
+            "{selector}: {v}"
+        );
+    }
+    let (o, v) = p.json(&["links", "src/[slug]/**", "--json"]);
+    assert_eq!(o.status.code(), Some(1), "{v}");
+}
+
 #[cfg(unix)]
 #[test]
 fn symlinked_directory_selectors_keep_their_rejection() {
