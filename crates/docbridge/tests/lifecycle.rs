@@ -677,6 +677,28 @@ fn init_skipped_extensions_note_stays_short() {
     assert!(!note.contains(".x6"), "{note}");
     assert!(note.contains("and 2 more"), "{note}");
 }
+/// A directory covering an entry the walk skipped cannot stand in for it:
+/// narrower clean directories and literal files take its place so the
+/// candidate still passes validation.
+#[cfg(unix)]
+#[test]
+fn init_proposal_falls_back_around_skipped_entries() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("docs/guide")).unwrap();
+    fs::write(p.join("docs/guide/a.md"), "# A\n").unwrap();
+    fs::write(p.join("docs/b.md"), "# B\n").unwrap();
+    fs::create_dir_all(p.join("src/deep")).unwrap();
+    fs::write(p.join("src/deep/a.rs"), "fn a() {}\n").unwrap();
+    fs::write(p.join("main.rs"), "fn main() {}\n").unwrap();
+    symlink("/nonexistent", p.join("docs/img.png")).unwrap();
+    symlink("/nonexistent", p.join("src/link")).unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["main.rs","src/deep"],"extensions":[".rs"]},"docs":["docs/b.md","docs/guide"]}})
+    );
+}
 #[test]
 fn init_drops_code_paths_covered_by_dot() {
     let temp = root();

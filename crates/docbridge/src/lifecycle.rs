@@ -136,6 +136,24 @@ fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, Str
     }
     Ok(Some(record))
 }
+/// The proposal entry covering `file`: its outermost ancestor directory
+/// under which the walk skipped nothing, or `file` itself when every
+/// ancestor covers a skipped entry. `root` permits "." for root-level
+/// files. A proposed directory makes each of its descendants relevant
+/// during validation, which reports every entry the walk skipped, so an
+/// ancestor covering one falls back to narrower directories and finally
+/// to the file itself.
+fn proposed<'a>(file: &'a str, skipped: &[paths::Skipped], root: bool) -> &'a str {
+    file.match_indices('/')
+        .map(|(i, _)| &file[..i])
+        .chain(root.then_some("."))
+        .find(|dir| {
+            !skipped
+                .iter()
+                .any(|s| *dir == "." || s.path == *dir || s.path.starts_with(&format!("{dir}/")))
+        })
+        .unwrap_or(file)
+}
 pub fn init(root: &Path, options: &InitOptions) -> Outcome {
     outcome((|| {
         let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
@@ -152,13 +170,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                 // A directory stands in for its Markdown files: every Markdown
                 // file under it is included. Root-level files stay literal
                 // entries because "." is a discovery root, not a docs tree.
-                docs.insert(
-                    file.split('/')
-                        .next()
-                        .filter(|_| file.contains('/'))
-                        .unwrap_or(file)
-                        .to_string(),
-                );
+                docs.insert(proposed(file, &found.skipped, false).to_string());
             } else if let Some(ext) = Path::new(file)
                 .extension()
                 .and_then(|e| e.to_str())
@@ -166,13 +178,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
             {
                 if CODE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
                     extensions.insert(ext);
-                    paths.insert(
-                        file.split('/')
-                            .next()
-                            .filter(|_| file.contains('/'))
-                            .unwrap_or(".")
-                            .to_string(),
-                    );
+                    paths.insert(proposed(file, &found.skipped, true).to_string());
                 } else {
                     *skipped_exts.entry(ext).or_insert(0) += 1;
                 }
