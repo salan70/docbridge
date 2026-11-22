@@ -44,12 +44,17 @@ fn hash(bytes: &[u8]) -> String {
 fn relative(path: &str) -> Result<(), String> {
     crate::config::validate_path(path, false)
 }
-/// The file extensions init proposes as code: the ones DocBridge's language
-/// scanners claim. Binary, asset, lock, and generated extensions are never
-/// proposed.
+/// A fixed list of common source-file extensions init proposes as code.
+/// Discovery reads matching files as text for link targets; there is no
+/// language-specific parsing. Binary, asset, lock, and generated extensions
+/// are never proposed; init reports the extensions it skipped.
 const CODE_EXTENSIONS: &[&str] = &[
-    ".cjs", ".cts", ".dart", ".go", ".java", ".js", ".jsx", ".mjs", ".mts", ".py", ".rb", ".rs",
-    ".swift", ".ts", ".tsx",
+    ".bash", ".c", ".cc", ".cjs", ".clj", ".cljc", ".cljs", ".cpp", ".cs", ".cts", ".cxx", ".dart",
+    ".erl", ".ex", ".exs", ".fish", ".go", ".gradle", ".groovy", ".h", ".hh", ".hpp", ".hrl",
+    ".hs", ".hxx", ".java", ".jl", ".js", ".jsx", ".kt", ".kts", ".lhs", ".lua", ".m", ".mjs",
+    ".ml", ".mli", ".mm", ".mts", ".nim", ".php", ".pl", ".pm", ".ps1", ".py", ".r", ".rb", ".rs",
+    ".sbt", ".scala", ".sh", ".sql", ".svelte", ".swift", ".tf", ".ts", ".tsx", ".vue", ".zig",
+    ".zsh",
 ];
 const TEMP_PREFIX: &str = ".docbridge-tmp-";
 /// Whether `name` has the exact shape of a [`replace`] temporary file,
@@ -138,6 +143,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
         let mut extensions = BTreeSet::new();
         let mut paths = BTreeSet::new();
         let mut docs = BTreeSet::new();
+        let mut skipped_exts = BTreeMap::<String, usize>::new();
         for file in &found.files {
             if file.starts_with('.') || file == CONFIG {
                 continue;
@@ -157,16 +163,19 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                 .extension()
                 .and_then(|e| e.to_str())
                 .map(|e| format!(".{e}"))
-                .filter(|e| CODE_EXTENSIONS.contains(&e.as_str()))
             {
-                extensions.insert(ext);
-                paths.insert(
-                    file.split('/')
-                        .next()
-                        .filter(|_| file.contains('/'))
-                        .unwrap_or(".")
-                        .to_string(),
-                );
+                if CODE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
+                    extensions.insert(ext);
+                    paths.insert(
+                        file.split('/')
+                            .next()
+                            .filter(|_| file.contains('/'))
+                            .unwrap_or(".")
+                            .to_string(),
+                    );
+                } else {
+                    *skipped_exts.entry(ext).or_insert(0) += 1;
+                }
             }
         }
         // "." already covers its child directories.
@@ -180,6 +189,27 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
             root.display(),
             String::from_utf8_lossy(&config)
         );
+        if extensions.is_empty() {
+            report.push_str("No code files proposed.\n");
+        }
+        if !skipped_exts.is_empty() {
+            let mut ranked: Vec<_> = skipped_exts.into_iter().collect();
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            let shown: Vec<String> = ranked
+                .iter()
+                .take(5)
+                .map(|(ext, count)| {
+                    format!("{ext} ({count} file{})", if *count == 1 { "" } else { "s" })
+                })
+                .collect();
+            let mut list = shown.join(", ");
+            if ranked.len() > 5 {
+                list.push_str(&format!(", and {} more", ranked.len() - 5));
+            }
+            report.push_str(&format!(
+                "Skipped extensions: {list}. Add an extension to include.code.extensions by hand to cover these files.\n"
+            ));
+        }
         for skipped in &found.skipped {
             report.push_str(&format!(
                 "Skipped during discovery: {} ({})\n",

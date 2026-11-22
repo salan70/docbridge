@@ -600,8 +600,82 @@ fn init_proposal_excludes_asset_lock_and_generated_files() {
     fs::write(p.join("docs/b.md"), "# B\n").unwrap();
     assert_eq!(
         proposal(p),
-        json!({"include":{"code":{"paths":["ios","lib"],"extensions":[".dart",".swift"]},"docs":["README.md","docs"]}})
+        json!({"include":{"code":{"paths":["infra","ios","lib"],"extensions":[".dart",".swift",".tf"]},"docs":["README.md","docs"]}})
     );
+}
+#[test]
+fn init_proposes_c_source_and_header_extensions() {
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/main.c"), "int main(void) {}\n").unwrap();
+    fs::create_dir_all(p.join("include")).unwrap();
+    fs::write(p.join("include/util.h"), "int util(void);\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["include","src"],"extensions":[".c",".h"]},"docs":[]}})
+    );
+}
+/// `init` reports extensions it skipped so they can be added to
+/// `include.code.extensions` by hand.
+#[test]
+fn init_reports_skipped_extensions_and_empty_code_proposal() {
+    let temp = root();
+    let p = temp.path();
+    fs::write(p.join("a.xyz"), "a\n").unwrap();
+    fs::write(p.join("b.xyz"), "b\n").unwrap();
+    fs::write(p.join("c.uvw"), "c\n").unwrap();
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    for expected in [
+        "No code files proposed",
+        ".xyz (2 files)",
+        ".uvw (1 file)",
+        "include.code.extensions",
+    ] {
+        assert!(
+            outcome.stdout.contains(expected),
+            "{expected}: {}",
+            outcome.stdout
+        );
+    }
+    assert_eq!(
+        proposal(p)["include"]["code"],
+        json!({"paths": [], "extensions": []})
+    );
+}
+/// The skipped-extension note names at most five extensions no matter how
+/// many were skipped.
+#[test]
+fn init_skipped_extensions_note_stays_short() {
+    let temp = root();
+    let p = temp.path();
+    for ext in ["x1", "x2", "x3", "x4", "x5", "x6", "x7"] {
+        fs::write(p.join(format!("f.{ext}")), "x\n").unwrap();
+    }
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    let note = outcome
+        .stdout
+        .lines()
+        .find(|line| line.contains("Skipped extensions"))
+        .expect("skipped-extensions note");
+    assert!(note.contains(".x1 (1 file)"), "{note}");
+    assert!(note.contains(".x5 (1 file)"), "{note}");
+    assert!(!note.contains(".x6"), "{note}");
+    assert!(note.contains("and 2 more"), "{note}");
 }
 #[test]
 fn init_drops_code_paths_covered_by_dot() {
