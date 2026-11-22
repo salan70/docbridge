@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|mcp__t3-code__delegate_task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/tool/pstack/spawn_guard.py\" ] && python3 -c '' >/dev/null 2>&1; then python3 \"$CLAUDE_PROJECT_DIR/tool/pstack/spawn_guard.py\"; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
