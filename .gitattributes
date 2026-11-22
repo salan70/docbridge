@@ -1,0 +1,3 @@
+# `just skill-check` compares the checked-in skill with what `init` emits byte for
+# byte, and `init` writes LF. Keep these files LF on every checkout.
+.agents/skills/docbridge/** text eol=lf

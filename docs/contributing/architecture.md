@@ -20,9 +20,13 @@ direction their dependencies may point.
 and delegates everything else to the library. `cli.rs` owns argument parsing,
 the `Command` enum, the `HELP` text, exit codes, and dispatch.
 
-The library is pure logic and `main.rs` is the terminal and process shell:
+The library is pure logic and `main.rs` is the terminal and process shell; the
+library never writes to the terminal or ends the process. Clippy enforces the
+narrower part of that rule:
 `#![deny(clippy::print_stdout, clippy::print_stderr, clippy::exit)]` in `lib.rs`
-makes any print or process exit in the library fail `just lint`.
+makes the `print!`/`eprint!` macro family and `std::process::exit` fail
+`just lint`. Direct writes such as `std::io::stdout().write_all` are not linted
+and stay a review rule.
 
 <!-- @code crates/docbridge/src/config.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
