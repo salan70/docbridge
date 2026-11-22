@@ -128,20 +128,72 @@ fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, Str
 /// use: ancestor links must resolve inside the project, and the Skill
 /// directory and its contents must be real.
 const LINK_GUIDANCE: &str = "links to a managed Skill must stay inside the project; move the shared skills directory inside the project or remove the link — see docbridge docs show configuration";
-/// Lexically resolve `.` and `..` in `path`. The parent chain is canonical by
-/// then, so `..` stays within real directories.
-fn normalize(path: &Path) -> PathBuf {
-    let mut out = PathBuf::new();
-    for component in path.components() {
+/// Resolve `spelled` — a link target joined to a canonical parent — the way
+/// the filesystem does: each existing component is canonicalized in order and
+/// `..` applies to that resolved prefix, never to a link's spelled location.
+/// The missing tail is kept only while it holds no `..`, which could cross a
+/// link the filesystem would resolve first; the link then has no dependable
+/// resolution and `None` is returned. `depth` bounds nested dangling links.
+fn resolve_spelled(spelled: &Path, depth: u32) -> Result<Option<PathBuf>, String> {
+    if depth == 0 {
+        return Err(format!(
+            "too many links while resolving {}",
+            spelled.display()
+        ));
+    }
+    let mut resolved = PathBuf::new();
+    let mut tail = Vec::new();
+    for component in spelled.components() {
         match component {
-            Component::ParentDir => {
-                out.pop();
-            }
             Component::CurDir => {}
-            _ => out.push(component.as_os_str()),
+            Component::Prefix(_) | Component::RootDir => resolved.push(component.as_os_str()),
+            Component::ParentDir if tail.is_empty() => {
+                resolved.pop();
+            }
+            Component::Normal(name) if tail.is_empty() => {
+                resolved.push(name);
+                let metadata = match fs::symlink_metadata(&resolved) {
+                    Ok(metadata) => metadata,
+                    Err(e) if e.kind() == ErrorKind::NotFound => {
+                        resolved.pop();
+                        tail.push(component);
+                        continue;
+                    }
+                    Err(e) => return Err(format!("{}: {e}", resolved.display())),
+                };
+                resolved = match fs::canonicalize(&resolved) {
+                    Ok(canonical) => canonical,
+                    Err(e) if e.kind() == ErrorKind::NotFound && paths::is_link(&metadata) => {
+                        // A link to a missing target: its spelled target is
+                        // resolved the same way, against the canonical parent.
+                        let target = fs::read_link(&resolved)
+                            .map_err(|e| format!("{}: {e}", resolved.display()))?;
+                        resolved.pop();
+                        let nested = if target.is_absolute() {
+                            target
+                        } else {
+                            resolved.join(&target)
+                        };
+                        let Some(hopped) = resolve_spelled(&nested, depth - 1)? else {
+                            return Ok(None);
+                        };
+                        hopped
+                    }
+                    Err(e) => return Err(format!("{}: {e}", resolved.display())),
+                };
+            }
+            missing => tail.push(missing),
         }
     }
-    out
+    if tail.iter().any(|c| matches!(c, Component::ParentDir)) {
+        return Ok(None);
+    }
+    for component in tail {
+        if let Component::Normal(name) = component {
+            resolved.push(name);
+        }
+    }
+    Ok(Some(resolved))
 }
 /// The first component of `path` that is a link resolving outside `root`;
 /// `path` itself when none can be identified.
@@ -162,6 +214,12 @@ fn escaping_link(root: &Path, path: &Path) -> PathBuf {
 fn outside(root: &Path, link: &Path) -> String {
     let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
     format!("{name} resolves outside the project root; {LINK_GUIDANCE}")
+}
+/// Error for a `link` that cannot be resolved inside `root`, naming the
+/// component.
+fn unresolvable(root: &Path, link: &Path) -> String {
+    let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
+    format!("{name} cannot be resolved inside the project root; {LINK_GUIDANCE}")
 }
 /// Canonicalize `path` under the canonical `root`, resolving existing link
 /// components only while the resolved location stays inside `root`, so writes
@@ -187,16 +245,22 @@ fn canonical_inside(root: &Path, path: &Path) -> Result<PathBuf, String> {
             match fs::canonicalize(&current) {
                 Ok(resolved) => resolved,
                 Err(e) if e.kind() == ErrorKind::NotFound => {
-                    // A link to a missing target: hop to the spelled target
-                    // against the canonical parent, then keep resolving.
+                    // A link to a missing target: resolve its spelled target
+                    // in filesystem order against the canonical parent, then
+                    // keep resolving. Comparing canonicalized paths also keeps
+                    // absolute targets through an alias (`/tmp` versus
+                    // `/private/tmp`, `C:` versus `\\?\C:`) inside the root.
                     let target = fs::read_link(&current)
                         .map_err(|e| format!("{}: {e}", current.display()))?;
                     let parent = fs::canonicalize(current.parent().ok_or("missing parent")?)
                         .map_err(|e| format!("{}: {e}", current.display()))?;
-                    let hopped = if target.is_absolute() {
-                        normalize(&target)
+                    let spelled = if target.is_absolute() {
+                        target
                     } else {
-                        normalize(&parent.join(&target))
+                        parent.join(&target)
+                    };
+                    let Some(hopped) = resolve_spelled(&spelled, 64)? else {
+                        return Err(unresolvable(root, &current));
                     };
                     if !hopped.starts_with(root) {
                         return Err(outside(root, &current));

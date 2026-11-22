@@ -350,6 +350,152 @@ fn skill_directory_and_its_contents_stay_link_free() {
 }
 #[cfg(unix)]
 #[test]
+fn dangling_skills_link_resolving_outside_is_rejected() {
+    use std::os::unix::fs::symlink;
+    // `.agents/skills` spells a target that stays inside lexically, but the
+    // filesystem resolves `ext` before `..`, landing outside the project.
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::create_dir_all(outside.join("deep")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink(outside.join("deep"), p.join("ext")).unwrap();
+    symlink("../ext/../.claude/skills", p.join(".agents/skills")).unwrap();
+    for args in [
+        vec!["init".to_string(), "--yes".to_string()],
+        vec![
+            "init".to_string(),
+            "--yes".to_string(),
+            "--claude".to_string(),
+        ],
+        vec!["deinit".to_string()],
+    ] {
+        let invocation = docbridge::cli::Invocation::parse(&args, p).unwrap();
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| true);
+        assert_eq!(response.exit_code, 1, "{args:?}");
+        assert!(
+            response.stderr.contains(".agents/skills"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{args:?}: {:?}",
+            response.stderr
+        );
+    }
+    assert!(!p.join("docbridge.config.json").exists());
+    assert!(!p.join(".claude").exists());
+    assert_eq!(fs::read_dir(outside.join("deep")).unwrap().count(), 0);
+}
+#[cfg(unix)]
+#[test]
+fn dangling_skills_link_through_another_link_installs_where_the_link_leads() {
+    use std::os::unix::fs::symlink;
+    // `x` resolves before `..`, so the real target is `a/.claude/skills`, not
+    // `.claude/skills` as lexical normalization would claim.
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("a/b")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("a/b", p.join("x")).unwrap();
+    symlink("../x/../.claude/skills", p.join(".agents/skills")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    let real = p.join("a/.claude/skills/docbridge");
+    assert!(real.join("SKILL.md").is_file());
+    assert!(!p.join(".claude").exists());
+    assert_eq!(
+        fs::canonicalize(p.join(".agents/skills/docbridge")).unwrap(),
+        fs::canonicalize(&real).unwrap()
+    );
+}
+#[cfg(unix)]
+#[test]
+fn reversed_shared_skills_root_installs_one_skill() {
+    use std::os::unix::fs::symlink;
+    // `.claude/skills -> ../.agents/skills`, the mirror of `shared_skills_root`.
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".agents/skills")).unwrap();
+    fs::create_dir_all(p.join(".claude")).unwrap();
+    symlink("../.agents/skills", p.join(".claude/skills")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            claude: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert_eq!(result.stdout.matches("Install managed skill").count(), 1);
+    let real = p.join(".agents/skills/docbridge");
+    assert!(real.join("SKILL.md").is_file());
+    assert_eq!(
+        fs::canonicalize(p.join(".claude/skills/docbridge")).unwrap(),
+        fs::canonicalize(&real).unwrap()
+    );
+    // The default target alone names the same single Skill.
+    let again = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(again.code, 0, "{}", again.stderr);
+    let plan = plan_deinit(p).unwrap();
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert!(!real.exists());
+    assert!(p
+        .join(".claude/skills")
+        .symlink_metadata()
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    assert!(p.join(".agents/skills").is_dir());
+}
+#[cfg(unix)]
+#[test]
+fn deinit_refuses_and_deletes_nothing_when_a_skills_ancestor_leaves_the_project() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::create_dir_all(outside.join("skills/docbridge")).unwrap();
+    fs::write(outside.join("skills/docbridge/SKILL.md"), "outside").unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink(outside.join("skills"), p.join(".agents/skills")).unwrap();
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".to_string()], p).unwrap();
+    let mut asked = false;
+    let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| {
+        asked = true;
+        true
+    });
+    assert!(!asked, "deinit must refuse before offering a plan");
+    assert_eq!(response.exit_code, 1);
+    assert!(
+        response.stderr.contains(".agents/skills"),
+        "{}",
+        response.stderr
+    );
+    assert!(response.stderr.ends_with('\n'), "{:?}", response.stderr);
+    assert_eq!(
+        fs::read_to_string(outside.join("skills/docbridge/SKILL.md")).unwrap(),
+        "outside"
+    );
+}
+#[cfg(unix)]
+#[test]
 fn out_of_scope_symlinks_are_not_followed() {
     use std::os::unix::fs::symlink;
     let temp = initialized();
