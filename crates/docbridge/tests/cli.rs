@@ -666,17 +666,51 @@ fn ignore_unmanaged_accepts_non_ascii_paths_from_stdin() {
 #[test]
 fn ignore_unmanaged_still_reports_unsafe_and_unreadable_managed_files() {
     use std::os::unix::fs::{symlink, PermissionsExt};
+    let diagnostic = |v: &Value, code: &str, path: &str| {
+        v["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|d| d["code"] == code && d["path"] == path)
+    };
+    // Unsafe managed path: its own fixture, no unreadable file present.
     let p = project();
     p.write("src/a.rs", "a");
     symlink("a.rs", p.join("src/link.rs")).unwrap();
     let (o, v) = p.json(&["links", "src/link.rs", "--ignore-unmanaged", "--json"]);
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(v["complete"], false);
+    assert!(diagnostic(&v, "unsafe-path", "src/link.rs"), "{v}");
+    // Unreadable managed file: a fresh fixture with no symlink.
+    let p = project();
+    p.write("src/a.rs", "a");
     fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o0)).unwrap();
     let (o, v) = p.json(&["links", "src/a.rs", "--ignore-unmanaged", "--json"]);
     fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o600)).unwrap();
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(v["complete"], false);
+    assert!(diagnostic(&v, "read-file", "src/a.rs"), "{v}");
+}
+
+#[test]
+fn ignore_unmanaged_keeps_project_diagnostics_when_every_input_is_unmanaged() {
+    let p = project();
+    p.write("tool/review.py", "unmanaged\n");
+    p.write("docs/bad.md", "<!-- @code src/missing.rs -->\n# Bad\n");
+    let (o, v) = stdin_json(
+        &p,
+        &["links", "--stdin", "--ignore-unmanaged", "--json"],
+        "tool/review.py\n",
+    );
+    assert_ne!(o.status.code(), Some(0));
+    assert_eq!(v["complete"], false);
+    assert_eq!(v["nodes"], json!([]));
+    let diagnostics = v["diagnostics"].as_array().unwrap();
+    assert!(
+        diagnostics.iter().any(|d| d["path"] == "docs/bad.md"),
+        "{v}"
+    );
+    assert!(!v.to_string().contains("tool/review.py"));
 }
 
 #[test]

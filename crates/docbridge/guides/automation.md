@@ -10,6 +10,6 @@ To review the files a branch changes, feed its diff into `links` and pass `--ign
 git -c core.quotePath=false diff --name-only --diff-filter=d origin/main...HEAD | docbridge links --stdin --ignore-unmanaged
 ```
 
-Invalid section selectors, missing or unreadable managed files, and unsafe paths in the list are still reported, so an exit 2 keeps its partial-result meaning. Git octal-escapes non-ASCII paths by default; `-c core.quotePath=false` keeps them literal so `links` can read them.
+Invalid section selectors, missing or unreadable managed files, and unsafe paths in the list are still reported, so an exit 2 keeps its partial-result meaning. A list made only of unmanaged entries exits 0 with an empty graph only when the project has no other diagnostics; project-wide diagnostics, such as a broken annotation elsewhere, still make the result incomplete. Git octal-escapes non-ASCII paths by default; `-c core.quotePath=false` keeps them literal so `links` can read them.
 
 The old `related --gate` workflow is not part of vNext. Structural checks cannot decide whether code and documentation mean the same thing, so keep semantic review as an explicit separate step. With `--json`, warnings and errors go to stderr and stdout stays valid JSON.
