@@ -124,7 +124,7 @@ Other commands:
 | ------- | ----------------------------------------- | -------- | ------------------------------ |
 | `docs`  | Overview, `list`, `show <name>`, `--help` | Not used | Unknown guide or invalid usage |
 
-- `docbridge --version` (`-V`) prints `docbridge <version>` on one line and exits 0.
+- `docbridge --version` (`-V`) prints `docbridge <version>` on one line and exits 0. Both forms are valid only as the first argument.
 - `docbridge help` equals `docbridge --help`, and `docbridge help <command>` equals `docbridge <command> --help`. `help` with an unknown command name is the usual unknown-command error with exit 3.
 - Usage errors exit 3 in every command, including `validate` ([#228](https://github.com/salan70/docbridge/issues/228)).
 - A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.

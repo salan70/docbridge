@@ -436,6 +436,42 @@ fn version_prints_the_package_version_and_help_mirrors_the_help_flag() {
 }
 
 #[test]
+fn version_flag_is_only_valid_as_the_first_argument() {
+    let p = Project::new();
+    for (args, stderr) in [
+        (
+            vec!["validate", "--version"],
+            "unknown argument: --version\n",
+        ),
+        (vec!["links", "-V"], "unknown argument: -V\n"),
+        (
+            vec!["unlinked", "--version"],
+            "unknown argument: --version\n",
+        ),
+        (vec!["help", "--version"], "unknown command: --version\n"),
+        (vec!["help", "-V"], "unknown command: -V\n"),
+    ] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            stderr,
+            "{args:?}"
+        );
+    }
+    for args in [
+        vec!["init", "--version"],
+        vec!["deinit", "-V"],
+        vec!["docs", "--version"],
+    ] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+    }
+}
+
+#[test]
 fn embedded_docs_work_without_project_configuration_or_guide_files() {
     let p = Project::new();
     let overview = p.run(&["docs"]);

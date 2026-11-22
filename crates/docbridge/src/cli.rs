@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n  help      Show this help or a command's usage\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content\n--version prints the installed version.\n";
+pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n  help      Show this help or a command's help\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content\n--version prints the installed version.\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
@@ -71,6 +71,9 @@ impl Invocation {
     fn parse_inner(args: &[String], cwd: &Path) -> Result<Self, Response> {
         // `help` aliases `--help`; `help <command>` aliases `<command> --help`.
         if args.first().is_some_and(|arg| arg == "help") {
+            if let Some(flag) = args.get(1).filter(|arg| arg.starts_with('-')) {
+                return Err(failure(3, format!("unknown command: {flag}")));
+            }
             let mut rewritten = Vec::with_capacity(args.len());
             if let Some(command) = args.get(1) {
                 rewritten.push(command.clone());
@@ -113,10 +116,6 @@ impl Invocation {
                 match arg.as_str() {
                     "--help" | "-h" => {
                         invocation.command = Command::Help;
-                        return Ok(invocation);
-                    }
-                    "--version" | "-V" => {
-                        invocation.command = Command::Version;
                         return Ok(invocation);
                     }
                     "--json" => {
