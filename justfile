@@ -75,6 +75,14 @@ links *ARGS:
 # Offline, read-only gate that CI runs.
 verify: format-check lint test validate
 
+# Check the vendored pstack skills against the pinned SHA-256 values. Not part of `verify`; needs python3.
+pstack-status:
+    python3 tool/pstack/pstack.py status
+
+# Run the offline tests of the pstack tooling. Not part of `verify`; needs python3.
+pstack-test:
+    PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tool/pstack
+
 # Build the release binary for this machine.
 build:
     cargo build --package docbridge --release --locked --target-dir {{ target_dir }}

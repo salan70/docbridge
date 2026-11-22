@@ -85,6 +85,21 @@ version in the root `Cargo.toml` and rolls `## [Unreleased]` into
 minor version; `major` is reserved for 1.0. Publishing it after the merge is
 described in [Releasing](releasing.md#releasing-1).
 
+## pstack assets
+
+`.agents/skills/` also holds skills vendored from Cursor's pstack plugin (MIT).
+`tool/pstack/manifest.json` pins the upstream commit and the SHA-256 of every vendored file.
+`tool/pstack/NOTICE` records provenance, and `tool/pstack/upstream/LICENSE` is the upstream license.
+Everything in `tool/pstack/` uses only the Python 3 standard library.
+
+- `just pstack-status` verifies the vendored files offline, and `just pstack-test` runs the tooling tests. Neither belongs to `just verify`.
+- Never edit a vendored file. `python3 tool/pstack/pstack.py sync` restores every file from the pin and needs network access.
+- The formatters skip the vendored skills. `.oxfmtrc.json` and `.rumdl.toml` list each one, because reformatting breaks the hashes. A new vendored skill needs its own entry, with the approval that `AGENTS.md` requires.
+- To move the pin, run `python3 tool/pstack/pstack.py propose-update --pin <40-character SHA> --output <file>`. It writes a candidate manifest and lists the added, changed, and removed files. Review them, replace `manifest.json`, then run `sync` and `status`.
+- A project overlay lives in `tool/pstack/overlays/` and is registered under `overlays` in the manifest. `sync` appends it after a `<!-- pstack project overlay: ... -->` marker. Change the overlay, never the vendored text.
+- `.agents/rules/pstack.md` holds the rules that override the vendored skills. `.agents/rules/pstack-models.md` maps work to a model level (`high`, `mid`, `low`) and an effort range per provider: pick the level by the difficulty of the work, then an effort inside its range.
+- `.claude/settings.json` runs `tool/pstack/spawn_guard.py` before a Claude Code subagent starts. It blocks a spawn whose model or effort is missing or outside the table. It does nothing when `python3` or the script is missing.
+
 ## Documentation
 
 Write repository artifacts in English.
@@ -95,6 +110,7 @@ Issues own problems and acceptance criteria; PRs own delivered results and verif
 | ----------------------------------- | -------------------------------------------------- |
 | `AGENTS.md`                         | Agent rules loaded every session                   |
 | `.agents/skills/git-workflow/`      | Agent git procedure: branch, push, merge, clean up |
+| `.agents/rules/`                    | pstack override rules and model table              |
 | `README.md`                         | Installation, readiness, and routes to guides      |
 | `crates/docbridge/guides/`          | Canonical offline user tasks                       |
 | `docs/specs/vnext-contracts.md`     | Single developer behavior contract                 |
