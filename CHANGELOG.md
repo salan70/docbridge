@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   macOS APFS, a differently cased name such as `Docbridge.config.json` is now a
   configuration error instead of being read.
 
+### Fixed
+
+- `docbridge init`, `init --force`, and `docbridge deinit` now manage a Skill
+  whose skills directory is reached through links when every link is an
+  ancestor of the Skill directory and resolves inside the project — the
+  `.agents/skills -> ../.claude/skills` layout used to share one skills tree
+  between agents. Both Skill locations resolving to the same directory share
+  one managed Skill instead of failing. A link inside the Skill directory and
+  an ancestor link resolving outside the project are still rejected, and those
+  errors now name the linked component, point to a remedy, and end with a
+  newline.
+
 ## [0.17.0] - 2026-10-29
 
 This release replaces the npm package with a native DocBridge CLI written in
