@@ -643,6 +643,25 @@ fn ignore_unmanaged_skips_unmanaged_paths_but_keeps_managed_errors() {
     );
 }
 
+#[test]
+fn ignore_unmanaged_accepts_non_ascii_paths_from_stdin() {
+    let p = project();
+    p.write("src/café.rs", "café\n");
+    p.write("tool/設計.py", "unmanaged\n");
+    // `git -c core.quotePath=false diff --name-only` prints non-ASCII paths
+    // literally, which is what `--stdin` reads: one UTF-8 selector per line.
+    let (o, v) = stdin_json(
+        &p,
+        &["links", "--stdin", "--ignore-unmanaged", "--json"],
+        "src/café.rs\ntool/設計.py\n",
+    );
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["diagnostics"], json!([]));
+    assert!(v["nodes"].to_string().contains("src/café.rs"));
+    assert!(!v.to_string().contains("tool/設計.py"));
+}
+
 #[cfg(unix)]
 #[test]
 fn ignore_unmanaged_still_reports_unsafe_and_unreadable_managed_files() {
