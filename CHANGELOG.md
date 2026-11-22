@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docbridge --version` (`-V`) prints the installed version on one line, and
+  `docbridge help` prints the command list (`docbridge help <command>` prints
+  that command's usage).
+
 ### Changed
 
 - `docbridge.config.json` must be spelled exactly as its directory entry, as
