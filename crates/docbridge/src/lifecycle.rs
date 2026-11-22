@@ -2,6 +2,7 @@ use crate::paths;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    ffi::OsString,
     fmt,
     fs::{self, OpenOptions},
     io::{ErrorKind, Write},
@@ -195,21 +196,6 @@ fn resolve_spelled(spelled: &Path, depth: u32) -> Result<Option<PathBuf>, String
     }
     Ok(Some(resolved))
 }
-/// The first component of `path` that is a link resolving outside `root`;
-/// `path` itself when none can be identified.
-fn escaping_link(root: &Path, path: &Path) -> PathBuf {
-    let mut prefix = PathBuf::new();
-    for component in path.components() {
-        prefix.push(component.as_os_str());
-        let is_link = fs::symlink_metadata(&prefix)
-            .map(|m| paths::is_link(&m))
-            .unwrap_or(false);
-        if is_link && fs::canonicalize(&prefix).is_ok_and(|r| !r.starts_with(root)) {
-            return prefix;
-        }
-    }
-    path.to_path_buf()
-}
 /// Error for a `link` that resolves outside `root`, naming the component.
 fn outside(root: &Path, link: &Path) -> String {
     let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
@@ -221,68 +207,100 @@ fn unresolvable(root: &Path, link: &Path) -> String {
     let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
     format!("{name} cannot be resolved inside the project root; {LINK_GUIDANCE}")
 }
+/// Error for a requested `component` whose spelling differs from its
+/// directory entry, naming the requested component.
+fn misspelled(root: &Path, component: &Path) -> String {
+    let name = component
+        .strip_prefix(root)
+        .unwrap_or(component)
+        .to_string_lossy();
+    format!("{name} does not match the directory entry spelling; {LINK_GUIDANCE}")
+}
 /// Canonicalize `path` under the canonical `root`, resolving existing link
 /// components only while the resolved location stays inside `root`, so writes
-/// and removals never leave the project. Missing components are kept as
-/// spelled. The error names the link that would escape `root`.
+/// and removals never leave the project. Every existing requested component
+/// must match its directory entry exactly, even on case-folding file systems,
+/// before a link is followed or a name is converted to its canonical target;
+/// missing components are kept as spelled. The error names the offending
+/// component.
 fn canonical_inside(root: &Path, path: &Path) -> Result<PathBuf, String> {
-    let mut current = path.to_path_buf();
-    let mut tail = Vec::new();
-    for _ in 0..64 {
-        let metadata = match fs::symlink_metadata(&current) {
-            Ok(metadata) => metadata,
+    let mut resolved = root.to_path_buf();
+    let mut tail: Vec<OsString> = Vec::new();
+    for component in path
+        .strip_prefix(root)
+        .map_err(|_| format!("{}: cannot resolve", path.display()))?
+        .components()
+    {
+        let Component::Normal(name) = component else {
+            continue;
+        };
+        if !tail.is_empty() {
+            tail.push(name.to_os_string());
+            continue;
+        }
+        // `resolved` is canonical where it exists, so a directory entry is the
+        // real spelling; a missing location cannot hold the rest either.
+        let exact = match fs::read_dir(&resolved) {
+            Ok(entries) => entries
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| format!("{}: {e}", resolved.display()))?
+                .iter()
+                .any(|entry| entry.file_name() == name),
             Err(e) if e.kind() == ErrorKind::NotFound => {
-                let Some(name) = current.file_name() else {
-                    return Err(format!("{}: cannot resolve", path.display()));
-                };
                 tail.push(name.to_os_string());
-                current.pop();
                 continue;
             }
-            Err(e) => return Err(format!("{}: {e}", current.display())),
+            Err(e) => return Err(format!("{}: {e}", resolved.display())),
         };
-        let resolved = if paths::is_link(&metadata) {
-            match fs::canonicalize(&current) {
-                Ok(resolved) => resolved,
-                Err(e) if e.kind() == ErrorKind::NotFound => {
-                    // A link to a missing target: resolve its spelled target
-                    // in filesystem order against the canonical parent, then
-                    // keep resolving. Comparing canonicalized paths also keeps
-                    // absolute targets through an alias (`/tmp` versus
-                    // `/private/tmp`, `C:` versus `\\?\C:`) inside the root.
-                    let target = fs::read_link(&current)
-                        .map_err(|e| format!("{}: {e}", current.display()))?;
-                    let parent = fs::canonicalize(current.parent().ok_or("missing parent")?)
-                        .map_err(|e| format!("{}: {e}", current.display()))?;
-                    let spelled = if target.is_absolute() {
-                        target
-                    } else {
-                        parent.join(&target)
-                    };
-                    let Some(hopped) = resolve_spelled(&spelled, 64)? else {
-                        return Err(unresolvable(root, &current));
-                    };
-                    if !hopped.starts_with(root) {
-                        return Err(outside(root, &current));
-                    }
-                    current = hopped;
-                    continue;
-                }
-                Err(e) => return Err(format!("{}: {e}", current.display())),
+        resolved.push(name);
+        let metadata = match fs::symlink_metadata(&resolved) {
+            Ok(metadata) => metadata,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                resolved.pop();
+                tail.push(name.to_os_string());
+                continue;
             }
-        } else {
-            fs::canonicalize(&current).map_err(|e| format!("{}: {e}", current.display()))?
+            Err(e) => return Err(format!("{}: {e}", resolved.display())),
+        };
+        if !exact {
+            return Err(misspelled(root, &resolved));
+        }
+        if !paths::is_link(&metadata) {
+            continue;
+        }
+        let link = resolved.clone();
+        resolved = match fs::canonicalize(&link) {
+            Ok(canonical) => canonical,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                // A link to a missing target: resolve its spelled target in
+                // filesystem order against the canonical parent, then keep
+                // resolving. Comparing canonicalized paths also keeps absolute
+                // targets through an alias (`/tmp` versus `/private/tmp`,
+                // `C:` versus `\\?\C:`) inside the root.
+                let target =
+                    fs::read_link(&link).map_err(|e| format!("{}: {e}", link.display()))?;
+                let parent = fs::canonicalize(link.parent().ok_or("missing parent")?)
+                    .map_err(|e| format!("{}: {e}", link.display()))?;
+                let spelled = if target.is_absolute() {
+                    target
+                } else {
+                    parent.join(&target)
+                };
+                let Some(hopped) = resolve_spelled(&spelled, 64)? else {
+                    return Err(unresolvable(root, &link));
+                };
+                hopped
+            }
+            Err(e) => return Err(format!("{}: {e}", link.display())),
         };
         if !resolved.starts_with(root) {
-            return Err(outside(root, &escaping_link(root, &current)));
+            return Err(outside(root, &link));
         }
-        let mut out = resolved;
-        for name in tail.iter().rev() {
-            out.push(name);
-        }
-        return Ok(out);
     }
-    Err(format!("too many links while resolving {}", path.display()))
+    for name in tail {
+        resolved.push(name);
+    }
+    Ok(resolved)
 }
 /// Resolve a requested Skill directory to the canonical root-relative
 /// directory it names: existing ancestor components may be links whose target
@@ -589,6 +607,13 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
             || in_docs(p)
     })?;
     for paths::Skipped { path, code, reason } in found.skipped {
+        if code == "unsafe-path" && dirs.iter().any(|s| under(&path, s)) {
+            // A link inside the managed Skill directory is rejected the way
+            // init rejects it, in the plain and the shared layout alike.
+            return Err(format!(
+                "{path} is a link inside the managed Skill directory; {LINK_GUIDANCE}"
+            ));
+        }
         if code == "unsafe-path" && SKILL_DIRS.iter().any(|s| under(s, &path)) {
             // An ancestor link that resolved inside the project; it is not
             // inspected, followed, or removed.

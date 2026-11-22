@@ -24,7 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one managed Skill instead of failing. A link inside the Skill directory and
   an ancestor link resolving outside the project are still rejected, and those
   errors now name the linked component, point to a remedy, and end with a
-  newline.
+  newline. `deinit` refuses a link inside the resolved Skill directory instead
+  of preserving it, and a requested Skill path whose spelling differs from its
+  directory entry is rejected even on case-folding file systems.
 
 ## [0.17.0] - 2026-10-29
 

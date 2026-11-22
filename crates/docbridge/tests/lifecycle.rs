@@ -496,6 +496,122 @@ fn deinit_refuses_and_deletes_nothing_when_a_skills_ancestor_leaves_the_project(
 }
 #[cfg(unix)]
 #[test]
+fn deinit_refuses_a_link_inside_the_skill_like_init_does() {
+    use std::os::unix::fs::symlink;
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::write(outside.join("reference.md"), "outside").unwrap();
+    for (temp, dir) in [
+        // The plain layout: a link inside `.agents/skills/docbridge` itself.
+        (initialized(), ".agents/skills/docbridge"),
+        // The shared layout: the link sits inside the resolved Skill
+        // directory `.claude/skills/docbridge`.
+        {
+            let temp = shared_skills_root();
+            assert_eq!(
+                init(
+                    temp.path(),
+                    &InitOptions {
+                        yes: true,
+                        ..Default::default()
+                    }
+                )
+                .code,
+                0
+            );
+            (temp, ".claude/skills/docbridge")
+        },
+    ] {
+        let p = temp.path();
+        symlink(
+            outside.join("reference.md"),
+            p.join(dir).join("reference.md"),
+        )
+        .unwrap();
+        let invocation = docbridge::cli::Invocation::parse(&["deinit".to_string()], p).unwrap();
+        let mut asked = false;
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| {
+            asked = true;
+            true
+        });
+        assert!(!asked, "{dir}: deinit must refuse before offering a plan");
+        assert_eq!(response.exit_code, 1, "{dir}");
+        assert!(
+            response.stderr.contains(&format!("{dir}/reference.md")),
+            "{dir}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.contains("docbridge docs show"),
+            "{dir}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{dir}: {:?}",
+            response.stderr
+        );
+        assert!(p.join(format!("{dir}/SKILL.md")).exists(), "{dir}");
+        assert!(p.join("docbridge.config.json").exists(), "{dir}");
+    }
+}
+/// Whether the filesystem under `dir` folds case, as macOS APFS and Windows
+/// volumes do; a case-sensitive filesystem cannot satisfy a misspelled path.
+#[cfg(unix)]
+fn folds_case(dir: &std::path::Path) -> bool {
+    let probe = dir.join("DoCbRiDgE-case-probe");
+    fs::write(&probe, b"probe").unwrap();
+    let folded = dir.join("docbridge-CASE-PROBE").exists();
+    let _ = fs::remove_file(probe);
+    folded
+}
+#[cfg(unix)]
+#[test]
+fn misspelled_skills_ancestor_link_is_rejected_on_case_folding_volumes() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    if !folds_case(p) {
+        // Only a case-folding volume resolves `.agents/skills` to the
+        // differently cased entry `.agents/Skills`.
+        return;
+    }
+    fs::create_dir_all(p.join(".claude/skills")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("../.claude/skills", p.join(".agents/Skills")).unwrap();
+    for args in [
+        vec!["init".to_string(), "--yes".to_string()],
+        vec![
+            "init".to_string(),
+            "--yes".to_string(),
+            "--claude".to_string(),
+        ],
+        vec!["deinit".to_string()],
+    ] {
+        let invocation = docbridge::cli::Invocation::parse(&args, p).unwrap();
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| true);
+        assert_eq!(response.exit_code, 1, "{args:?}");
+        assert!(
+            response.stderr.contains(".agents/skills"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.contains("docbridge docs show"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{args:?}: {:?}",
+            response.stderr
+        );
+    }
+    assert!(!p.join("docbridge.config.json").exists());
+    assert_eq!(fs::read_dir(p.join(".claude/skills")).unwrap().count(), 0);
+}
+#[cfg(unix)]
+#[test]
 fn out_of_scope_symlinks_are_not_followed() {
     use std::os::unix::fs::symlink;
     let temp = initialized();
