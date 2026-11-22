@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docbridge links --ignore-unmanaged` skips selectors naming paths outside
+  the configured managed set — files, directories, and `file#section` —
+  without a `selector` diagnostic, so a branch diff can feed `links` directly:
+  `git -c core.quotePath=false diff --name-only --diff-filter=d origin/main...HEAD | docbridge links --stdin --ignore-unmanaged`.
+  Missing sections on managed files still list candidate IDs; missing or
+  unreadable managed files and unsafe paths are still reported.
+- A `links` section selector that matches no section now lists candidate
+  section IDs from the same file — indented under the diagnostic text, and as
+  a `candidates` array in `--json` diagnostics.
+- `docbridge links --sections` lists the section IDs of the selected files
+  without traversing link edges.
+- `docbridge links` accepts an existing directory path, `dir` or `dir/`, as a
+  selector equivalent to `dir/**`: it selects the discovered managed files
+  under the directory recursively, both as an argument and through `--stdin`.
+
 ### Changed
 
 - `docbridge init` proposes a shorter candidate configuration on real
