@@ -12,12 +12,17 @@ direction their dependencies may point.
 
 <!-- @code crates/docbridge/src/cli.rs -->
 <!-- @code crates/docbridge/src/main.rs -->
+<!-- @code crates/docbridge/src/lib.rs -->
 
 ## Entry point and commands
 
 `main.rs` reads the process arguments, stdin, and the terminal confirmation,
 and delegates everything else to the library. `cli.rs` owns argument parsing,
 the `Command` enum, the `HELP` text, exit codes, and dispatch.
+
+The library is pure logic and `main.rs` is the terminal and process shell:
+`#![deny(clippy::print_stdout, clippy::print_stderr, clippy::exit)]` in `lib.rs`
+makes any print or process exit in the library fail `just lint`.
 
 <!-- @code crates/docbridge/src/config.rs -->
 <!-- @code crates/docbridge/src/project.rs -->
@@ -31,7 +36,8 @@ the `Command` enum, the `HELP` text, exit codes, and dispatch.
   keys.
 - `paths.rs` holds the path safety that discovery and the lifecycle share: it
   never follows symlinks or reparse points and requires each existing path
-  component to match its directory entry exactly.
+  component to match its directory entry exactly. Reads of managed paths go
+  through it; the lifecycle's writes resolve their target through it first.
 - `project.rs` discovers the managed files under the selected root without
   following symlinks, parses each Markdown file, assigns section IDs, and
   resolves annotation targets.

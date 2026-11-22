@@ -73,6 +73,26 @@ pub(crate) fn read(root: &Path, relative: &str) -> Result<Vec<u8>, String> {
     }
 }
 
+/// Whether anything exists at `relative` under `root`, without following a
+/// link. A link or mismatched spelling on the way is an error; see [`resolve`].
+pub(crate) fn exists(root: &Path, relative: &str) -> Result<bool, String> {
+    let path = resolve(root, relative)?;
+    match fs::symlink_metadata(&path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(format!("{relative}: {e}")),
+    }
+}
+
+/// [`read`], or `None` if nothing exists at `relative`.
+pub(crate) fn read_optional(root: &Path, relative: &str) -> Result<Option<Vec<u8>>, String> {
+    if exists(root, relative)? {
+        read(root, relative).map(Some)
+    } else {
+        Ok(None)
+    }
+}
+
 /// An entry the walk did not inspect, with its diagnostic code.
 pub(crate) struct Skipped {
     pub path: String,
