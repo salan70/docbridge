@@ -4,6 +4,7 @@ Origin: adapted from the repository owner's tests in another project. Covered by
 """
 import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +26,7 @@ class InstallTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.repo = Path(directory.name)
+        self.git('init', '-q')
         self.upstream = {'pstack/LICENSE': LICENSE, 'pstack/skills/how/SKILL.md': SKILL,
                          'pstack/skills/poteto-mode/SKILL.md': MODE}
         (self.repo / 'overlays').mkdir()
@@ -46,6 +48,9 @@ class InstallTest(unittest.TestCase):
         fetch = patch.object(pstack, 'fetch', side_effect=lambda pin, name: self.upstream[name])
         self.fetch = fetch.start()
         self.addCleanup(fetch.stop)
+
+    def git(self, *args):
+        subprocess.run(['git', '-C', str(self.repo), *args], check=True, capture_output=True)
 
     def write_manifest(self):
         (self.repo / 'manifest.json').write_text(json.dumps(self.data))
@@ -80,13 +85,26 @@ class InstallTest(unittest.TestCase):
         pstack.sync()
         self.assertIn('new rule', (self.repo / 'skills/poteto-mode/SKILL.md').read_text())
 
-    def test_stale_file_in_managed_directory_is_removed(self):
+    def test_stale_tracked_file_in_managed_directory_is_removed(self):
         pstack.sync()
         stale = self.repo / 'skills/how/old.md'
         stale.write_text('removed upstream')
+        self.git('add', '-A')
         self.assertEqual(pstack.status()['stale'], ['skills/how/old.md'])
         self.assertTrue(pstack.sync()['valid'])
         self.assertFalse(stale.exists())
+
+    def test_untracked_and_ignored_files_are_kept(self):
+        pstack.sync()
+        self.git('add', '-A')
+        (self.repo / '.gitignore').write_text('**/poteto-mode/plan-approval\n')
+        state = self.repo / 'skills/poteto-mode/plan-approval'
+        state.write_text('approved')
+        note = self.repo / 'skills/how/notes.md'
+        note.write_text('local note')
+        self.assertTrue(pstack.sync()['valid'])
+        self.assertTrue(state.exists())
+        self.assertTrue(note.exists())
 
     def test_checksum_mismatch_writes_nothing(self):
         self.upstream['pstack/skills/how/SKILL.md'] = b'tampered'

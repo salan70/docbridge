@@ -4,8 +4,8 @@ Vendored upstream content (MIT)
   Source:   https://github.com/cursor/plugins, directory `pstack/`, at the commit pinned in manifest.json
   License:  upstream/LICENSE (MIT; the copyright line is in the file)
   Installed files: .agents/skills/<skill>/ and upstream/docs/harness/claude-code.md.
-  Each file is byte-identical to the pinned upstream file. `pstack.py status` verifies the SHA-256
-  of every file. The project overlay in overlays/ is appended after a marker comment and is not
+  The upstream text of each file is byte-identical to the pinned upstream file. `pstack.py status`
+  verifies its SHA-256. The project overlay in overlays/ is appended after a marker comment and is not
   part of the hashed upstream text.
 
 Repository-authored files (covered by this repository's LICENSE)

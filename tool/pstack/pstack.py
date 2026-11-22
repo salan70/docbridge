@@ -19,6 +19,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import ssl
+import subprocess
 import sys
 import tempfile
 import urllib.request
@@ -142,16 +143,20 @@ def _write(target, body):
             temporary.unlink(missing_ok=True)
 
 
+def _tracked(directory):
+    """Git-tracked files under `directory`. Untracked and ignored files belong to the user."""
+    listing = subprocess.run(['git', '-C', str(REPO), 'ls-files', '-z', '--', str(directory.relative_to(REPO))],
+                             check=True, capture_output=True).stdout
+    return [REPO / name for name in os.fsdecode(listing).split('\0') if name]
+
+
 def _stale(data):
+    """Tracked files in managed directories that the manifest no longer lists."""
     expected = {target_of(data, name) for name in data['files']}
     stale = []
     for target in data['install'].values():
-        if not target.endswith('/'):
-            continue
-        directory = REPO / target
-        if directory.is_dir():
-            stale += [p for p in directory.rglob('*') if p.is_file() and p not in expected
-                      and '__pycache__' not in p.parts]
+        if target.endswith('/'):
+            stale += [p for p in _tracked(REPO / target) if p not in expected and p.is_file()]
     return sorted(stale)
 
 

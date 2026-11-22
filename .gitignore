@@ -3,6 +3,7 @@
 .direnv/
 .DS_Store
 *.log
+__pycache__/
 
 # Machine-specific settings; keep local.
 .envrc.local
