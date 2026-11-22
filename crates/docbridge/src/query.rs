@@ -22,11 +22,14 @@ fn directory(root: &Path, relative: &str) -> bool {
 /// rejected selector. `links --sections` (`sections_only`) contributes only
 /// section nodes and rejects section selectors; `links` contributes every
 /// node and resolves section selectors. File selectors — paths and globs —
-/// share one interpretation so new selector features apply to both.
+/// share one interpretation so new selector features apply to both. Under
+/// `ignore_unmanaged`, a selector naming a path outside the managed set is
+/// skipped without a diagnostic; a managed path keeps its rejection.
 fn resolve_selectors(
     project: &Project,
     selectors: &[String],
     sections_only: bool,
+    ignore_unmanaged: bool,
     selected: &mut BTreeSet<String>,
     diagnostics: &mut Vec<QueryDiagnostic>,
 ) {
@@ -71,14 +74,16 @@ fn resolve_selectors(
                     format!("section does not exist: {selector}"),
                 ));
             } else if !project.nodes.contains_key(selector) {
-                let mut diagnostic = QueryDiagnostic::new(
-                    "selector",
-                    path,
-                    None,
-                    format!("section does not exist: {selector}"),
-                );
-                diagnostic.candidates = section_candidates(project, path, fragment);
-                diagnostics.push(diagnostic);
+                if !ignore_unmanaged || project.manages(path) {
+                    let mut diagnostic = QueryDiagnostic::new(
+                        "selector",
+                        path,
+                        None,
+                        format!("section does not exist: {selector}"),
+                    );
+                    diagnostic.candidates = section_candidates(project, path, fragment);
+                    diagnostics.push(diagnostic);
+                }
             } else {
                 selected.insert(selector.clone());
             }
@@ -107,7 +112,7 @@ fn resolve_selectors(
                     .filter(|n| eligible(n) && config::glob_matches(&recursive, &n.path))
                     .map(|n| n.id.clone()),
             );
-        } else {
+        } else if !ignore_unmanaged || project.manages(path) {
             diagnostics.push(QueryDiagnostic::new(
                 "selector",
                 path,
@@ -118,10 +123,22 @@ fn resolve_selectors(
     }
 }
 
-pub fn links(project: &Project, selectors: &[String], include_content: bool) -> Graph {
+pub fn links(
+    project: &Project,
+    selectors: &[String],
+    include_content: bool,
+    ignore_unmanaged: bool,
+) -> Graph {
     let mut selected = BTreeSet::new();
     let mut diagnostics = project.diagnostics.clone();
-    resolve_selectors(project, selectors, false, &mut selected, &mut diagnostics);
+    resolve_selectors(
+        project,
+        selectors,
+        false,
+        ignore_unmanaged,
+        &mut selected,
+        &mut diagnostics,
+    );
     let edges: Vec<_> = project
         .edges
         .iter()
@@ -137,10 +154,22 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
 }
 
 /// The section IDs of the selected files, without traversing any link edges.
-pub fn sections(project: &Project, selectors: &[String], include_content: bool) -> Graph {
+pub fn sections(
+    project: &Project,
+    selectors: &[String],
+    include_content: bool,
+    ignore_unmanaged: bool,
+) -> Graph {
     let mut selected = BTreeSet::new();
     let mut diagnostics = project.diagnostics.clone();
-    resolve_selectors(project, selectors, true, &mut selected, &mut diagnostics);
+    resolve_selectors(
+        project,
+        selectors,
+        true,
+        ignore_unmanaged,
+        &mut selected,
+        &mut diagnostics,
+    );
     graph(project, selected, Vec::new(), diagnostics, include_content)
 }
 

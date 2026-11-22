@@ -12,7 +12,7 @@ The CLI has no language parsers, LSP or editor integration, in-code annotations,
 
 ```sh
 docbridge validate [--root <directory>] [--json]
-docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [--sections] [selectors...]
+docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [--sections] [--ignore-unmanaged] [selectors...]
 docbridge unlinked [--root <directory>] [--json]
 docbridge init [--root <directory>] [--dry-run] [--yes] [--force] [--claude]
 docbridge deinit [--dry-run]
@@ -20,7 +20,7 @@ docbridge docs [list | show <name>]
 ```
 
 - `validate --json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
-- `links` retrieves direct edges for file, directory, or section selectors (`relative/document.md#parent/child`), from arguments or stdin. An existing directory, `dir` or `dir/`, selects the same managed files as `dir/**` would. The name is taken literally, so a directory such as `src/[slug]` works even though the glob `src/[slug]/**` is rejected. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text. `--sections` instead treats selectors as file or directory selectors and lists the section IDs of the selected files, with no edges.
+- `links` retrieves direct edges for file, directory, or section selectors (`relative/document.md#parent/child`), from arguments or stdin. An existing directory, `dir` or `dir/`, selects the same managed files as `dir/**` would. The name is taken literally, so a directory such as `src/[slug]` works even though the glob `src/[slug]/**` is rejected. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text. `--sections` instead treats selectors as file or directory selectors and lists the section IDs of the selected files, with no edges. With `--ignore-unmanaged`, file, directory, and section selectors naming unmanaged paths are skipped silently; managed files and managed-but-missing sections retain their diagnostics and candidate IDs. When all inputs are unmanaged and the project has no other diagnostics, the empty result exits 0.
 - Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward. The file name must match its directory entry exactly, even on case-folding file systems, and the file must not be a symlink.
 - A new command must be added to the `Command` enum, the parser, and `HELP` in `crates/docbridge/src/cli.rs`, and to the embedded guides.
 - The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, `lsp`, and `upgrade` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands or states that none replaces them.
@@ -132,7 +132,7 @@ Other commands:
 | `docs`  | Overview, `list`, `show <name>`, `--help` | Not used | Unknown guide or invalid usage |
 
 - Usage errors exit 3 in every command, including `validate` ([#228](https://github.com/salan70/docbridge/issues/228)).
-- A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
+- A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1. Under `--ignore-unmanaged`, a selector naming a path outside the configured managed set — a file, directory, or `file#section` — is skipped silently rather than counted as an inconsistency; every other error class is unchanged.
 - Warnings and errors go to stderr, leaving stdout valid JSON when requested.
 - `links` retrieves direct edges only. A selected node can show all of its direct neighbors; neighbors do not trigger another traversal.
 - With content requested, the graph retains every selected/referenced section node. Unique overlapping source ranges are merged into content blocks; nodes reference their own start/end lines in those blocks. This exposes all requested text without repeating overlapping parent/child content. Text output labels a child whose content is already present in the displayed parent.

@@ -75,6 +75,37 @@ pub(crate) fn slug(title: &str) -> String {
     }
 }
 
+/// The configured kinds that manage `relative` as a file: code needs an
+/// include scope, a configured extension, and no exclusion; docs need a `.md`
+/// suffix under `include.docs`. Discovery walks broadly with `relevant` and
+/// keeps only these files.
+fn managed_kinds(config: &Config, relative: &str) -> (bool, bool) {
+    let code = config
+        .include
+        .code
+        .paths
+        .iter()
+        .any(|p| config::in_scope(p, relative))
+        && config
+            .include
+            .code
+            .extensions
+            .iter()
+            .any(|e| relative.ends_with(e))
+        && !config
+            .exclude
+            .code
+            .iter()
+            .any(|p| config::in_scope(p, relative));
+    let docs = relative.ends_with(".md")
+        && config
+            .include
+            .docs
+            .iter()
+            .any(|p| config::in_scope(p, relative));
+    (code, docs)
+}
+
 impl Project {
     pub fn load(root: &Path) -> Result<Self, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("project root: {e}"))?;
@@ -104,6 +135,13 @@ impl Project {
     fn error(&mut self, code: &str, path: &str, line: Option<usize>, message: impl Into<String>) {
         self.diagnostics
             .push(QueryDiagnostic::new(code, path, line, message));
+    }
+
+    /// Whether the configured include/exclude patterns manage `relative` as a
+    /// file. The file may still be missing, unreadable, or unsafe on disk.
+    pub(crate) fn manages(&self, relative: &str) -> bool {
+        let (code, docs) = managed_kinds(&self.config, relative);
+        code || docs
     }
 
     fn relevant(&self, path: &str) -> bool {
@@ -138,33 +176,7 @@ impl Project {
             self.error(skipped.code, &skipped.path, None, skipped.reason);
         }
         for relative in found.files {
-            let code = self
-                .config
-                .include
-                .code
-                .paths
-                .iter()
-                .any(|p| config::in_scope(p, &relative))
-                && self
-                    .config
-                    .include
-                    .code
-                    .extensions
-                    .iter()
-                    .any(|e| relative.ends_with(e))
-                && !self
-                    .config
-                    .exclude
-                    .code
-                    .iter()
-                    .any(|p| config::in_scope(p, &relative));
-            let docs = relative.ends_with(".md")
-                && self
-                    .config
-                    .include
-                    .docs
-                    .iter()
-                    .any(|p| config::in_scope(p, &relative));
+            let (code, docs) = managed_kinds(&self.config, &relative);
             if !code && !docs {
                 continue;
             }

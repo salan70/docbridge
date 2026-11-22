@@ -5,8 +5,35 @@ use serde_json::{json, Value};
 use std::{
     fs,
     io::Write,
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
 };
+
+/// Runs the binary with `input` piped to standard input and parses its
+/// standard output as JSON, like [`Project::json`].
+fn stdin_json(p: &Project, args: &[&str], input: &str) -> (Output, Value) {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_docbridge"))
+        .current_dir(&**p)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(input.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    let value = serde_json::from_slice(&output.stdout).unwrap_or_else(|_| {
+        panic!(
+            "stdout {:?}, stderr {:?}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    (output, value)
+}
 
 /// A project with the configuration most tests share.
 fn project() -> Project {
@@ -797,6 +824,181 @@ fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code()
     assert!(o.status.success());
     assert_eq!(v["edges"].as_array().unwrap().len(), 2);
     assert_eq!(v["nodes"].as_array().unwrap().len(), 3);
+}
+
+#[test]
+fn ignore_unmanaged_skips_unmanaged_paths_but_keeps_managed_errors() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    p.write("tool/review.py", "unmanaged\n");
+    p.write("src/no.test.rs", "excluded\n");
+    let args = ["links", "--stdin", "--ignore-unmanaged", "--json"];
+    // A mixed selection keeps the managed part and finishes complete.
+    let (o, v) = stdin_json(&p, &args, "src/a.rs\ntool/review.py\njustfile\n");
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["diagnostics"], json!([]));
+    assert!(v["nodes"].to_string().contains("src/a.rs"));
+    assert!(!v.to_string().contains("tool/review.py"));
+    // When every input is unmanaged, the graph is empty and still complete.
+    let (o, v) = stdin_json(&p, &args, "tool/review.py\n");
+    assert!(o.status.success());
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["nodes"], json!([]));
+    // Positional selectors behave the same; excluded paths are unmanaged.
+    let (o, v) = p.json(&[
+        "links",
+        "src/no.test.rs",
+        "README.md",
+        "--ignore-unmanaged",
+        "--json",
+    ]);
+    assert!(o.status.success());
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["nodes"], json!([]));
+    // Errors inside the managed set are still reported.
+    for selector in [
+        "src/missing.rs",
+        "docs/missing.md",
+        "docs/a.md#nope",
+        "../escape.rs",
+    ] {
+        let (o, v) = p.json(&["links", selector, "--ignore-unmanaged", "--json"]);
+        assert_eq!(o.status.code(), Some(1), "{selector}");
+        assert_eq!(v["complete"], false, "{selector}");
+        assert!(!o.stderr.is_empty(), "{selector}");
+    }
+    // Without the flag an unmanaged selector stays a diagnostic, and the flag
+    // belongs to `links` alone.
+    let (o, v) = p.json(&["links", "tool/review.py", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    assert_eq!(
+        p.run(&["validate", "--ignore-unmanaged"]).status.code(),
+        Some(3)
+    );
+}
+
+#[test]
+fn ignore_unmanaged_drops_section_selectors_on_unmanaged_files() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    p.write("tool/x.py", "unmanaged\n");
+    // A section selector on an unmanaged file is dropped like the file itself.
+    let (o, v) = p.json(&["links", "tool/x.py#a", "--ignore-unmanaged", "--json"]);
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["diagnostics"], json!([]));
+    assert_eq!(v["nodes"], json!([]));
+    // A missing section on a managed file still reports its candidate IDs.
+    let (o, v) = p.json(&["links", "docs/a.md#nope", "--ignore-unmanaged", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["diagnostics"][0]["code"], "selector");
+    assert_eq!(v["diagnostics"][0]["candidates"], json!(["docs/a.md#a"]));
+}
+
+#[test]
+fn ignore_unmanaged_drops_unmanaged_directory_selectors() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    p.write("tool/review.py", "unmanaged\n");
+    // Directories holding only unmanaged files select nothing, and a missing
+    // unmanaged directory is dropped rather than diagnosed.
+    for selector in ["tool", "tool/", "tool/**", "scratch"] {
+        let (o, v) = p.json(&["links", selector, "--ignore-unmanaged", "--json"]);
+        assert!(
+            o.status.success(),
+            "{selector}: {}",
+            String::from_utf8_lossy(&o.stderr)
+        );
+        assert_eq!(v["complete"], true, "{selector}");
+        assert_eq!(v["diagnostics"], json!([]), "{selector}");
+        assert_eq!(v["nodes"], json!([]), "{selector}");
+    }
+    // `links --sections` drops unmanaged file selectors the same way.
+    let (o, v) = p.json(&[
+        "links",
+        "--sections",
+        "tool/review.py",
+        "--ignore-unmanaged",
+        "--json",
+    ]);
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["nodes"], json!([]));
+    assert_eq!(v["diagnostics"], json!([]));
+}
+
+#[test]
+fn ignore_unmanaged_accepts_non_ascii_paths_from_stdin() {
+    let p = project();
+    p.write("src/café.rs", "café\n");
+    p.write("tool/設計.py", "unmanaged\n");
+    // `git -c core.quotePath=false diff --name-only` prints non-ASCII paths
+    // literally, which is what `--stdin` reads: one UTF-8 selector per line.
+    let (o, v) = stdin_json(
+        &p,
+        &["links", "--stdin", "--ignore-unmanaged", "--json"],
+        "src/café.rs\ntool/設計.py\n",
+    );
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["complete"], true);
+    assert_eq!(v["diagnostics"], json!([]));
+    assert!(v["nodes"].to_string().contains("src/café.rs"));
+    assert!(!v.to_string().contains("tool/設計.py"));
+}
+
+#[cfg(unix)]
+#[test]
+fn ignore_unmanaged_still_reports_unsafe_and_unreadable_managed_files() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let diagnostic = |v: &Value, code: &str, path: &str| {
+        v["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|d| d["code"] == code && d["path"] == path)
+    };
+    // Unsafe managed path: its own fixture, no unreadable file present.
+    let p = project();
+    p.write("src/a.rs", "a");
+    symlink("a.rs", p.join("src/link.rs")).unwrap();
+    let (o, v) = p.json(&["links", "src/link.rs", "--ignore-unmanaged", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    assert!(diagnostic(&v, "unsafe-path", "src/link.rs"), "{v}");
+    // Unreadable managed file: a fresh fixture with no symlink.
+    let p = project();
+    p.write("src/a.rs", "a");
+    fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o0)).unwrap();
+    let (o, v) = p.json(&["links", "src/a.rs", "--ignore-unmanaged", "--json"]);
+    fs::set_permissions(p.join("src/a.rs"), fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["complete"], false);
+    assert!(diagnostic(&v, "read-file", "src/a.rs"), "{v}");
+}
+
+#[test]
+fn ignore_unmanaged_keeps_project_diagnostics_when_every_input_is_unmanaged() {
+    let p = project();
+    p.write("tool/review.py", "unmanaged\n");
+    p.write("docs/bad.md", "<!-- @code src/missing.rs -->\n# Bad\n");
+    let (o, v) = stdin_json(
+        &p,
+        &["links", "--stdin", "--ignore-unmanaged", "--json"],
+        "tool/review.py\n",
+    );
+    assert_ne!(o.status.code(), Some(0));
+    assert_eq!(v["complete"], false);
+    assert_eq!(v["nodes"], json!([]));
+    let diagnostics = v["diagnostics"].as_array().unwrap();
+    assert!(
+        diagnostics.iter().any(|d| d["path"] == "docs/bad.md"),
+        "{v}"
+    );
+    assert!(!v.to_string().contains("tool/review.py"));
 }
 
 #[test]
