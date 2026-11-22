@@ -9,10 +9,15 @@ model or the effort is missing, unknown, or outside the range in `.agents/rules/
 Every other outcome exits 0. An internal failure prints a warning and exits 0 (fail open),
 so a bug here never blocks all spawns.
 
+A user who picks a model outside the table sets `PSTACK_SPAWN_GUARD=off` in the environment
+that starts the agent; the hook then allows every spawn. An agent cannot set it for its own
+hook process, so the override stays the user's.
+
 The table is `{provider: {model: [(low, high), ...]}}`. A model that appears at several
 levels gets the union of its ranges, and an effort passes when one range holds it.
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -22,6 +27,7 @@ TARGETS = ('Agent', 'mcp__t3-code__delegate_task')
 EFFORT_OPTIONS = ('effort', 'reasoningEffort', 'thought_level')
 ENTRY = re.compile(r'([a-z]+)=([a-z0-9.-]+)\s*\(\s*([a-z]+)\s*-\s*([a-z]+)\s*,\s*\*([a-z]+)\s*\)')
 RULE = '.agents/rules/pstack-models.md'
+OVERRIDE = 'PSTACK_SPAWN_GUARD'
 
 
 def parse_table(text):
@@ -116,6 +122,8 @@ def read_table():
 
 def main():
     try:
+        if os.environ.get(OVERRIDE) == 'off':
+            return 0
         payload = json.load(sys.stdin)
         tool_name = payload.get('tool_name')
         if tool_name not in TARGETS:

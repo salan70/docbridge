@@ -135,6 +135,12 @@ class InstallTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             pstack.manifest()
 
+    def test_install_entry_without_pinned_files_is_rejected(self):
+        del self.data['files']['pstack/skills/how/SKILL.md']
+        self.write_manifest()
+        with self.assertRaises(ValueError):
+            pstack.manifest()
+
     def test_license_is_required(self):
         del self.data['install']['pstack/LICENSE']
         self.write_manifest()

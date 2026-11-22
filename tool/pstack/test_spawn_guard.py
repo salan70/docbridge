@@ -106,9 +106,16 @@ class MiscTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
-    def run_main(self, stdin):
+    def run_main(self, stdin, **env):
+        environment = {k: v for k, v in os.environ.items() if k != g.OVERRIDE} | env
         return subprocess.run([sys.executable, str(ROOT / 'tool/pstack/spawn_guard.py')],
-                              input=stdin, capture_output=True, text=True)
+                              input=stdin, capture_output=True, text=True, env=environment)
+
+    def test_user_override_allows_a_model_outside_the_table(self):
+        spawn = json.dumps({'tool_name': 'Agent', 'tool_input': {'model': 'fable', 'effort': 'high'}})
+        self.assertEqual(self.run_main(spawn).returncode, 2)
+        r = self.run_main(spawn, **{g.OVERRIDE: 'off'})
+        self.assertEqual((r.returncode, r.stderr), (0, ''))
 
     def test_broken_json_fails_open(self):
         r = self.run_main('{not json')

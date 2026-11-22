@@ -58,7 +58,16 @@ def manifest(path=None):
         if not _safe(name) or not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest):
             raise ValueError('Invalid file entry: ' + name)
         target_of(data, name)
+    _require_coverage(data)
     return data
+
+
+def _require_coverage(data):
+    """Every install entry must pin at least one file, so a wrong pin cannot empty the install."""
+    for source in data['install']:
+        if not any(name == source or source.endswith('/') and name.startswith(source)
+                   for name in data['files']):
+            raise ValueError('No pinned file for install entry: ' + source)
 
 
 def managed(data, name):
@@ -195,6 +204,7 @@ def propose_update(pin, output):
     names = sorted(name for name in upstream_tree(pin) if managed(current, name))
     candidate = dict(current, pin=pin, files={
         name: hashlib.sha256(fetch(pin, name)).hexdigest() for name in names})
+    _require_coverage(candidate)
     with output.open('x', encoding='utf-8') as stream:
         stream.write(json.dumps(candidate, indent=2) + '\n')
     added = sorted(set(names) - set(current['files']))

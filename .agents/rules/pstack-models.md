@@ -7,7 +7,7 @@ Pick a level by the difficulty of the work, then an effort inside that level's r
 - A model name without a version (`opus`, `sonnet`, `sol`, ...) means the newest version of that family. In T3 Code, resolve it with `orchestrator_capabilities` (`search` is the family name) once per thread.
 - When the chosen provider is out of quota, say so in one line and stop. Do not switch providers unless the user says so.
 - The user's choice in the session beats this file.
-- `tool/pstack/spawn_guard.py` reads the table below and blocks a spawn whose model or effort falls outside it. Edit the table to change what it allows.
+- `tool/pstack/spawn_guard.py` reads the table below and blocks a spawn whose model or effort falls outside it. Edit the table to change what it allows. When the user's choice falls outside the table and the hook blocks it, tell the user to start the agent with `PSTACK_SPAWN_GUARD=off`; an agent never sets it itself.
 
 ## Levels
 

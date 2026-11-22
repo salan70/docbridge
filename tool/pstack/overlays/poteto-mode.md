@@ -14,6 +14,7 @@ Edit `tool/pstack/overlays/poteto-mode.md`, not this section. Read `.agents/rule
 - **Opening a PR.** Use the PR template and the conventions in `docs/contributing/README.md#git-and-pull-requests`. The template replaces `## Why` and the other upstream sections.
 - **Babysit.** Ends at merge-ready. **Shipping** and **Autopilot-full** never run, because merging needs explicit human approval.
 - **Autonomous run**, **Autopilot-stack**, **Eval**, **Multi-phase plan.** Run only when the user asks.
+- **Autopilot-stack** reuses the Autopilot-full steps only up to "verified and green" and never merges, so the ban on Autopilot-full does not apply to it.
 - **Worktree cleanup.** List candidates and ask before removing any worktree.
 
 ### Principles

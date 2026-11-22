@@ -1,0 +1,16 @@
+# pstack verifies vendored files byte for byte against upstream SHA-256 values,
+# so Git must never convert their line endings on checkout.
+.agents/skills/benchmark-checklist/** -text
+.agents/skills/blast-radius/** -text
+.agents/skills/correct/** -text
+.agents/skills/poteto-mode/** -text
+.agents/skills/principle-boundary-discipline/** -text
+.agents/skills/principle-encode-lessons-in-structure/** -text
+.agents/skills/principle-fix-root-causes/** -text
+.agents/skills/principle-guard-the-context-window/** -text
+.agents/skills/principle-model-the-domain/** -text
+.agents/skills/principle-subtract-before-you-add/** -text
+.agents/skills/technical-writing/** -text
+.agents/skills/unslop/** -text
+tool/pstack/upstream/** -text
+tool/pstack/overlays/** text eol=lf
