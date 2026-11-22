@@ -662,14 +662,93 @@ fn sections_flag_lists_section_ids_of_selected_files() {
     // Unmanaged files and section selectors are diagnostics, not listings.
     let o = p.run(&["links", "--sections", "docs/missing.md"]);
     assert_eq!(o.status.code(), Some(1));
-    let o = p.run(&["links", "--sections", "docs/stage.md#舞台とカメラ"]);
+    let (o, v) = p.json(&[
+        "links",
+        "--sections",
+        "docs/stage.md#舞台とカメラ",
+        "--json",
+    ]);
     assert_eq!(o.status.code(), Some(1));
     let stderr = String::from_utf8(o.stderr).unwrap();
     assert!(stderr.contains("selector"), "{stderr}");
+    assert_eq!(v["diagnostics"][0]["path"], "docs/stage.md");
 
     // The flag belongs to links only.
     assert_eq!(p.run(&["validate", "--sections"]).status.code(), Some(3));
     assert_eq!(p.run(&["unlinked", "--sections"]).status.code(), Some(3));
+}
+
+#[test]
+fn section_selector_on_unmanaged_file_reports_missing_section() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "# A\n");
+
+    // A section selector naming an unmanaged file is a missing section.
+    let o = p.run(&["links", "tool/x.py#a"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("section does not exist: tool/x.py#a"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("managed file"), "{stderr}");
+}
+
+#[test]
+fn section_candidates_match_slugged_fragment_segments() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/rig.md", "# Camera Rig\n# Zed\n## Camera Rig\nbody\n");
+
+    // The fragment's segments are slugged like headings: `Camera Rig`
+    // boundary-matches `zed/camera-rig` ahead of the edit-distance order.
+    let (o, v) = p.json(&["links", "docs/rig.md#Camera Rig", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    let candidates: Vec<_> = v["diagnostics"][0]["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        candidates[0], "docs/rig.md#zed/camera-rig",
+        "{candidates:?}"
+    );
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(stderr.contains("docs/rig.md#zed/camera-rig"), "{stderr}");
+}
+
+#[test]
+fn sections_glob_matches_the_files_links_selects() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write(
+        "docs/stage.md",
+        "<!-- @code src/a.rs -->\n# 舞台とカメラ\n## 舞台がアプリの画面をすべて描く\nbody\n",
+    );
+    p.write("docs/other.md", "# Elsewhere\n");
+    p.write("docs/nested/deep.md", "# Deep\n");
+
+    // `--sections` shares links' selector interpretation: a single-segment
+    // glob covers the same files, so it lists the section IDs links selects.
+    let section_ids = |v: &Value| -> Vec<String> {
+        v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|n| n["kind"] == "section")
+            .map(|n| n["id"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    let (o, links_v) = p.json(&["links", "docs/*.md", "--json"]);
+    assert!(o.status.success());
+    let (o, sections_v) = p.json(&["links", "--sections", "docs/*.md", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(section_ids(&sections_v), section_ids(&links_v));
+    assert!(section_ids(&sections_v)
+        .iter()
+        .all(|id| !id.starts_with("docs/nested/")));
 }
 
 #[test]

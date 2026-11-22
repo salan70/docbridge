@@ -1,20 +1,45 @@
 use crate::{
     config,
     output::{ContentBlock, ContentReference, Edge, Graph, Node, QueryDiagnostic, Region},
-    project::{line_at, Project},
+    project::{line_at, slug, Project},
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-pub fn links(project: &Project, selectors: &[String], include_content: bool) -> Graph {
-    let mut selected = BTreeSet::new();
-    let mut diagnostics = project.diagnostics.clone();
+/// Resolve selectors into selected node IDs, appending one diagnostic per
+/// rejected selector. `links --sections` (`sections_only`) contributes only
+/// section nodes and rejects section selectors; `links` contributes every
+/// node and resolves section selectors. File selectors — paths and globs —
+/// share one interpretation so new selector features apply to both.
+fn resolve_selectors(
+    project: &Project,
+    selectors: &[String],
+    sections_only: bool,
+    selected: &mut BTreeSet<String>,
+    diagnostics: &mut Vec<QueryDiagnostic>,
+) {
+    let eligible = |node: &&Node| !sections_only || node.kind == "section";
     if selectors.is_empty() {
-        selected.extend(project.nodes.keys().cloned());
+        selected.extend(
+            project
+                .nodes
+                .values()
+                .filter(&eligible)
+                .map(|n| n.id.clone()),
+        );
     }
     for selector in selectors.iter().collect::<BTreeSet<_>>() {
         let (path, section) = selector
             .split_once('#')
             .map_or((selector.as_str(), None), |(p, s)| (p, Some(s)));
+        if sections_only && section.is_some() {
+            diagnostics.push(QueryDiagnostic::new(
+                "selector",
+                path,
+                None,
+                format!("--sections accepts file selectors, not section selectors: {selector}"),
+            ));
+            continue;
+        }
         if let Err(e) = config::validate_path(path, path.contains('*')) {
             diagnostics.push(QueryDiagnostic::new("selector", path, None, e));
             continue;
@@ -26,13 +51,6 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
                     path,
                     None,
                     format!("section does not exist: {selector}"),
-                ));
-            } else if !project.files.contains_key(path) {
-                diagnostics.push(QueryDiagnostic::new(
-                    "selector",
-                    path,
-                    None,
-                    format!("file is not a discovered managed file: {path}"),
                 ));
             } else if !project.nodes.contains_key(selector) {
                 let mut diagnostic = QueryDiagnostic::new(
@@ -51,7 +69,7 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
                 project
                     .nodes
                     .values()
-                    .filter(|n| config::glob_matches(path, &n.path))
+                    .filter(|n| eligible(n) && config::glob_matches(path, &n.path))
                     .map(|n| n.id.clone()),
             );
         } else if project.files.contains_key(path) {
@@ -59,7 +77,7 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
                 project
                     .nodes
                     .values()
-                    .filter(|n| n.path == path)
+                    .filter(|n| eligible(n) && n.path == path)
                     .map(|n| n.id.clone()),
             );
         } else {
@@ -71,6 +89,12 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
             ));
         }
     }
+}
+
+pub fn links(project: &Project, selectors: &[String], include_content: bool) -> Graph {
+    let mut selected = BTreeSet::new();
+    let mut diagnostics = project.diagnostics.clone();
+    resolve_selectors(project, selectors, false, &mut selected, &mut diagnostics);
     let edges: Vec<_> = project
         .edges
         .iter()
@@ -89,54 +113,7 @@ pub fn links(project: &Project, selectors: &[String], include_content: bool) -> 
 pub fn sections(project: &Project, selectors: &[String], include_content: bool) -> Graph {
     let mut selected = BTreeSet::new();
     let mut diagnostics = project.diagnostics.clone();
-    if selectors.is_empty() {
-        selected.extend(
-            project
-                .nodes
-                .values()
-                .filter(|n| n.kind == "section")
-                .map(|n| n.id.clone()),
-        );
-    }
-    for selector in selectors.iter().collect::<BTreeSet<_>>() {
-        if selector.contains('#') {
-            diagnostics.push(QueryDiagnostic::new(
-                "selector",
-                selector,
-                None,
-                format!("--sections accepts file selectors, not section selectors: {selector}"),
-            ));
-            continue;
-        }
-        if let Err(e) = config::validate_path(selector, selector.contains('*')) {
-            diagnostics.push(QueryDiagnostic::new("selector", selector, None, e));
-            continue;
-        }
-        if selector.contains('*') {
-            selected.extend(
-                project
-                    .nodes
-                    .values()
-                    .filter(|n| n.kind == "section" && config::glob_matches(selector, &n.path))
-                    .map(|n| n.id.clone()),
-            );
-        } else if project.files.contains_key(selector.as_str()) {
-            selected.extend(
-                project
-                    .nodes
-                    .values()
-                    .filter(|n| n.path == *selector && n.kind == "section")
-                    .map(|n| n.id.clone()),
-            );
-        } else {
-            diagnostics.push(QueryDiagnostic::new(
-                "selector",
-                selector,
-                None,
-                format!("file is not a discovered managed file: {selector}"),
-            ));
-        }
-    }
+    resolve_selectors(project, selectors, true, &mut selected, &mut diagnostics);
     graph(project, selected, Vec::new(), diagnostics, include_content)
 }
 
@@ -172,10 +149,22 @@ const MAX_CANDIDATES: usize = 10;
 
 /// Section IDs of `path` that best match `fragment`: every ID whose section
 /// path ends with the fragment at a segment boundary, then the closest by edit
-/// distance to the fragment, in deterministic order.
+/// distance to the fragment, in deterministic order. Fragment segments are
+/// slugged like heading titles, so `#Camera Rig` matches `…/camera-rig`.
 fn section_candidates(project: &Project, path: &str, fragment: &str) -> Vec<String> {
     let prefix = format!("{path}#");
-    let suffix = format!("/{fragment}");
+    let normalized = fragment
+        .split('/')
+        .map(|segment| {
+            if segment.is_empty() {
+                String::new()
+            } else {
+                slug(segment)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/");
+    let suffix = format!("/{normalized}");
     let mut candidates = Vec::new();
     let mut rest = Vec::new();
     for id in project.nodes.keys() {
@@ -190,8 +179,8 @@ fn section_candidates(project: &Project, path: &str, fragment: &str) -> Vec<Stri
     }
     rest.sort_by_cached_key(|relative| {
         (
-            edit_distance(fragment, relative).min(edit_distance(
-                fragment,
+            edit_distance(&normalized, relative).min(edit_distance(
+                &normalized,
                 relative.rsplit('/').next().unwrap_or(relative),
             )),
             *relative,
