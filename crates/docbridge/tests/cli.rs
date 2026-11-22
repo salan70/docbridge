@@ -527,6 +527,19 @@ fn configuration_symlinks_are_rejected_without_reading_the_target() {
     assert_eq!(p.run(&["validate"]).status.code(), Some(1));
 }
 
+// On a case-folding file system the misspelled name would still open; the
+// configuration must match its directory entry exactly, like every managed path.
+#[test]
+fn configuration_name_must_match_its_directory_entry_exactly() {
+    let p = project();
+    fs::rename(
+        p.join("docbridge.config.json"),
+        p.join("Docbridge.config.json"),
+    )
+    .unwrap();
+    assert_eq!(p.run(&["validate"]).status.code(), Some(1));
+}
+
 #[test]
 fn selected_sections_retrieve_neighbors_without_traversing_through_shared_code() {
     let p = project();
