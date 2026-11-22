@@ -1,5 +1,6 @@
 use std::{path::Path, process::Command};
 mod release;
+mod skill_check;
 
 struct Reply {
     code: i32,
@@ -33,7 +34,13 @@ fn execute(
         Some("release") if args.len() == 3 => {
             release::prepare(root, &args[1], &args[2], runner).map_err(|e| (1, e))
         }
-        _ => Err((2, "usage: xtask release X.Y.Z YYYY-MM-DD".into())),
+        Some("skill-check") if args.len() == 2 => {
+            skill_check::check(root, &root.join(&args[1]), runner).map_err(|e| (1, e))
+        }
+        _ => Err((
+            2,
+            "usage: xtask release X.Y.Z YYYY-MM-DD | xtask skill-check DOCBRIDGE_BINARY".into(),
+        )),
     }
 }
 fn main() {

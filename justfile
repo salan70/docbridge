@@ -72,8 +72,15 @@ unlinked:
 links *ARGS:
     cargo run --quiet --package docbridge --locked --target-dir {{ target_dir }} -- links "$@"
 
+# Check that the skill checked in under `.agents/` matches what `init` emits.
+# Checkout-only: the Nix package build excludes `.agents/`, so this is not a
+# `cargo test`.
+skill-check:
+    cargo build --quiet --package docbridge --locked --target-dir {{ target_dir }}
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- skill-check {{ target_dir }}/debug/docbridge
+
 # Offline, read-only gate that CI runs.
-verify: format-check lint test validate
+verify: format-check lint test validate skill-check
 
 # Build the release binary for this machine.
 build:

@@ -1,3 +1,5 @@
+#![deny(clippy::print_stdout, clippy::print_stderr, clippy::exit)]
+
 pub mod cli;
 mod cli_lifecycle;
 pub mod config;
