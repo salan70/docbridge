@@ -485,6 +485,19 @@ fn lifecycle_inspection_never_writes_and_init_yes_respects_root() {
     assert!(!p.join(".agents").exists());
 }
 
+#[cfg(unix)]
+#[test]
+fn init_candidate_keeps_symlinked_docs_assets_out_of_scope() {
+    use std::os::unix::fs::symlink;
+    let p = Project::new();
+    let outside = Project::new();
+    outside.write("img.png", "png");
+    p.write("docs/a.md", "# A\n");
+    symlink(outside.join("img.png"), p.join("docs/img.png")).unwrap();
+    assert_eq!(p.run(&["init", "--yes"]).status.code(), Some(0));
+    assert_eq!(p.run(&["validate"]).status.code(), Some(0));
+}
+
 #[test]
 fn deinit_requires_confirmation_and_rejects_unapproved_flags() {
     let p = project();
