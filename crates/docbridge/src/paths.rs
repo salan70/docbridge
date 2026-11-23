@@ -30,7 +30,8 @@ pub(crate) fn resolve(root: &Path, relative: &str) -> Result<PathBuf, String> {
     }
     let mut path = root.to_path_buf();
     let mut parent_is_dir = true;
-    for (index, segment) in relative.split('/').enumerate() {
+    let segments: Vec<&str> = relative.split('/').collect();
+    for (index, segment) in segments.iter().enumerate() {
         if !parent_is_dir {
             return Err(format!("not a directory: {relative}"));
         }
@@ -38,7 +39,7 @@ pub(crate) fn resolve(root: &Path, relative: &str) -> Result<PathBuf, String> {
             .and_then(|entries| entries.collect::<Result<Vec<_>, _>>())
             .map_err(|e| format!("{relative}: {e}"))?
             .iter()
-            .any(|entry| entry.file_name() == segment);
+            .any(|entry| entry.file_name() == *segment);
         path.push(segment);
         match fs::symlink_metadata(&path) {
             Ok(_) if !exact => {
@@ -47,7 +48,10 @@ pub(crate) fn resolve(root: &Path, relative: &str) -> Result<PathBuf, String> {
                 ))
             }
             Ok(metadata) if is_link(&metadata) => {
-                return Err(format!("symlink/reparse point is not managed: {relative}"))
+                return Err(format!(
+                    "symlink/reparse point is not managed: {}",
+                    segments[..=index].join("/")
+                ))
             }
             Ok(metadata) => parent_is_dir = metadata.is_dir(),
             Err(e) if e.kind() == ErrorKind::NotFound => {
