@@ -64,9 +64,13 @@ fn initialize(mut invocation: Invocation, confirm: &mut dyn FnMut(&str) -> bool)
 }
 
 fn response(outcome: Outcome) -> Response {
+    let mut stderr = outcome.stderr;
+    if !stderr.is_empty() && !stderr.ends_with('\n') {
+        stderr.push('\n');
+    }
     Response {
         stdout: outcome.stdout,
-        stderr: outcome.stderr,
+        stderr,
         exit_code: outcome.code,
     }
 }

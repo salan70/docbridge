@@ -25,9 +25,10 @@ setup instructions.
 Coding agents read `AGENTS.md`. This repository keeps its canonical skills,
 `docbridge` and `git-workflow`, in `.agents/skills/`.
 `.claude/skills` is a symlink to `../.agents/skills`; Windows may check it out as a plain file.
+`init` resolves such in-project ancestor links, so `--claude` writes the same
+single canonical copy.
 
-Do not run `init --force --claude` in this repository: the product rejects write
-paths through symlinks. After changing the distributable skill embedded in
+After changing the distributable skill embedded in
 `crates/docbridge/src/lifecycle.rs`, regenerate the canonical copy with
 `cargo run -p docbridge -- init --force --yes`. Keep skill bodies tool-neutral.
 `just skill-check` fails when the canonical copy has drifted.
