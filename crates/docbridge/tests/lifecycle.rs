@@ -1,4 +1,5 @@
 use docbridge::lifecycle::*;
+use serde_json::{json, Value};
 use std::fs;
 use tempfile::TempDir;
 // These tests call the library, so a bare temporary directory is enough.
@@ -168,6 +169,447 @@ fn symlink_ancestor_blocks_writes_and_removal() {
     assert!(!p.join("docbridge.config.json").exists());
     assert!(plan_deinit(p).is_err());
     assert_eq!(fs::read_dir(outside).unwrap().count(), 0);
+}
+/// A project whose skills root is a link to another in-project directory:
+/// `.agents/skills -> ../.claude/skills`, the layout projects use to share one
+/// skills tree between agents.
+#[cfg(unix)]
+fn shared_skills_root() -> TempDir {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".claude/skills")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("../.claude/skills", p.join(".agents/skills")).unwrap();
+    fs::write(p.join("guide.md"), "# Guide\n").unwrap();
+    temp
+}
+#[cfg(unix)]
+#[test]
+fn shared_skills_root_installs_one_skill_across_init_force_and_deinit() {
+    let temp = shared_skills_root();
+    let p = temp.path();
+    let real = p.join(".claude/skills/docbridge");
+    let is_link =
+        |path: &std::path::Path| fs::symlink_metadata(path).unwrap().file_type().is_symlink();
+    // The default target resolves through the link to the shared directory.
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(real.join("SKILL.md").is_file());
+    assert!(real.join(".docbridge-owned.json").is_file());
+    assert!(is_link(&p.join(".agents/skills")));
+    assert!(!is_link(&real));
+    assert_eq!(
+        fs::canonicalize(p.join(".agents/skills/docbridge")).unwrap(),
+        fs::canonicalize(&real).unwrap()
+    );
+    // --force --claude replaces the same single install instead of writing twice.
+    fs::write(real.join("SKILL.md"), "edited").unwrap();
+    let forced = init(
+        p,
+        &InitOptions {
+            yes: true,
+            force: true,
+            claude: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(forced.code, 0, "{}", forced.stderr);
+    assert_eq!(forced.stdout.matches("Install managed skill").count(), 1);
+    assert_ne!(fs::read_to_string(real.join("SKILL.md")).unwrap(), "edited");
+    // deinit removes the managed files but keeps the link and the skills root.
+    let plan = plan_deinit(p).unwrap();
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert!(!real.exists());
+    assert!(is_link(&p.join(".agents/skills")));
+    assert!(p.join(".claude/skills").is_dir());
+}
+#[cfg(unix)]
+#[test]
+fn skills_root_link_outside_project_is_rejected_with_named_component() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::create_dir_all(outside.join("skills")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink(outside.join("skills"), p.join(".agents/skills")).unwrap();
+    for args in [
+        vec!["init".to_string(), "--yes".to_string()],
+        vec![
+            "init".to_string(),
+            "--yes".to_string(),
+            "--claude".to_string(),
+        ],
+        vec!["deinit".to_string(), "--dry-run".to_string()],
+    ] {
+        let invocation = docbridge::cli::Invocation::parse(&args, p).unwrap();
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| true);
+        assert_eq!(response.exit_code, 1, "{args:?}");
+        assert!(
+            response.stderr.contains(".agents/skills"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.contains("docbridge docs show"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{args:?}: {:?}",
+            response.stderr
+        );
+    }
+    assert!(!p.join("docbridge.config.json").exists());
+    assert_eq!(fs::read_dir(outside.join("skills")).unwrap().count(), 0);
+}
+#[cfg(unix)]
+#[test]
+fn dangling_in_project_skills_link_resolves_to_the_real_directory() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("../.claude/skills", p.join(".agents/skills")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert!(p.join(".claude/skills/docbridge/SKILL.md").is_file());
+    assert!(p.join(".agents/skills/docbridge/SKILL.md").is_file());
+}
+#[cfg(unix)]
+#[test]
+fn skill_directory_and_its_contents_stay_link_free() {
+    use std::os::unix::fs::symlink;
+    // The Skill directory itself may not be a link, even into the project.
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".agents/skills")).unwrap();
+    fs::create_dir_all(p.join("real-skill")).unwrap();
+    symlink("../../real-skill", p.join(".agents/skills/docbridge")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 1);
+    assert!(
+        result.stderr.contains(".agents/skills/docbridge"),
+        "{}",
+        result.stderr
+    );
+    assert!(
+        result.stderr.contains("docbridge docs show"),
+        "{}",
+        result.stderr
+    );
+    // Neither may a file inside the Skill directory be a link.
+    let temp = shared_skills_root();
+    let p = temp.path();
+    let outside_temp = root();
+    fs::write(outside_temp.path().join("extra.md"), "extra").unwrap();
+    fs::create_dir_all(p.join(".claude/skills/docbridge")).unwrap();
+    symlink(
+        outside_temp.path().join("extra.md"),
+        p.join(".claude/skills/docbridge/extra.md"),
+    )
+    .unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 1);
+    assert!(
+        result.stderr.contains(".claude/skills/docbridge/extra.md"),
+        "{}",
+        result.stderr
+    );
+    assert!(
+        result.stderr.contains("docbridge docs show"),
+        "{}",
+        result.stderr
+    );
+}
+#[cfg(unix)]
+#[test]
+fn dangling_skills_link_resolving_outside_is_rejected() {
+    use std::os::unix::fs::symlink;
+    // `.agents/skills` spells a target that stays inside lexically, but the
+    // filesystem resolves `ext` before `..`, landing outside the project.
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::create_dir_all(outside.join("deep")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink(outside.join("deep"), p.join("ext")).unwrap();
+    symlink("../ext/../.claude/skills", p.join(".agents/skills")).unwrap();
+    for args in [
+        vec!["init".to_string(), "--yes".to_string()],
+        vec![
+            "init".to_string(),
+            "--yes".to_string(),
+            "--claude".to_string(),
+        ],
+        vec!["deinit".to_string()],
+    ] {
+        let invocation = docbridge::cli::Invocation::parse(&args, p).unwrap();
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| true);
+        assert_eq!(response.exit_code, 1, "{args:?}");
+        assert!(
+            response.stderr.contains(".agents/skills"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{args:?}: {:?}",
+            response.stderr
+        );
+    }
+    assert!(!p.join("docbridge.config.json").exists());
+    assert!(!p.join(".claude").exists());
+    assert_eq!(fs::read_dir(outside.join("deep")).unwrap().count(), 0);
+}
+#[cfg(unix)]
+#[test]
+fn dangling_skills_link_through_another_link_installs_where_the_link_leads() {
+    use std::os::unix::fs::symlink;
+    // `x` resolves before `..`, so the real target is `a/.claude/skills`, not
+    // `.claude/skills` as lexical normalization would claim.
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("a/b")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("a/b", p.join("x")).unwrap();
+    symlink("../x/../.claude/skills", p.join(".agents/skills")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    let real = p.join("a/.claude/skills/docbridge");
+    assert!(real.join("SKILL.md").is_file());
+    assert!(!p.join(".claude").exists());
+    assert_eq!(
+        fs::canonicalize(p.join(".agents/skills/docbridge")).unwrap(),
+        fs::canonicalize(&real).unwrap()
+    );
+}
+#[cfg(unix)]
+#[test]
+fn reversed_shared_skills_root_installs_one_skill() {
+    use std::os::unix::fs::symlink;
+    // `.claude/skills -> ../.agents/skills`, the mirror of `shared_skills_root`.
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join(".agents/skills")).unwrap();
+    fs::create_dir_all(p.join(".claude")).unwrap();
+    symlink("../.agents/skills", p.join(".claude/skills")).unwrap();
+    let result = init(
+        p,
+        &InitOptions {
+            yes: true,
+            claude: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(result.code, 0, "{}", result.stderr);
+    assert_eq!(result.stdout.matches("Install managed skill").count(), 1);
+    let real = p.join(".agents/skills/docbridge");
+    assert!(real.join("SKILL.md").is_file());
+    assert_eq!(
+        fs::canonicalize(p.join(".claude/skills/docbridge")).unwrap(),
+        fs::canonicalize(&real).unwrap()
+    );
+    // The default target alone names the same single Skill.
+    let again = init(
+        p,
+        &InitOptions {
+            yes: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(again.code, 0, "{}", again.stderr);
+    let plan = plan_deinit(p).unwrap();
+    assert_eq!(apply_deinit(&plan).code, 0);
+    assert!(!real.exists());
+    assert!(p
+        .join(".claude/skills")
+        .symlink_metadata()
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    assert!(p.join(".agents/skills").is_dir());
+}
+#[cfg(unix)]
+#[test]
+fn deinit_refuses_and_deletes_nothing_when_a_skills_ancestor_leaves_the_project() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::create_dir_all(outside.join("skills/docbridge")).unwrap();
+    fs::write(outside.join("skills/docbridge/SKILL.md"), "outside").unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink(outside.join("skills"), p.join(".agents/skills")).unwrap();
+    let invocation = docbridge::cli::Invocation::parse(&["deinit".to_string()], p).unwrap();
+    let mut asked = false;
+    let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| {
+        asked = true;
+        true
+    });
+    assert!(!asked, "deinit must refuse before offering a plan");
+    assert_eq!(response.exit_code, 1);
+    assert!(
+        response.stderr.contains(".agents/skills"),
+        "{}",
+        response.stderr
+    );
+    assert!(response.stderr.ends_with('\n'), "{:?}", response.stderr);
+    assert_eq!(
+        fs::read_to_string(outside.join("skills/docbridge/SKILL.md")).unwrap(),
+        "outside"
+    );
+}
+#[cfg(unix)]
+#[test]
+fn deinit_refuses_a_link_inside_the_skill_like_init_does() {
+    use std::os::unix::fs::symlink;
+    let outside_temp = root();
+    let outside = outside_temp.path();
+    fs::write(outside.join("reference.md"), "outside").unwrap();
+    for (temp, dir) in [
+        // The plain layout: a link inside `.agents/skills/docbridge` itself.
+        (initialized(), ".agents/skills/docbridge"),
+        // The shared layout: the link sits inside the resolved Skill
+        // directory `.claude/skills/docbridge`.
+        {
+            let temp = shared_skills_root();
+            assert_eq!(
+                init(
+                    temp.path(),
+                    &InitOptions {
+                        yes: true,
+                        ..Default::default()
+                    }
+                )
+                .code,
+                0
+            );
+            (temp, ".claude/skills/docbridge")
+        },
+    ] {
+        let p = temp.path();
+        symlink(
+            outside.join("reference.md"),
+            p.join(dir).join("reference.md"),
+        )
+        .unwrap();
+        let invocation = docbridge::cli::Invocation::parse(&["deinit".to_string()], p).unwrap();
+        let mut asked = false;
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| {
+            asked = true;
+            true
+        });
+        assert!(!asked, "{dir}: deinit must refuse before offering a plan");
+        assert_eq!(response.exit_code, 1, "{dir}");
+        assert!(
+            response.stderr.contains(&format!("{dir}/reference.md")),
+            "{dir}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.contains("docbridge docs show"),
+            "{dir}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{dir}: {:?}",
+            response.stderr
+        );
+        assert!(p.join(format!("{dir}/SKILL.md")).exists(), "{dir}");
+        assert!(p.join("docbridge.config.json").exists(), "{dir}");
+    }
+}
+/// Whether the filesystem under `dir` folds case, as macOS APFS and Windows
+/// volumes do; a case-sensitive filesystem cannot satisfy a misspelled path.
+#[cfg(unix)]
+fn folds_case(dir: &std::path::Path) -> bool {
+    let probe = dir.join("DoCbRiDgE-case-probe");
+    fs::write(&probe, b"probe").unwrap();
+    let folded = dir.join("docbridge-CASE-PROBE").exists();
+    let _ = fs::remove_file(probe);
+    folded
+}
+#[cfg(unix)]
+#[test]
+fn misspelled_skills_ancestor_link_is_rejected_on_case_folding_volumes() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    if !folds_case(p) {
+        // Only a case-folding volume resolves `.agents/skills` to the
+        // differently cased entry `.agents/Skills`.
+        return;
+    }
+    fs::create_dir_all(p.join(".claude/skills")).unwrap();
+    fs::create_dir_all(p.join(".agents")).unwrap();
+    symlink("../.claude/skills", p.join(".agents/Skills")).unwrap();
+    for args in [
+        vec!["init".to_string(), "--yes".to_string()],
+        vec![
+            "init".to_string(),
+            "--yes".to_string(),
+            "--claude".to_string(),
+        ],
+        vec!["deinit".to_string()],
+    ] {
+        let invocation = docbridge::cli::Invocation::parse(&args, p).unwrap();
+        let response = docbridge::cli::dispatch_with_confirmation(invocation, "", |_| true);
+        assert_eq!(response.exit_code, 1, "{args:?}");
+        assert!(
+            response.stderr.contains(".agents/skills"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.contains("docbridge docs show"),
+            "{args:?}: {}",
+            response.stderr
+        );
+        assert!(
+            response.stderr.ends_with('\n'),
+            "{args:?}: {:?}",
+            response.stderr
+        );
+    }
+    assert!(!p.join("docbridge.config.json").exists());
+    assert_eq!(fs::read_dir(p.join(".claude/skills")).unwrap().count(), 0);
 }
 #[cfg(unix)]
 #[test]
@@ -523,6 +965,189 @@ fn dry_run_and_existing_config() {
         fs::read_to_string(p.join("docbridge.config.json")).unwrap(),
         "user config"
     );
+}
+/// The candidate configuration `init` prints during inspection.
+fn proposal(p: &std::path::Path) -> Value {
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    let body = outcome
+        .stdout
+        .split_once("Candidate configuration:\n")
+        .unwrap()
+        .1;
+    serde_json::Deserializer::from_str(body)
+        .into_iter::<Value>()
+        .next()
+        .unwrap()
+        .unwrap()
+}
+#[test]
+fn init_proposes_docs_directory_and_scanned_extension() {
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/a.ts"), "a\n").unwrap();
+    fs::create_dir_all(p.join("docs")).unwrap();
+    fs::write(p.join("docs/a.md"), "# A\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["src"],"extensions":[".ts"]},"docs":["docs"]}})
+    );
+}
+#[test]
+fn init_proposal_excludes_asset_lock_and_generated_files() {
+    let temp = root();
+    let p = temp.path();
+    for dir in [
+        "lib/nested",
+        "assets",
+        "ios/Runner",
+        "ios/Runner.xcodeproj",
+        "ios/Runner.xcworkspace",
+        "infra",
+        "site",
+        "docs/guide",
+    ] {
+        fs::create_dir_all(p.join(dir)).unwrap();
+    }
+    fs::write(p.join("lib/a.dart"), "void a() {}\n").unwrap();
+    fs::write(p.join("lib/nested/b.dart"), "void b() {}\n").unwrap();
+    fs::write(p.join("assets/logo.png"), [0x89, b'P', b'N', b'G', 0]).unwrap();
+    fs::write(p.join("assets/font.ttf"), [0, 1, 0, 0]).unwrap();
+    fs::write(p.join("assets/palette.example"), "red\n").unwrap();
+    fs::write(p.join("pubspec.lock"), "lock\n").unwrap();
+    fs::write(p.join("Package.resolved"), "{}\n").unwrap();
+    fs::write(p.join("ios/Runner/AppDelegate.swift"), "class A {}\n").unwrap();
+    fs::write(
+        p.join("ios/Runner.xcodeproj/project.pbxproj"),
+        "// !$*UTF8*$!\n",
+    )
+    .unwrap();
+    fs::write(
+        p.join("ios/Runner.xcworkspace/contents.xcworkspacedata"),
+        "<Workspace/>\n",
+    )
+    .unwrap();
+    fs::write(p.join("infra/main.tf"), "terraform {}\n").unwrap();
+    fs::write(p.join("site/logo.svg"), "<svg/>\n").unwrap();
+    fs::write(p.join("README.md"), "# R\n").unwrap();
+    fs::write(p.join("docs/guide/a.md"), "# A\n").unwrap();
+    fs::write(p.join("docs/b.md"), "# B\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["infra","ios","lib"],"extensions":[".dart",".swift",".tf"]},"docs":["README.md","docs"]}})
+    );
+}
+#[test]
+fn init_proposes_c_source_and_header_extensions() {
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/main.c"), "int main(void) {}\n").unwrap();
+    fs::create_dir_all(p.join("include")).unwrap();
+    fs::write(p.join("include/util.h"), "int util(void);\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["include","src"],"extensions":[".c",".h"]},"docs":[]}})
+    );
+}
+/// `init` reports extensions it skipped so they can be added to
+/// `include.code.extensions` by hand.
+#[test]
+fn init_reports_skipped_extensions_and_empty_code_proposal() {
+    let temp = root();
+    let p = temp.path();
+    fs::write(p.join("a.xyz"), "a\n").unwrap();
+    fs::write(p.join("b.xyz"), "b\n").unwrap();
+    fs::write(p.join("c.uvw"), "c\n").unwrap();
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    for expected in [
+        "No code files proposed",
+        ".xyz (2 files)",
+        ".uvw (1 file)",
+        "include.code.extensions",
+    ] {
+        assert!(
+            outcome.stdout.contains(expected),
+            "{expected}: {}",
+            outcome.stdout
+        );
+    }
+    assert_eq!(
+        proposal(p)["include"]["code"],
+        json!({"paths": [], "extensions": []})
+    );
+}
+/// The skipped-extension note names at most five extensions no matter how
+/// many were skipped.
+#[test]
+fn init_skipped_extensions_note_stays_short() {
+    let temp = root();
+    let p = temp.path();
+    for ext in ["x1", "x2", "x3", "x4", "x5", "x6", "x7"] {
+        fs::write(p.join(format!("f.{ext}")), "x\n").unwrap();
+    }
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    let note = outcome
+        .stdout
+        .lines()
+        .find(|line| line.contains("Skipped extensions"))
+        .expect("skipped-extensions note");
+    assert!(note.contains(".x1 (1 file)"), "{note}");
+    assert!(note.contains(".x5 (1 file)"), "{note}");
+    assert!(!note.contains(".x6"), "{note}");
+    assert!(note.contains("and 2 more"), "{note}");
+}
+/// A directory covering an entry the walk skipped cannot stand in for it:
+/// narrower clean directories and literal files take its place so the
+/// candidate still passes validation.
+#[cfg(unix)]
+#[test]
+fn init_proposal_falls_back_around_skipped_entries() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("docs/guide")).unwrap();
+    fs::write(p.join("docs/guide/a.md"), "# A\n").unwrap();
+    fs::write(p.join("docs/b.md"), "# B\n").unwrap();
+    fs::create_dir_all(p.join("src/deep")).unwrap();
+    fs::write(p.join("src/deep/a.rs"), "fn a() {}\n").unwrap();
+    fs::write(p.join("main.rs"), "fn main() {}\n").unwrap();
+    symlink("/nonexistent", p.join("docs/img.png")).unwrap();
+    symlink("/nonexistent", p.join("src/link")).unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["main.rs","src/deep"],"extensions":[".rs"]},"docs":["docs/b.md","docs/guide"]}})
+    );
+}
+#[test]
+fn init_drops_code_paths_covered_by_dot() {
+    let temp = root();
+    let p = temp.path();
+    fs::write(p.join("main.rs"), "fn main() {}\n").unwrap();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/a.rs"), "fn a() {}\n").unwrap();
+    assert_eq!(proposal(p)["include"]["code"]["paths"], json!(["."]));
 }
 fn deinit(p: &std::path::Path) -> Outcome {
     let plan = plan_deinit(p).unwrap();

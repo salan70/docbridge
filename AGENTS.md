@@ -32,6 +32,9 @@ Contributor procedures are owned by [Contributor guide](docs/contributing/README
   [Releasing](docs/contributing/releasing.md).
 - A user's explicit instruction overrides a skill's default behavior, but not
   the approval requirements above.
+- For multi-step work, follow [pstack rules](.agents/rules/pstack.md) and the
+  [model table](.agents/rules/pstack-models.md). These repository rules take
+  precedence over global user rules on conflict.
 
 ## Communication
 

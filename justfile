@@ -72,8 +72,23 @@ unlinked:
 links *ARGS:
     cargo run --quiet --package docbridge --locked --target-dir {{ target_dir }} -- links "$@"
 
+# Check that the skill checked in under `.agents/` matches what `init` emits.
+# Checkout-only: the Nix package build excludes `.agents/`, so this is not a
+# `cargo test`.
+skill-check:
+    cargo build --quiet --package docbridge --locked --target-dir {{ target_dir }}
+    cargo run --quiet --locked -p xtask --target-dir {{ target_dir }} -- skill-check {{ target_dir }}/debug/docbridge
+
 # Offline, read-only gate that CI runs.
-verify: format-check lint test validate
+verify: format-check lint test validate skill-check
+
+# Check the vendored pstack skills against the pinned SHA-256 values. Not part of `verify`; needs python3.
+pstack-status:
+    python3 tool/pstack/pstack.py status
+
+# Run the offline tests of the pstack tooling. Not part of `verify`; needs python3.
+pstack-test:
+    PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tool/pstack
 
 # Build the release binary for this machine.
 build:

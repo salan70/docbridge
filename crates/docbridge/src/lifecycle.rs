@@ -2,10 +2,11 @@ use crate::paths;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    ffi::OsString,
     fmt,
     fs::{self, OpenOptions},
     io::{ErrorKind, Write},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
 };
 const CONFIG: &str = "docbridge.config.json";
@@ -44,13 +45,18 @@ fn hash(bytes: &[u8]) -> String {
 fn relative(path: &str) -> Result<(), String> {
     crate::config::validate_path(path, false)
 }
-/// The content of the regular file at `name`, or `None` if it does not exist.
-fn current(root: &Path, name: &str) -> Result<Option<Vec<u8>>, String> {
-    match fs::symlink_metadata(paths::resolve(root, name)?) {
-        Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
-        _ => paths::read(root, name).map(Some),
-    }
-}
+/// A fixed list of common source-file extensions init proposes as code.
+/// Discovery reads matching files as text for link targets; there is no
+/// language-specific parsing. Binary, asset, lock, and generated extensions
+/// are never proposed; init reports the extensions it skipped.
+const CODE_EXTENSIONS: &[&str] = &[
+    ".bash", ".c", ".cc", ".cjs", ".clj", ".cljc", ".cljs", ".cpp", ".cs", ".cts", ".cxx", ".dart",
+    ".erl", ".ex", ".exs", ".fish", ".go", ".gradle", ".groovy", ".h", ".hh", ".hpp", ".hrl",
+    ".hs", ".hxx", ".java", ".jl", ".js", ".jsx", ".kt", ".kts", ".lhs", ".lua", ".m", ".mjs",
+    ".ml", ".mli", ".mm", ".mts", ".nim", ".php", ".pl", ".pm", ".ps1", ".py", ".r", ".rb", ".rs",
+    ".sbt", ".scala", ".sh", ".sql", ".svelte", ".swift", ".tf", ".ts", ".tsx", ".vue", ".zig",
+    ".zsh",
+];
 const TEMP_PREFIX: &str = ".docbridge-tmp-";
 /// Whether `name` has the exact shape of a [`replace`] temporary file,
 /// `.docbridge-tmp-<process>-<time>-<serial>` in decimal. Such a file is a
@@ -114,7 +120,7 @@ fn leftovers(
 }
 fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, String> {
     let marker = format!("{dir}/{RECORD}");
-    let Some(bytes) = current(root, &marker)? else {
+    let Some(bytes) = paths::read_optional(root, &marker)? else {
         return Ok(None);
     };
     let record: BTreeMap<String, String> = serde_json::from_slice(&bytes)
@@ -131,29 +137,294 @@ fn owned(root: &Path, dir: &str) -> Result<Option<BTreeMap<String, String>>, Str
     }
     Ok(Some(record))
 }
+/// The remedy for lifecycle paths that cross links the managed layout cannot
+/// use: ancestor links must resolve inside the project, and the Skill
+/// directory and its contents must be real.
+const LINK_GUIDANCE: &str = "links to a managed Skill must stay inside the project; move the shared skills directory inside the project or remove the link — see docbridge docs show configuration";
+/// Resolve `spelled` — a link target joined to a canonical parent — the way
+/// the filesystem does: each existing component is canonicalized in order and
+/// `..` applies to that resolved prefix, never to a link's spelled location.
+/// The missing tail is kept only while it holds no `..`, which could cross a
+/// link the filesystem would resolve first; the link then has no dependable
+/// resolution and `None` is returned. `depth` bounds nested dangling links.
+fn resolve_spelled(spelled: &Path, depth: u32) -> Result<Option<PathBuf>, String> {
+    if depth == 0 {
+        return Err(format!(
+            "too many links while resolving {}",
+            spelled.display()
+        ));
+    }
+    let mut resolved = PathBuf::new();
+    let mut tail = Vec::new();
+    for component in spelled.components() {
+        match component {
+            Component::CurDir => {}
+            Component::Prefix(_) | Component::RootDir => resolved.push(component.as_os_str()),
+            Component::ParentDir if tail.is_empty() => {
+                resolved.pop();
+            }
+            Component::Normal(name) if tail.is_empty() => {
+                resolved.push(name);
+                let metadata = match fs::symlink_metadata(&resolved) {
+                    Ok(metadata) => metadata,
+                    Err(e) if e.kind() == ErrorKind::NotFound => {
+                        resolved.pop();
+                        tail.push(component);
+                        continue;
+                    }
+                    Err(e) => return Err(format!("{}: {e}", resolved.display())),
+                };
+                resolved = match fs::canonicalize(&resolved) {
+                    Ok(canonical) => canonical,
+                    Err(e) if e.kind() == ErrorKind::NotFound && paths::is_link(&metadata) => {
+                        // A link to a missing target: its spelled target is
+                        // resolved the same way, against the canonical parent.
+                        let target = fs::read_link(&resolved)
+                            .map_err(|e| format!("{}: {e}", resolved.display()))?;
+                        resolved.pop();
+                        let nested = if target.is_absolute() {
+                            target
+                        } else {
+                            resolved.join(&target)
+                        };
+                        let Some(hopped) = resolve_spelled(&nested, depth - 1)? else {
+                            return Ok(None);
+                        };
+                        hopped
+                    }
+                    Err(e) => return Err(format!("{}: {e}", resolved.display())),
+                };
+            }
+            missing => tail.push(missing),
+        }
+    }
+    if tail.iter().any(|c| matches!(c, Component::ParentDir)) {
+        return Ok(None);
+    }
+    for component in tail {
+        if let Component::Normal(name) = component {
+            resolved.push(name);
+        }
+    }
+    Ok(Some(resolved))
+}
+/// Error for a `link` that resolves outside `root`, naming the component.
+fn outside(root: &Path, link: &Path) -> String {
+    let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
+    format!("{name} resolves outside the project root; {LINK_GUIDANCE}")
+}
+/// Error for a `link` that cannot be resolved inside `root`, naming the
+/// component.
+fn unresolvable(root: &Path, link: &Path) -> String {
+    let name = link.strip_prefix(root).unwrap_or(link).to_string_lossy();
+    format!("{name} cannot be resolved inside the project root; {LINK_GUIDANCE}")
+}
+/// Error for a requested `component` whose spelling differs from its
+/// directory entry, naming the requested component.
+fn misspelled(root: &Path, component: &Path) -> String {
+    let name = component
+        .strip_prefix(root)
+        .unwrap_or(component)
+        .to_string_lossy();
+    format!("{name} does not match the directory entry spelling; {LINK_GUIDANCE}")
+}
+/// Canonicalize `path` under the canonical `root`, resolving existing link
+/// components only while the resolved location stays inside `root`, so writes
+/// and removals never leave the project. Every existing requested component
+/// must match its directory entry exactly, even on case-folding file systems,
+/// before a link is followed or a name is converted to its canonical target;
+/// missing components are kept as spelled. The error names the offending
+/// component.
+fn canonical_inside(root: &Path, path: &Path) -> Result<PathBuf, String> {
+    let mut resolved = root.to_path_buf();
+    let mut tail: Vec<OsString> = Vec::new();
+    for component in path
+        .strip_prefix(root)
+        .map_err(|_| format!("{}: cannot resolve", path.display()))?
+        .components()
+    {
+        let Component::Normal(name) = component else {
+            continue;
+        };
+        if !tail.is_empty() {
+            tail.push(name.to_os_string());
+            continue;
+        }
+        // `resolved` is canonical where it exists, so a directory entry is the
+        // real spelling; a missing location cannot hold the rest either.
+        let exact = match fs::read_dir(&resolved) {
+            Ok(entries) => entries
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| format!("{}: {e}", resolved.display()))?
+                .iter()
+                .any(|entry| entry.file_name() == name),
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                tail.push(name.to_os_string());
+                continue;
+            }
+            Err(e) => return Err(format!("{}: {e}", resolved.display())),
+        };
+        resolved.push(name);
+        let metadata = match fs::symlink_metadata(&resolved) {
+            Ok(metadata) => metadata,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                resolved.pop();
+                tail.push(name.to_os_string());
+                continue;
+            }
+            Err(e) => return Err(format!("{}: {e}", resolved.display())),
+        };
+        if !exact {
+            return Err(misspelled(root, &resolved));
+        }
+        if !paths::is_link(&metadata) {
+            continue;
+        }
+        let link = resolved.clone();
+        resolved = match fs::canonicalize(&link) {
+            Ok(canonical) => canonical,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                // A link to a missing target: resolve its spelled target in
+                // filesystem order against the canonical parent, then keep
+                // resolving. Comparing canonicalized paths also keeps absolute
+                // targets through an alias (`/tmp` versus `/private/tmp`,
+                // `C:` versus `\\?\C:`) inside the root.
+                let target =
+                    fs::read_link(&link).map_err(|e| format!("{}: {e}", link.display()))?;
+                let parent = fs::canonicalize(link.parent().ok_or("missing parent")?)
+                    .map_err(|e| format!("{}: {e}", link.display()))?;
+                let spelled = if target.is_absolute() {
+                    target
+                } else {
+                    parent.join(&target)
+                };
+                let Some(hopped) = resolve_spelled(&spelled, 64)? else {
+                    return Err(unresolvable(root, &link));
+                };
+                hopped
+            }
+            Err(e) => return Err(format!("{}: {e}", link.display())),
+        };
+        if !resolved.starts_with(root) {
+            return Err(outside(root, &link));
+        }
+    }
+    for name in tail {
+        resolved.push(name);
+    }
+    Ok(resolved)
+}
+/// Resolve a requested Skill directory to the canonical root-relative
+/// directory it names: existing ancestor components may be links whose target
+/// stays inside `root`, but the Skill directory itself may not be a link.
+/// Two requested directories resolving to the same result share one Skill.
+fn effective_dir(root: &Path, dir: &str) -> Result<String, String> {
+    let absolute = root.join(dir);
+    if fs::symlink_metadata(&absolute)
+        .map(|m| paths::is_link(&m))
+        .unwrap_or(false)
+    {
+        return Err(format!(
+            "{dir} is a link: the Skill directory itself must be a real directory; {LINK_GUIDANCE}"
+        ));
+    }
+    let resolved = canonical_inside(root, &absolute)?;
+    let mut effective = String::new();
+    for component in resolved
+        .strip_prefix(root)
+        .map_err(|_| outside(root, &resolved))?
+        .components()
+    {
+        let Some(name) = component.as_os_str().to_str() else {
+            return Err(format!("non-UTF-8 path: {}", resolved.display()));
+        };
+        if !effective.is_empty() {
+            effective.push('/');
+        }
+        effective.push_str(name);
+    }
+    Ok(effective)
+}
+/// Map requested Skill directories to their canonical root-relative forms,
+/// deduplicated so a shared directory is managed exactly once.
+fn effective_dirs<'a>(
+    root: &Path,
+    dirs: impl IntoIterator<Item = &'a str>,
+) -> Result<Vec<String>, String> {
+    let mut effective = Vec::new();
+    for dir in dirs {
+        let dir = effective_dir(root, dir)?;
+        if !effective.contains(&dir) {
+            effective.push(dir);
+        }
+    }
+    Ok(effective)
+}
+/// The proposal entry covering `file`: its outermost ancestor directory
+/// under which the walk skipped nothing, or `file` itself when every
+/// ancestor covers a skipped entry. `root` permits "." for root-level
+/// files. A proposed directory makes each of its descendants relevant
+/// during validation, which reports every entry the walk skipped, so an
+/// ancestor covering one falls back to narrower directories and finally
+/// to the file itself.
+fn proposed<'a>(file: &'a str, skipped: &[paths::Skipped], root: bool) -> &'a str {
+    file.match_indices('/')
+        .map(|(i, _)| &file[..i])
+        .chain(root.then_some("."))
+        .find(|dir| {
+            !skipped
+                .iter()
+                .any(|s| *dir == "." || s.path == *dir || s.path.starts_with(&format!("{dir}/")))
+        })
+        .unwrap_or(file)
+}
 pub fn init(root: &Path, options: &InitOptions) -> Outcome {
     outcome((|| {
         let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
         let found = paths::walk(&root, &|_| true)?;
+        let mut requested = vec![SKILL_DIRS[0]];
+        if options.claude {
+            requested.push(SKILL_DIRS[1]);
+        }
+        let dirs = effective_dirs(&root, requested)?;
+        // A link inside the managed Skill directory itself is never followed.
+        for skipped in &found.skipped {
+            if skipped.code == "unsafe-path" && dirs.iter().any(|d| under(&skipped.path, d)) {
+                return Err(format!(
+                    "{} is a link inside the managed Skill directory; {LINK_GUIDANCE}",
+                    skipped.path
+                ));
+            }
+        }
         let mut extensions = BTreeSet::new();
         let mut paths = BTreeSet::new();
-        let mut docs = Vec::new();
+        let mut docs = BTreeSet::new();
+        let mut skipped_exts = BTreeMap::<String, usize>::new();
         for file in &found.files {
-            if file.starts_with('.') || file == CONFIG {
+            if file.starts_with('.') || file == CONFIG || dirs.iter().any(|d| under(file, d)) {
                 continue;
             }
             if file.ends_with(".md") {
-                docs.push(file.clone());
-            } else if let Some(ext) = Path::new(file).extension().and_then(|e| e.to_str()) {
-                extensions.insert(format!(".{ext}"));
-                paths.insert(
-                    file.split('/')
-                        .next()
-                        .filter(|_| file.contains('/'))
-                        .unwrap_or(".")
-                        .to_string(),
-                );
+                // A directory stands in for its Markdown files: every Markdown
+                // file under it is included. Root-level files stay literal
+                // entries because "." is a discovery root, not a docs tree.
+                docs.insert(proposed(file, &found.skipped, false).to_string());
+            } else if let Some(ext) = Path::new(file)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| format!(".{e}"))
+            {
+                if CODE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
+                    extensions.insert(ext);
+                    paths.insert(proposed(file, &found.skipped, true).to_string());
+                } else {
+                    *skipped_exts.entry(ext).or_insert(0) += 1;
+                }
             }
+        }
+        // "." already covers its child directories.
+        if paths.contains(".") {
+            paths.retain(|p| p == ".");
         }
         let config = serde_json::to_vec_pretty(&serde_json::json!({"include":{"code":{"paths":paths,"extensions":extensions},"docs":docs}})).map_err(|e| e.to_string())?;
         let mut changes = Vec::new();
@@ -162,13 +433,34 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
             root.display(),
             String::from_utf8_lossy(&config)
         );
+        if extensions.is_empty() {
+            report.push_str("No code files proposed.\n");
+        }
+        if !skipped_exts.is_empty() {
+            let mut ranked: Vec<_> = skipped_exts.into_iter().collect();
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            let shown: Vec<String> = ranked
+                .iter()
+                .take(5)
+                .map(|(ext, count)| {
+                    format!("{ext} ({count} file{})", if *count == 1 { "" } else { "s" })
+                })
+                .collect();
+            let mut list = shown.join(", ");
+            if ranked.len() > 5 {
+                list.push_str(&format!(", and {} more", ranked.len() - 5));
+            }
+            report.push_str(&format!(
+                "Skipped extensions: {list}. Add an extension to include.code.extensions by hand to cover these files.\n"
+            ));
+        }
         for skipped in &found.skipped {
             report.push_str(&format!(
                 "Skipped during discovery: {} ({})\n",
                 skipped.path, skipped.reason
             ));
         }
-        if current(&root, CONFIG)?.is_some() {
+        if paths::read_optional(&root, CONFIG)?.is_some() {
             report.push_str("Preserve existing configuration (including with --force).\n");
         } else {
             changes.push(Change {
@@ -177,22 +469,17 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                 after: Some(config),
             });
         }
-        let mut dirs = vec![SKILL_DIRS[0]];
-        if options.claude {
-            dirs.push(SKILL_DIRS[1]);
-        }
-        for dir in dirs {
+        for dir in &dirs {
             let record = owned(&root, dir)?;
             let stale = leftovers(&root, &found.files, dir, record.as_ref())?;
-            let dir_path = paths::resolve(&root, dir)?;
             // A directory that holds no user data is treated as absent.
             let present =
-                fs::symlink_metadata(&dir_path).is_ok() && !holds_no_user_data(&dir_path)?;
+                paths::exists(&root, dir)? && !holds_no_user_data(&paths::resolve(&root, dir)?)?;
             if present && record.is_none() {
                 return Err(format!("unmanaged skill conflict: {dir}; use docbridge docs show migration for manual retirement"));
             }
             let skill = format!("{dir}/SKILL.md");
-            let existing = current(&root, &skill)?;
+            let existing = paths::read_optional(&root, &skill)?;
             if existing.is_some() && !record.as_ref().is_some_and(|r| r.contains_key("SKILL.md")) {
                 return Err(format!("unowned skill file: {skill}"));
             }
@@ -210,7 +497,7 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
                     record.insert("SKILL.md".into(), digest);
                     let marker = format!("{dir}/{RECORD}");
                     changes.push(Change {
-                        before: current(&root, &marker)?,
+                        before: paths::read_optional(&root, &marker)?,
                         path: marker,
                         after: Some(serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?),
                     });
@@ -328,6 +615,7 @@ fn under(path: &str, dir: &str) -> bool {
 }
 pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
     let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
+    let dirs = effective_dirs(&root, SKILL_DIRS)?;
     let mut plan = RemovalPlan {
         root,
         preserved: Vec::new(),
@@ -337,8 +625,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         incomplete: Vec::new(),
     };
     let mut config_removal = None;
-    let config_path = paths::resolve(&plan.root, CONFIG)?;
-    let config = if fs::symlink_metadata(&config_path).is_ok() {
+    let config = if paths::exists(&plan.root, CONFIG)? {
         match paths::read(&plan.root, CONFIG) {
             Ok(bytes) => {
                 config_removal = Some(Step::File(Change {
@@ -374,18 +661,33 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         })
     };
     let found = paths::walk(&plan.root, &|p| {
-        SKILL_DIRS.iter().any(|s| crate::config::may_contain(s, p))
+        dirs.iter().any(|s| crate::config::may_contain(s, p))
             || reference_patterns()
                 .iter()
                 .any(|s| crate::config::may_contain(s, p))
             || in_docs(p)
     })?;
-    for paths::Skipped { path, reason, .. } in found.skipped {
-        if SKILL_DIRS.iter().any(|s| *s == path || under(s, &path)) {
+    for paths::Skipped { path, code, reason } in found.skipped {
+        if code == "unsafe-path" && dirs.iter().any(|s| under(&path, s)) {
+            // A link inside the managed Skill directory is rejected the way
+            // init rejects it, in the plain and the shared layout alike.
+            return Err(format!(
+                "{path} is a link inside the managed Skill directory; {LINK_GUIDANCE}"
+            ));
+        }
+        if code == "unsafe-path" && SKILL_DIRS.iter().any(|s| under(s, &path)) {
+            // An ancestor link that resolved inside the project; it is not
+            // inspected, followed, or removed.
+            plan.skipped.push(format!("{path} ({reason})"));
+            continue;
+        }
+        if SKILL_DIRS.iter().any(|s| *s == path || under(s, &path))
+            || dirs.iter().any(|s| *s == path || under(s, &path))
+        {
             // Never treat an unsafe skill directory or ancestor as cleanable.
             return Err(format!("unsafe managed path: {path} ({reason})"));
         }
-        if SKILL_DIRS.iter().any(|s| under(&path, s)) {
+        if dirs.iter().any(|s| under(&path, s)) {
             plan.preserved.push(format!("{path} ({reason})"));
         } else if in_docs(&path) {
             plan.incomplete.push(format!(
@@ -396,7 +698,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         }
     }
     let mut skill_steps = Vec::new();
-    for dir in SKILL_DIRS {
+    for dir in &dirs {
         let record = owned(&plan.root, dir)?;
         let mut removals = Vec::new();
         let mut modified = false;
@@ -413,7 +715,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
                     .take_while(|p| under(p, dir))
                     .map(String::from),
             );
-            let Some(bytes) = current(&plan.root, &path)? else {
+            let Some(bytes) = paths::read_optional(&plan.root, &path)? else {
                 continue;
             };
             if hash(&bytes) == *digest {
@@ -448,7 +750,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
                 directories.into_iter().filter(|d| unpreserved(d)).collect();
             directories.sort_by_key(|d| std::cmp::Reverse(d.matches('/').count()));
             for directory in directories {
-                if fs::symlink_metadata(paths::resolve(&plan.root, &directory)?).is_ok() {
+                if paths::exists(&plan.root, &directory)? {
                     skill_steps.push(Step::Directory(directory));
                 }
             }
@@ -470,7 +772,7 @@ pub fn plan_deinit(root: &Path) -> Result<RemovalPlan, String> {
         }
     }
     for file in found.files {
-        if SKILL_DIRS.iter().any(|s| under(&file, s)) || file == CONFIG {
+        if dirs.iter().any(|s| under(&file, s)) || file == CONFIG {
             continue;
         }
         let selected = file.ends_with(".md")
@@ -698,7 +1000,7 @@ fn replace(root: &Path, name: &str, bytes: Option<&[u8]>) -> Result<(), String> 
 fn apply(root: &Path, steps: &[Step]) -> Result<String, String> {
     for step in steps {
         match step {
-            Step::File(change) if current(root, &change.path)? != change.before => {
+            Step::File(change) if paths::read_optional(root, &change.path)? != change.before => {
                 return Err(format!(
                     "plan is stale; no changes applied: {}",
                     change.path

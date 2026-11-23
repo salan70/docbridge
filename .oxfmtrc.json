@@ -1,6 +1,22 @@
 {
   "endOfLine": "lf",
-  "ignorePatterns": [".claude/settings.local.json", "crates/docbridge/tests/fixtures/**"],
+  "ignorePatterns": [
+    ".claude/settings.local.json",
+    "crates/docbridge/tests/fixtures/**",
+    ".agents/skills/benchmark-checklist/**",
+    ".agents/skills/blast-radius/**",
+    ".agents/skills/correct/**",
+    ".agents/skills/poteto-mode/**",
+    ".agents/skills/principle-boundary-discipline/**",
+    ".agents/skills/principle-encode-lessons-in-structure/**",
+    ".agents/skills/principle-fix-root-causes/**",
+    ".agents/skills/principle-guard-the-context-window/**",
+    ".agents/skills/principle-model-the-domain/**",
+    ".agents/skills/principle-subtract-before-you-add/**",
+    ".agents/skills/technical-writing/**",
+    ".agents/skills/unslop/**",
+    "tool/pstack/upstream/docs/harness/claude-code.md"
+  ],
   "insertFinalNewline": true,
   "printWidth": 100,
   "proseWrap": "preserve",

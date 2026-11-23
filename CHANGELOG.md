@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docbridge links --ignore-unmanaged` skips selectors naming paths outside
+  the configured managed set — files, directories, and `file#section` —
+  without a `selector` diagnostic, so a branch diff can feed `links` directly:
+  `git -c core.quotePath=false diff --name-only --diff-filter=d origin/main...HEAD | docbridge links --stdin --ignore-unmanaged`.
+  Missing sections on managed files still list candidate IDs; missing or
+  unreadable managed files and unsafe paths are still reported.
+- A `links` section selector that matches no section now lists candidate
+  section IDs from the same file — indented under the diagnostic text, and as
+  a `candidates` array in `--json` diagnostics.
+- `docbridge links --sections` lists the section IDs of the selected files
+  without traversing link edges.
+- `docbridge links` accepts an existing directory path, `dir` or `dir/`, as a
+  selector equivalent to `dir/**`: it selects the discovered managed files
+  under the directory recursively, both as an argument and through `--stdin`.
+- `docbridge --version` (`-V`) prints the installed version on one line, and
+  `docbridge help` prints the command list (`docbridge help <command>` equals
+  `docbridge <command> --help`).
+
+### Changed
+
+- `docbridge init` proposes a shorter candidate configuration on real
+  projects: `include.code.extensions` lists extensions from a fixed list of
+  common source-file extensions and init reports the top skipped extensions
+  with file counts so more can be added by hand, `include.docs` names each
+  outermost directory containing Markdown files instead of every file, and
+  `include.code.paths` drops directories already covered by `.`.
+- `docbridge.config.json` must be spelled exactly as its directory entry, as
+  every managed path already is. On a case-folding file system such as default
+  macOS APFS, a differently cased name such as `Docbridge.config.json` is now a
+  configuration error instead of being read.
+
+### Fixed
+
+- `docbridge init`, `init --force`, and `docbridge deinit` now manage a Skill
+  whose skills directory is reached through links when every link is an
+  ancestor of the Skill directory and resolves inside the project — the
+  `.agents/skills -> ../.claude/skills` layout used to share one skills tree
+  between agents. Both Skill locations resolving to the same directory share
+  one managed Skill instead of failing. A link inside the Skill directory and
+  an ancestor link resolving outside the project are still rejected, and those
+  errors now name the linked component, point to a remedy, and end with a
+  newline. `deinit` refuses a link inside the resolved Skill directory instead
+  of preserving it, and a requested Skill path whose spelling differs from its
+  directory entry is rejected even on case-folding file systems.
+
 ## [0.17.0] - 2026-10-29
 
 This release replaces the npm package with a native DocBridge CLI written in

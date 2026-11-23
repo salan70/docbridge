@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{fs, path::Path};
+use std::path::Path;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -32,13 +32,9 @@ pub struct Exclude {
 
 impl Config {
     pub fn load(root: &Path) -> Result<Self, String> {
-        let path = root.join("docbridge.config.json");
-        let metadata =
-            fs::symlink_metadata(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        if crate::paths::is_link(&metadata) || !metadata.is_file() {
-            return Err("configuration must be a regular file, not a symlink".into());
-        }
-        let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        const FILE: &str = "docbridge.config.json";
+        let text = String::from_utf8(crate::paths::read(root, FILE)?)
+            .map_err(|e| format!("{FILE}: {e}"))?;
         let config: Self =
             serde_json::from_str(&text).map_err(|e| format!("invalid configuration: {e}"))?;
         for path in config

@@ -3,6 +3,7 @@
 .direnv/
 .DS_Store
 *.log
+__pycache__/
 
 # Machine-specific settings; keep local.
 .envrc.local
@@ -10,3 +11,8 @@
 
 # Worktrees the Claude Code Agent tool creates inside the checkout.
 .claude/worktrees/
+
+# Agent state that stays local.
+.claude/settings.local.json
+**/poteto-mode/plan-approval
+**/poteto-mode/plan-approval-*/
