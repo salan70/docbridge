@@ -1,4 +1,5 @@
 use docbridge::lifecycle::*;
+use serde_json::{json, Value};
 use std::fs;
 use tempfile::TempDir;
 // These tests call the library, so a bare temporary directory is enough.
@@ -964,6 +965,189 @@ fn dry_run_and_existing_config() {
         fs::read_to_string(p.join("docbridge.config.json")).unwrap(),
         "user config"
     );
+}
+/// The candidate configuration `init` prints during inspection.
+fn proposal(p: &std::path::Path) -> Value {
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    let body = outcome
+        .stdout
+        .split_once("Candidate configuration:\n")
+        .unwrap()
+        .1;
+    serde_json::Deserializer::from_str(body)
+        .into_iter::<Value>()
+        .next()
+        .unwrap()
+        .unwrap()
+}
+#[test]
+fn init_proposes_docs_directory_and_scanned_extension() {
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/a.ts"), "a\n").unwrap();
+    fs::create_dir_all(p.join("docs")).unwrap();
+    fs::write(p.join("docs/a.md"), "# A\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["src"],"extensions":[".ts"]},"docs":["docs"]}})
+    );
+}
+#[test]
+fn init_proposal_excludes_asset_lock_and_generated_files() {
+    let temp = root();
+    let p = temp.path();
+    for dir in [
+        "lib/nested",
+        "assets",
+        "ios/Runner",
+        "ios/Runner.xcodeproj",
+        "ios/Runner.xcworkspace",
+        "infra",
+        "site",
+        "docs/guide",
+    ] {
+        fs::create_dir_all(p.join(dir)).unwrap();
+    }
+    fs::write(p.join("lib/a.dart"), "void a() {}\n").unwrap();
+    fs::write(p.join("lib/nested/b.dart"), "void b() {}\n").unwrap();
+    fs::write(p.join("assets/logo.png"), [0x89, b'P', b'N', b'G', 0]).unwrap();
+    fs::write(p.join("assets/font.ttf"), [0, 1, 0, 0]).unwrap();
+    fs::write(p.join("assets/palette.example"), "red\n").unwrap();
+    fs::write(p.join("pubspec.lock"), "lock\n").unwrap();
+    fs::write(p.join("Package.resolved"), "{}\n").unwrap();
+    fs::write(p.join("ios/Runner/AppDelegate.swift"), "class A {}\n").unwrap();
+    fs::write(
+        p.join("ios/Runner.xcodeproj/project.pbxproj"),
+        "// !$*UTF8*$!\n",
+    )
+    .unwrap();
+    fs::write(
+        p.join("ios/Runner.xcworkspace/contents.xcworkspacedata"),
+        "<Workspace/>\n",
+    )
+    .unwrap();
+    fs::write(p.join("infra/main.tf"), "terraform {}\n").unwrap();
+    fs::write(p.join("site/logo.svg"), "<svg/>\n").unwrap();
+    fs::write(p.join("README.md"), "# R\n").unwrap();
+    fs::write(p.join("docs/guide/a.md"), "# A\n").unwrap();
+    fs::write(p.join("docs/b.md"), "# B\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["infra","ios","lib"],"extensions":[".dart",".swift",".tf"]},"docs":["README.md","docs"]}})
+    );
+}
+#[test]
+fn init_proposes_c_source_and_header_extensions() {
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/main.c"), "int main(void) {}\n").unwrap();
+    fs::create_dir_all(p.join("include")).unwrap();
+    fs::write(p.join("include/util.h"), "int util(void);\n").unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["include","src"],"extensions":[".c",".h"]},"docs":[]}})
+    );
+}
+/// `init` reports extensions it skipped so they can be added to
+/// `include.code.extensions` by hand.
+#[test]
+fn init_reports_skipped_extensions_and_empty_code_proposal() {
+    let temp = root();
+    let p = temp.path();
+    fs::write(p.join("a.xyz"), "a\n").unwrap();
+    fs::write(p.join("b.xyz"), "b\n").unwrap();
+    fs::write(p.join("c.uvw"), "c\n").unwrap();
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    for expected in [
+        "No code files proposed",
+        ".xyz (2 files)",
+        ".uvw (1 file)",
+        "include.code.extensions",
+    ] {
+        assert!(
+            outcome.stdout.contains(expected),
+            "{expected}: {}",
+            outcome.stdout
+        );
+    }
+    assert_eq!(
+        proposal(p)["include"]["code"],
+        json!({"paths": [], "extensions": []})
+    );
+}
+/// The skipped-extension note names at most five extensions no matter how
+/// many were skipped.
+#[test]
+fn init_skipped_extensions_note_stays_short() {
+    let temp = root();
+    let p = temp.path();
+    for ext in ["x1", "x2", "x3", "x4", "x5", "x6", "x7"] {
+        fs::write(p.join(format!("f.{ext}")), "x\n").unwrap();
+    }
+    let outcome = init(
+        p,
+        &InitOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(outcome.code, 0, "{}", outcome.stderr);
+    let note = outcome
+        .stdout
+        .lines()
+        .find(|line| line.contains("Skipped extensions"))
+        .expect("skipped-extensions note");
+    assert!(note.contains(".x1 (1 file)"), "{note}");
+    assert!(note.contains(".x5 (1 file)"), "{note}");
+    assert!(!note.contains(".x6"), "{note}");
+    assert!(note.contains("and 2 more"), "{note}");
+}
+/// A directory covering an entry the walk skipped cannot stand in for it:
+/// narrower clean directories and literal files take its place so the
+/// candidate still passes validation.
+#[cfg(unix)]
+#[test]
+fn init_proposal_falls_back_around_skipped_entries() {
+    use std::os::unix::fs::symlink;
+    let temp = root();
+    let p = temp.path();
+    fs::create_dir_all(p.join("docs/guide")).unwrap();
+    fs::write(p.join("docs/guide/a.md"), "# A\n").unwrap();
+    fs::write(p.join("docs/b.md"), "# B\n").unwrap();
+    fs::create_dir_all(p.join("src/deep")).unwrap();
+    fs::write(p.join("src/deep/a.rs"), "fn a() {}\n").unwrap();
+    fs::write(p.join("main.rs"), "fn main() {}\n").unwrap();
+    symlink("/nonexistent", p.join("docs/img.png")).unwrap();
+    symlink("/nonexistent", p.join("src/link")).unwrap();
+    assert_eq!(
+        proposal(p),
+        json!({"include":{"code":{"paths":["main.rs","src/deep"],"extensions":[".rs"]},"docs":["docs/b.md","docs/guide"]}})
+    );
+}
+#[test]
+fn init_drops_code_paths_covered_by_dot() {
+    let temp = root();
+    let p = temp.path();
+    fs::write(p.join("main.rs"), "fn main() {}\n").unwrap();
+    fs::create_dir_all(p.join("src")).unwrap();
+    fs::write(p.join("src/a.rs"), "fn a() {}\n").unwrap();
+    assert_eq!(proposal(p)["include"]["code"]["paths"], json!(["."]));
 }
 fn deinit(p: &std::path::Path) -> Outcome {
     let plan = plan_deinit(p).unwrap();

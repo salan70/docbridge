@@ -48,6 +48,7 @@ DocBridge is a Rust CLI and a Cargo workspace. Read TypeScript, React, or Electr
 - Never write global settings (`~/.cursor`, `~/.claude`, `~/.codex`) or install plugins.
 - Never edit a vendored skill. A change goes into `tool/pstack/overlays/` and `python3 tool/pstack/pstack.py sync`, and only with the user's approval, because the overlay changes what every contributor's agent reads.
 - A mandatory fan-out, panel, or cross-model review runs at its smallest useful size: one subagent unless the risk of the task earns more. Run a cross-model review only when the user asks. Do not arm recurring loops unless the user asks.
+- SWE-2 free models are unlimited in billing but rate-limited on the number of sessions running at once (measured 2026-11). A thread keeps at most 3 Devin sessions running at once, counting `delegate_task` children (including `implement` delegates), Devin seats in panels, and `provider_native` children in the thread; queue the rest serially. A delegation that fails on the rate limit waits for the reset time the error reports, then retries one at a time. Do not relaunch failed children in parallel.
 
 ## Context and delegation
 
@@ -57,6 +58,6 @@ Every request resends the whole thread, so cost follows thread length times the 
 - A follow-up, a fix round, or the next step goes to a fresh delegate with a consolidated brief. Do not append "continue" to a finished delegate's thread.
 - The main agent keeps design and judgment. It delegates mechanical work (rendering, verification runs, routine edits) at the `mid` level, or at `low` when the spec pins the work down.
 - A small change runs in the main agent while the thread is short.
-- Implementation delegates follow the `implement` line of `pstack-models.md`. With `implement: devin`, start them with T3 `delegate_task` on `acpRegistry_devin`, model `swe-2-high`, and `thought_level: max`.
+- Implementation delegates follow the `implement` line of `pstack-models.md`. With `implement: devin`, start them with T3 `delegate_task` on `acpRegistry_devin`, model `swe-2-high`, and `thought_level: max`. A `Reached free model rate limit` failure follows the retry procedure in Autonomy and cost before falling back to the thread's provider.
 - An implementer owns one unit: investigation, the change, and its verification. It may hand location searches and long verification to a `low` subagent. Nesting stops there: one level, `low` only.
 - When the user asks a side question in a long thread, answer it, then say in one line that a new thread is cheaper for such questions.

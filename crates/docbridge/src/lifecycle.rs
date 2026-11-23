@@ -45,6 +45,18 @@ fn hash(bytes: &[u8]) -> String {
 fn relative(path: &str) -> Result<(), String> {
     crate::config::validate_path(path, false)
 }
+/// A fixed list of common source-file extensions init proposes as code.
+/// Discovery reads matching files as text for link targets; there is no
+/// language-specific parsing. Binary, asset, lock, and generated extensions
+/// are never proposed; init reports the extensions it skipped.
+const CODE_EXTENSIONS: &[&str] = &[
+    ".bash", ".c", ".cc", ".cjs", ".clj", ".cljc", ".cljs", ".cpp", ".cs", ".cts", ".cxx", ".dart",
+    ".erl", ".ex", ".exs", ".fish", ".go", ".gradle", ".groovy", ".h", ".hh", ".hpp", ".hrl",
+    ".hs", ".hxx", ".java", ".jl", ".js", ".jsx", ".kt", ".kts", ".lhs", ".lua", ".m", ".mjs",
+    ".ml", ".mli", ".mm", ".mts", ".nim", ".php", ".pl", ".pm", ".ps1", ".py", ".r", ".rb", ".rs",
+    ".sbt", ".scala", ".sh", ".sql", ".svelte", ".swift", ".tf", ".ts", ".tsx", ".vue", ".zig",
+    ".zsh",
+];
 const TEMP_PREFIX: &str = ".docbridge-tmp-";
 /// Whether `name` has the exact shape of a [`replace`] temporary file,
 /// `.docbridge-tmp-<process>-<time>-<serial>` in decimal. Such a file is a
@@ -348,6 +360,24 @@ fn effective_dirs<'a>(
     }
     Ok(effective)
 }
+/// The proposal entry covering `file`: its outermost ancestor directory
+/// under which the walk skipped nothing, or `file` itself when every
+/// ancestor covers a skipped entry. `root` permits "." for root-level
+/// files. A proposed directory makes each of its descendants relevant
+/// during validation, which reports every entry the walk skipped, so an
+/// ancestor covering one falls back to narrower directories and finally
+/// to the file itself.
+fn proposed<'a>(file: &'a str, skipped: &[paths::Skipped], root: bool) -> &'a str {
+    file.match_indices('/')
+        .map(|(i, _)| &file[..i])
+        .chain(root.then_some("."))
+        .find(|dir| {
+            !skipped
+                .iter()
+                .any(|s| *dir == "." || s.path == *dir || s.path.starts_with(&format!("{dir}/")))
+        })
+        .unwrap_or(file)
+}
 pub fn init(root: &Path, options: &InitOptions) -> Outcome {
     outcome((|| {
         let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
@@ -368,23 +398,33 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
         }
         let mut extensions = BTreeSet::new();
         let mut paths = BTreeSet::new();
-        let mut docs = Vec::new();
+        let mut docs = BTreeSet::new();
+        let mut skipped_exts = BTreeMap::<String, usize>::new();
         for file in &found.files {
             if file.starts_with('.') || file == CONFIG || dirs.iter().any(|d| under(file, d)) {
                 continue;
             }
             if file.ends_with(".md") {
-                docs.push(file.clone());
-            } else if let Some(ext) = Path::new(file).extension().and_then(|e| e.to_str()) {
-                extensions.insert(format!(".{ext}"));
-                paths.insert(
-                    file.split('/')
-                        .next()
-                        .filter(|_| file.contains('/'))
-                        .unwrap_or(".")
-                        .to_string(),
-                );
+                // A directory stands in for its Markdown files: every Markdown
+                // file under it is included. Root-level files stay literal
+                // entries because "." is a discovery root, not a docs tree.
+                docs.insert(proposed(file, &found.skipped, false).to_string());
+            } else if let Some(ext) = Path::new(file)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| format!(".{e}"))
+            {
+                if CODE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
+                    extensions.insert(ext);
+                    paths.insert(proposed(file, &found.skipped, true).to_string());
+                } else {
+                    *skipped_exts.entry(ext).or_insert(0) += 1;
+                }
             }
+        }
+        // "." already covers its child directories.
+        if paths.contains(".") {
+            paths.retain(|p| p == ".");
         }
         let config = serde_json::to_vec_pretty(&serde_json::json!({"include":{"code":{"paths":paths,"extensions":extensions},"docs":docs}})).map_err(|e| e.to_string())?;
         let mut changes = Vec::new();
@@ -393,6 +433,27 @@ pub fn init(root: &Path, options: &InitOptions) -> Outcome {
             root.display(),
             String::from_utf8_lossy(&config)
         );
+        if extensions.is_empty() {
+            report.push_str("No code files proposed.\n");
+        }
+        if !skipped_exts.is_empty() {
+            let mut ranked: Vec<_> = skipped_exts.into_iter().collect();
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            let shown: Vec<String> = ranked
+                .iter()
+                .take(5)
+                .map(|(ext, count)| {
+                    format!("{ext} ({count} file{})", if *count == 1 { "" } else { "s" })
+                })
+                .collect();
+            let mut list = shown.join(", ");
+            if ranked.len() > 5 {
+                list.push_str(&format!(", and {} more", ranked.len() - 5));
+            }
+            report.push_str(&format!(
+                "Skipped extensions: {list}. Add an extension to include.code.extensions by hand to cover these files.\n"
+            ));
+        }
         for skipped in &found.skipped {
             report.push_str(&format!(
                 "Skipped during discovery: {} ({})\n",
