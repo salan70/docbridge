@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --sections --ignore-unmanaged\n";
+pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n  help      Show this help or a command's help\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --sections --ignore-unmanaged\n--version prints the installed version.\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
@@ -20,6 +20,7 @@ pub enum Command {
     Deinit,
     Docs,
     Help,
+    Version,
 }
 
 #[derive(Debug, Clone)]
@@ -70,8 +71,29 @@ impl Invocation {
     }
 
     fn parse_inner(args: &[String], cwd: &Path) -> Result<Self, Response> {
+        // `help` aliases `--help`; `help <command>` aliases `<command> --help`.
+        if args.first().is_some_and(|arg| arg == "help") {
+            if let Some(flag) = args.get(1).filter(|arg| arg.starts_with('-')) {
+                return Err(failure(3, format!("unknown command: {flag}")));
+            }
+            if let Some(extra) = args.get(2) {
+                return Err(if extra.starts_with('-') {
+                    failure(3, format!("unknown argument: {extra}"))
+                } else {
+                    failure(3, format!("unexpected argument: {extra}"))
+                });
+            }
+            let mut rewritten = Vec::with_capacity(args.len());
+            if let Some(command) = args.get(1) {
+                rewritten.push(command.clone());
+            }
+            rewritten.push("--help".to_string());
+            rewritten.extend(args.iter().skip(2).cloned());
+            return Self::parse_inner(&rewritten, cwd);
+        }
         let command = match args.first().map(String::as_str) {
             None | Some("--help" | "-h") => Command::Help,
+            Some("--version" | "-V") => Command::Version,
             Some("validate") => Command::Validate,
             Some("links") => Command::Links,
             Some("unlinked") => Command::Unlinked,
@@ -164,6 +186,13 @@ pub fn dispatch_with_confirmation(
         Command::Help => {
             return Response {
                 stdout: HELP.into(),
+                stderr: String::new(),
+                exit_code: 0,
+            }
+        }
+        Command::Version => {
+            return Response {
+                stdout: format!("docbridge {}\n", env!("CARGO_PKG_VERSION")),
                 stderr: String::new(),
                 exit_code: 0,
             }

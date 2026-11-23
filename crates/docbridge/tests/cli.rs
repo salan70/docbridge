@@ -425,6 +425,109 @@ fn all_six_commands_are_visible_in_help() {
 }
 
 #[test]
+fn version_prints_the_package_version_and_help_mirrors_the_help_flag() {
+    let p = Project::new();
+    let expected = format!("docbridge {}\n", env!("CARGO_PKG_VERSION"));
+    for flag in ["--version", "-V"] {
+        let output = p.run(&[flag]);
+        assert_eq!(output.status.code(), Some(0), "{flag}");
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap(),
+            expected,
+            "{flag}"
+        );
+        assert!(output.stderr.is_empty(), "{flag}");
+    }
+    let flagged = p.run(&["--help"]);
+    let bare = p.run(&["help"]);
+    assert_eq!(bare.status.code(), Some(0));
+    assert_eq!(bare.stdout, flagged.stdout);
+    assert_eq!(bare.stderr, flagged.stderr);
+    for command in ["validate", "links", "unlinked", "init", "deinit", "docs"] {
+        let via_flag = p.run(&[command, "--help"]);
+        let via_help = p.run(&["help", command]);
+        assert_eq!(via_help.status.code(), via_flag.status.code(), "{command}");
+        assert_eq!(via_help.stdout, via_flag.stdout, "{command}");
+        assert_eq!(via_help.stderr, via_flag.stderr, "{command}");
+    }
+    for args in [vec!["help", "unknown"], vec!["unknown"]] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            "unknown command: unknown\n",
+            "{args:?}"
+        );
+    }
+}
+
+#[test]
+fn version_flag_is_only_valid_as_the_first_argument() {
+    let p = Project::new();
+    for (args, stderr) in [
+        (
+            vec!["validate", "--version"],
+            "unknown argument: --version\n",
+        ),
+        (vec!["links", "-V"], "unknown argument: -V\n"),
+        (
+            vec!["unlinked", "--version"],
+            "unknown argument: --version\n",
+        ),
+        (vec!["help", "--version"], "unknown command: --version\n"),
+        (vec!["help", "-V"], "unknown command: -V\n"),
+    ] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            stderr,
+            "{args:?}"
+        );
+    }
+    for args in [
+        vec!["init", "--version"],
+        vec!["deinit", "-V"],
+        vec!["docs", "--version"],
+    ] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+    }
+}
+
+#[test]
+fn help_accepts_at_most_one_command_operand() {
+    let p = Project::new();
+    for (args, stderr) in [
+        (
+            vec!["help", "links", "validate"],
+            "unexpected argument: validate\n",
+        ),
+        (vec!["help", "validate", "x"], "unexpected argument: x\n"),
+        (
+            vec!["help", "docs", "validate"],
+            "unexpected argument: validate\n",
+        ),
+        (
+            vec!["help", "validate", "--bogus"],
+            "unknown argument: --bogus\n",
+        ),
+    ] {
+        let output = p.run(&args);
+        assert_eq!(output.status.code(), Some(3), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            stderr,
+            "{args:?}"
+        );
+    }
+}
+
+#[test]
 fn embedded_docs_work_without_project_configuration_or_guide_files() {
     let p = Project::new();
     let overview = p.run(&["docs"]);
