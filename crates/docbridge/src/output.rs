@@ -7,6 +7,9 @@ pub struct QueryDiagnostic {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line: Option<usize>,
     pub message: String,
+    /// Pasteable section IDs offered when a section selector matches nothing.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub candidates: Vec<String>,
 }
 
 impl QueryDiagnostic {
@@ -16,6 +19,7 @@ impl QueryDiagnostic {
             path: path.into(),
             line,
             message: message.into(),
+            candidates: Vec::new(),
         }
     }
 }

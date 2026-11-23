@@ -12,7 +12,7 @@ The CLI has no language parsers, LSP or editor integration, in-code annotations,
 
 ```sh
 docbridge validate [--root <directory>] [--json]
-docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [selectors...]
+docbridge links [--root <directory>] [--json] [--stdin] [--include-content] [--sections] [--ignore-unmanaged] [selectors...]
 docbridge unlinked [--root <directory>] [--json]
 docbridge init [--root <directory>] [--dry-run] [--yes] [--force] [--claude]
 docbridge deinit [--dry-run]
@@ -21,7 +21,7 @@ docbridge help [<command>]
 ```
 
 - `validate --json` prints `diagnostics` and a `summary` with `files`, `links`, `errors`, and `complete`.
-- `links` retrieves direct edges for file or section selectors (`relative/document.md#parent/child`), from arguments or stdin. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text.
+- `links` retrieves direct edges for file, directory, or section selectors (`relative/document.md#parent/child`), from arguments or stdin. An existing directory, `dir` or `dir/`, selects the same managed files as `dir/**` would. The name is taken literally, so a directory such as `src/[slug]` works even though the glob `src/[slug]/**` is rejected. A valid glob that matches nothing succeeds with an empty graph. `--include-content` adds the requested text. `--sections` instead treats selectors as file or directory selectors and lists the section IDs of the selected files, with no edges. With `--ignore-unmanaged`, file, directory, and section selectors naming unmanaged paths are skipped silently; managed files and managed-but-missing sections retain their diagnostics and candidate IDs. When all inputs are unmanaged and the project has no other diagnostics, the empty result exits 0.
 - Commands that need configuration read `docbridge.config.json` from `--root` or the current directory only; they do not search upward. The file name must match its directory entry exactly, even on case-folding file systems, and the file must not be a symlink.
 - A new command must be added to the `Command` enum, the parser, and `HELP` in `crates/docbridge/src/cli.rs`, and to the embedded guides.
 - The legacy `check`, `related`, `context`, `graph`, `init-with-agent`, `lsp`, and `upgrade` commands, and the `--gate` and `--audit` flags, were removed without aliases and are rejected as unknown arguments. The migration guide (`docbridge docs show migration`) maps them to the current commands or states that none replaces them.
@@ -37,7 +37,13 @@ When invoked with `--json`, query commands (`links`, `unlinked`) print one JSON 
 type Graph = {
   nodes: Node[];
   edges: { source: string; target: string }[];
-  diagnostics: { code: string; path: string; line?: number; message: string }[];
+  diagnostics: {
+    code: string;
+    path: string;
+    line?: number;
+    message: string;
+    candidates?: string[];
+  }[];
   complete: boolean;
   contents?: { id: string; path: string; start_line: number; end_line: number; text: string }[];
 };
@@ -71,6 +77,7 @@ type QueryDiagnostic = {
   path: string; // root-relative; empty when no file applies
   line?: number;
   message: string;
+  candidates?: string[]; // pasteable section IDs offered by a failed section selector
 };
 ```
 
@@ -96,7 +103,8 @@ Any diagnostic makes the result incomplete. Exit codes: [Exit codes and query ou
 
 ## Core CLI and identity
 
-- Section selectors use `relative/document.md#parent/child`. Each component is the heading's simple lowercase slug, retaining Unicode letters/numbers and underscores, replacing other runs with `-`, and trimming edge hyphens. This keeps the current simple rule rather than requiring GitHub compatibility.
+- Section selectors use `relative/document.md#parent/child`. Each component is the heading's simple lowercase slug, retaining Unicode letters/numbers and underscores, replacing other runs with `-`, and trimming edge hyphens. This keeps the current simple rule rather than requiring GitHub compatibility. A section ID is the full heading path; a bare last-segment slug is not resolved.
+- A section selector that matches no section reports candidate section IDs from the same file: every section path ending with the fragment at a segment boundary (each fragment segment is slugged like a heading, so `Camera Rig` matches `camera-rig`), then the closest by edit distance, capped at ten. Text diagnostics list them indented under the message; JSON diagnostics carry them in `candidates`.
 - Parent components follow the actual nearest preceding lower-level headings; skipped heading levels create no artificial ancestors. Empty heading slugs use `section` so their children remain addressable.
 - Sibling collisions receive the first available numeric suffix, beginning with `-2`, in document order. Unrelated parents may use the same component.
 - Managed paths are root-relative with `/` separators. Absolute paths, `..` components, backslashes, and `#` in managed file names are rejected. Internal spaces are allowed in annotation paths. `.` is permitted only as a configuration discovery root, not as a link target.
@@ -127,7 +135,7 @@ Other commands:
 - `docbridge --version` (`-V`) prints `docbridge <version>` on one line and exits 0. Both forms are valid only as the first argument.
 - `docbridge help` equals `docbridge --help`, and `docbridge help <command>` equals `docbridge <command> --help`. `help` with an unknown command name or more than one operand is a usage error with exit 3.
 - Usage errors exit 3 in every command, including `validate` ([#228](https://github.com/salan70/docbridge/issues/228)).
-- A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1.
+- A nonexistent file or section, an invalid selector among several, or an unreadable file makes `links` incomplete. Return 2 when any usable result remains, otherwise 1. Under `--ignore-unmanaged`, a selector naming a path outside the configured managed set — a file, directory, or `file#section` — is skipped silently rather than counted as an inconsistency; every other error class is unchanged.
 - Warnings and errors go to stderr, leaving stdout valid JSON when requested.
 - `links` retrieves direct edges only. A selected node can show all of its direct neighbors; neighbors do not trigger another traversal.
 - With content requested, the graph retains every selected/referenced section node. Unique overlapping source ranges are merged into content blocks; nodes reference their own start/end lines in those blocks. This exposes all requested text without repeating overlapping parent/child content. Text output labels a child whose content is already present in the displayed parent.
@@ -147,6 +155,7 @@ Other commands:
 - A small ownership record inside the skill identifies the files installed by DocBridge. This is asset ownership metadata, not a link manifest.
 - Ownership entries must be relative paths confined to that skill directory and include content hashes. Reject escaping entries and symlinks without performing any removal. An old skill without a valid ownership record is unmanaged; init reports the conflict and Migration explains manual retirement first.
 - `init --force` may replace recorded managed skill files, but it never overwrites configuration, follows symlinks, or deletes unrecorded user files.
+- init's candidate configuration stays reviewable on real projects: `include.code.extensions` lists only extensions from a fixed list of common source-file extensions, and init reports the top skipped extensions with file counts so more can be added by hand (binary, asset, lock, and generated extensions are never proposed); `include.docs` names each outermost directory containing Markdown files (root-level files stay literal entries), and `include.code.paths` drops directories already covered by `.`. A directory under which the discovery walk skipped an entry is never proposed, because validation reports every covered skipped entry; narrower directories free of skipped entries, then literal files, take its place.
 - deinit shows a complete removal plan and requires interactive confirmation. Noninteractive input without confirmation fails without changes; no new deinit `--yes` or `--root` flag is added in the initial version.
 - deinit removes recognizable DocBridge annotation lines outside examples and ordinary comments, preserving malformed lookalikes for manual review. It removes only owned unchanged skill files; modified or unowned files are reported and preserved. The displayed config removal requires confirmation even if the config was edited.
 - init and deinit check every target against the confirmed plan before the first write and write nothing if any differs. Each file then changes in one atomic step: a write goes to a temporary file in the target's directory that is renamed over the target, keeping an existing target's permissions. There is no recovery directory ([#228](https://github.com/salan70/docbridge/issues/228)).
