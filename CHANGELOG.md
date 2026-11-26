@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-26
+
 ### Added
 
 - `docbridge links --ignore-unmanaged` skips selectors naming paths outside
@@ -708,7 +710,8 @@ Initial release of the SpecLink CLI.
 - `speclink check` command with `--root`, `--json`, and `--audit` options.
 - `speclink --version` (alias `-v`) and `speclink --help` (alias `-h`).
 
-[Unreleased]: https://github.com/salan70/docbridge/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/salan70/docbridge/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/salan70/docbridge/releases/tag/v0.18.0
 [0.17.0]: https://github.com/salan70/docbridge/releases/tag/v0.17.0
 [0.16.0]: https://github.com/salan70/docbridge/releases/tag/v0.16.0
 [0.15.0]: https://github.com/salan70/docbridge/releases/tag/v0.15.0
