@@ -12,7 +12,7 @@ use std::{
 const CONFIG: &str = "docbridge.config.json";
 const RECORD: &str = ".docbridge-owned.json";
 const SKILL_DIRS: [&str; 2] = [".agents/skills/docbridge", ".claude/skills/docbridge"];
-const SKILL: &str = "---\nname: docbridge\ndescription: Maintain explicit documentation-to-code links.\n---\n\nUse `docbridge docs` and `docbridge docs list` for authoritative guidance.\nUse `docbridge validate`, `docbridge links`, and `docbridge unlinked` to inspect explicit links.\nRead the relevant documentation and code before editing. Validation checks structural links; assess semantic consistency yourself.\n";
+const SKILL: &str = "---\nname: docbridge\ndescription: Maintain explicit documentation-to-code links.\n---\n\nUse `docbridge docs` and `docbridge docs list` for authoritative guidance.\nUse `docbridge validate`, `docbridge links`, and `docbridge unlinked` to inspect explicit links.\n`docbridge` must be on `PATH`. If it is not, look for how the project provides the CLI, such as through a wrapper script, before reporting DocBridge unavailable.\nRead the relevant documentation and code before editing. Validation checks structural links; assess semantic consistency yourself.\n";
 #[derive(Default)]
 pub struct InitOptions {
     pub dry_run: bool,
