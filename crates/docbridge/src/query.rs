@@ -205,10 +205,15 @@ pub fn links(
         retained.insert(edge.source.clone());
         retained.insert(edge.target.clone());
     }
+    let explicitly_selected = if selectors.is_empty() {
+        BTreeSet::new()
+    } else {
+        selection.nodes.clone()
+    };
     graph(
         project,
         retained,
-        &selection.nodes,
+        &explicitly_selected,
         edges,
         diagnostics,
         include_content,

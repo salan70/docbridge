@@ -1471,6 +1471,19 @@ fn links_text_marks_every_selected_code_file_with_its_incoming_sections() {
 }
 
 #[test]
+fn links_without_selectors_keeps_the_whole_project_layout() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    let o = p.run(&["links"]);
+    assert!(o.status.success());
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "docs/a.md#a # A\n  -> src/a.rs\nsrc/a.rs\n"
+    );
+}
+
+#[test]
 fn links_single_file_selection_keeps_the_code_first_layout() {
     let p = project();
     p.write("src/a.rs", "a");
