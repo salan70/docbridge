@@ -111,6 +111,7 @@ fn managed_kinds(config: &Config, relative: &str) -> (bool, bool) {
 pub(crate) enum Unmanaged {
     OutsideCodePaths,
     ExtensionNotListed(String),
+    NoExtension,
     Excluded(String),
     OutsideDocs,
 }
@@ -124,6 +125,7 @@ impl Unmanaged {
             Self::ExtensionNotListed(extension) => {
                 format!("extension {extension} is not in include.code.extensions")
             }
+            Self::NoExtension => "file has no extension".into(),
             Self::Excluded(pattern) => {
                 format!("matched by exclude.code pattern {pattern:?}")
             }
@@ -133,12 +135,12 @@ impl Unmanaged {
 }
 
 /// The file name's last dotted suffix — the part `include.code.extensions`
-/// matches against — or the whole name when it has no dot.
-fn extension(relative: &str) -> String {
+/// matches against — when the name has one.
+fn extension(relative: &str) -> Option<String> {
     let name = relative.rsplit('/').next().unwrap_or(relative);
     match name.rsplit_once('.') {
-        Some((_, suffix)) if !suffix.is_empty() => format!(".{suffix}"),
-        _ => name.into(),
+        Some((_, suffix)) if !suffix.is_empty() => Some(format!(".{suffix}")),
+        _ => None,
     }
 }
 
@@ -147,6 +149,10 @@ fn extension(relative: &str) -> String {
 /// path reports only the docs-side reason; any other path reports each failed
 /// code-side check.
 pub(crate) fn unmanaged_reasons(config: &Config, relative: &str) -> Vec<Unmanaged> {
+    let (code, docs) = managed_kinds(config, relative);
+    if code || docs {
+        return Vec::new();
+    }
     let mut reasons = Vec::new();
     if relative.ends_with(".md") {
         if !config
@@ -175,7 +181,10 @@ pub(crate) fn unmanaged_reasons(config: &Config, relative: &str) -> Vec<Unmanage
         .iter()
         .any(|e| relative.ends_with(e))
     {
-        reasons.push(Unmanaged::ExtensionNotListed(extension(relative)));
+        reasons.push(match extension(relative) {
+            Some(extension) => Unmanaged::ExtensionNotListed(extension),
+            None => Unmanaged::NoExtension,
+        });
     }
     if let Some(pattern) = config
         .exclude

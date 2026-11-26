@@ -918,6 +918,43 @@ fn unmanaged_selector_diagnostic_names_the_reasons_and_the_fix() {
 }
 
 #[test]
+fn unmanaged_selector_diagnostic_handles_code_markdown_and_extensionless_names() {
+    let p = project();
+    p.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["src"],"extensions":[".md"]},"docs":["docs"]}}"#,
+    );
+
+    // A configured code file keeps the bare diagnostic even when it also ends
+    // in .md and is missing from disk.
+    let o = p.run(&["links", "src/missing.md"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("file is not a discovered managed file: src/missing.md"),
+        "{stderr}"
+    );
+    assert!(
+        !stderr.contains("outside every include.docs entry"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("docbridge.config.json —"), "{stderr}");
+
+    // A name without a suffix cannot be fixed by adding a suffixless entry to
+    // include.code.extensions, so the diagnostic says that directly.
+    p.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["src"],"extensions":[".rs"]},"docs":["docs"]},"exclude":{"code":["**/*.test.rs"]}}"#,
+    );
+    p.write("src/Makefile", "all:\n");
+    let o = p.run(&["links", "src/Makefile"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(stderr.contains("file has no extension"), "{stderr}");
+    assert!(!stderr.contains("extension Makefile"), "{stderr}");
+}
+
+#[test]
 fn section_candidates_match_slugged_fragment_segments() {
     let p = project();
     p.write("src/a.rs", "a");
