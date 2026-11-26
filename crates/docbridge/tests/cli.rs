@@ -822,20 +822,136 @@ fn sections_flag_lists_section_ids_of_selected_files() {
 }
 
 #[test]
-fn section_selector_on_unmanaged_file_reports_missing_section() {
+fn section_selector_on_unmanaged_file_reports_the_unmanaged_file() {
     let p = project();
     p.write("src/a.rs", "a");
     p.write("docs/a.md", "# A\n");
 
-    // A section selector naming an unmanaged file is a missing section.
+    // A section selector naming an unmanaged file reports the file problem,
+    // not a missing section.
     let o = p.run(&["links", "tool/x.py#a"]);
     assert_eq!(o.status.code(), Some(1));
     let stderr = String::from_utf8(o.stderr).unwrap();
     assert!(
-        stderr.contains("section does not exist: tool/x.py#a"),
+        stderr.contains("file is not a discovered managed file: tool/x.py"),
         "{stderr}"
     );
-    assert!(!stderr.contains("managed file"), "{stderr}");
+    assert!(stderr.contains("docbridge.config.json"), "{stderr}");
+    assert!(!stderr.contains("section does not exist"), "{stderr}");
+}
+
+#[test]
+fn unmanaged_selector_diagnostic_names_the_reasons_and_the_fix() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "# A\n");
+    p.write("tool/w/capture.py", "unmanaged\n");
+    p.write("src/a.py", "unmanaged\n");
+    p.write("src/a.test.rs", "excluded\n");
+    p.write("notes/a.md", "# Notes\n");
+
+    // Outside every code path with an unlisted extension: both reasons apply.
+    let o = p.run(&["links", "tool/w/capture.py"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("file is not a discovered managed file: tool/w/capture.py"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("outside every include.code.paths entry"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("extension .py is not in include.code.extensions"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("docbridge.config.json"), "{stderr}");
+
+    // Inside a code path only the extension reason applies.
+    let o = p.run(&["links", "src/a.py"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("extension .py is not in include.code.extensions"),
+        "{stderr}"
+    );
+    assert!(
+        !stderr.contains("outside every include.code.paths entry"),
+        "{stderr}"
+    );
+
+    // An exclude.code match names the matching pattern.
+    let o = p.run(&["links", "src/a.test.rs"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains(r#"matched by exclude.code pattern "**/*.test.rs""#),
+        "{stderr}"
+    );
+    assert!(
+        !stderr.contains("outside every include.code.paths entry"),
+        "{stderr}"
+    );
+
+    // A .md path reports only the docs-side reason.
+    let o = p.run(&["links", "notes/a.md"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("outside every include.docs entry"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("include.code"), "{stderr}");
+
+    // JSON keeps the selector code; the reasons live in the message.
+    let (o, v) = p.json(&["links", "tool/w/capture.py", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["diagnostics"][0]["code"], "selector");
+    let message = v["diagnostics"][0]["message"].as_str().unwrap();
+    assert!(
+        message.contains("outside every include.code.paths entry"),
+        "{message}"
+    );
+    assert!(message.contains("extension .py"), "{message}");
+    assert!(message.contains("docbridge.config.json"), "{message}");
+}
+
+#[test]
+fn unmanaged_selector_diagnostic_handles_code_markdown_and_extensionless_names() {
+    let p = project();
+    p.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["src"],"extensions":[".md"]},"docs":["docs"]}}"#,
+    );
+
+    // A configured code file keeps the bare diagnostic even when it also ends
+    // in .md and is missing from disk.
+    let o = p.run(&["links", "src/missing.md"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(
+        stderr.contains("file is not a discovered managed file: src/missing.md"),
+        "{stderr}"
+    );
+    assert!(
+        !stderr.contains("outside every include.docs entry"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("docbridge.config.json —"), "{stderr}");
+
+    // A name without a suffix cannot be fixed by adding a suffixless entry to
+    // include.code.extensions, so the diagnostic says that directly.
+    p.write(
+        "docbridge.config.json",
+        r#"{"include":{"code":{"paths":["src"],"extensions":[".rs"]},"docs":["docs"]},"exclude":{"code":["**/*.test.rs"]}}"#,
+    );
+    p.write("src/Makefile", "all:\n");
+    let o = p.run(&["links", "src/Makefile"]);
+    assert_eq!(o.status.code(), Some(1));
+    let stderr = String::from_utf8(o.stderr).unwrap();
+    assert!(stderr.contains("file has no extension"), "{stderr}");
+    assert!(!stderr.contains("extension Makefile"), "{stderr}");
 }
 
 #[test]

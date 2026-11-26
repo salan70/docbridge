@@ -1,7 +1,7 @@
 use crate::{
     config,
     output::{ContentBlock, ContentReference, Edge, Graph, Node, QueryDiagnostic, Region},
-    project::{line_at, slug, Project},
+    project::{line_at, slug, unmanaged_reasons, Project, Unmanaged},
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -75,14 +75,23 @@ fn resolve_selectors(
                 ));
             } else if !project.nodes.contains_key(selector) {
                 if !ignore_unmanaged || project.manages(path) {
-                    let mut diagnostic = QueryDiagnostic::new(
-                        "selector",
-                        path,
-                        None,
-                        format!("section does not exist: {selector}"),
-                    );
-                    diagnostic.candidates = section_candidates(project, path, fragment);
-                    diagnostics.push(diagnostic);
+                    if project.manages(path) || directory(&project.root, path) {
+                        let mut diagnostic = QueryDiagnostic::new(
+                            "selector",
+                            path,
+                            None,
+                            format!("section does not exist: {selector}"),
+                        );
+                        diagnostic.candidates = section_candidates(project, path, fragment);
+                        diagnostics.push(diagnostic);
+                    } else {
+                        diagnostics.push(QueryDiagnostic::new(
+                            "selector",
+                            path,
+                            None,
+                            unmanaged_message(project, path),
+                        ));
+                    }
                 }
             } else {
                 selected.insert(selector.clone());
@@ -117,10 +126,30 @@ fn resolve_selectors(
                 "selector",
                 path,
                 None,
-                format!("file is not a discovered managed file: {path}"),
+                unmanaged_message(project, path),
             ));
         }
     }
+}
+
+/// The remedy an unmanaged-path diagnostic points to: the file to edit, and
+/// the guide documenting its keys.
+const MANAGE_GUIDANCE: &str = "edit docbridge.config.json — see docbridge docs show configuration";
+
+/// The rejection for a selector path discovery did not read. A path the
+/// configuration manages keeps the bare wording; an unmanaged path adds the
+/// failed checks and the remedy.
+fn unmanaged_message(project: &Project, path: &str) -> String {
+    let reasons = unmanaged_reasons(&project.config, path);
+    if reasons.is_empty() {
+        return format!("file is not a discovered managed file: {path}");
+    }
+    let reasons = reasons
+        .iter()
+        .map(Unmanaged::describe)
+        .collect::<Vec<_>>()
+        .join("; ");
+    format!("file is not a discovered managed file: {path} ({reasons}); {MANAGE_GUIDANCE}")
 }
 
 pub fn links(

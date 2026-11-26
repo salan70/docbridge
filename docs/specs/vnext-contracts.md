@@ -94,6 +94,8 @@ type QueryDiagnostic = {
 | `read-metadata`  | File metadata could not be read                                                       |
 | `usage`          | Invalid CLI arguments (with `--json`, reported as a diagnostic)                       |
 
+A selector naming an unmanaged path — a file, or the file part of `file#section` — reports `file is not a discovered managed file` with the applicable reasons: the path is outside every `include.code.paths` entry, its extension is missing from `include.code.extensions`, an `exclude.code` pattern matches it, or, for a `.md` path, it is outside every `include.docs` entry. The message points to `docbridge.config.json` and `docbridge docs show configuration`. A managed path that is missing or unreadable on disk keeps the bare message, and a section selector on a managed file or an existing directory keeps `section does not exist` with its candidate IDs.
+
 Any diagnostic makes the result incomplete. Exit codes: [Exit codes and query output](#exit-codes-and-query-output).
 
 <!-- @code crates/docbridge/src/config.rs -->
