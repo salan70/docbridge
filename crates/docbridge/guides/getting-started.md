@@ -2,7 +2,7 @@
 
 DocBridge connects code files to Markdown sections. It checks link structure; an AI agent or another reviewer must check whether linked content agrees in meaning.
 
-1. Install the native binary using the instructions for your distribution. Production publication remains pending.
+1. Install the native binary and put `docbridge` on your `PATH`.
 2. Run `docbridge init` and review the suggested code paths, extensions, and documentation paths.
 3. Add file-level links in Markdown as described in [Linking](linking.md).
 4. Run `docbridge validate`, then review meaning and coverage with `docbridge links` and `docbridge unlinked`.

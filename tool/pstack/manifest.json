@@ -3,29 +3,43 @@
   "install": {
     "pstack/LICENSE": "tool/pstack/upstream/LICENSE",
     "pstack/docs/harness/claude-code.md": "tool/pstack/upstream/docs/harness/claude-code.md",
+    "pstack/agents/comment-sicko.md": "tool/pstack/upstream/agents/comment-sicko.md",
     "pstack/skills/principle-boundary-discipline/": ".agents/skills/principle-boundary-discipline/",
     "pstack/skills/principle-fix-root-causes/": ".agents/skills/principle-fix-root-causes/",
     "pstack/skills/principle-subtract-before-you-add/": ".agents/skills/principle-subtract-before-you-add/",
     "pstack/skills/principle-encode-lessons-in-structure/": ".agents/skills/principle-encode-lessons-in-structure/",
     "pstack/skills/principle-guard-the-context-window/": ".agents/skills/principle-guard-the-context-window/",
     "pstack/skills/principle-model-the-domain/": ".agents/skills/principle-model-the-domain/",
+    "pstack/skills/architect/": ".agents/skills/architect/",
     "pstack/skills/correct/": ".agents/skills/correct/",
     "pstack/skills/blast-radius/": ".agents/skills/blast-radius/",
     "pstack/skills/benchmark-checklist/": ".agents/skills/benchmark-checklist/",
+    "pstack/skills/how/": ".agents/skills/how/",
+    "pstack/skills/no-comments/": ".agents/skills/no-comments/",
     "pstack/skills/poteto-mode/": ".agents/skills/poteto-mode/",
     "pstack/skills/technical-writing/": ".agents/skills/technical-writing/",
-    "pstack/skills/unslop/": ".agents/skills/unslop/"
+    "pstack/skills/unslop/": ".agents/skills/unslop/",
+    "pstack/skills/why/": ".agents/skills/why/",
+    "cursor-team-kit/LICENSE": "tool/pstack/upstream/cursor-team-kit/LICENSE",
+    "cursor-team-kit/skills/deslop/": ".agents/skills/deslop/"
   },
   "exclude": ["pstack/skills/poteto-mode/scripts/"],
   "overlays": {
+    "pstack/skills/no-comments/SKILL.md": "tool/pstack/overlays/no-comments.md",
     "pstack/skills/poteto-mode/SKILL.md": "tool/pstack/overlays/poteto-mode.md"
   },
   "files": {
+    "cursor-team-kit/LICENSE": "702f5f331b56aff0e33d8c7826df5202559f894145eb70355c6477b55b5bb8a0",
+    "cursor-team-kit/skills/deslop/SKILL.md": "2f7b7def74af7ed11f5b44b4d32f0f91fca8c5d1f92bf2171e8d12fd33a0f810",
     "pstack/LICENSE": "bc957ca6bee02792566a1a028d105e02e247c6e77cf057061674273da77b200e",
+    "pstack/agents/comment-sicko.md": "0fb37221ab2a9159714d38f1528898e82b9758b5750f244bbe2e575bb593a1de",
     "pstack/docs/harness/claude-code.md": "5f859ef4fa39664b1ccdff521bcb15854f8805394191da509e68ce625b97cba6",
+    "pstack/skills/architect/SKILL.md": "aea83d7aa109eb73402182701b14c289844663ad9c8f959fedbef2df66787ce0",
     "pstack/skills/benchmark-checklist/SKILL.md": "5efd79495e3eebf3b53814861330fe812458212958f8f009492e866c329161f6",
     "pstack/skills/blast-radius/SKILL.md": "4248d03e22365207d2e5f90c9542720f80a88a6b42fd542ef88dde3cf9f9223f",
     "pstack/skills/correct/SKILL.md": "e347045d00c967a0b831ef883cc6ac79d21329aa10b5968637df95de7febf0ba",
+    "pstack/skills/how/SKILL.md": "23d5cc79a449b9838242e7af5563aa8a4f0417bab136bbcc054b4bebc7284680",
+    "pstack/skills/no-comments/SKILL.md": "054a46f2662c725add02d9e0440d8dcb4351f3bd0afcf797acc22a501b527b54",
     "pstack/skills/poteto-mode/SKILL.md": "67fd2c54fd25ebfae1e46db62c4b2e54f806a7ea9dfb6c83922de37e9b9635ea",
     "pstack/skills/poteto-mode/playbooks/authoring-a-skill.md": "f6a13a445c360b48d6cd72780ac01955f45b82826476efe0e67c7559329407aa",
     "pstack/skills/poteto-mode/playbooks/autonomous-run.md": "613c7b3079779ecfa27e1fb41a082711b5a1207e720b87f75c3aaa9b25aac480",
@@ -58,6 +72,7 @@
     "pstack/skills/principle-model-the-domain/SKILL.md": "97c6214dc6a18b93177dda6429185a8640878b36ddee6ec9400c23a0eb9be2d8",
     "pstack/skills/principle-subtract-before-you-add/SKILL.md": "8c93bb9d1a7f38e2ef37655d93f0e790fa59903105af3d500cc8a663ebe45f3f",
     "pstack/skills/technical-writing/SKILL.md": "0a620885599cdde5a0a31fa39878144c10f61c894b56bf4a9ff779496e718b14",
-    "pstack/skills/unslop/SKILL.md": "2b823fd069e031c1420180be8e0d4f5e2fd25bf2c428049e5c835c59a489b5e0"
+    "pstack/skills/unslop/SKILL.md": "2b823fd069e031c1420180be8e0d4f5e2fd25bf2c428049e5c835c59a489b5e0",
+    "pstack/skills/why/SKILL.md": "6b65b3180f1f1bd3b696d7933daf900747410c82931d220a3f57a98addb1c0fd"
   }
 }
