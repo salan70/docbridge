@@ -43,6 +43,9 @@ pub struct Node {
     /// Non-overlapping uncovered ranges; present on unlinked Markdown regions.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub regions: Vec<Region>,
+    /// Whether a selector named this node; text output only, never JSON.
+    #[serde(skip)]
+    pub selected: bool,
     #[serde(skip)]
     pub start: usize,
     #[serde(skip)]
@@ -88,7 +91,7 @@ pub struct Graph {
 }
 
 impl Graph {
-    pub fn text(&self, content: bool, single: Option<&str>) -> String {
+    pub fn text(&self, content: bool) -> String {
         fn label(node: &Node) -> String {
             let heading = match (node.level, node.title.as_deref()) {
                 (Some(level), Some(title)) => format!(" {} {title}", "#".repeat(level as usize)),
@@ -106,10 +109,11 @@ impl Graph {
         if content {
             out.push_str("Links\n");
         }
+        // Selected nodes first, then non-code nodes, then code nodes.
         let mut nodes: Vec<_> = self.nodes.iter().collect();
         nodes.sort_by_key(|n| {
             (
-                if Some(n.id.as_str()) == single {
+                if n.selected {
                     0
                 } else if n.kind != "code" {
                     1
@@ -123,12 +127,17 @@ impl Graph {
         });
         for node in nodes {
             nested(node, node.parents.len(), &mut out);
+            let mut incoming = false;
             for edge in &self.edges {
                 if edge.source == node.id {
                     out.push_str(&format!("  -> {}\n", edge.target));
-                } else if single == Some(node.id.as_str()) && edge.target == node.id {
+                } else if edge.target == node.id && node.selected && node.kind == "code" {
+                    incoming = true;
                     out.push_str(&format!("  <- {}\n", edge.source));
                 }
+            }
+            if node.selected && node.kind == "code" && !incoming {
+                out.push_str("  (no incoming links)\n");
             }
         }
         if let Some(blocks) = &self.contents {

@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a `candidates` array in `--json` diagnostics.
 - `docbridge links --sections` lists the section IDs of the selected files
   without traversing link edges.
+- `docbridge unlinked` accepts the `links` selectors — files, directories,
+  globs, and `document.md#section` IDs — plus `--stdin` and
+  `--ignore-unmanaged`, scoping the report to the selected files and
+  subtrees. A file or directory selection includes the file's preamble; a
+  section selection reports only that subtree. `--include-content` and
+  `--sections` remain usage errors.
 - `docbridge links` accepts an existing directory path, `dir` or `dir/`, as a
   selector equivalent to `dir/**`: it selects the discovered managed files
   under the directory recursively, both as an argument and through `--stdin`.
@@ -31,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `docbridge links` text output marks every explicitly selected code file
+  with its incoming sections as an indented `<- <section>` line, or
+  `(no incoming links)` when none exists, so multi-file, directory, and glob
+  selections stay readable. Output without selectors keeps the whole-project
+  layout.
 - `docbridge links` now explains why a selector's file is not a discovered
   managed file: the `selector` diagnostic lists the applicable reasons —
   the path is outside every `include.code.paths` entry, its extension is

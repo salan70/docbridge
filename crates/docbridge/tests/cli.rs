@@ -1454,6 +1454,240 @@ fn symlinked_directory_selectors_keep_their_rejection() {
     }
 }
 
+#[test]
+fn links_text_marks_every_selected_code_file_with_its_incoming_sections() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("src/b.rs", "b");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    // Selected code files come first in path order, each with its incoming
+    // sections or an explicit no-link marker; neighbors keep the `->` form.
+    let o = p.run(&["links", "src/a.rs", "src/b.rs"]);
+    assert!(o.status.success());
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "src/a.rs\n  <- docs/a.md#a\nsrc/b.rs\n  (no incoming links)\ndocs/a.md#a # A\n  -> src/a.rs\n"
+    );
+}
+
+#[test]
+fn links_without_selectors_keeps_the_whole_project_layout() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    let o = p.run(&["links"]);
+    assert!(o.status.success());
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "docs/a.md#a # A\n  -> src/a.rs\nsrc/a.rs\n"
+    );
+}
+
+#[test]
+fn links_single_file_selection_keeps_the_code_first_layout() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("src/free.rs", "free");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    let o = p.run(&["links", "src/a.rs"]);
+    assert!(o.status.success());
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "src/a.rs\n  <- docs/a.md#a\ndocs/a.md#a # A\n  -> src/a.rs\n"
+    );
+    // A selected file with no incoming link says so, not a bare path.
+    let o = p.run(&["links", "src/free.rs"]);
+    assert!(o.status.success());
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "src/free.rs\n  (no incoming links)\n"
+    );
+}
+
+#[test]
+fn links_directory_and_glob_selections_mark_the_matched_files() {
+    let p = project();
+    p.write("src/dir/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/dir/a.rs -->\n# A\n");
+    for selector in ["src/dir", "src/dir/", "src/**/*.rs"] {
+        let o = p.run(&["links", selector]);
+        assert!(o.status.success(), "{selector}");
+        assert_eq!(
+            String::from_utf8(o.stdout).unwrap(),
+            "src/dir/a.rs\n  <- docs/a.md#a\ndocs/a.md#a # A\n  -> src/dir/a.rs\n",
+            "{selector}"
+        );
+    }
+}
+
+#[test]
+fn links_and_unlinked_json_nodes_have_no_selected_key() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("docs/a.md", "<!-- @code src/a.rs -->\n# A\n");
+    for args in [
+        vec!["links", "src/a.rs", "--json"],
+        vec!["links", "--json"],
+        vec!["unlinked", "--json"],
+    ] {
+        let (o, v) = p.json(&args);
+        assert!(o.status.success(), "{args:?}");
+        for node in v["nodes"].as_array().unwrap() {
+            assert!(node.get("selected").is_none(), "{args:?}: {node}");
+        }
+    }
+}
+
+#[test]
+fn unlinked_scopes_results_to_directory_file_and_glob_selectors() {
+    let p = project();
+    p.write("src/dir/free.rs", "free");
+    p.write("src/other.rs", "o");
+    p.write("docs/dir/a.md", "# A\n");
+    p.write("docs/b.md", "# B\n");
+    let ids = |v: &Value| -> Vec<String> {
+        v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["id"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    for selector in ["src/dir", "src/dir/", "src/dir/*.rs"] {
+        let (o, v) = p.json(&["unlinked", selector, "--json"]);
+        assert!(o.status.success(), "{selector}: {v}");
+        assert_eq!(ids(&v), ["src/dir/free.rs"], "{selector}");
+    }
+    let (o, v) = p.json(&["unlinked", "docs/dir", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(ids(&v), ["docs/dir/a.md#a"]);
+    let (o, v) = p.json(&["unlinked", "src/dir/free.rs", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(ids(&v), ["src/dir/free.rs"]);
+    // Text output prints only items under the selector.
+    let o = p.run(&["unlinked", "src/dir"]);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "src/dir/free.rs\n");
+}
+
+#[test]
+fn unlinked_section_selector_prints_only_that_subtree() {
+    let p = project();
+    p.write("docs/a.md", "# A\n## B\nb body\n## C\nc body\n# D\nd\n");
+    let (o, v) = p.json(&["unlinked", "docs/a.md#a/b", "--json"]);
+    assert!(o.status.success());
+    let ids: Vec<_> = v["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(ids, ["docs/a.md#a/b"]);
+    let o = p.run(&["unlinked", "docs/a.md#a/b"]);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "  docs/a.md#a/b ## B\n"
+    );
+    // When the parent section is linked, the subtree is covered.
+    p.write("src/x.rs", "x");
+    p.write("docs/a.md", "<!-- @code src/x.rs -->\n# A\n## B\nb body\n");
+    let (o, v) = p.json(&["unlinked", "docs/a.md#a/b", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(v["nodes"], json!([]));
+}
+
+#[test]
+fn unlinked_stdin_scopes_the_listing_and_empty_stdin_empties_it() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("src/b.rs", "b");
+    let (o, v) = stdin_json(
+        &p,
+        &["unlinked", "--stdin", "--json"],
+        "src/a.rs\n\nsrc/b.rs\n",
+    );
+    assert!(o.status.success());
+    let ids: Vec<_> = v["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(ids, ["src/a.rs", "src/b.rs"]);
+    // Empty stdin is an explicit empty selection, not a whole-project request.
+    let (o, v) = stdin_json(&p, &["unlinked", "--stdin", "--json"], "");
+    assert!(o.status.success());
+    assert_eq!(v["nodes"], json!([]));
+    // /dev/null stdin does not block either.
+    let o = p.run(&["unlinked", "--stdin"]);
+    assert!(o.status.success());
+    assert!(o.stdout.is_empty());
+}
+
+#[test]
+fn unlinked_selector_errors_exit_1_and_ignore_unmanaged_skips() {
+    let p = project();
+    p.write("src/a.rs", "a");
+    p.write("tool/x.py", "unmanaged\n");
+    let (o, v) = p.json(&["unlinked", "tool/x.py", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["diagnostics"][0]["code"], "selector");
+    assert!(v["diagnostics"][0]["message"]
+        .as_str()
+        .unwrap()
+        .contains("file is not a discovered managed file: tool/x.py"));
+    // Usable results alongside an error still exit 1, never the links-only 2.
+    let (o, v) = p.json(&["unlinked", "src/a.rs", "tool/x.py", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(v["nodes"].to_string().contains("src/a.rs"));
+    let (o, v) = p.json(&["unlinked", "tool/x.py", "--ignore-unmanaged", "--json"]);
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(v["nodes"], json!([]));
+    // A missing section on a managed file keeps its candidate IDs.
+    p.write("docs/a.md", "# A\n");
+    let (o, v) = p.json(&["unlinked", "docs/a.md#nope", "--json"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(v["diagnostics"][0]["code"], "selector");
+    assert_eq!(v["diagnostics"][0]["candidates"], json!(["docs/a.md#a"]));
+}
+
+#[test]
+fn unlinked_file_selection_includes_the_preamble_but_a_section_does_not() {
+    let p = project();
+    p.write("docs/plain.md", "Headingless body\n");
+    p.write("docs/mixed.md", "Preamble\n# Sec\nbody\n");
+    let ids = |v: &Value| -> Vec<String> {
+        v["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["id"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    let (o, v) = p.json(&["unlinked", "docs/plain.md", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(ids(&v), ["docs/plain.md#@preamble"]);
+    let (o, v) = p.json(&["unlinked", "docs/mixed.md", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(ids(&v), ["docs/mixed.md#@preamble", "docs/mixed.md#sec"]);
+    let (o, v) = p.json(&["unlinked", "docs/mixed.md#sec", "--json"]);
+    assert!(o.status.success());
+    assert_eq!(ids(&v), ["docs/mixed.md#sec"]);
+}
+
+#[test]
+fn unlinked_rejects_links_only_flags() {
+    let p = project();
+    for args in [
+        vec!["unlinked", "--sections"],
+        vec!["unlinked", "--include-content"],
+    ] {
+        let o = p.run(&args);
+        assert_eq!(o.status.code(), Some(3), "{args:?}");
+        assert!(o.stdout.is_empty(), "{args:?}");
+        assert!(!o.stderr.is_empty(), "{args:?}");
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn discovery_prunes_unmanaged_subtrees_before_io() {
