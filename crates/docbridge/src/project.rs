@@ -106,6 +106,88 @@ fn managed_kinds(config: &Config, relative: &str) -> (bool, bool) {
     (code, docs)
 }
 
+/// A configuration check that keeps `relative` out of the managed set.
+#[derive(Debug)]
+pub(crate) enum Unmanaged {
+    OutsideCodePaths,
+    ExtensionNotListed(String),
+    Excluded(String),
+    OutsideDocs,
+}
+
+impl Unmanaged {
+    /// The reason phrased for a diagnostic message, naming the configuration
+    /// key — and the pattern for an exclusion — that rejected the path.
+    pub(crate) fn describe(&self) -> String {
+        match self {
+            Self::OutsideCodePaths => "outside every include.code.paths entry".into(),
+            Self::ExtensionNotListed(extension) => {
+                format!("extension {extension} is not in include.code.extensions")
+            }
+            Self::Excluded(pattern) => {
+                format!("matched by exclude.code pattern {pattern:?}")
+            }
+            Self::OutsideDocs => "outside every include.docs entry".into(),
+        }
+    }
+}
+
+/// The file name's last dotted suffix — the part `include.code.extensions`
+/// matches against — or the whole name when it has no dot.
+fn extension(relative: &str) -> String {
+    let name = relative.rsplit('/').next().unwrap_or(relative);
+    match name.rsplit_once('.') {
+        Some((_, suffix)) if !suffix.is_empty() => format!(".{suffix}"),
+        _ => name.into(),
+    }
+}
+
+/// Every reason `relative` is not a managed file, mirroring `managed_kinds`;
+/// the list is empty exactly when the configuration manages the path. A `.md`
+/// path reports only the docs-side reason; any other path reports each failed
+/// code-side check.
+pub(crate) fn unmanaged_reasons(config: &Config, relative: &str) -> Vec<Unmanaged> {
+    let mut reasons = Vec::new();
+    if relative.ends_with(".md") {
+        if !config
+            .include
+            .docs
+            .iter()
+            .any(|p| config::in_scope(p, relative))
+        {
+            reasons.push(Unmanaged::OutsideDocs);
+        }
+        return reasons;
+    }
+    if !config
+        .include
+        .code
+        .paths
+        .iter()
+        .any(|p| config::in_scope(p, relative))
+    {
+        reasons.push(Unmanaged::OutsideCodePaths);
+    }
+    if !config
+        .include
+        .code
+        .extensions
+        .iter()
+        .any(|e| relative.ends_with(e))
+    {
+        reasons.push(Unmanaged::ExtensionNotListed(extension(relative)));
+    }
+    if let Some(pattern) = config
+        .exclude
+        .code
+        .iter()
+        .find(|p| config::in_scope(p, relative))
+    {
+        reasons.push(Unmanaged::Excluded(pattern.clone()));
+    }
+    reasons
+}
+
 impl Project {
     pub fn load(root: &Path) -> Result<Self, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("project root: {e}"))?;

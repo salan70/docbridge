@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `docbridge links` now explains why a selector's file is not a discovered
+  managed file: the `selector` diagnostic lists the applicable reasons —
+  the path is outside every `include.code.paths` entry, its extension is
+  missing from `include.code.extensions`, an `exclude.code` pattern matches
+  it, or, for a `.md` path, it is outside every `include.docs` entry — and
+  points to `docbridge.config.json` and `docbridge docs show configuration`.
+  A `file#section` selector on an unmanaged file reports the same diagnostic
+  instead of `section does not exist`.
 - `docbridge init` proposes a shorter candidate configuration on real
   projects: `include.code.extensions` lists extensions from a fixed list of
   common source-file extensions and init reports the top skipped extensions
