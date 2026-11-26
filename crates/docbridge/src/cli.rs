@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n  help      Show this help or a command's help\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --sections --ignore-unmanaged\n--version prints the installed version.\n";
+pub const HELP: &str = "DocBridge\n\nCommands:\n  validate  Validate configuration and Markdown links\n  links     Retrieve direct file/section links\n  unlinked  List uncovered code and Markdown regions\n  init      Initialize project assets\n  deinit    Remove project assets safely\n  docs      Read embedded guides\n  help      Show this help or a command's help\n\nRead commands: --json --root <directory>\nlinks: [selectors ...] --stdin --include-content --sections --ignore-unmanaged\nunlinked: [selectors ...] --stdin --ignore-unmanaged\n--version prints the installed version.\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
@@ -141,7 +141,9 @@ impl Invocation {
                         invocation.root = cwd.join(root);
                         continue;
                     }
-                    "--stdin" if invocation.command == Command::Links => {
+                    "--stdin"
+                        if matches!(invocation.command, Command::Links | Command::Unlinked) =>
+                    {
                         invocation.stdin = true;
                         continue;
                     }
@@ -149,7 +151,9 @@ impl Invocation {
                         invocation.include_content = true;
                         continue;
                     }
-                    "--ignore-unmanaged" if invocation.command == Command::Links => {
+                    "--ignore-unmanaged"
+                        if matches!(invocation.command, Command::Links | Command::Unlinked) =>
+                    {
                         invocation.ignore_unmanaged = true;
                         continue;
                     }
@@ -167,7 +171,7 @@ impl Invocation {
                     _ => {}
                 }
             }
-            if invocation.command != Command::Links {
+            if !matches!(invocation.command, Command::Links | Command::Unlinked) {
                 return Err(failure(3, format!("unexpected argument: {arg}")));
             }
             invocation.selectors.push(arg.clone());
@@ -266,9 +270,7 @@ pub fn dispatch_with_confirmation(
         };
     }
     // Empty stdin is an explicit empty selection, unlike a bare whole-project request.
-    let graph = if invocation.command == Command::Unlinked {
-        query::unlinked(&project)
-    } else if invocation.stdin && invocation.selectors.is_empty() {
+    let graph = if invocation.stdin && invocation.selectors.is_empty() {
         Graph {
             nodes: Vec::new(),
             edges: Vec::new(),
@@ -276,6 +278,8 @@ pub fn dispatch_with_confirmation(
             complete: project.complete,
             contents: invocation.include_content.then(Vec::new),
         }
+    } else if invocation.command == Command::Unlinked {
+        query::unlinked(&project, &invocation.selectors, invocation.ignore_unmanaged)
     } else if invocation.sections {
         query::sections(
             &project,
@@ -298,16 +302,11 @@ pub fn dispatch_with_confirmation(
     } else {
         1
     };
-    let single = if invocation.selectors.len() == 1 {
-        Some(invocation.selectors[0].as_str())
-    } else {
-        None
-    };
     Response {
         stdout: if invocation.json {
             serialize(&graph)
         } else {
-            graph.text(invocation.include_content, single)
+            graph.text(invocation.include_content)
         },
         stderr: diagnostic_text(&graph.diagnostics),
         exit_code,

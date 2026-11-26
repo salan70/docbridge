@@ -188,8 +188,8 @@ fn binary_options(command: &str, global_help: &str) -> std::collections::BTreeSe
             .to_owned()
     };
     let mut set = options(&line("Read commands:"));
-    if command == "links" {
-        set.extend(options(&line("links:")));
+    if matches!(command, "links" | "unlinked") {
+        set.extend(options(&line(&format!("{command}:"))));
     }
     set
 }

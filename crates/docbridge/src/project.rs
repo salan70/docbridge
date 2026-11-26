@@ -317,6 +317,7 @@ impl Project {
                         content: None,
                         children: Vec::new(),
                         regions: Vec::new(),
+                        selected: false,
                         start: section.source.start,
                         end: section.source.end,
                     };
@@ -338,6 +339,7 @@ impl Project {
                         content: None,
                         children: Vec::new(),
                         regions: Vec::new(),
+                        selected: false,
                         start: 0,
                         end: file.text.len(),
                     },

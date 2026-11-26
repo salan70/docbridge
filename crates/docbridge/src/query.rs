@@ -18,30 +18,42 @@ fn directory(root: &Path, relative: &str) -> bool {
         .is_some_and(|metadata| metadata.is_dir())
 }
 
-/// Resolve selectors into selected node IDs, appending one diagnostic per
+/// What a selector list resolves to: the node IDs it names, and the managed
+/// files it selected as whole files. Headingless Markdown has no node to
+/// stand for its file, so `unlinked` keeps a selected file's preamble through
+/// `files`, which section selectors (`file#section`) never fill.
+#[derive(Default)]
+struct Selection {
+    nodes: BTreeSet<String>,
+    files: BTreeSet<String>,
+}
+
+/// Resolve selectors into a [`Selection`], appending one diagnostic per
 /// rejected selector. `links --sections` (`sections_only`) contributes only
-/// section nodes and rejects section selectors; `links` contributes every
-/// node and resolves section selectors. File selectors — paths and globs —
-/// share one interpretation so new selector features apply to both. Under
-/// `ignore_unmanaged`, a selector naming a path outside the managed set is
-/// skipped without a diagnostic; a managed path keeps its rejection.
+/// section nodes and rejects section selectors; `links` and `unlinked`
+/// contribute every node and resolve section selectors. File selectors —
+/// paths and globs — share one interpretation so new selector features apply
+/// to all three. Under `ignore_unmanaged`, a selector naming a path outside
+/// the managed set is skipped without a diagnostic; a managed path keeps its
+/// rejection.
 fn resolve_selectors(
     project: &Project,
     selectors: &[String],
     sections_only: bool,
     ignore_unmanaged: bool,
-    selected: &mut BTreeSet<String>,
     diagnostics: &mut Vec<QueryDiagnostic>,
-) {
+) -> Selection {
+    let mut selection = Selection::default();
     let eligible = |node: &&Node| !sections_only || node.kind == "section";
     if selectors.is_empty() {
-        selected.extend(
+        selection.nodes.extend(
             project
                 .nodes
                 .values()
                 .filter(&eligible)
                 .map(|n| n.id.clone()),
         );
+        selection.files.extend(project.files.keys().cloned());
     }
     for selector in selectors.iter().collect::<BTreeSet<_>>() {
         let (path, section) = selector
@@ -94,10 +106,17 @@ fn resolve_selectors(
                     }
                 }
             } else {
-                selected.insert(selector.clone());
+                selection.nodes.insert(selector.clone());
             }
         } else if path.contains('*') {
-            selected.extend(
+            selection.files.extend(
+                project
+                    .files
+                    .keys()
+                    .filter(|f| config::glob_matches(path, f))
+                    .cloned(),
+            );
+            selection.nodes.extend(
                 project
                     .nodes
                     .values()
@@ -105,7 +124,8 @@ fn resolve_selectors(
                     .map(|n| n.id.clone()),
             );
         } else if project.files.contains_key(path) {
-            selected.extend(
+            selection.files.insert(path.to_string());
+            selection.nodes.extend(
                 project
                     .nodes
                     .values()
@@ -114,7 +134,14 @@ fn resolve_selectors(
             );
         } else if directory(&project.root, path) {
             let recursive = format!("{path}/**");
-            selected.extend(
+            selection.files.extend(
+                project
+                    .files
+                    .keys()
+                    .filter(|f| config::glob_matches(&recursive, f))
+                    .cloned(),
+            );
+            selection.nodes.extend(
                 project
                     .nodes
                     .values()
@@ -130,6 +157,7 @@ fn resolve_selectors(
             ));
         }
     }
+    selection
 }
 
 /// The remedy an unmanaged-path diagnostic points to: the file to edit, and
@@ -158,28 +186,33 @@ pub fn links(
     include_content: bool,
     ignore_unmanaged: bool,
 ) -> Graph {
-    let mut selected = BTreeSet::new();
     let mut diagnostics = project.diagnostics.clone();
-    resolve_selectors(
+    let selection = resolve_selectors(
         project,
         selectors,
         false,
         ignore_unmanaged,
-        &mut selected,
         &mut diagnostics,
     );
     let edges: Vec<_> = project
         .edges
         .iter()
-        .filter(|e| selected.contains(&e.source) || selected.contains(&e.target))
+        .filter(|e| selection.nodes.contains(&e.source) || selection.nodes.contains(&e.target))
         .cloned()
         .collect();
-    let mut retained = selected;
+    let mut retained = selection.nodes.clone();
     for edge in &edges {
         retained.insert(edge.source.clone());
         retained.insert(edge.target.clone());
     }
-    graph(project, retained, edges, diagnostics, include_content)
+    graph(
+        project,
+        retained,
+        &selection.nodes,
+        edges,
+        diagnostics,
+        include_content,
+    )
 }
 
 /// The section IDs of the selected files, without traversing any link edges.
@@ -189,30 +222,33 @@ pub fn sections(
     include_content: bool,
     ignore_unmanaged: bool,
 ) -> Graph {
-    let mut selected = BTreeSet::new();
     let mut diagnostics = project.diagnostics.clone();
-    resolve_selectors(
+    let selection = resolve_selectors(project, selectors, true, ignore_unmanaged, &mut diagnostics);
+    graph(
         project,
-        selectors,
-        true,
-        ignore_unmanaged,
-        &mut selected,
-        &mut diagnostics,
-    );
-    graph(project, selected, Vec::new(), diagnostics, include_content)
+        selection.nodes.clone(),
+        &selection.nodes,
+        Vec::new(),
+        diagnostics,
+        include_content,
+    )
 }
 
 fn graph(
     project: &Project,
-    selected: BTreeSet<String>,
+    retained: BTreeSet<String>,
+    selected: &BTreeSet<String>,
     edges: Vec<Edge>,
     mut diagnostics: Vec<QueryDiagnostic>,
     include_content: bool,
 ) -> Graph {
-    let mut nodes: Vec<_> = selected
+    let mut nodes: Vec<_> = retained
         .iter()
         .filter_map(|id| project.nodes.get(id).cloned())
         .collect();
+    for node in &mut nodes {
+        node.selected = selected.contains(&node.id);
+    }
     nodes.sort_by(|a, b| (&a.path, a.line, &a.id).cmp(&(&b.path, b.line, &b.id)));
     diagnostics.sort_by(|a, b| {
         (&a.path, a.line, &a.code, &a.message).cmp(&(&b.path, b.line, &b.code, &b.message))
@@ -353,7 +389,15 @@ fn content_blocks(project: &Project, nodes: &mut [Node]) -> Vec<ContentBlock> {
     blocks
 }
 
-pub fn unlinked(project: &Project) -> Graph {
+pub fn unlinked(project: &Project, selectors: &[String], ignore_unmanaged: bool) -> Graph {
+    let mut diagnostics = project.diagnostics.clone();
+    let selection = resolve_selectors(
+        project,
+        selectors,
+        false,
+        ignore_unmanaged,
+        &mut diagnostics,
+    );
     let linked: BTreeSet<_> = project.edges.iter().map(|e| e.source.as_str()).collect();
     let linked_code: BTreeSet<_> = project.edges.iter().map(|e| e.target.as_str()).collect();
     let mut nodes = Vec::new();
@@ -448,19 +492,43 @@ pub fn unlinked(project: &Project) -> Graph {
                         1
                     },
                 }],
+                selected: false,
                 start: 0,
                 end,
             });
         }
     }
+    let mut nodes = keep_selected(nodes, &selection);
     nodes.sort_by(|a, b| (&a.path, a.line, &a.id).cmp(&(&b.path, b.line, &b.id)));
+    diagnostics.sort_by(|a, b| {
+        (&a.path, a.line, &a.code, &a.message).cmp(&(&b.path, b.line, &b.code, &b.message))
+    });
+    diagnostics.dedup();
+    let complete = project.complete && diagnostics.is_empty();
     Graph {
         nodes,
         edges: Vec::new(),
-        diagnostics: project.diagnostics.clone(),
-        complete: project.complete,
+        diagnostics,
+        complete,
         contents: None,
     }
+}
+
+/// The unlinked items inside `selection`. An item whose file was selected as
+/// a whole file, or whose ID was selected directly, keeps its whole subtree;
+/// any other item is replaced by the children that survive, so a selected
+/// subtree stands alone. A preamble survives only through `selection.files`,
+/// never through one of its file's sections.
+fn keep_selected(nodes: Vec<Node>, selection: &Selection) -> Vec<Node> {
+    let mut kept = Vec::new();
+    for node in nodes {
+        if selection.files.contains(&node.path) || selection.nodes.contains(&node.id) {
+            kept.push(node);
+        } else {
+            kept.extend(keep_selected(node.children, selection));
+        }
+    }
+    kept
 }
 
 fn line_start(text: &str, line: usize) -> usize {
