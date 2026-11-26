@@ -13,13 +13,12 @@ with any language.
 
 ## Install
 
-Production releases are pending: the first native release, `0.17.0`, has not
-been published yet. Until then, build it from source.
+Install DocBridge in one of these ways:
 
-- From a GitHub release (after `0.17.0`): download the executable for your
-  platform from [GitHub Releases](https://github.com/salan70/docbridge/releases)
-  and put it on your `PATH`, and make it executable. Assets cover Linux x64 and
-  ARM64 (static musl), macOS x64 and ARM64, and Windows x64.
+- From [GitHub Releases](https://github.com/salan70/docbridge/releases):
+  download the executable for your platform, make it executable, and put it on
+  your `PATH`. Assets cover Linux x64 and ARM64 (static musl), macOS x64 and
+  ARM64, and Windows x64.
 - With Nix: `nix profile install github:salan70/docbridge`, or use the flake
   output `packages.<system>.docbridge`.
 - From source with Rust 1.83 or later:
