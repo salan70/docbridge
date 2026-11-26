@@ -5,8 +5,8 @@ Edit `tool/pstack/overlays/poteto-mode.md`, not this section. Read `.agents/rule
 ### Harness
 
 - Bundled skills live at `.agents/skills/<name>/SKILL.md`. Most set `disable-model-invocation`, so read them directly instead of calling the `Skill` tool.
-- Only a curated subset of pstack is installed. A step that names a skill missing from `.agents/skills/` (`architect`, `arena`, `interrogate`, `swarm`, `how`, `why`, `no-comments`, `show-me-your-work`, `figure-it-out`, `poteto-agent`, `comment-sicko`, and the rest) is skipped with one line, never fetched.
-- Spawn `general-purpose` for every subagent, in place of `poteto-agent`. Ignore the model defaults in **Subagents**. Use `.agents/rules/pstack-models.md`. An explicit model choice from the user in the session wins.
+- Only a curated subset of pstack is installed. A step that names a skill missing from `.agents/skills/` (`arena`, `interrogate`, `swarm`, `show-me-your-work`, `figure-it-out`, and the rest) is skipped with one line, never fetched. `deslop` is vendored from cursor-team-kit and lives at `.agents/skills/deslop/`; read it directly.
+- Spawn `general-purpose` for every subagent, in place of `poteto-agent` and `comment-sicko` (its brief is vendored at `tool/pstack/upstream/agents/comment-sicko.md`). Ignore the model defaults in **Subagents**. Use `.agents/rules/pstack-models.md`. An explicit model choice from the user in the session wins.
 
 ### Devin free-model rate limit
 
