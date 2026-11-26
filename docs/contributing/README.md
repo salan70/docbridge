@@ -111,9 +111,9 @@ described in [Releasing](releasing.md#releasing-1).
 
 ## pstack assets
 
-`.agents/skills/` also holds skills vendored from Cursor's pstack plugin (MIT).
+`.agents/skills/` also holds skills vendored from Cursor's pstack plugin, plus `deslop` from the sibling cursor-team-kit plugin (both MIT).
 `tool/pstack/manifest.json` pins the upstream commit and the SHA-256 of every vendored file.
-`tool/pstack/NOTICE` records provenance, and `tool/pstack/upstream/LICENSE` is the upstream license.
+`tool/pstack/NOTICE` records provenance; `tool/pstack/upstream/` holds the upstream licenses and vendored reference files such as the harness doc and the `comment-sicko` brief.
 Everything in `tool/pstack/` uses only the Python 3 standard library.
 
 - `just pstack-status` verifies the vendored files offline, and `just pstack-test` runs the tooling tests. Neither belongs to `just verify`.

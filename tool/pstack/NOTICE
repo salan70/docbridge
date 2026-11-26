@@ -1,15 +1,20 @@
 Provenance of the files in tool/pstack/ and the skills installed from it.
 
 Vendored upstream content (MIT)
-  Source:   https://github.com/cursor/plugins, directory `pstack/`, at the commit pinned in manifest.json
-  License:  upstream/LICENSE (MIT; the copyright line is in the file)
-  Installed files: .agents/skills/<skill>/ and upstream/docs/harness/claude-code.md.
+  Source:   https://github.com/cursor/plugins, directories `pstack/` and `cursor-team-kit/`
+            (deslop only), at the commit pinned in manifest.json
+  License:  upstream/LICENSE for pstack and upstream/cursor-team-kit/LICENSE for cursor-team-kit
+            (both MIT; the copyright line is in each file)
+  Installed files: .agents/skills/<skill>/, upstream/docs/harness/claude-code.md,
+            upstream/agents/comment-sicko.md (the Comment Sicko brief for no-comments), and
+            upstream/cursor-team-kit/LICENSE.
   The upstream text of each file is byte-identical to the pinned upstream file. `pstack.py status`
   verifies its SHA-256. The project overlay in overlays/ is appended after a marker comment and is not
   part of the hashed upstream text.
 
 Repository-authored files (covered by this repository's LICENSE)
-  pstack.py, spawn_guard.py, test_pstack.py, test_spawn_guard.py, overlays/poteto-mode.md
+  pstack.py, spawn_guard.py, test_pstack.py, test_spawn_guard.py, overlays/poteto-mode.md,
+  overlays/no-comments.md
   Origin: written by the repository owner for another, private project and adapted for DocBridge.
   The adaptation removed project-specific paths and text, translated the messages to English,
   and dropped the git-ignored local model override.

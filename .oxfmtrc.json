@@ -3,9 +3,13 @@
   "ignorePatterns": [
     ".claude/settings.local.json",
     "crates/docbridge/tests/fixtures/**",
+    ".agents/skills/architect/**",
     ".agents/skills/benchmark-checklist/**",
     ".agents/skills/blast-radius/**",
     ".agents/skills/correct/**",
+    ".agents/skills/deslop/**",
+    ".agents/skills/how/**",
+    ".agents/skills/no-comments/**",
     ".agents/skills/poteto-mode/**",
     ".agents/skills/principle-boundary-discipline/**",
     ".agents/skills/principle-encode-lessons-in-structure/**",
@@ -15,6 +19,8 @@
     ".agents/skills/principle-subtract-before-you-add/**",
     ".agents/skills/technical-writing/**",
     ".agents/skills/unslop/**",
+    ".agents/skills/why/**",
+    "tool/pstack/upstream/agents/comment-sicko.md",
     "tool/pstack/upstream/docs/harness/claude-code.md"
   ],
   "insertFinalNewline": true,
