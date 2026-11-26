@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The Migration guide now covers legacy anchor slug differences, npm-based
+  invocation removal, generated-file exclusions, and leftover `related`
+  comments.
+- The Commands guide now states that `deinit` has no `--yes` option and no
+  longer describes release publication as pending.
+
 ## [0.18.0] - 2026-11-26
 
 ### Added
