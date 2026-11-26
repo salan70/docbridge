@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docbridge --version` (`-V`) prints the installed version on one line, and
   `docbridge help` prints the command list (`docbridge help <command>` equals
   `docbridge <command> --help`).
+- The Automation guide includes a copyable GitHub Actions step that installs a
+  pinned release, verifies its checksum, and runs `docbridge validate`.
 
 ### Changed
 
@@ -42,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The README and Getting started guide no longer describe the published native
+  release as pending.
 - The generated DocBridge Skill tells agents to look for how the project
   provides the CLI when `docbridge` is not on `PATH`.
 - `docbridge init`, `init --force`, and `docbridge deinit` now manage a Skill
