@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The generated DocBridge Skill tells agents to look for how the project
+  provides the CLI when `docbridge` is not on `PATH`.
 - `docbridge init`, `init --force`, and `docbridge deinit` now manage a Skill
   whose skills directory is reached through links when every link is an
   ancestor of the Skill directory and resolves inside the project — the
