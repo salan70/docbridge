@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docbridge --version` (`-V`) prints the installed version on one line, and
   `docbridge help` prints the command list (`docbridge help <command>` equals
   `docbridge <command> --help`).
+- The Automation guide includes a copyable GitHub Actions step that installs a
+  pinned release, verifies its checksum, and runs `docbridge validate`.
 
 ### Changed
 
